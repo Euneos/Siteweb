@@ -108,9 +108,17 @@ Programme de l'accueil, blocs « pourquoi/quoi » et méthodologie de la page
 Programme, 3 témoignages d'établissements pilotes, fonctions et contacts de
 l'équipe, 6 logos partenaires, textes réglementaires des 3 pages légales.
 
-**Photos** : aucune fournie. Direction imposée par la charte — humaine,
-authentique, lumineuse, saturation douce, couleurs naturelles ; **pas de studio,
-pas de détourage, pas de pose**. Les emplacements sont en place au bon ratio.
+**Photos** : le site utilise pour l'instant **la photo de la maquette** (celle
+que Candice a validée), importée dans `src/assets/photos/jeunes.jpg`. Deux
+réserves à lever avant la mise en ligne :
+- **résolution** : 816 × 552, suffisant pour la démo, trop juste pour un hero en
+  écran retina. Il faut l'original ;
+- **licence** : à vérifier auprès de Pauline (probablement une banque d'images).
+
+Direction imposée par la charte pour les suivantes — humaine, authentique,
+lumineuse, saturation douce, couleurs naturelles ; **pas de studio, pas de
+détourage, pas de pose**. `<Photo empty />` revient au cadre vide si besoin.
+Les images passent par `astro:assets` : webp + variantes responsives au build.
 
 **Arbitrages** (les 8 points du chapitre 10 de `DA-SITE.md`), dont les deux qui
 comptent : le contraste ci-dessus, et **« Calendly » (docx) contre « Candidatez /
