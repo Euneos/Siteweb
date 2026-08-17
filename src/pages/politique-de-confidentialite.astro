@@ -1,0 +1,29 @@
+---
+/**
+ * Page legale — coquille conforme a la structure demandee par le client
+ * (« Mentions legales · politique de confidentialite · cookies (RGPD) »,
+ * « mise en page sobre, aucun element graphique superflu »).
+ * Le texte reglementaire doit etre fourni par EUNEOS.
+ */
+import Base from '../layouts/Base.astro'
+---
+
+<Base title="Politique de confidentialité — EUNEOS" description="Politique de confidentialité du site euneos.fr.">
+  <section class="section page legal">
+    <h1>Politique de confidentialité</h1>
+    <p class="chapo">
+      Texte réglementaire à fournir par EUNEOS. Cette page existe pour que les liens du pied
+      de page soient valides dès la mise en ligne.
+    </p>
+  </section>
+</Base>
+
+<style is:global>
+  .legal {
+    max-width: 70ch;
+  }
+  .legal h1 {
+    margin-bottom: 1.5rem;
+    color: var(--vert);
+  }
+</style>

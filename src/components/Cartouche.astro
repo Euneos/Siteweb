@@ -1,0 +1,47 @@
+---
+/**
+ * Cartouche — « Le logo peut s'integrer dans un cartouche :
+ *   - En portrait, accompagne d'une illustration
+ *   - En paysage, seul »  (charte p.7)
+ * Regle absolue : « Les lettres du logo ne sont jamais colorisees, elles
+ * restent en noir et blanc. » Ici toujours blanches sur le cartouche colore.
+ */
+import Brand from './Brand.astro'
+import type { BrandName } from './Brand.astro'
+import type { Surface } from './Paper.astro'
+
+interface Props {
+  surface?: Surface
+  fig?: Extract<BrandName, 'fig1' | 'fig2' | 'fig3' | 'fig4' | 'fig5'>
+  orientation?: 'portrait' | 'paysage'
+  class?: string
+}
+
+const { surface = 'vert', fig = 'fig1', orientation = 'portrait', class: cls } = Astro.props
+---
+
+<div class:list={['cartouche', `s-${surface}`, orientation === 'paysage' && 'cartouche--paysage', cls]}>
+  {
+    orientation === 'portrait' && (
+      <div class="cartouche__fig">
+        <Brand name={fig} />
+      </div>
+    )
+  }
+  <div class="cartouche__mark">
+    <Brand name="wordmark" />
+  </div>
+  <span class="sr-only">Euneos</span>
+</div>
+
+<style>
+  .cartouche__fig {
+    width: 60%;
+  }
+  .cartouche__mark {
+    width: 100%;
+  }
+  .cartouche--paysage .cartouche__mark {
+    width: 74%;
+  }
+</style>

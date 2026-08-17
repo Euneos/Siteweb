@@ -1,0 +1,124 @@
+# EUNEOS — site web
+
+Site des 4 pages validées par Candice le 7 août 2026. Construit à partir de
+`charte_graphique.pdf` (V3, juillet 2026) et `maquette_euneos V 7 aout candice.pdf`.
+La spécification complète est dans le vault NILA :
+`4 - CASQUETTES/11. Agence/Stella Collab/Client/EUNEOS/DA-SITE.md`.
+
+## Stack
+
+Identique au site LAOM, volontairement.
+
+| Brique | Choix |
+|---|---|
+| Framework | Astro 5 |
+| Adaptateur | `@astrojs/cloudflare` |
+| CSS | Tailwind 4 via `@tailwindcss/vite` + tokens en variables CSS (`src/styles/global.css`) |
+| Paquets | **bun** |
+| Déploiement | Cloudflare Pages (compte client, accès admin `orion.aubert@gmail.com`) |
+| Police | Open Sans SemiCondensed, self-hostée, licence OFL (`public/fonts/`) |
+
+`output: 'static'` — les 4 pages sont du contenu pur, servies depuis le CDN.
+Seuls les endpoints de formulaire sont rendus à la demande (`prerender = false`).
+
+```bash
+bun install
+bun run dev      # http://localhost:4321
+bun run build    # astro check + build
+```
+
+## Le concept, à respecter
+
+> « Euneos fait du format papier la symbolique de son ancrage dans le réel. »
+
+Chaque bloc est **une feuille au format A avec un coin plié**. Le triangle du pli
+prend la **couleur « + »** : la variante foncée de la teinte du bloc. Tout est en
+CSS (`clip-path` + pseudo-élément), aucune image.
+
+La charte précise « 1 ou 2 plis par compo maximum » — c'est le point n°2 des
+arbitrages à valider (voir plus bas).
+
+## Règles de couleur (charte p.10 à 16)
+
+- **Vert `#00382D`** = couleur principale · **Jaune `#F8C702`** = principale également
+- **Bleu `#8AA9FF`** = **réservé au Programme clé (WISE-UP)**. Ne pas l'utiliser ailleurs.
+- Orange `#FC5E27` et rose `#F2B3F0` = secondaires, **par touches**
+- Fond de page = **`#F1EEEE`** (pas du blanc pur)
+- « Les lettres du logo ne sont jamais colorisées » · « les textes ne s'utilisent qu'en noir ou blanc »
+
+Chaque teinte a 3 niveaux (clair / base / `-fold`) déclarés dans `global.css`.
+Une surface s'applique avec une classe `s-vert`, `s-jaune`, `s-bleu`… qui pose
+`--surface`, `--on-surface` et `--fold-color`.
+
+### Écart assumé par rapport à la charte
+
+La charte prescrit du **texte blanc sur rose et sur bleu clair** : ratios 1,7:1 et
+2,2:1, très en dessous du minimum WCAG AA (4,5:1). Le code met donc du vert foncé
+ou du noir sur les teintes claires — solution **déjà employée par la maquette
+page 2** (titre « Notre Programme » en vert sur fond bleu). À faire valider.
+
+## Typographie (charte p.15, valeurs exactes)
+
+H1 56 px / 110 % · H2 40 px / 120 % · H3 20 px / 120 % · Chapô 20 px / 140 % ·
+Body 16 px / 160 % · letter-spacing 0 partout · SemiBold (600) + Regular (400).
+La variante SemiCondensed s'obtient par l'axe `wdth` à 87.5 %.
+
+## Composants
+
+| Composant | Rôle |
+|---|---|
+| `Paper.astro` | la feuille pliée. Props `surface`, `fold` (`br`/`tr`/`tl`/`bl`/`none`), `outline` |
+| `Cta.astro` | étiquette à coin plié, pleine ou contour |
+| `Brand.astro` | tous les vectoriels : `wordmark`, `fig1`..`fig5` (silhouettes), 10 pictos |
+| `Cartouche.astro` | le logo en cartouche, portrait (avec silhouette) ou paysage |
+| `PictoBox.astro` | petit cartouche coloré à picto blanc, posé en débord |
+| `Photo.astro` | emplacement photo au bon ratio (aucune photo fournie à ce jour) |
+
+Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pdf`
+(pages 5, 20, 21) avec `pdftocairo -svg`, puis normalisés en `fill="currentColor"`.
+
+## Deux pièges rencontrés, à ne pas refaire
+
+1. **Astro ne scope pas les classes passées à un composant.** Une classe donnée
+   à `<Paper class="mon-bloc">` ne sera jamais atteinte par un `<style>` scopé du
+   parent. C'est pourquoi les styles de page sont en **`<style is:global>`** avec
+   des noms préfixés (`hero__`, `etapes__`, `faq__`…). À l'intérieur d'un
+   composant, styler ses propres éléments et utiliser `:global(svg)` pour le SVG
+   injecté par `set:html`.
+2. **Un `padding` en % se résout sur la largeur du conteneur, pas sur celle de la
+   boîte.** Sur un petit cartouche dans une colonne large, le padding mangeait
+   tout l'élément. `PictoBox` reçoit donc sa taille en variable CSS et calcule son
+   padding avec `calc(var(--pbox) * 0.17)`.
+
+## Formulaires
+
+- `POST /api/contact` — page Nous contacter
+- `POST /api/newsletter` — pied de page, avec la **segmentation en 3**
+  (établissement / partenaire / curieux) portée par le design lui-même
+
+Les deux valident les champs et tracent la demande dans les logs Cloudflare.
+**Il ne manque que `BREVO_API_KEY`** pour brancher l'envoi et l'accusé de
+réception prévus au brief. La segmentation doit alimenter la même base que le
+portail de candidature.
+
+## Ce qui reste à obtenir du client
+
+**Éditorial** (dépend de Pauline, retour le 26/08) : textes des 3 colonnes
+Programme de l'accueil, blocs « pourquoi/quoi » et méthodologie de la page
+Programme, 3 témoignages d'établissements pilotes, fonctions et contacts de
+l'équipe, 6 logos partenaires, textes réglementaires des 3 pages légales.
+
+**Photos** : aucune fournie. Direction imposée par la charte — humaine,
+authentique, lumineuse, saturation douce, couleurs naturelles ; **pas de studio,
+pas de détourage, pas de pose**. Les emplacements sont en place au bon ratio.
+
+**Arbitrages** (les 8 points du chapitre 10 de `DA-SITE.md`), dont les deux qui
+comptent : le contraste ci-dessus, et **« Calendly » (docx) contre « Candidatez /
+Infos et candidature » (maquette)** — ce ne sont pas les mêmes mécaniques et ça
+conditionne le portail de candidature.
+
+## Domaine
+
+`euneos.fr` répond aujourd'hui avec un certificat `*.conceptiondesite.com`
+(constructeur Viaduc) : **alerte de sécurité navigateur pour tout visiteur**.
+Rien à préserver, la bascule DNS vers Cloudflare ne détruit aucun site existant.

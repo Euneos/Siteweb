@@ -1,0 +1,581 @@
+---
+/**
+ * Page 2 — Notre Programme.
+ * Fidele a la maquette v7, page 2. Hero BLEU : c'est la couleur reservee
+ * au Programme cle (« Le bleu est reserve pour le Programme cle d'Euneos »).
+ */
+import Brand from '../components/Brand.astro'
+import Cartouche from '../components/Cartouche.astro'
+import Cta from '../components/Cta.astro'
+import Paper from '../components/Paper.astro'
+import Photo from '../components/Photo.astro'
+import PictoBox from '../components/PictoBox.astro'
+import Base from '../layouts/Base.astro'
+
+const methodo = [
+  { picto: 'main', surface: 'bleu', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+  { picto: 'asterisque', surface: 'rose', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+  { picto: 'oiseau', surface: 'orange', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+] as const
+
+/* Les 6 etapes, avec une couleur par etape (maquette p.2) */
+const etapes = [
+  { n: 1, titre: 'Sélection', surface: 'blanc' },
+  { n: 2, titre: 'Rencontre de lancement & mobilisation de l’équipe', surface: 'bleu' },
+  { n: 3, titre: 'Formation des équipes', surface: 'rose' },
+  { n: 4, titre: 'Ateliers jeunes', surface: 'orange' },
+  { n: 5, titre: 'Intégration en classe et accompagnement', surface: 'jaune' },
+  { n: 6, titre: 'Évaluation & restitution', surface: 'blanc' },
+] as const
+
+const impact = [
+  { valeur: '16', legende: 'établissements pilotes engagés en 2025/2026' },
+  { valeur: '6', legende: 'pays ont adhéré au Programme' },
+  { valeur: '12', legende: 'organisations partenaires' },
+  { valeur: '100 %', legende: 'des frais pris en charge par le Programme' },
+]
+
+const faq = [
+  {
+    q: 'Combien coûte le programme pour notre établissement ?',
+    r: 'Aucun frais : le programme 2026-2027 est intégralement financé.',
+  },
+  {
+    q: 'Quelle charge de travail pour notre équipe ?',
+    r: '16 h de formation initiale, puis 4 à 8 ateliers jeunes répartis sur l’année.',
+  },
+  {
+    q: 'Le programme est-il scientifiquement fondé ?',
+    r: 'Oui : approches pédagogiques évaluées, avec questionnaires avant/après et restitution dans le cadre du consortium européen Erasmus+.',
+  },
+  {
+    q: 'Qui peut candidater ?',
+    r: 'Collèges et lycées publics ou privés, en France hexagonale ou dans les DOM.',
+  },
+  {
+    q: 'Comment le Programme s’articule-t-il avec les dispositifs existants de l’Éducation nationale ?',
+    r: 'L’EVAR (Éducation à la Vie Émotionnelle, Affective et Relationnelle) est une directive récente de l’Éducation nationale dont les objectifs recoupent directement ce que le Programme développe. Les compétences psychosociales sont un terme scientifiquement reconnu, déjà présent dans les référentiels de l’Éducation nationale : les formations internes y consacrent 6 h, le Programme en propose 16 : il approfondit un cadre existant plutôt que d’en ajouter un nouveau.',
+  },
+]
+---
+
+<Base
+  title="Notre Programme — WISE-UP | EUNEOS"
+  description="Le Programme EUNEOS : 16 h de formation pour les équipes éducatives, 4 à 8 ateliers jeunes, une évaluation scientifique. Aucun frais pour l’établissement. Candidatez pour la rentrée 2026."
+  heroSurface="bleu"
+>
+  <!-- HERO bleu -->
+  <section slot="hero" class="page hero2">
+    <div class="hero2__grid">
+      <div class="hero2__media">
+        <Photo ratio="4/3" label="photo — atelier en situation" />
+        <div class="hero2__cartouche"><Cartouche surface="rose" fig="fig3" /></div>
+      </div>
+
+      <Paper outline fold="tr" class="hero2__bubble">
+        <h1>
+          Le Programme Euneos,
+          <span class="hero2__soft">caractéristiques caractéristiques caractéristiques</span>
+        </h1>
+        <Cta href="#candidater" surface="bleu-clair">En savoir +</Cta>
+      </Paper>
+    </div>
+  </section>
+
+  <!-- WHY / WHAT -->
+  <section class="section why">
+    <div class="why__fig" aria-hidden="true"><Brand name="fig4" /></div>
+    <div class="page g16 why__in">
+      <h2 style="grid-column: 4 / 9">À REDIGER</h2>
+      <div style="grid-column: 10 / 17" class="why__txt">
+        <p>
+          Bloc « pourquoi / quoi » — caractéristiques précises attendues : durée, outils,
+          nombre d’animateurs, adaptations possibles. Texte à fournir par Pauline.
+        </p>
+        <Cta href="/qui-sommes-nous" surface="bleu">Qui sommes-nous ?</Cta>
+      </div>
+    </div>
+  </section>
+
+  <!-- METHODOLOGIE -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t">Notre méthodologie</h2>
+      <ul class="methodo">
+        {
+          methodo.map((m) => (
+            <li>
+              <div class="methodo__head">
+                <PictoBox picto={m.picto} surface={m.surface} size="76px" />
+                <h3>{m.titre}</h3>
+              </div>
+              <p>{m.texte}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- DEROULEMENT : 6 etapes en quinconce, une couleur par etape -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t">Comment se déroule notre programme ?</h2>
+      <ol class="etapes">
+        {
+          etapes.map((e, i) => (
+            <li class:list={['etapes__item', i % 2 === 1 && 'is-right']}>
+              <Paper surface={e.surface} fold="tr" class="etapes__card">
+                <p class="etapes__n">
+                  <span>{e.n}</span> {e.titre}
+                </p>
+                <p class="etapes__txt">Descriptif de l’étape — à fournir par Pauline.</p>
+              </Paper>
+            </li>
+          ))
+        }
+      </ol>
+      <div class="c-cta">
+        <Cta href="#candidater" surface="bleu">Candidatez pour la rentrée 2026</Cta>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPACT : bandeau bleu + silhouette en filigrane -->
+  <section class="s-bleu impact2">
+    <div class="filigrane" aria-hidden="true">
+      <div class="impact2__fig"><Brand name="fig3" /></div>
+    </div>
+    <div class="page section impact2__in">
+      <h2 class="impact2__t">Notre impact</h2>
+      <ul class="impact2__list">
+        {
+          impact.map((s) => (
+            <li>
+              <span class="impact2__n">{s.valeur}</span>
+              <p>{s.legende}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- TEMOIGNAGES -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t">Ils nous ont fait confiance</h2>
+      <ul class="temoins">
+        {
+          [1, 2].map(() => (
+            <li class="temoin">
+              <Paper surface="ocre" fold="none" class="temoin__name">Nom Prénom</Paper>
+              <div class="temoin__ph">
+                <Photo ratio="3/4" label="portrait" />
+              </div>
+              <Paper surface="blanc" fold="br" class="temoin__card">
+                <blockquote>« Témoignage à recueillir auprès d’un établissement pilote. »</blockquote>
+                <p class="temoin__role">Fonction, Établissement</p>
+              </Paper>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="c-cta">
+        <Cta href="#candidater" surface="bleu">Candidatez pour la rentrée 2026</Cta>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="page faq">
+      <div class="faq__col">
+        <h2 class="faq__t">Questions fréquentes</h2>
+        <dl class="faq__list">
+          {
+            faq.map((item) => (
+              <details class="faq__item">
+                <summary>{item.q}</summary>
+                <p>{item.r}</p>
+              </details>
+            ))
+          }
+        </dl>
+      </div>
+      <div class="faq__media">
+        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="clamp(74px, 8vw, 112px)" /></div>
+        <Photo ratio="4/3" label="photo — équipe" />
+        <div class="faq__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section id="candidater" class="s-bleu final">
+    <div class="filigrane" aria-hidden="true">
+      <div class="final__fig"><Brand name="fig3" /></div>
+    </div>
+    <div class="page section final__in">
+      <h2>Candidatez pour rejoindre le Programme à la rentrée 2026</h2>
+      <Cta href="/contact" outline>Infos et candidature</Cta>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  /* HERO */
+  .hero2 {
+    padding-bottom: clamp(2.5rem, 7vw, 5rem);
+  }
+  .hero2__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(1rem, 2.5vw, 2rem);
+    align-items: center;
+  }
+  .hero2__media {
+    position: relative;
+  }
+  .hero2__cartouche {
+    position: absolute;
+    left: -7%;
+    top: 14%;
+    width: 20%;
+    min-width: 84px;
+    z-index: 1;
+  }
+  .hero2__bubble {
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    justify-items: start;
+    align-content: space-between;
+    min-height: 20rem;
+  }
+  .hero2__soft {
+    color: var(--bleu-clair);
+    display: block;
+  }
+
+  /* WHY */
+  .why {
+    position: relative;
+    overflow: hidden;
+  }
+  .why__fig {
+    position: absolute;
+    right: -6%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: clamp(15rem, 27vw, 24rem);
+    color: var(--bleu);
+  }
+  .why__fig svg {
+    height: 100%;
+    width: auto;
+  }
+  .why__in {
+    position: relative;
+    align-items: center;
+  }
+  .why__txt {
+    display: grid;
+    gap: 1.75rem;
+    justify-items: start;
+  }
+  @media (max-width: 860px) {
+    .why__fig {
+      display: none;
+    }
+  }
+
+  /* titres centres reutilisables */
+  .c-t {
+    text-align: center;
+    color: var(--vert);
+    margin-bottom: clamp(2rem, 5vw, 3.25rem);
+  }
+  .c-cta {
+    display: flex;
+    justify-content: center;
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+
+  /* METHODOLOGIE */
+  .methodo {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+  .methodo__head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .methodo__head h3 {
+    color: var(--vert);
+  }
+  @media (max-width: 860px) {
+    .methodo {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ETAPES */
+  .etapes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+  }
+  .etapes__item {
+    width: min(100%, 46rem);
+  }
+  .etapes__item.is-right {
+    margin-left: auto;
+  }
+  .etapes__card {
+    padding: clamp(1.1rem, 2.4vw, 1.75rem);
+    --f: var(--fold-sm);
+  }
+  .etapes__n {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--vert);
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+  .etapes__n span {
+    font-size: 2.25rem;
+    line-height: 1;
+  }
+  .etapes__txt {
+    margin-top: 0.75rem;
+    opacity: 0.9;
+  }
+
+  /* IMPACT bandeau */
+  .impact2 {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--on-surface);
+  }
+  .impact2__fig {
+    position: absolute;
+    left: 30%;
+    top: -14%;
+    height: 130%;
+    opacity: 0.16;
+    color: var(--bleu-clair);
+  }
+  .impact2__fig svg {
+    height: 100%;
+    width: auto;
+  }
+  .impact2__in {
+    position: relative;
+    z-index: 1;
+  }
+  .impact2__t {
+    text-align: center;
+    color: var(--blanc);
+    margin-bottom: clamp(2rem, 5vw, 3rem);
+  }
+  .impact2__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(1rem, 3vw, 2rem);
+    text-align: center;
+    color: var(--blanc);
+  }
+  .impact2__n {
+    display: block;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 600;
+    line-height: 1;
+  }
+  .impact2__list p {
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+  }
+  @media (max-width: 860px) {
+    .impact2__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* TEMOIGNAGES */
+  .temoins {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+  .temoin {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+  }
+  .temoin__name {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    z-index: 3;
+    position: relative;
+    margin-bottom: -0.4rem;
+  }
+  .temoin__ph {
+    grid-column: 1;
+    grid-row: 2;
+    z-index: 2;
+    position: relative;
+  }
+  .temoin__card {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    margin-left: -10%;
+    padding: clamp(1.1rem, 2.2vw, 1.75rem);
+    padding-left: clamp(2rem, 4vw, 3.25rem);
+    z-index: 1;
+    display: grid;
+    gap: 0.9rem;
+  }
+  .temoin__card blockquote {
+    margin: 0;
+    font-style: italic;
+  }
+  .temoin__role {
+    font-style: italic;
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+  @media (max-width: 860px) {
+    .temoins {
+      grid-template-columns: 1fr;
+    }
+    .temoin {
+      grid-template-columns: 1fr;
+    }
+    .temoin__name,
+    .temoin__ph,
+    .temoin__card {
+      grid-column: 1;
+      grid-row: auto;
+      margin-left: 0;
+    }
+  }
+
+  /* FAQ */
+  .faq {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+  .faq__t {
+    text-align: left;
+    color: var(--vert);
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  .faq__list {
+    margin: 0;
+  }
+  .faq__item {
+    border-bottom: 1px solid color-mix(in srgb, var(--noir) 14%, transparent);
+    padding: 1rem 0;
+  }
+  .faq__item summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .faq__item summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq__item summary::after {
+    content: '+';
+    font-size: 1.4rem;
+    line-height: 1;
+    color: var(--vert);
+  }
+  .faq__item[open] summary::after {
+    content: '–';
+  }
+  .faq__item p {
+    margin-top: 0.75rem;
+    max-width: 60ch;
+  }
+  .faq__media {
+    position: relative;
+  }
+  .faq__picto {
+    position: absolute;
+    left: -12%;
+    top: -10%;
+    z-index: 1;
+  }
+  .faq__cartouche {
+    position: absolute;
+    right: -8%;
+    bottom: -14%;
+    width: 26%;
+    min-width: 90px;
+    z-index: 1;
+  }
+  @media (max-width: 860px) {
+    .faq {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* CTA FINAL */
+  .final {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--on-surface);
+  }
+  .final__fig {
+    position: absolute;
+    left: -4%;
+    top: -10%;
+    height: 125%;
+    opacity: 0.2;
+    color: var(--bleu-clair);
+  }
+  .final__fig svg {
+    height: 100%;
+    width: auto;
+  }
+  .final__in {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+    text-align: center;
+  }
+  .final__in h2 {
+    max-width: 26ch;
+    color: var(--blanc);
+  }
+</style>

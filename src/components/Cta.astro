@@ -1,0 +1,23 @@
+---
+/**
+ * Cta — etiquette a coin plie. « Style : Body SemiBold » (charte p.15).
+ * Deux variantes : pleine et contour.
+ */
+import type { Surface } from './Paper.astro'
+
+interface Props {
+  href?: string
+  surface?: Surface
+  outline?: boolean
+  type?: 'button' | 'submit'
+  class?: string
+}
+
+const { href, surface = 'vert', outline = false, type, class: cls = '' } = Astro.props
+const classes = ['cta', `s-${surface}`, outline ? 'cta-outline' : '', cls].filter(Boolean).join(' ')
+const Tag = href ? 'a' : 'button'
+---
+
+<Tag class={classes} href={href} type={href ? undefined : (type ?? 'button')}>
+  <slot />
+</Tag>

@@ -1,0 +1,46 @@
+---
+/**
+ * Paper — LE composant signature.
+ * « Euneos fait du format papier la symbolique de son ancrage dans le reel. »
+ * Une feuille au format A, avec un coin plie dont le triangle prend la
+ * couleur « + » (variante foncee de la teinte). Charte p.22.
+ *
+ * La charte precise « 1 ou 2 plis par compo maximum » : le pli est donc
+ * optionnel (fold="none") pour les blocs de remplissage.
+ */
+export type Surface = 'vert' | 'jaune' | 'bleu' | 'bleu-clair' | 'orange' | 'rose' | 'papier' | 'blanc' | 'ocre'
+
+interface Props {
+  surface?: Surface
+  fold?: 'br' | 'tr' | 'tl' | 'bl' | 'none'
+  /** variante a filet (la bulle du hero) */
+  outline?: boolean
+  /** taille du pli, libre selon la charte */
+  foldSize?: string
+  as?: string
+  class?: string
+}
+
+const {
+  surface = 'blanc',
+  fold = 'br',
+  outline = false,
+  foldSize,
+  as: Tag = 'div',
+  class: cls = '',
+} = Astro.props
+
+const classes = [
+  'paper',
+  `s-${surface}`,
+  fold !== 'none' ? `fold-${fold}` : '',
+  outline ? 'paper-outline' : '',
+  cls,
+]
+  .filter(Boolean)
+  .join(' ')
+---
+
+<Tag class={classes} style={foldSize ? `--f:${foldSize}` : undefined}>
+  <slot />
+</Tag>

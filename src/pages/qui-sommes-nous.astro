@@ -1,0 +1,574 @@
+---
+/**
+ * Page 3 — Qui sommes-nous ?
+ * Fidele a la maquette v7, page 3.
+ * Deux fautes du copy fourni sont corrigees : « grandir seul » -> seuls,
+ * « les educateur » -> les educateurs. A confirmer avec Candice.
+ */
+import Brand from '../components/Brand.astro'
+import Cartouche from '../components/Cartouche.astro'
+import Cta from '../components/Cta.astro'
+import Paper from '../components/Paper.astro'
+import Photo from '../components/Photo.astro'
+import PictoBox from '../components/PictoBox.astro'
+import Base from '../layouts/Base.astro'
+
+const jalons = [
+  'L’instruction interministérielle de 2022 inscrit les compétences psychosociales dans les objectifs éducatifs.',
+  'La Stratégie Numérique pour l’éducation 2023-2027 fait de l’usage éclairé des outils numériques une priorité éducative nationale.',
+  'En 2025, la santé mentale est déclarée Grande Cause nationale.',
+]
+
+const actions = [
+  {
+    picto: 'main',
+    surface: 'papier',
+    titre: 'Révéler',
+    texte:
+      'Appréhender les dynamiques d’apprentissage individuelles et collectives pour révéler ce qui freine le développement global des jeunes et ce qui peut le développer, en s’appuyant sur la recherche internationale (neurosciences, psychologie du développement, santé publique, sciences de l’éducation).',
+  },
+  {
+    picto: 'etoile',
+    surface: 'orange',
+    titre: 'Éclairer',
+    texte:
+      'Sensibiliser les équipes pédagogiques à la prévention de la santé mentale, à la transmission des compétences psychosociales et au rapport au numérique, et les accompagner dans l’appropriation d’outils adaptés à leurs pratiques existantes.',
+  },
+  {
+    picto: 'asterisque',
+    surface: 'jaune',
+    titre: 'Diffuser',
+    texte:
+      'Mesurer l’impact des approches (questionnaires, indicateurs de suivi, évaluations) pour améliorer en continu les outils et les pratiques et les déployer à grande échelle.',
+  },
+] as const
+
+const niveaux: {
+  surtitre?: string
+  titre: string
+  texte: string
+  cta: string
+  ctaSurface: 'jaune' | 'bleu' | 'rose' | 'ocre'
+  href: string
+}[] = [
+  {
+    titre: 'Sensibilisation',
+    texte: 'Formats légers, conférences, ressources en ligne, webinaires.',
+    cta: 'En savoir +',
+    ctaSurface: 'jaune',
+    href: '/contact',
+  },
+  {
+    surtitre: 'Formation longue durée',
+    titre: 'Le Programme',
+    texte: '16 h pour le personnel en poste qui anime ensuite les ateliers auprès des jeunes.',
+    cta: 'Découvrir notre programme clé',
+    ctaSurface: 'bleu',
+    href: '/programme',
+  },
+  {
+    titre: 'Accompagnement au quotidien',
+    texte: 'Suivi post-formation, analyse de pratiques, réseau de pairs entre référents.',
+    cta: 'Contactez-nous',
+    ctaSurface: 'rose',
+    href: '/contact',
+  },
+  {
+    titre: 'Plaidoyer',
+    texte: 'Comité scientifique, groupes de travail, dialogue institutionnel, influence sur les politiques publiques.',
+    cta: 'En savoir +',
+    ctaSurface: 'ocre',
+    href: '/contact',
+  },
+]
+
+const equipe = [
+  { nom: 'Candice Marro', fonction: 'Fondatrice et Directrice Générale' },
+  { nom: 'Charlotte Térouanne', fonction: 'Responsable établissements' },
+  { nom: 'Pauline Miqueu-Petit', fonction: 'Communication' },
+]
+---
+
+<Base
+  title="Qui sommes-nous ? — EUNEOS"
+  description="EUNEOS, association loi 1901 fondée en avril 2026 : l’une des premières structures françaises à intégrer santé mentale, compétences psychosociales et rapport au numérique dans une approche pédagogique évaluée."
+  heroSurface="vert"
+>
+  <!-- HERO -->
+  <section slot="hero" class="page hero3">
+    <div class="hero3__grid">
+      <div class="hero3__media">
+        <Photo ratio="4/3" label="photo — lieu éducatif" />
+        <div class="hero3__cartouche"><Cartouche surface="bleu" fig="fig1" /></div>
+      </div>
+
+      <Paper outline fold="tr" class="hero3__bubble">
+        <h1>Inscrivons dans les parcours pédagogiques une culture durable du prendre soin.</h1>
+        <Cta href="#fondements" surface="papier">En savoir +</Cta>
+      </Paper>
+    </div>
+  </section>
+
+  <!-- FONDEMENTS -->
+  <section id="fondements" class="section fond">
+    <div class="fond__fig" aria-hidden="true"><Brand name="fig1" /></div>
+    <div class="page g16 fond__in">
+      <h2 style="grid-column: 4 / 10">
+        Ne laissons pas les jeunes grandir seuls face aux défis du numérique, et ne laissons
+        pas les éducateurs sans ressources pour les accompagner.
+      </h2>
+      <div style="grid-column: 11 / 17" class="fond__txt">
+        <p>
+          L’adolescence est une étape décisive du développement humain, marquée par des
+          transitions physiques, émotionnelles et sociales majeures.
+          <strong>
+            Quand cette période de vulnérabilité est saturée par le numérique, c’est
+            l’équilibre global des jeunes qui peut être d’autant plus fragilisé.
+          </strong>
+        </p>
+        <p>
+          Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
+          comme premiers leviers pour prendre soin de la santé globale et de la réussite des
+          jeunes :
+        </p>
+        <ul class="fond__jalons">
+          {jalons.map((j) => <li>{j}</li>)}
+        </ul>
+      </div>
+    </div>
+    <div class="page fond__cta">
+      <Cta href="/programme">Découvrir notre programme clé</Cta>
+    </div>
+  </section>
+
+  <!-- MISSION -->
+  <section class="section">
+    <div class="page mission">
+      <div class="mission__media">
+        <Photo ratio="3/4" label="photo — jeunes" />
+        <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="clamp(74px, 7vw, 104px)" /></div>
+        <Paper surface="rose" fold="tl" class="mission__badge">
+          <span class="mission__badge-mark"><Brand name="wordmark" /></span>
+          <span class="mission__badge-txt">Association Loi 1901<br />fondée en avril 2026</span>
+        </Paper>
+      </div>
+
+      <Paper surface="vert" fold="br" class="mission__card">
+        <p>
+          Alors que la santé mentale, les compétences psychosociales et l’usage éclairé du
+          numérique relèvent d’un même enjeu de développement, ces priorités sont rarement
+          considérées simultanément.
+        </p>
+        <p class="mission__strong">
+          EUNEOS est l’une des 1<sup>ères</sup> structures françaises à les intégrer dans une
+          approche pédagogique évaluée.
+        </p>
+      </Paper>
+    </div>
+  </section>
+
+  <!-- COMMENT AGISSONS-NOUS -->
+  <section class="section">
+    <div class="page">
+      <p class="surtitre a-surtitre">Notre approche</p>
+      <h2 class="a-t">
+        Équilibrons et préservons le parcours des jeunes et des équipes pédagogiques qui les
+        accompagnent.
+      </h2>
+      <ul class="actions">
+        {
+          actions.map((a) => (
+            <li class="action">
+              <div class="action__head">
+                <PictoBox picto={a.picto} surface={a.surface} size="72px" />
+                <h3>{a.titre}</h3>
+              </div>
+              <p>{a.texte}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- NIVEAUX D'INTERVENTION -->
+  <section class="section niveaux-sec">
+    <div class="page">
+      <p class="surtitre a-surtitre">Nos niveaux d’intervention</p>
+      <h2 class="a-t">
+        C’est dans la durée que la connaissance devient pratique, et que la pratique devient
+        culture.
+      </h2>
+      <ul class="niveaux">
+        {
+          niveaux.map((n) => (
+            <li>
+              <Paper surface="vert" fold="tl" class="niveau">
+                {n.surtitre && <p class="niveau__sur">{n.surtitre}</p>}
+                <h3>{n.titre}</h3>
+                <p class="niveau__txt">{n.texte}</p>
+                <Cta href={n.href} surface={n.ctaSurface} class="niveau__cta">
+                  {n.cta}
+                </Cta>
+              </Paper>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- EQUIPE -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t">Notre équipe</h2>
+      <ul class="equipe">
+        {
+          equipe.map((m) => (
+            <li class="membre">
+              <Paper surface="ocre" fold="none" class="membre__name">{m.nom}</Paper>
+              <div class="membre__ph">
+                <Photo ratio="3/4" label="portrait" />
+              </div>
+              <Paper surface="blanc" fold="br" class="membre__card">
+                <p>{m.fonction}</p>
+                <a href="/contact">Nous contacter</a>
+              </Paper>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- PREUVE -->
+  <section class="section conf3">
+    <div class="filigrane" aria-hidden="true">
+      <div class="conf3__fig"><Brand name="fig3" /></div>
+    </div>
+    <div class="page conf3__in">
+      <h2 class="c-t">Merci pour leur confiance</h2>
+      <ul class="conf3__logos">
+        {Array.from({ length: 6 }).map(() => <li aria-label="Logo partenaire à fournir" />)}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  .hero3 {
+    padding-bottom: clamp(2.5rem, 7vw, 5rem);
+  }
+  .hero3__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(1rem, 2.5vw, 2rem);
+    align-items: center;
+  }
+  .hero3__media {
+    position: relative;
+  }
+  .hero3__cartouche {
+    position: absolute;
+    left: -7%;
+    bottom: 8%;
+    width: 20%;
+    min-width: 84px;
+  }
+  .hero3__bubble {
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    justify-items: start;
+    align-content: space-between;
+    min-height: 20rem;
+  }
+
+  /* FONDEMENTS */
+  .fond {
+    position: relative;
+    overflow: hidden;
+  }
+  .fond__fig {
+    position: absolute;
+    left: -7%;
+    top: 46%;
+    transform: translateY(-50%);
+    height: clamp(15rem, 26vw, 23rem);
+    color: var(--vert);
+  }
+  .fond__fig svg {
+    height: 100%;
+    width: auto;
+  }
+  .fond__in {
+    position: relative;
+  }
+  .fond__in h2 {
+    color: var(--vert);
+  }
+  .fond__txt {
+    display: grid;
+    gap: 1rem;
+  }
+  .fond__jalons {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .fond__jalons li {
+    position: relative;
+    padding-left: 2.25rem;
+  }
+  .fond__jalons li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 1.5rem;
+    height: 0.5rem;
+    background: var(--vert-clair);
+    clip-path: polygon(0 30%, 65% 30%, 65% 0, 100% 50%, 65% 100%, 65% 70%, 0 70%);
+  }
+  .fond__cta {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+  @media (max-width: 860px) {
+    .fond__fig {
+      display: none;
+    }
+  }
+
+  /* MISSION */
+  .mission {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    align-items: center;
+  }
+  .mission__media {
+    position: relative;
+    z-index: 2;
+  }
+  .mission__picto {
+    position: absolute;
+    right: -8%;
+    top: -8%;
+    z-index: 3;
+  }
+  .mission__badge {
+    position: absolute;
+    left: -14%;
+    bottom: 16%;
+    width: 78%;
+    padding: 0.9rem 1.1rem;
+    z-index: 4;
+    --f: 1.1rem;
+  }
+  .mission__badge-mark {
+    display: block;
+    width: 62%;
+    margin-bottom: 0.4rem;
+  }
+  .mission__badge-txt {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.3;
+    display: block;
+  }
+  .mission__card {
+    margin-left: -6%;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    padding-left: clamp(2.5rem, 6vw, 5rem);
+    display: grid;
+    gap: 1rem;
+    z-index: 1;
+  }
+  .mission__strong {
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  @media (max-width: 860px) {
+    .mission {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    .mission__card {
+      margin-left: 0;
+      padding-left: clamp(1.5rem, 3vw, 2.5rem);
+    }
+    .mission__badge {
+      left: 0;
+      width: 62%;
+    }
+  }
+
+  /* APPROCHE */
+  .a-surtitre {
+    text-align: center;
+  }
+  .a-t {
+    text-align: center;
+    color: var(--vert);
+    max-width: 42ch;
+    margin: 0.5rem auto clamp(2rem, 5vw, 3.25rem);
+  }
+  .actions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0;
+  }
+  .action {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 2fr);
+    gap: clamp(1rem, 3vw, 2.5rem);
+    align-items: start;
+    padding-block: clamp(1.25rem, 3vw, 2rem);
+    border-bottom: 1px solid color-mix(in srgb, var(--noir) 12%, transparent);
+  }
+  .action:last-child {
+    border-bottom: 0;
+  }
+  .action__head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .action__head h3 {
+    color: var(--vert);
+    font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  }
+  @media (max-width: 860px) {
+    .action {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  /* NIVEAUX */
+  .niveaux-sec {
+    background: var(--papier);
+  }
+  .niveaux {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1rem, 3vw, 2.25rem);
+  }
+  .niveau {
+    height: 100%;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    display: grid;
+    gap: 0.6rem;
+    justify-items: center;
+    text-align: center;
+    align-content: start;
+    --f: var(--fold-sm);
+  }
+  .niveau__sur {
+    font-size: 0.95rem;
+    opacity: 0.85;
+  }
+  .niveau__txt {
+    max-width: 34ch;
+  }
+  .niveau__cta {
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 860px) {
+    .niveaux {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* EQUIPE */
+  .equipe {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+  .membre {
+    display: grid;
+  }
+  .membre__name {
+    justify-self: start;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    margin-bottom: -0.4rem;
+    margin-left: 8%;
+  }
+  .membre__ph {
+    position: relative;
+    z-index: 1;
+  }
+  .membre__card {
+    padding: 1rem 1.25rem;
+    display: grid;
+    gap: 0.4rem;
+    --f: var(--fold-sm);
+  }
+  .membre__card a {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 860px) {
+    .equipe {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* PREUVE */
+  .conf3 {
+    position: relative;
+    overflow: hidden;
+  }
+  .conf3__fig {
+    position: absolute;
+    right: -3%;
+    top: -20%;
+    height: 140%;
+    opacity: 0.1;
+    color: var(--vert-clair);
+  }
+  .conf3__fig svg {
+    height: 100%;
+    width: auto;
+  }
+  .conf3__in {
+    position: relative;
+    z-index: 1;
+  }
+  .conf3__logos {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(1rem, 3vw, 2.5rem);
+  }
+  .conf3__logos li {
+    aspect-ratio: 5 / 3;
+    background: var(--vert-clair);
+    opacity: 0.85;
+  }
+  @media (max-width: 860px) {
+    .conf3__logos {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

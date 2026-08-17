@@ -1,0 +1,58 @@
+---
+/**
+ * PictoBox — le petit cartouche de couleur a picto blanc, pose en debord d'une
+ * photo ou en tete de carte. Present partout dans la maquette.
+ *
+ * Attention : un padding en % se resout sur la largeur du CONTENEUR, pas sur
+ * celle de la boite. La taille est donc passee en variable CSS et le padding
+ * calcule a partir d'elle.
+ */
+import Brand from './Brand.astro'
+import type { BrandName } from './Brand.astro'
+import type { Surface } from './Paper.astro'
+
+interface Props {
+  picto: BrandName
+  surface?: Surface
+  /** largeur du cartouche ; la hauteur suit le format A */
+  size?: string
+  class?: string
+}
+
+const { picto, surface = 'jaune', size = '104px', class: cls } = Astro.props
+---
+
+<div class:list={['pbox', `s-${surface}`, cls]} style={`--pbox:${size}`}>
+  <div class="pbox__in"><Brand name={picto} /></div>
+</div>
+
+<style>
+  .pbox {
+    width: var(--pbox);
+    padding: calc(var(--pbox) * 0.17);
+    box-sizing: border-box;
+    aspect-ratio: 1 / 1.2;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-content: center;
+    background: var(--surface);
+    color: var(--blanc);
+    flex: none;
+  }
+  /* « Les textes comme le logo ne s'utilisent qu'en noir ou blanc » : sur les
+     surfaces claires, le picto passe en noir pour rester lisible. */
+  .pbox.s-papier,
+  .pbox.s-blanc,
+  .pbox.s-bleu-clair {
+    color: var(--noir);
+  }
+  .pbox__in {
+    width: 100%;
+    line-height: 0;
+  }
+  .pbox__in :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

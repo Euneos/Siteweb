@@ -1,0 +1,211 @@
+---
+/**
+ * Footer — identique sur les 4 pages (maquette v7).
+ * Fond vert, silhouette en filigrane, newsletter avec segmentation en 3
+ * (etablissement / partenaire / curieux — decision produit prise par le
+ * design : c'est la donnee d'entree du portail de candidature), colonne de
+ * contact, puis le mot « euneos » en geant et les liens legaux.
+ */
+import Brand from './Brand.astro'
+---
+
+<footer class="ftr s-vert">
+  <div class="filigrane" aria-hidden="true">
+    <div class="filigrane__fig"><Brand name="fig3" /></div>
+  </div>
+
+  <div class="page ftr__in">
+    <form class="ftr__news" method="POST" action="/api/newsletter">
+      <p class="ftr__lead">
+        Rejoignez notre newsletter pour recevoir nos ressources et dernières actualités :
+      </p>
+
+      <div class="ftr__fields">
+        <label class="sr-only" for="nl-nom">Nom et prénom</label>
+        <input id="nl-nom" name="nom" type="text" placeholder="Nom/Prénom" autocomplete="name" required />
+        <label class="sr-only" for="nl-mail">Adresse e-mail</label>
+        <input id="nl-mail" name="email" type="email" placeholder="Email" autocomplete="email" required />
+      </div>
+
+      <fieldset class="ftr__radios">
+        <legend class="sr-only">Vous êtes</legend>
+        <label><input type="radio" name="profil" value="etablissement" checked /> <span>Je suis un établissement</span></label>
+        <label><input type="radio" name="profil" value="partenaire" /> <span>Je suis partenaire</span></label>
+        <label><input type="radio" name="profil" value="curieux" /> <span>Je suis curieuse/curieux</span></label>
+      </fieldset>
+
+      <button type="submit" class="ftr__submit">Envoyer</button>
+    </form>
+
+    <ul class="ftr__links">
+      <li>
+        <a href="/contact">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"
+            ><rect x="2" y="5" width="20" height="14"></rect><path d="M2 6l10 7 10-7"></path></svg
+          >
+          Formulaire de contact
+        </a>
+      </li>
+      <li>
+        <a href="https://www.linkedin.com/company/euneos" rel="noopener noreferrer" target="_blank">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"
+            ><path
+              d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM2.4 21h5.16V9.5H2.4V21zM9.9 9.5V21h5.16v-6.06c0-1.6.3-3.15 2.28-3.15 1.95 0 1.98 1.83 1.98 3.25V21h5.16v-6.9c0-4.48-.96-6.85-4.68-6.85-1.79 0-2.98.98-3.48 1.92h-.07V9.5H9.9z"
+            ></path></svg
+          >
+          Suivez nos actualités sur Linkedin !
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="page ftr__mark" aria-hidden="true">
+    <div class="ftr__mark-in"><Brand name="wordmark" /></div>
+  </div>
+
+  <div class="page ftr__legal">
+    <a href="/mentions-legales">Mentions légales</a>
+    <a href="/politique-de-confidentialite">Politique de confidentialité</a>
+    <a href="/cookies">Cookies</a>
+  </div>
+</footer>
+
+<style>
+  .ftr {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--on-surface);
+    padding-top: clamp(2.5rem, 6vw, 4.5rem);
+    padding-bottom: 1.5rem;
+  }
+  .filigrane__fig {
+    position: absolute;
+    left: 34%;
+    top: -12%;
+    height: 130%;
+    width: auto;
+    opacity: 0.08;
+  }
+  .filigrane__fig :global(svg) {
+    height: 100%;
+    width: auto;
+  }
+  .ftr__in {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+  .ftr__lead {
+    max-width: 26ch;
+    margin-bottom: 1.1rem;
+  }
+  .ftr__fields {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .ftr__fields input {
+    flex: 1 1 12rem;
+    background: transparent;
+    border: 1.5px solid color-mix(in srgb, currentColor 55%, transparent);
+    color: inherit;
+    padding: 0.6rem 0.8rem;
+  }
+  .ftr__fields input::placeholder {
+    color: color-mix(in srgb, currentColor 60%, transparent);
+  }
+  .ftr__fields input:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+  }
+  .ftr__radios {
+    border: 0;
+    padding: 0;
+    margin: 0 0 1.25rem;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .ftr__radios label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+  }
+  .ftr__radios input {
+    accent-color: var(--jaune);
+    width: 1rem;
+    height: 1rem;
+  }
+  .ftr__submit {
+    background: var(--blanc);
+    color: var(--vert);
+    border: 0;
+    font-weight: 600;
+    padding: 0.6rem 1.4rem;
+    cursor: pointer;
+  }
+  .ftr__submit:hover {
+    background: var(--jaune);
+    color: var(--noir);
+  }
+  .ftr__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+  }
+  .ftr__links a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+  .ftr__links a:hover {
+    text-decoration: underline;
+  }
+  .ftr__links svg {
+    width: 22px;
+    height: 22px;
+    flex: none;
+  }
+  .ftr__mark {
+    position: relative;
+    z-index: 1;
+    margin-top: clamp(2rem, 6vw, 4.5rem);
+  }
+  .ftr__mark-in {
+    width: 100%;
+  }
+  .ftr__legal {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: clamp(1rem, 3vw, 2rem);
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .ftr__legal a {
+    text-decoration: none;
+    opacity: 0.85;
+  }
+  .ftr__legal a:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+  @media (max-width: 860px) {
+    .ftr__in {
+      grid-template-columns: 1fr;
+    }
+    .ftr__legal {
+      justify-content: flex-start;
+    }
+  }
+</style>

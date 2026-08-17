@@ -1,0 +1,127 @@
+---
+/**
+ * Header — commun aux 4 pages (structure du docx client).
+ * Logo cliquable a gauche, menu a droite. Transparent : il herite de la
+ * couleur du hero (vert sur 3 pages, bleu sur la page Programme).
+ *
+ * NB : sur les maquettes des pages « Qui sommes-nous ? » et « Nous contacter »,
+ * l'entree surlignee restait « Notre Programme ». Corrige ici : l'etat actif
+ * suit la page courante (et porte aria-current).
+ */
+import Brand from './Brand.astro'
+
+const nav = [
+  { href: '/', label: 'Bienvenue' },
+  { href: '/programme', label: 'Notre Programme' },
+  { href: '/qui-sommes-nous', label: 'Qui sommes-nous ?' },
+  { href: '/contact', label: 'Nous contacter' },
+]
+
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+---
+
+<header class="hdr">
+  <div class="page hdr__in">
+    <a href="/" class="hdr__logo" aria-label="Euneos — accueil">
+      <Brand name="wordmark" height="2rem" />
+    </a>
+
+    <input type="checkbox" id="nav-toggle" class="sr-only" />
+    <label for="nav-toggle" class="hdr__burger" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </label>
+
+    <nav class="hdr__nav" aria-label="Navigation principale">
+      {
+        nav.map((item) => {
+          const active = path === item.href
+          return (
+            <a href={item.href} class:list={['hdr__link', active && 'is-active']} aria-current={active ? 'page' : undefined}>
+              {item.label}
+            </a>
+          )
+        })
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .hdr {
+    position: relative;
+    z-index: 10;
+    padding-block: clamp(1.25rem, 2.6vw, 2rem);
+  }
+  .hdr__in {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .hdr__logo {
+    display: block;
+    flex: none;
+  }
+  .hdr__nav {
+    display: flex;
+    gap: clamp(1rem, 2.2vw, 2.25rem);
+    align-items: baseline;
+  }
+  .hdr__link {
+    text-decoration: none;
+    font-size: 1rem;
+    opacity: 0.72;
+    padding-block: 0.25rem;
+    border-bottom: 2px solid transparent;
+  }
+  .hdr__link:hover {
+    opacity: 1;
+  }
+  .hdr__link.is-active {
+    opacity: 1;
+    font-weight: 600;
+    border-bottom-color: currentColor;
+  }
+  .hdr__burger {
+    display: none;
+  }
+
+  @media (max-width: 860px) {
+    .hdr__burger {
+      display: grid;
+      gap: 5px;
+      cursor: pointer;
+      padding: 0.5rem;
+      margin-right: -0.5rem;
+    }
+    .hdr__burger span {
+      display: block;
+      width: 26px;
+      height: 2px;
+      background: currentColor;
+    }
+    .hdr__nav {
+      position: absolute;
+      inset-inline: 0;
+      top: 100%;
+      flex-direction: column;
+      gap: 0;
+      background: color-mix(in srgb, currentColor 8%, transparent);
+      backdrop-filter: blur(14px);
+      padding: 0.5rem 0;
+      display: none;
+    }
+    #nav-toggle:checked ~ .hdr__nav {
+      display: flex;
+    }
+    .hdr__link {
+      padding: 0.85rem clamp(1rem, 4vw, 2rem);
+      border-bottom: none;
+    }
+    .hdr__link.is-active {
+      border-bottom: none;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+  }
+</style>

@@ -1,0 +1,87 @@
+---
+/**
+ * Brand — un seul composant pour tous les elements de marque vectoriels.
+ * Les SVG sont extraits de charte_graphique.pdf V3 (pages 5, 20 et 21) puis
+ * normalises en `fill="currentColor"` : ils prennent la couleur du texte.
+ *
+ * name = 'wordmark'                  -> le mot « euneos » (jamais colorise : noir ou blanc)
+ * name = 'fig1'..'fig5'              -> les 5 silhouettes humaines
+ * name = 'papillon' | 'coeur' | ...  -> les 10 pictos en papier decoupe
+ *
+ * Le SVG est enveloppe dans un <span> : c'est lui qui porte la classe passee
+ * par l'appelant, pour que les styles scopes du parent s'appliquent (un SVG
+ * injecte via set:html n'est pas atteint par le scoping Astro).
+ */
+import wordmark from '../assets/brand/wordmark.svg?raw'
+import fig1 from '../assets/brand/fig1.svg?raw'
+import fig2 from '../assets/brand/fig2.svg?raw'
+import fig3 from '../assets/brand/fig3.svg?raw'
+import fig4 from '../assets/brand/fig4.svg?raw'
+import fig5 from '../assets/brand/fig5.svg?raw'
+import papillon from '../assets/brand/fig6-papillon.svg?raw'
+import coeur from '../assets/brand/fig7-coeur.svg?raw'
+import main from '../assets/brand/fig8-main.svg?raw'
+import asterisque from '../assets/brand/fig9-asterisque.svg?raw'
+import oiseau from '../assets/brand/fig10-oiseau.svg?raw'
+import plante from '../assets/brand/fig11-plante.svg?raw'
+import etoile from '../assets/brand/fig12-etoile.svg?raw'
+import galet from '../assets/brand/fig13-galet.svg?raw'
+import confettis from '../assets/brand/fig14-confettis.svg?raw'
+import arche from '../assets/brand/fig15-arche.svg?raw'
+
+export type BrandName = 'wordmark' | 'fig1' | 'fig2' | 'fig3' | 'fig4' | 'fig5' | 'papillon' | 'coeur' | 'main' | 'asterisque' | 'oiseau' | 'plante' | 'etoile' | 'galet' | 'confettis' | 'arche'
+
+const svgs: Record<string, string> = {
+  wordmark,
+  fig1,
+  fig2,
+  fig3,
+  fig4,
+  fig5,
+  papillon,
+  coeur,
+  main,
+  asterisque,
+  oiseau,
+  plante,
+  etoile,
+  galet,
+  confettis,
+  arche,
+}
+
+interface Props {
+  name: BrandName
+  class?: string
+  /** hauteur CSS, la largeur suit le ratio */
+  height?: string
+  width?: string
+}
+
+const { name, class: cls, height, width } = Astro.props
+const raw = svgs[name]
+const style = [height ? `height:${height}` : '', width ? `width:${width}` : ''].filter(Boolean).join(';')
+---
+
+<span class:list={['brand', cls]} style={style || undefined}>
+  <Fragment set:html={raw} />
+</span>
+
+<style>
+  .brand {
+    display: block;
+    line-height: 0;
+  }
+  /* par defaut : la largeur commande, la hauteur suit le ratio du viewBox */
+  .brand > :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+  }
+  /* si une hauteur est imposee, c'est elle qui commande */
+  .brand[style*='height'] > :global(svg) {
+    width: auto;
+    height: 100%;
+  }
+</style>

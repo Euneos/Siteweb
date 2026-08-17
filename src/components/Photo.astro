@@ -1,0 +1,58 @@
+---
+/**
+ * Photo — emplacement photographique.
+ * Direction imposee par la charte p.18 : « Humaine · Authentique · Lumineuse ·
+ * Saturation douce · Couleurs naturelles » et trois interdits : « pas de photos
+ * studio · pas de detourage · pas de pose ».
+ *
+ * Aucune photo n'a encore ete fournie par le client : le composant rend donc un
+ * emplacement au bon ratio, remplacable en passant `src`. Il ne triche pas avec
+ * une banque d'images qui contredirait la direction ci-dessus.
+ */
+interface Props {
+  src?: string
+  alt?: string
+  /** ratio du cadre, ex '3/4' (format A portrait) ou '4/3' */
+  ratio?: string
+  class?: string
+  label?: string
+}
+
+const { src, alt = '', ratio = '4/3', class: cls = '', label = 'photo' } = Astro.props
+---
+
+{
+  src ? (
+    <img src={src} alt={alt} class:list={['ph', cls]} style={`aspect-ratio:${ratio}`} loading="lazy" decoding="async" />
+  ) : (
+    <div class:list={['ph ph--empty', cls]} style={`aspect-ratio:${ratio}`} role="img" aria-label={`Emplacement ${label}`}>
+      <span>{label}</span>
+    </div>
+  )
+}
+
+<style>
+  .ph {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+  .ph--empty {
+    display: grid;
+    place-items: center;
+    background:
+      repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--vert-clair) 55%, transparent) 0 2px,
+        transparent 2px 9px
+      ),
+      var(--vert-clair);
+    color: var(--vert);
+  }
+  .ph--empty span {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+</style>

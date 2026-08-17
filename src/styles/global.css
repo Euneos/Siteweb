@@ -1,0 +1,493 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   EUNEOS — Design system
+   Source : charte_graphique.pdf V3 (juillet 2026) + maquette_euneos V 7 aout candice.pdf
+   Concept : « Euneos fait du format papier la symbolique de son ancrage dans le reel. »
+   Tout bloc est une feuille au format A, avec un coin plie.
+   ============================================================ */
+
+/* --- Police : Open Sans SemiCondensed (charte p.15), self-hostee, licence OFL --- */
+@font-face {
+  font-family: 'Open Sans Var';
+  src: url('/fonts/OpenSans-latin-normal.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Sans Var';
+  src: url('/fonts/OpenSans-latin-italic.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* --- Palette officielle, hex releves p.10 de la charte ---
+     Chaque teinte a 3 niveaux. Le niveau -fold est celui du pli (« couleur + »). */
+
+  /* Vert — couleur principale */
+  --vert-clair: #809b96;
+  --vert: #00382d;
+  --vert-fold: #003229;
+
+  /* Jaune — couleur principale egalement */
+  --jaune-clair: #fbe380;
+  --jaune: #f8c702;
+  --jaune-fold: #b5913d;
+
+  /* Bleu — RESERVE au Programme cle (WISE-UP). Ne pas utiliser ailleurs. */
+  --bleu-clair: #c5d4ff;
+  --bleu: #8aa9ff;
+  --bleu-fold: #3e63cb;
+
+  /* Orange — secondaire, par touches */
+  --orange-clair: #f78858;
+  --orange: #fc5e27;
+  --orange-fold: #c3471c;
+
+  /* Rose — secondaire, par touches */
+  --rose-clair: #f9d9f7;
+  --rose: #f2b3f0;
+  --rose-fold: #dd83da;
+
+  /* Neutres */
+  --noir: #101312; /* le texte */
+  --papier: #f1eeee; /* le fond — ce n'est PAS du blanc pur */
+  --blanc: #ffffff;
+  --gris-fold: #d9d5d5; /* pli des cartes grises/papier */
+
+  /* --- Grille : conteneur ratio A, 16 colonnes, 1 unite de marge (charte p.24) --- */
+  --unit: clamp(0.75rem, 1.4vw, 1.25rem);
+  --gutter: var(--unit);
+  --page-max: 1240px;
+
+  /* --- Pli : hauteur et largeur libres (charte p.22) --- */
+  --fold: clamp(1.75rem, 3vw, 2.75rem);
+  --fold-sm: 1.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--papier);
+}
+
+body {
+  font-family: 'Open Sans Var', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* SemiCondensed = axe wdth a 87.5 % */
+  font-variation-settings: 'wdth' 87.5;
+  font-stretch: 87.5%;
+  background: var(--papier);
+  color: var(--noir);
+  font-size: 1rem;
+  line-height: 1.6; /* body 160 % */
+  margin: 0;
+}
+
+/* --- Echelle typographique : valeurs exactes de la charte p.15 en borne haute --- */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-weight: 600; /* SemiBold */
+    letter-spacing: 0;
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(2rem, 4.6vw, 3.5rem); /* 56 px */
+    line-height: 1.1; /* 110 % */
+  }
+  h2 {
+    font-size: clamp(1.6rem, 3.4vw, 2.5rem); /* 40 px */
+    line-height: 1.2; /* 120 % */
+  }
+  h3 {
+    font-size: 1.25rem; /* 20 px */
+    line-height: 1.2; /* 120 % */
+  }
+  p {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+  }
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    font-variation-settings: inherit;
+  }
+}
+
+/* Chapo : 20 px / 140 % */
+.chapo {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+/* Surtitre : petit label au-dessus d'un H2 (vu p.3 de la maquette) */
+.surtitre {
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--vert);
+}
+
+/* ============================================================
+   LE PLI — motif signature
+   « Il peut s'ajouter sur un coin d'un format A. Sa hauteur et sa largeur
+   sont libres. Attention a ne pas en abuser (1 ou 2 par compo maximum). »
+   Le triangle prend la couleur « + » : la variante foncee du bloc.
+   Zero image : clip-path sur le bloc + pseudo-element pour le rabat.
+   ============================================================ */
+.paper {
+  position: relative;
+  background: var(--surface, var(--blanc));
+  color: var(--on-surface, var(--noir));
+  --f: var(--fold);
+}
+/* Le rabat n'existe que si un coin est plie (fold="none" -> aucun pseudo-element). */
+.paper[class*='fold-']::before {
+  content: '';
+  position: absolute;
+  width: var(--f);
+  height: var(--f);
+  background: var(--fold-color, var(--gris-fold));
+  pointer-events: none;
+}
+
+/* coin bas-droit (defaut) */
+.fold-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--f)), calc(100% - var(--f)) 100%, 0 100%);
+}
+.fold-br::before {
+  right: 0;
+  bottom: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* coin haut-droit */
+.fold-tr {
+  clip-path: polygon(0 0, calc(100% - var(--f)) 0, 100% var(--f), 100% 100%, 0 100%);
+}
+.fold-tr::before {
+  right: 0;
+  top: 0;
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+}
+
+/* coin haut-gauche */
+.fold-tl {
+  clip-path: polygon(var(--f) 0, 100% 0, 100% 100%, 0 100%, 0 var(--f));
+}
+.fold-tl::before {
+  left: 0;
+  top: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* coin bas-gauche */
+.fold-bl {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, var(--f) 100%, 0 calc(100% - var(--f)));
+}
+.fold-bl::before {
+  left: 0;
+  bottom: 0;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+/* Variante « contour » : la bulle a filet blanc du hero.
+   Elle herite la couleur de texte du bloc parent (le hero), elle n'impose rien. */
+.paper-outline {
+  background: transparent;
+  color: inherit;
+  border: 1.5px solid currentColor;
+}
+/* Le rabat de la version contour n'est qu'un trait : la diagonale du pli. */
+.paper-outline::before {
+  background: none;
+  clip-path: none;
+}
+.paper-outline.fold-br::before,
+.paper-outline.fold-tl::before {
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 1px),
+    currentColor calc(50% - 1px),
+    currentColor calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
+.paper-outline.fold-tr::before,
+.paper-outline.fold-bl::before {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1px),
+    currentColor calc(50% - 1px),
+    currentColor calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
+
+/* ============================================================
+   SURFACES — couleur de fond + couleur de texte + couleur de pli.
+   REGLE DE CONTRASTE : la charte dit « les textes ne s'utilisent qu'en noir
+   ou blanc ». Blanc sur bleu clair (2,2:1) et sur rose (1,7:1) echoue au
+   WCAG AA. On garde donc le blanc sur vert et orange, et le noir sur les
+   teintes claires — solution deja employee par la maquette p.2 (titre vert
+   sur fond bleu).
+   ============================================================ */
+.s-vert {
+  --surface: var(--vert);
+  --on-surface: var(--blanc);
+  --fold-color: var(--vert-clair);
+}
+.s-jaune {
+  --surface: var(--jaune);
+  --on-surface: var(--noir);
+  --fold-color: var(--jaune-fold);
+}
+.s-bleu {
+  --surface: var(--bleu);
+  --on-surface: var(--vert);
+  --fold-color: var(--bleu-fold);
+}
+.s-bleu-clair {
+  --surface: var(--bleu-clair);
+  --on-surface: var(--vert);
+  --fold-color: var(--bleu);
+}
+.s-orange {
+  --surface: var(--orange);
+  --on-surface: var(--blanc);
+  --fold-color: var(--orange-fold);
+}
+.s-rose {
+  --surface: var(--rose);
+  --on-surface: var(--vert);
+  --fold-color: var(--rose-fold);
+}
+.s-papier {
+  --surface: var(--papier);
+  --on-surface: var(--noir);
+  --fold-color: var(--gris-fold);
+}
+.s-blanc {
+  --surface: var(--blanc);
+  --on-surface: var(--noir);
+  --fold-color: var(--gris-fold);
+}
+.s-ocre {
+  --surface: var(--jaune-fold);
+  --on-surface: var(--blanc);
+  --fold-color: #8f7231;
+}
+
+/* ============================================================
+   MISE EN PAGE
+   ============================================================ */
+.page {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: calc(var(--unit) * 1.5);
+}
+.section {
+  padding-block: clamp(3rem, 8vw, 6.5rem);
+}
+/* grille 16 colonnes de la charte */
+.g16 {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: var(--gutter);
+}
+@media (max-width: 860px) {
+  .g16 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .g16 > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* ============================================================
+   ETIQUETTES / CTA — « Body SemiBold », coins legerement arrondis,
+   version pleine et version contour, avec le pli.
+   ============================================================ */
+.cta {
+  display: inline-block;
+  position: relative;
+  padding: 0.7rem 1.6rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--surface, var(--vert));
+  color: var(--on-surface, var(--blanc));
+  --f: var(--fold-sm);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--f)), calc(100% - var(--f)) 100%, 0 100%);
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+.cta::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--f);
+  height: var(--f);
+  background: var(--fold-color);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+.cta:focus-visible {
+  outline: 3px solid var(--noir);
+  outline-offset: 3px;
+}
+.cta-outline {
+  background: transparent;
+  border: 1.5px solid currentColor;
+  clip-path: none;
+}
+.cta-outline::before {
+  display: none;
+}
+
+/* ============================================================
+   CARTOUCHE — « Le logo peut s'integrer dans un cartouche : en portrait,
+   accompagne d'une illustration · en paysage, seul » (charte p.7).
+   Les lettres du logo ne sont JAMAIS colorisees : toujours blanches ici.
+   ============================================================ */
+.cartouche {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12%;
+  aspect-ratio: 1 / 1.414; /* format A */
+  padding: 12% 14%;
+  background: var(--surface);
+  color: var(--blanc);
+}
+.cartouche--paysage {
+  aspect-ratio: 1.414 / 1;
+  gap: 0;
+}
+
+/* Petit cartouche a picto, pose en debord (vu partout dans la maquette) */
+.picto-box {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1.2;
+  background: var(--surface);
+  color: var(--blanc);
+  padding: 18%;
+}
+.picto-box > * {
+  width: 100%;
+}
+
+/* Silhouette en filigrane (footer, bandeaux) */
+.filigrane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.filigrane > svg {
+  position: absolute;
+  height: 130%;
+  width: auto;
+  opacity: 0.07;
+}
+
+/* Photo dans un cadre couleur au format A (charte p.19) */
+.cadre-photo {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+.cadre-photo img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Accessibilite */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  background: var(--blanc);
+  color: var(--noir);
+  padding: 0.75rem 1rem;
+}
+
+/* ============================================================
+   MOBILE — les heros des 4 pages passent en une colonne.
+   (Les maquettes fournies sont desktop uniquement ; l'empilement est une
+   decision de mise en oeuvre, a valider avec Candice.)
+   ============================================================ */
+@media (max-width: 860px) {
+  .hero__grid,
+  .hero2__grid,
+  .hero3__grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* sur mobile, la photo passe avant la bulle de titre */
+  .hero__grid > .hero__media,
+  .hero3__grid > .hero3__media {
+    order: -1;
+  }
+  .hero__bubble,
+  .hero2__bubble,
+  .hero3__bubble {
+    min-height: 0;
+  }
+  .hero__cartouche,
+  .hero2__cartouche,
+  .hero3__cartouche {
+    left: auto !important;
+    right: 4% !important;
+  }
+  .approche__picto {
+    left: 0 !important;
+  }
+  .ct__media {
+    margin-right: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

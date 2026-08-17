@@ -1,0 +1,86 @@
+---
+import Footer from '../components/Footer.astro'
+import Header from '../components/Header.astro'
+import '../styles/global.css'
+
+interface Props {
+  title: string
+  description: string
+  /** teinte du hero, dont le header herite la couleur de texte */
+  heroSurface?: 'vert' | 'bleu'
+}
+
+const { title, description, heroSurface = 'vert' } = Astro.props
+const canonical = new URL(Astro.url.pathname, Astro.site).href
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#00382D" />
+
+    <link
+      rel="preload"
+      href="/fonts/OpenSans-latin-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EUNEOS" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="fr_FR" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'NGO',
+        name: 'EUNEOS',
+        url: Astro.site?.href,
+        description:
+          "Association loi 1901 de prévention en santé mentale et de soutien du rapport au numérique dans les milieux éducatifs.",
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: "118 route d'Espagne",
+          postalCode: '31100',
+          addressLocality: 'Toulouse',
+          addressCountry: 'FR',
+        },
+        foundingDate: '2026-04',
+        email: 'contact@euneos.fr',
+      })}
+    />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+
+    <div class:list={['hero-zone', `s-${heroSurface}`]}>
+      <Header />
+      <slot name="hero" />
+    </div>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <style>
+      .hero-zone {
+        background: var(--surface);
+        color: var(--on-surface);
+      }
+    </style>
+  </body>
+</html>
