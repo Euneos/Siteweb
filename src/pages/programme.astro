@@ -86,11 +86,11 @@ const faq = [
   </section>
 
   <!-- WHY / WHAT -->
-  <section class="section why">
-    <div class="why__fig" aria-hidden="true"><Brand name="fig4" /></div>
+  <section class="section why has-silo">
+    <div class="silo silo--right why__fig" aria-hidden="true"><Brand name="fig4" /></div>
     <div class="page g16 why__in">
-      <h2 style="grid-column: 4 / 9">À REDIGER</h2>
-      <div style="grid-column: 10 / 17" class="why__txt">
+      <h2 style="grid-column: 3 / 8">À REDIGER</h2>
+      <div style="grid-column: 9 / 14" class="why__txt">
         <p>
           Bloc « pourquoi / quoi » — caractéristiques précises attendues : durée, outils,
           nombre d’animateurs, adaptations possibles. Texte à fournir par Pauline.
@@ -228,24 +228,10 @@ const faq = [
 
 <style is:global>
   /* WHY */
-  .why {
-    position: relative;
-    overflow: hidden;
-  }
   .why__fig {
-    position: absolute;
-    right: -6%;
-    top: 50%;
-    transform: translateY(-50%);
-    height: clamp(15rem, 27vw, 24rem);
     color: var(--bleu);
   }
-  .why__fig svg {
-    height: 100%;
-    width: auto;
-  }
   .why__in {
-    position: relative;
     align-items: center;
   }
   .why__txt {
@@ -339,16 +325,8 @@ const faq = [
     color: var(--on-surface);
   }
   .impact2__fig {
-    position: absolute;
-    left: 30%;
-    top: -14%;
-    height: 130%;
-    opacity: 0.16;
+    left: 32%;
     color: var(--bleu-clair);
-  }
-  .impact2__fig svg {
-    height: 100%;
-    width: auto;
   }
   .impact2__in {
     position: relative;
@@ -524,16 +502,8 @@ const faq = [
     color: var(--on-surface);
   }
   .final__fig {
-    position: absolute;
-    left: -4%;
-    top: -10%;
-    height: 125%;
-    opacity: 0.2;
+    left: -3%;
     color: var(--bleu-clair);
-  }
-  .final__fig svg {
-    height: 100%;
-    width: auto;
   }
   .final__in {
     position: relative;

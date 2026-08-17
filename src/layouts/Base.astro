@@ -10,9 +10,11 @@ interface Props {
   heroSurface?: 'vert' | 'bleu'
   /** grand coin plie de la section hero (maquette : bas-droit sur p.1 et p.3) */
   heroFold?: 'br' | 'bl' | 'none'
+  /** page de travail : hors moteurs de recherche et hors sitemap */
+  noindex?: boolean
 }
 
-const { title, description, heroSurface = 'vert', heroFold = 'br' } = Astro.props
+const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 ---
 
@@ -24,6 +26,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <meta name="theme-color" content="#00382D" />
 
     <link

@@ -420,20 +420,81 @@ body {
   width: 100%;
 }
 
-/* Silhouette en filigrane (footer, bandeaux) */
+
+/* ============================================================
+   LES BONHOMMES — deux usages distincts, a ne pas confondre.
+
+   1. `.silo` — la silhouette de debord. Pleine, opaque, elle sort du cadre par
+      un bord de page. Dans la maquette elle occupe TOUJOURS la marge, jamais la
+      zone de texte : c'est une regle de mise en page, pas une histoire de
+      z-index. La largeur est donc bornee et le contenu doit s'arreter avant.
+
+   2. `.filigrane` — la silhouette en fond de bandeau. Tres estompee, derriere le
+      contenu. Calee sur la valeur du footer (0.08), la seule qui fonctionne :
+      au-dela le texte devient sale.
+   ============================================================ */
+.silo {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: clamp(16rem, 30vw, 30rem);
+  max-width: 26vw; /* garde-fou : ne mord jamais sur la colonne de texte */
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.silo > * {
+  height: 100%;
+}
+.silo :global(svg),
+.silo svg {
+  height: 100%;
+  width: auto;
+}
+.silo--left {
+  left: 0;
+  transform: translate(-38%, -50%);
+}
+.silo--right {
+  right: 0;
+  transform: translate(38%, -50%);
+}
+/* le contenu d'une section a silhouette passe toujours au-dessus */
+.has-silo {
+  position: relative;
+  overflow: hidden;
+}
+.has-silo > .page,
+.has-silo > .section,
+.has-silo > .g16 {
+  position: relative;
+  z-index: 1;
+}
+
 .filigrane {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.08; /* valeur du footer — la seule lisible */
 }
-.filigrane > svg {
+.filigrane > * {
   position: absolute;
   height: 130%;
-  width: auto;
-  opacity: 0.07;
+  top: -15%;
 }
+.filigrane svg {
+  height: 100%;
+  width: auto;
+}
+
+@media (max-width: 860px) {
+  .silo {
+    display: none; /* en une colonne il n'y a plus de marge pour l'accueillir */
+  }
+}
+
 
 /* Photo dans un cadre couleur au format A (charte p.19) */
 .cadre-photo {

@@ -1,0 +1,793 @@
+---
+/**
+ * /style-guide — le guide de style vivant du site.
+ *
+ * Ce n'est pas une page du site public : c'est l'outil de passation. Il montre
+ * la charte telle qu'elle est REELLEMENT codee (les carres de couleur affichent
+ * les variables CSS du site, pas des captures), et il explique a l'equipe
+ * d'EUNEOS ou intervenir pour changer quelque chose.
+ *
+ * Ne pas indexer : `noindex` est pose dans le head via la prop `noindex`.
+ */
+import Brand from '../components/Brand.astro'
+import Cartouche from '../components/Cartouche.astro'
+import Cta from '../components/Cta.astro'
+import Paper from '../components/Paper.astro'
+import Photo from '../components/Photo.astro'
+import PictoBox from '../components/PictoBox.astro'
+import Base from '../layouts/Base.astro'
+
+const teintes = [
+  {
+    nom: 'Vert',
+    role: 'Couleur principale',
+    regle: '« La couleur principale d’Euneos est le vert. » Fond des sections fortes, couleur des titres sur fond clair.',
+    niveaux: [
+      { var: '--vert-clair', hex: '#809B96' },
+      { var: '--vert', hex: '#00382D', base: true },
+      { var: '--vert-fold', hex: '#003229', pli: true },
+    ],
+  },
+  {
+    nom: 'Jaune',
+    role: 'Couleur principale',
+    regle: '« Le jaune est une couleur principale également. »',
+    niveaux: [
+      { var: '--jaune-clair', hex: '#FBE380' },
+      { var: '--jaune', hex: '#F8C702', base: true },
+      { var: '--jaune-fold', hex: '#B5913D', pli: true },
+    ],
+  },
+  {
+    nom: 'Bleu',
+    role: 'Réservé au Programme',
+    regle: '« Le bleu est réservé pour le Programme clé d’Euneos. » Donc WISE-UP, et nulle part ailleurs.',
+    niveaux: [
+      { var: '--bleu-clair', hex: '#C5D4FF' },
+      { var: '--bleu', hex: '#8AA9FF', base: true },
+      { var: '--bleu-fold', hex: '#3E63CB', pli: true },
+    ],
+  },
+  {
+    nom: 'Orange',
+    role: 'Secondaire',
+    regle: '« À utiliser par touches. » Un accent, jamais un fond de section entier.',
+    niveaux: [
+      { var: '--orange-clair', hex: '#F78858' },
+      { var: '--orange', hex: '#FC5E27', base: true },
+      { var: '--orange-fold', hex: '#C3471C', pli: true },
+    ],
+  },
+  {
+    nom: 'Rose',
+    role: 'Secondaire',
+    regle: '« À utiliser par touches. »',
+    niveaux: [
+      { var: '--rose-clair', hex: '#F9D9F7' },
+      { var: '--rose', hex: '#F2B3F0', base: true },
+      { var: '--rose-fold', hex: '#DD83DA', pli: true },
+    ],
+  },
+]
+
+const neutres = [
+  { var: '--noir', hex: '#101312', label: 'Texte' },
+  { var: '--papier', hex: '#F1EEEE', label: 'Fond de page — pas du blanc pur' },
+  { var: '--blanc', hex: '#FFFFFF', label: 'Cartes, lettrage sur cartouche' },
+]
+
+const typo = [
+  { n: 'H1', px: '56 px', lh: '110 %', poids: 'SemiBold', ex: 'Titre de page' },
+  { n: 'H2', px: '40 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre de section' },
+  { n: 'H3', px: '20 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre de bloc' },
+  { n: 'Chapô', px: '20 px', lh: '140 %', poids: 'Regular', ex: 'Phrase d’introduction' },
+  { n: 'Body', px: '16 px', lh: '160 %', poids: 'Regular', ex: 'Texte courant' },
+]
+
+const pictos = [
+  'papillon',
+  'coeur',
+  'main',
+  'asterisque',
+  'oiseau',
+  'plante',
+  'etoile',
+  'galet',
+  'confettis',
+  'arche',
+] as const
+
+const coins = [
+  { f: 'tl', label: 'haut-gauche' },
+  { f: 'tr', label: 'haut-droit' },
+  { f: 'bl', label: 'bas-gauche' },
+  { f: 'br', label: 'bas-droit' },
+] as const
+
+const calibres = [
+  { v: 'xl', label: 'Section', usage: 'le coin d’un grand bandeau de couleur' },
+  { v: 'lg', label: 'Bloc', usage: 'une bulle de titre, un grand encart' },
+  { v: 'md', label: 'Carte', usage: 'les cartes d’une grille' },
+  { v: 'sm', label: 'Étiquette', usage: 'un CTA, un champ de formulaire' },
+] as const
+
+const modifs = [
+  {
+    quoi: 'Changer un texte',
+    ou: 'src/pages/<page>.astro',
+    comment:
+      'Les textes sont écrits en clair dans la page. Chercher la phrase à changer et l’éditer. Les listes répétées (les 6 étapes, la FAQ, l’équipe) sont regroupées en haut du fichier, entre les deux ---.',
+  },
+  {
+    quoi: 'Remplacer une photo',
+    ou: 'src/assets/photos/',
+    comment:
+      'Déposer l’image, puis l’importer dans la page. Le site génère seul les formats webp et les tailles pour mobile. Direction imposée par la charte : humaine, authentique, lumineuse — pas de studio, pas de détourage, pas de pose.',
+  },
+  {
+    quoi: 'Changer une couleur partout',
+    ou: 'src/styles/global.css',
+    comment:
+      'Les couleurs sont déclarées une seule fois, en haut du fichier, sous forme de variables. Modifier la valeur met à jour tout le site. Ne pas écrire une couleur en dur dans une page.',
+  },
+  {
+    quoi: 'Ajouter une page',
+    ou: 'src/pages/',
+    comment:
+      'Copier une page existante, la renommer : le nom du fichier devient l’adresse (contact.astro → /contact). Ajouter l’entrée dans le menu se fait dans src/components/Header.astro.',
+  },
+  {
+    quoi: 'Modifier le menu ou le pied de page',
+    ou: 'src/components/Header.astro · Footer.astro',
+    comment:
+      'Un seul fichier chacun, partagé par toutes les pages. La segmentation de la newsletter (établissement / partenaire / curieux) est dans le footer.',
+  },
+  {
+    quoi: 'Publier',
+    ou: 'GitHub → Cloudflare',
+    comment:
+      'Chaque modification enregistrée sur GitHub est mise en ligne automatiquement par Cloudflare. L’historique complet des versions est conservé : on peut toujours revenir en arrière.',
+  },
+]
+---
+
+<Base
+  title="Guide de style — EUNEOS"
+  description="Le guide de style vivant du site EUNEOS : couleurs, typographie, logo, pictogrammes, composants et mode d’emploi pour l’équipe."
+  heroSurface="vert"
+  heroFold="br"
+  noindex
+>
+  <section slot="hero" class="page sg-hero">
+    <p class="sg-hero__sur">Document de travail — non publié</p>
+    <h1>Guide de style</h1>
+    <p class="sg-hero__lead">
+      Ce que la charte impose, tel que le site l’applique réellement. Les couleurs affichées
+      ici sont celles du code : si l’une change, cette page change avec.
+    </p>
+  </section>
+
+  <!-- LE CONCEPT -->
+  <section class="section page sg">
+    <h2 class="sg__t">1. Le concept</h2>
+    <blockquote class="sg__cite">
+      « Le logo Euneos, volontairement sobre, incarne la solidité institutionnelle et
+      scientifique de la structure, tout en conservant un twist graphique sur deux lettres
+      centrales. L’idée derrière cette mise en forme reprend le concept général de la charte :
+      <strong>Euneos fait du format papier la symbolique de son ancrage dans le réel.</strong>
+      On retrouve ainsi tout au long de cette charte des références à cet univers : le format A
+      spécifique à l’impression papier, des effets de pliage… »
+      <cite>Charte de l’identité visuelle, V3 — juillet 2026</cite>
+    </blockquote>
+    <p class="sg__p">
+      Conséquence directe : <strong>chaque bloc du site est une feuille de papier avec un coin
+      plié</strong>. Le triangle du pli prend la variante foncée de la couleur du bloc — ce que
+      la charte appelle la « couleur + ». Tout est dessiné en CSS, aucune image : le pli
+      s’adapte donc à n’importe quelle taille de bloc et de texte.
+    </p>
+  </section>
+
+  <!-- COULEURS -->
+  <section class="section page sg">
+    <h2 class="sg__t">2. Couleurs</h2>
+    <p class="sg__p">
+      Cinq teintes, trois niveaux chacune. Le niveau du milieu est la couleur de référence, le
+      plus foncé sert au pli. Les hexadécimaux sont ceux de la page 10 de la charte.
+    </p>
+
+    {
+      teintes.map((t) => (
+        <div class="sg-teinte">
+          <div class="sg-teinte__head">
+            <h3>{t.nom}</h3>
+            <span class="sg-teinte__role">{t.role}</span>
+          </div>
+          <p class="sg-teinte__regle">{t.regle}</p>
+          <ul class="sg-swatches">
+            {t.niveaux.map((n) => (
+              <li>
+                <span class="sg-swatch" style={`background:var(${n.var})`} />
+                <code>{n.hex}</code>
+                <code class="sg-var">{n.var}</code>
+                {n.base && <span class="sg-tag">référence</span>}
+                {n.pli && <span class="sg-tag">couleur du pli</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+
+    <h3 class="sg__st">Neutres</h3>
+    <ul class="sg-swatches sg-swatches--neutres">
+      {
+        neutres.map((n) => (
+          <li>
+            <span class="sg-swatch sg-swatch--bord" style={`background:var(${n.var})`} />
+            <code>{n.hex}</code>
+            <code class="sg-var">{n.var}</code>
+            <span class="sg-tag">{n.label}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h3 class="sg__st">Contraste — la seule liberté prise avec la charte</h3>
+    <p class="sg__p">
+      La charte demande que « les textes ne s’utilisent qu’en noir ou blanc ». Appliqué à la
+      lettre sur le rose ou le bleu clair, le blanc donne un contraste de 1,7:1 et 2,2:1, très
+      en dessous du minimum légal d’accessibilité (4,5:1). Le site met donc du vert foncé sur
+      les teintes claires — ce que fait déjà la maquette de la page Programme, dont le titre est
+      en vert sur fond bleu.
+    </p>
+    <ul class="sg-contrastes">
+      <li class="s-vert"><span>Blanc sur vert</span> <b>13:1 — conforme</b></li>
+      <li class="s-jaune"><span>Noir sur jaune</span> <b>11:1 — conforme</b></li>
+      <li class="s-orange"><span>Blanc sur orange</span> <b>3,2:1 — gros titres seulement</b></li>
+      <li class="s-bleu"><span>Vert foncé sur bleu</span> <b>7:1 — conforme</b></li>
+      <li class="s-rose"><span>Vert foncé sur rose</span> <b>8:1 — conforme</b></li>
+    </ul>
+  </section>
+
+  <!-- TYPOGRAPHIE -->
+  <section class="section page sg">
+    <h2 class="sg__t">3. Typographie</h2>
+    <p class="sg__p">
+      <strong>Open Sans SemiCondensed</strong>, deux graisses seulement : SemiBold et Regular.
+      Police libre (licence OFL), hébergée sur le site — aucune dépendance à Google.
+      L’interlettrage est à zéro partout.
+    </p>
+    <ul class="sg-typo">
+      {
+        typo.map((t) => (
+          <li>
+            <span class="sg-typo__meta">
+              <b>{t.n}</b> {t.px} · {t.lh} · {t.poids}
+            </span>
+            <span class:list={['sg-typo__ex', `is-${t.n.toLowerCase().replace('ô', 'o')}`]}>{t.ex}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- LOGO -->
+  <section class="section page sg">
+    <h2 class="sg__t">4. Logo</h2>
+    <p class="sg__p">
+      Règle absolue de la charte : <strong>« les lettres du logo ne sont jamais colorisées,
+      elles restent en noir et blanc »</strong>. C’est le cartouche qui prend la couleur. La zone
+      de protection autour du logo vaut la largeur du glyphe « u » et doit rester vide.
+    </p>
+    <div class="sg-logos">
+      <div class="sg-logo">
+        <div class="sg-logo__box s-papier"><Brand name="wordmark" /></div>
+        <p>Mot seul, sur fond clair</p>
+      </div>
+      <div class="sg-logo">
+        <div class="sg-logo__box s-vert"><Brand name="wordmark" /></div>
+        <p>Mot seul, sur fond foncé</p>
+      </div>
+      <div class="sg-logo">
+        <div class="sg-logo__cart"><Cartouche surface="vert" fig="fig1" /></div>
+        <p>Cartouche portrait, avec silhouette</p>
+      </div>
+      <div class="sg-logo">
+        <div class="sg-logo__cart"><Cartouche surface="jaune" orientation="paysage" /></div>
+        <p>Cartouche paysage, logo seul</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICONOGRAPHIE -->
+  <section class="section page sg">
+    <h2 class="sg__t">5. Pictogrammes</h2>
+    <p class="sg__p">
+      Quinze figures en papier découpé, extraites de la charte. Cinq silhouettes humaines et dix
+      symboles. Ils s’emploient en blanc dans un petit cartouche de couleur, ou en grand comme
+      silhouette de débord.
+    </p>
+    <h3 class="sg__st">Les cinq silhouettes</h3>
+    <ul class="sg-figs">
+      {
+        (['fig1', 'fig2', 'fig3', 'fig4', 'fig5'] as const).map((f) => (
+          <li>
+            <div class="sg-fig"><Brand name={f} /></div>
+            <code>{f}</code>
+          </li>
+        ))
+      }
+    </ul>
+    <h3 class="sg__st">Les dix symboles</h3>
+    <ul class="sg-figs sg-figs--pictos">
+      {
+        pictos.map((p) => (
+          <li>
+            <div class="sg-fig"><Brand name={p} /></div>
+            <code>{p}</code>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- LE PLI -->
+  <section class="section page sg">
+    <h2 class="sg__t">6. Le pli</h2>
+    <p class="sg__p">
+      Quatre coins possibles, quatre calibres. La charte prévient : <strong>« attention à ne pas
+      en abuser, 1 ou 2 par composition maximum »</strong>.
+    </p>
+
+    <h3 class="sg__st">Les quatre coins</h3>
+    <ul class="sg-grid4">
+      {
+        coins.map((c) => (
+          <li>
+            <Paper surface="vert" fold={c.f} foldSize="md" class="sg-demo">
+              <span>{c.label}</span>
+            </Paper>
+            <code>fold="{c.f}"</code>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h3 class="sg__st">Les quatre calibres</h3>
+    <ul class="sg-grid4">
+      {
+        calibres.map((c) => (
+          <li>
+            <Paper surface="jaune" fold="br" foldSize={c.v} class="sg-demo">
+              <span>{c.label}</span>
+            </Paper>
+            <code>foldSize="{c.v}"</code>
+            <p class="sg-usage">{c.usage}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h3 class="sg__st">Version à filet</h3>
+    <p class="sg__p">
+      Sur un fond de couleur, le bloc peut n’être qu’un contour : le rabat se dessine alors en
+      trois traits, comme une feuille dont on a corné le coin. C’est la bulle de titre des
+      pages.
+    </p>
+    <div class="sg-outline s-vert">
+      <Paper outline fold="tr" class="sg-demo sg-demo--lg"><span>Bloc à filet, coin plié</span></Paper>
+    </div>
+  </section>
+
+  <!-- COMPOSANTS -->
+  <section class="section page sg">
+    <h2 class="sg__t">7. Composants</h2>
+
+    <h3 class="sg__st">Étiquettes et boutons</h3>
+    <div class="sg-row">
+      <Cta href="#">Vert (défaut)</Cta>
+      <Cta href="#" surface="bleu">Bleu — Programme</Cta>
+      <Cta href="#" surface="jaune">Jaune</Cta>
+      <Cta href="#" surface="rose">Rose</Cta>
+      <Cta href="#" surface="ocre">Ocre</Cta>
+    </div>
+    <div class="sg-row s-vert sg-row--fonce">
+      <Cta href="#" surface="papier">Sur fond foncé</Cta>
+      <Cta href="#" outline>Contour</Cta>
+    </div>
+
+    <h3 class="sg__st">Cartouches à pictogramme</h3>
+    <div class="sg-row">
+      <PictoBox picto="main" surface="bleu" size="84px" />
+      <PictoBox picto="asterisque" surface="jaune" size="84px" />
+      <PictoBox picto="coeur" surface="rose" size="84px" />
+      <PictoBox picto="oiseau" surface="orange" size="84px" />
+      <PictoBox picto="etoile" surface="vert" size="84px" />
+    </div>
+
+    <h3 class="sg__st">Photo</h3>
+    <p class="sg__p">
+      Le cadre impose le format, l’image se recadre dedans. À gauche une photo, à droite
+      l’emplacement vide qui sert à marquer « photo à fournir ».
+    </p>
+    <div class="sg-photos">
+      <Photo ratio="4/3" />
+      <Photo ratio="4/3" empty label="photo à fournir" />
+    </div>
+
+    <h3 class="sg__st">Les bonshommes : deux usages à ne pas confondre</h3>
+    <div class="sg-silos">
+      <div>
+        <div class="sg-silo-demo s-papier">
+          <div class="silo silo--left" style="color:var(--vert)"><Brand name="fig2" /></div>
+          <p>Texte de la section, qui commence après la silhouette.</p>
+        </div>
+        <p class="sg-usage">
+          <b>Silhouette de débord</b> — pleine, opaque, elle sort du cadre par un bord de page.
+          Elle occupe la marge et <strong>jamais la zone de texte</strong>.
+        </p>
+      </div>
+      <div>
+        <div class="sg-silo-demo s-vert">
+          <div class="filigrane"><div style="left:30%"><Brand name="fig3" /></div></div>
+          <p class="sg-silo-demo__txt">Texte du bandeau, lisible par-dessus.</p>
+        </div>
+        <p class="sg-usage">
+          <b>Filigrane</b> — très estompée (8 %), derrière le contenu d’un bandeau de couleur.
+          Au-delà de cette valeur le texte devient sale.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODE D'EMPLOI -->
+  <section class="section page sg">
+    <h2 class="sg__t">8. Mode d’emploi pour l’équipe</h2>
+    <p class="sg__p">
+      Le site n’a pas d’interface d’administration : il est fait de fichiers texte, versionnés.
+      C’est volontaire — rien ne peut se casser sans qu’on puisse revenir en arrière, et
+      l’agent IA peut modifier ces fichiers pour vous en langage naturel.
+    </p>
+    <div class="sg-modifs">
+      {
+        modifs.map((m) => (
+          <Paper surface="blanc" fold="br" foldSize="md" class="sg-modif">
+            <h3>{m.quoi}</h3>
+            <code>{m.ou}</code>
+            <p>{m.comment}</p>
+          </Paper>
+        ))
+      }
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  .sg-hero {
+    padding-bottom: clamp(2.5rem, 7vw, 5rem);
+    max-width: 60ch;
+  }
+  .sg-hero__sur {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    color: var(--vert-clair);
+    margin-bottom: 0.75rem;
+  }
+  .sg-hero__lead {
+    margin-top: 1.25rem;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    color: color-mix(in srgb, currentColor 75%, transparent);
+  }
+
+  .sg {
+    max-width: 78ch;
+  }
+  .sg__t {
+    color: var(--vert);
+    margin-bottom: 1.25rem;
+  }
+  .sg__st {
+    margin: clamp(2rem, 5vw, 3rem) 0 1rem;
+    color: var(--vert);
+  }
+  .sg__p {
+    max-width: 68ch;
+    margin-bottom: 1rem;
+  }
+  .sg__cite {
+    margin: 0 0 1.5rem;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: var(--blanc);
+    border-left: 4px solid var(--vert);
+    font-size: 1.05rem;
+  }
+  .sg__cite cite {
+    display: block;
+    margin-top: 0.75rem;
+    font-style: normal;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  /* couleurs */
+  .sg-teinte {
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  .sg-teinte__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+  .sg-teinte__head h3 {
+    color: var(--vert);
+  }
+  .sg-teinte__role {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.65;
+  }
+  .sg-teinte__regle {
+    margin: 0.35rem 0 0.75rem;
+    max-width: 62ch;
+    font-size: 0.95rem;
+  }
+  .sg-swatches {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .sg-swatches li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .sg-swatch {
+    width: 3.5rem;
+    height: 2.25rem;
+    flex: none;
+  }
+  .sg-swatch--bord {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--noir) 18%, transparent);
+  }
+  .sg code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    background: var(--blanc);
+    padding: 0.15rem 0.4rem;
+  }
+  .sg-var {
+    opacity: 0.7;
+  }
+  .sg-tag {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.6;
+  }
+  .sg-contrastes {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .sg-contrastes li {
+    background: var(--surface);
+    color: var(--on-surface);
+    padding: 0.7rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* typo */
+  .sg-typo {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .sg-typo li {
+    border-top: 1px solid color-mix(in srgb, var(--noir) 12%, transparent);
+    padding-top: 0.75rem;
+  }
+  .sg-typo__meta {
+    display: block;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+  }
+  .sg-typo__ex {
+    display: block;
+    color: var(--vert);
+  }
+  .is-h1 {
+    font-size: clamp(2rem, 4.6vw, 3.5rem);
+    line-height: 1.1;
+    font-weight: 600;
+  }
+  .is-h2 {
+    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  .is-h3 {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  .is-chapo {
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+  .is-body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* logo */
+  .sg-logos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: clamp(1rem, 3vw, 2rem);
+  }
+  .sg-logo p {
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+  .sg-logo__box {
+    background: var(--surface);
+    color: var(--on-surface);
+    padding: 1.5rem 1.25rem;
+    display: grid;
+    place-items: center;
+  }
+  .sg-logo__cart {
+    width: 72%;
+  }
+
+  /* pictos */
+  .sg-figs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 1rem;
+  }
+  .sg-figs li {
+    text-align: center;
+  }
+  .sg-fig {
+    background: var(--blanc);
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    aspect-ratio: 1 / 1.2;
+    color: var(--noir);
+  }
+  .sg-fig > * {
+    width: 70%;
+  }
+  .sg-figs code {
+    display: inline-block;
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  /* pli */
+  .sg-grid4 {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: clamp(1rem, 3vw, 1.75rem);
+  }
+  .sg-demo {
+    display: grid;
+    place-items: center;
+    min-height: 8.5rem;
+    /* le rabat peut etre large : on lui reserve la place pour que le libelle
+       reste lisible, calibre xl compris */
+    padding: 1.25rem calc(var(--f) + 0.75rem) 1.25rem 1.25rem;
+    text-align: center;
+    font-weight: 600;
+  }
+  .sg-demo--lg {
+    min-height: 11rem;
+  }
+  .sg-grid4 code {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+  }
+  .sg-usage {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+  .sg-outline {
+    background: var(--surface);
+    color: var(--on-surface);
+    padding: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  /* composants */
+  .sg-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .sg-row--fonce {
+    background: var(--surface);
+    color: var(--on-surface);
+    padding: 1.25rem;
+  }
+  .sg-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .sg-silos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  .sg-silo-demo {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--on-surface);
+    min-height: 11rem;
+    display: grid;
+    align-items: center;
+    padding: 1.25rem 1.25rem 1.25rem 45%;
+  }
+  .sg-silo-demo .silo {
+    height: 9rem;
+    max-width: 45%;
+  }
+  .sg-silo-demo__txt {
+    position: relative;
+    z-index: 1;
+    padding-left: 0;
+  }
+  .sg-silo-demo.s-vert {
+    padding-left: 1.25rem;
+  }
+
+  /* mode d'emploi */
+  .sg-modifs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: clamp(1rem, 3vw, 1.75rem);
+  }
+  .sg-modif {
+    padding: clamp(1.1rem, 2.4vw, 1.6rem);
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+  }
+  .sg-modif h3 {
+    color: var(--vert);
+  }
+  .sg-modif code {
+    justify-self: start;
+    background: var(--papier);
+  }
+  .sg-modif p {
+    font-size: 0.92rem;
+  }
+</style>

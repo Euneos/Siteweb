@@ -11,7 +11,7 @@ export default defineConfig({
   // Les endpoints de formulaire sont marques `prerender = false` (rendu a la demande).
   output: 'static',
   adapter: cloudflare({ imageService: 'compile' }),
-  integrations: [sitemap()],
+  integrations: [sitemap({ filter: (page) => !page.includes('/style-guide') })],
   vite: { plugins: [tailwindcss()] },
   i18n: {
     defaultLocale: 'fr',

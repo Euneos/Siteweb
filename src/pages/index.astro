@@ -59,8 +59,8 @@ const parcours = [
   </section>
 
   <!-- 2. CONSTAT -->
-  <section class="section constat">
-    <div class="constat__fig" aria-hidden="true"><Brand name="fig2" /></div>
+  <section class="section constat has-silo">
+    <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" /></div>
     <div class="page g16 constat__in">
       <h2 style="grid-column: 4 / 9">Apaisons l’environnement éducatif</h2>
       <div style="grid-column: 10 / 17" class="constat__txt">
@@ -212,23 +212,8 @@ const parcours = [
 
 <style is:global>
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
-  .constat {
-    position: relative;
-    overflow: hidden;
-  }
   .constat__fig {
-    position: absolute;
-    left: -6%;
-    top: 50%;
-    transform: translateY(-50%);
-    height: clamp(19rem, 38vw, 34rem);
     color: var(--vert);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .constat__fig svg {
-    height: 100%;
-    width: auto;
   }
   .constat__in {
     position: relative;
@@ -497,16 +482,8 @@ const parcours = [
     overflow: hidden;
   }
   .parcours__fig {
-    position: absolute;
-    right: -5%;
-    top: -8%;
-    height: 118%;
-    opacity: 0.16;
+    right: -4%;
     color: var(--vert-clair);
-  }
-  .parcours__fig svg {
-    height: 100%;
-    width: auto;
   }
   .parcours__in {
     position: relative;

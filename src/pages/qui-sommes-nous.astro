@@ -112,10 +112,10 @@ const equipe = [
   </section>
 
   <!-- FONDEMENTS -->
-  <section id="fondements" class="section fond">
-    <div class="fond__fig" aria-hidden="true"><Brand name="fig1" /></div>
+  <section id="fondements" class="section fond has-silo">
+    <div class="silo silo--left fond__fig" aria-hidden="true"><Brand name="fig1" /></div>
     <div class="page g16 fond__in">
-      <h2 style="grid-column: 4 / 10">
+      <h2 style="grid-column: 5 / 11">
         Ne laissons pas les jeunes grandir seuls face aux défis du numérique, et ne laissons
         pas les éducateurs sans ressources pour les accompagner.
       </h2>
@@ -259,24 +259,8 @@ const equipe = [
 
 <style is:global>
   /* FONDEMENTS */
-  .fond {
-    position: relative;
-    overflow: hidden;
-  }
   .fond__fig {
-    position: absolute;
-    left: -7%;
-    top: 46%;
-    transform: translateY(-50%);
-    height: clamp(15rem, 26vw, 23rem);
     color: var(--vert);
-  }
-  .fond__fig svg {
-    height: 100%;
-    width: auto;
-  }
-  .fond__in {
-    position: relative;
   }
   .fond__in h2 {
     color: var(--vert);
@@ -512,16 +496,8 @@ const equipe = [
     overflow: hidden;
   }
   .conf3__fig {
-    position: absolute;
-    right: -3%;
-    top: -20%;
-    height: 140%;
-    opacity: 0.1;
+    right: -2%;
     color: var(--vert-clair);
-  }
-  .conf3__fig svg {
-    height: 100%;
-    width: auto;
   }
   .conf3__in {
     position: relative;
