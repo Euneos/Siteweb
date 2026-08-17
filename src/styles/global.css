@@ -613,11 +613,22 @@ body {
 }
 
 /* ============================================================
-   HERO — geometrie relevee sur la maquette, commune aux pages 1, 2 et 3.
-   La photo touche le bord de la page, la bulle a filet occupe l'autre moitie
-   avec un grand rabat au coin haut-droit, le cartouche est a cheval sur son
-   bord exterieur et le CTA a cheval sur son bord bas.
-   `.hz--mirror` inverse le sens (photo a gauche) comme sur les pages 2 et 3.
+   HERO — geometrie relevee AU VECTEUR dans le PDF (page 1, hero).
+   Page = 595,3 pt de large. Mesures et ratios correspondants :
+
+     gouttiere gauche      28,9 pt        ->  4,86 % de la page
+     cartouche            60,2 x 85,1 pt ->  10,1 % de large, format A
+     bulle                214,5 x 190,4  ->  36,0 % de large, ratio 1,127
+     pli de la bulle      46,4 pt        ->  21,6 % de la largeur de bulle
+     CTA                  88,8 x 26,7    ->  41,4 % de la bulle, a 26,9 % du bord
+     photo                260 x 177,3    ->  43,7 % de large, ratio 1,466
+     marge droite photo   30,3 pt        ->  5,09 %
+     pli de section       94,3 pt        ->  15,8 % de la page
+
+   Le cartouche est ADJACENT a la bulle (il finit a 89,1, la bulle commence a
+   89,6) et aligne sur son bord bas — il ne la chevauche pas. La photo ne touche
+   pas le bord droit. Le filet de la bulle est en vert clair, pas en blanc.
+   `.hz--mirror` inverse le sens (photo a gauche) pour les pages 2 et 3.
    ============================================================ */
 .hz {
   padding-bottom: clamp(1.5rem, 4vw, 3rem);
@@ -625,75 +636,80 @@ body {
 .hz__grid {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: 46.25fr 43.7fr;
+  align-items: start;
+  padding-inline: 4.86% 5.09%;
+}
+.hz--mirror .hz__grid {
+  grid-template-columns: 43.7fr 46.25fr;
 }
 .hz--mirror .hz__media {
   order: -1;
 }
-/* --gutter-page : la gouttiere de .page, elargie de la place du cartouche */
+
+/* colonne de gauche : le cartouche puis la bulle, alignes par le bas */
 .hz__side {
   position: relative;
-  padding-block: clamp(1rem, 3vw, 2rem);
-  padding-inline-start: calc(
-    max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5)) +
-      clamp(60px, 7vw, 104px)
-  );
-  padding-inline-end: clamp(1rem, 2.5vw, 2.5rem);
+  display: grid;
+  grid-template-columns: 21.8% 78.2%;
+  align-items: end;
 }
 .hz--mirror .hz__side {
-  padding-inline-start: clamp(1rem, 2.5vw, 2.5rem);
-  padding-inline-end: calc(
-    max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5)) +
-      clamp(60px, 7vw, 104px)
-  );
-}
-.hz__bubble {
-  min-height: 21rem;
-  display: flex;
-  align-items: center;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
-  padding-right: clamp(3rem, 6vw, 6rem);
-}
-/* Ecart assume : dans la maquette le titre du hero est compose plus petit que le
-   H1 de 56 px de la charte, pour tenir dans la bulle. */
-.hz__bubble h1 {
-  font-size: clamp(1.75rem, 3.1vw, 2.85rem);
-}
-.hz__soft {
-  color: color-mix(in srgb, currentColor 55%, transparent);
-}
-.hz__cartouche {
-  position: absolute;
-  bottom: clamp(1.5rem, 5vw, 4.5rem);
-  width: clamp(84px, 10vw, 136px);
-  z-index: 2;
-  left: max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5));
+  grid-template-columns: 78.2% 21.8%;
 }
 .hz--mirror .hz__cartouche {
-  /* la photo est a gauche en miroir : le cartouche se pose dessus */
-  left: clamp(2rem, 4.5vw, 5.5rem);
-  right: auto;
-  bottom: auto;
-  top: 14%;
+  order: 2;
 }
+
+.hz__cartouche {
+  align-self: end;
+}
+.hz__bubblewrap {
+  position: relative;
+}
+.hz__bubble {
+  /* ratio releve : 214,5 / 190,4 */
+  min-height: 0;
+  aspect-ratio: 214.5 / 190.4;
+  display: flex;
+  align-items: center;
+  padding: 8% 22.5% 12% 9%;
+  --filet: var(--vert-clair);
+}
+.hz__bubble h1 {
+  font-size: clamp(1.6rem, 2.9vw, 2.7rem);
+}
+.hz__soft {
+  color: var(--vert-clair);
+}
+/* le CTA est a cheval sur le bord bas : 71 % dedans, 29 % dehors */
 .hz__cta {
   position: absolute;
-  bottom: clamp(0.25rem, 1.5vw, 1.25rem);
-  left: clamp(9rem, 16vw, 15rem);
+  left: 26.9%;
+  right: 8%;
+  bottom: 0;
+  transform: translateY(29%);
   z-index: 3;
+  display: flex;
 }
-.hz--mirror .hz__cta {
-  /* du cote oppose au rabat du coin bas-droit */
-  left: clamp(1.5rem, 4vw, 4rem);
-  right: auto;
+.hz__cta > .cta {
+  --surface: var(--vert-clair);
+  --on-surface: var(--blanc);
+  --fold-color: var(--vert);
+  /* releve : 88,8 pt de large sur une bulle de 214,5 -> 41 % */
+  min-width: 41%;
+  text-align: center;
+  padding: 0.7rem 1.4rem;
 }
+/* sur la page Programme, le CTA du hero est dans la famille bleue */
+.hz--mirror .hz__cta > .cta {
+  --surface: var(--bleu-fold);
+  --on-surface: var(--blanc);
+  --fold-color: var(--bleu-clair);
+}
+
 .hz__media {
   min-width: 0;
-  align-self: stretch;
-  display: flex;
-  align-items: flex-start;
-  padding-top: clamp(1rem, 3vw, 2rem);
 }
 .hz__media > * {
   width: 100%;
@@ -701,28 +717,30 @@ body {
 
 @media (max-width: 860px) {
   .hz__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    padding-inline: calc(var(--unit) * 1.5);
   }
   .hz__media {
     order: -1;
-    padding-inline: 0;
   }
   .hz__side {
-    padding-inline: calc(var(--unit) * 1.5) !important;
-    padding-top: clamp(2.5rem, 8vw, 4rem);
-  }
-  .hz__bubble {
-    min-height: 0;
-    padding-right: clamp(1.5rem, 5vw, 3rem);
+    grid-template-columns: 1fr !important;
+    margin-top: clamp(2rem, 7vw, 3.5rem);
   }
   .hz__cartouche {
-    left: auto !important;
-    right: 6% !important;
-    top: -3rem;
-    bottom: auto;
+    width: clamp(84px, 22vw, 130px);
+    order: -1 !important;
+    margin-bottom: -1rem;
+    margin-left: auto;
+  }
+  .hz__bubble {
+    aspect-ratio: auto;
+    padding: clamp(1.5rem, 5vw, 2rem);
+    padding-right: clamp(3rem, 12vw, 4.5rem);
   }
   .hz__cta {
     position: static;
+    transform: none;
     margin-top: 1.25rem;
   }
 }
