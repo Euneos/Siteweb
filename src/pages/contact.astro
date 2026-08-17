@@ -32,10 +32,10 @@ const champs = [
       <div class="ct__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
     </div>
 
-    <Paper outline fold="tr" class="ct__panel">
+    <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="ct__panel">
       <h1>Des questions<br />ou des suggestions ?</h1>
 
-      <form class="ct__form" method="POST" action="/api/contact">
+      <form class="ct__form" id="ct-form" method="POST" action="/api/contact">
         {
           champs.map((c) => (
             <p class="ct__row">
@@ -54,10 +54,10 @@ const champs = [
           </span>
         </p>
 
-        <div class="ct__submit">
-          <Cta type="submit" surface="papier">Envoyer</Cta>
-        </div>
       </form>
+      <div class="ct__submit">
+        <button type="submit" form="ct-form" class="cta s-papier ct__submit-btn">Envoyer</button>
+      </div>
     </Paper>
 
     <address class="ct__adr">
@@ -101,7 +101,7 @@ const champs = [
   .ct__panel {
     position: relative;
     z-index: 3;
-    width: min(100%, 44rem);
+    width: min(100%, 52rem);
     margin: clamp(-3rem, -4vw, -1.5rem) auto 0;
     padding: clamp(1.75rem, 4vw, 3rem);
   }
@@ -114,8 +114,9 @@ const champs = [
   .ct__form {
     display: grid;
     gap: 1.1rem;
-    max-width: 32rem;
+    max-width: 36rem;
     margin-inline: auto;
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
   }
   .ct__row {
     display: grid;
@@ -152,9 +153,11 @@ const champs = [
     opacity: 0.55;
   }
   .ct__submit {
-    display: flex;
-    justify-content: center;
-    margin-top: 0.5rem;
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 50%);
+    z-index: 4;
   }
   .ct__adr {
     position: relative;

@@ -63,6 +63,16 @@ H1 56 px / 110 % · H2 40 px / 120 % · H3 20 px / 120 % · Chapô 20 px / 140 %
 Body 16 px / 160 % · letter-spacing 0 partout · SemiBold (600) + Regular (400).
 La variante SemiCondensed s'obtient par l'axe `wdth` à 87.5 %.
 
+## `/style-guide` — l'outil de passation
+
+Page interne (hors sitemap, `noindex`) qui montre la charte **telle qu'elle est
+codée** : les pastilles de couleur affichent les variables CSS du site, pas des
+captures. Huit sections : concept, couleurs (hex + variable + règle d'usage +
+contrastes mesurés), typographie, logo, les 15 pictogrammes nommés, le pli
+(4 coins × 4 calibres), les composants, et un mode d'emploi qui indique où
+intervenir pour chaque type de modification. C'est ce qu'on montre à l'équipe
+d'EUNEOS pour qu'elle puisse reprendre le site.
+
 ## Composants
 
 | Composant | Rôle |
@@ -77,7 +87,16 @@ La variante SemiCondensed s'obtient par l'axe `wdth` à 87.5 %.
 Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pdf`
 (pages 5, 20, 21) avec `pdftocairo -svg`, puis normalisés en `fill="currentColor"`.
 
-## Deux pièges rencontrés, à ne pas refaire
+## Les bonshommes : deux usages, à ne pas confondre
+
+- **`.silo`** — silhouette de débord : pleine, opaque, elle sort du cadre par un
+  bord de page. Dans la maquette elle occupe **toujours la marge, jamais la zone
+  de texte** : c'est une règle de mise en page. La classe borne sa largeur, et les
+  colonnes de texte sont resserrées pour lui laisser la place. Masquée en mobile.
+- **`.filigrane`** — fond de bandeau : opacité **0,08**, derrière le contenu.
+  Au-delà, le texte devient sale.
+
+## Cinq pièges rencontrés, à ne pas refaire
 
 1. **Astro ne scope pas les classes passées à un composant.** Une classe donnée
    à `<Paper class="mon-bloc">` ne sera jamais atteinte par un `<style>` scopé du
@@ -89,6 +108,16 @@ Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pd
    boîte.** Sur un petit cartouche dans une colonne large, le padding mangeait
    tout l'élément. `PictoBox` reçoit donc sa taille en variable CSS et calcule son
    padding avec `calc(var(--pbox) * 0.17)`.
+3. **`:global()` n'existe pas en CSS**, c'est une extension Astro valable
+   uniquement dans un `<style>` de composant. Écrit dans `global.css`, il rend le
+   sélecteur invalide — et un sélecteur invalide **annule toute la règle**.
+4. **Le style scopé d'un composant gagne en spécificité** sur une règle
+   extérieure. Pour dimensionner un `Brand` par la hauteur, passer par son API
+   (`height="100%"`) plutôt que d'écrire une règle concurrente.
+5. **Un utilitaire partagé entre pages doit vivre dans `global.css`.** Déclaré
+   dans le `<style is:global>` d'une page, il n'existe que sur cette page :
+   `.c-t` était dans la page Programme, et tous les titres de section des autres
+   pages s'affichaient alignés à gauche.
 
 ## Formulaires
 
