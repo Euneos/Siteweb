@@ -209,24 +209,70 @@ body {
   clip-path: polygon(0 0, 100% 100%, 0 100%);
 }
 
-/* Variante « contour » : la bulle a filet blanc du hero.
-   Elle herite la couleur de texte du bloc parent (le hero), elle n'impose rien. */
-.paper-outline {
+/* Variante « contour » : la bulle a filet du hero.
+   ------------------------------------------------------------
+   Le rabat replie se trace À L'EXTÉRIEUR du contour : c'est le triangle du coin
+   qu'on a corne. Impossible de le dessiner depuis un enfant du bloc si le bloc
+   porte le clip-path — il serait coupe avec lui (ca donnait un escalier).
+   On deporte donc :
+     ::before = le contour, rectangle a coin coupe (il porte le clip)
+     ::after  = le rabat, non coupe : la diagonale du pli + les deux cotes du
+                carre du coin.
+   Le bloc lui-meme n'est plus clippe, son contenu ne risque donc plus rien.
+   ------------------------------------------------------------ */
+.paper.paper-outline {
   background: transparent;
   color: inherit;
+  border: 0;
+  clip-path: none !important;
+}
+.paper.paper-outline::before,
+.paper.paper-outline::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: none;
+}
+/* le contour */
+.paper.paper-outline::before {
+  inset: 0;
+  width: auto;
+  height: auto;
   border: 1.5px solid currentColor;
 }
-/* Version contour : le rabat n'est pas un aplat mais un carre dont le clip du
-   bloc n'a garde qu'un triangle. Ses deux cotes droits, traces au filet,
-   dessinent le rabat replie exactement comme sur la maquette. */
-.paper-outline[class*='fold-']::before {
-  background: none;
-  clip-path: none;
+/* le rabat */
+.paper.paper-outline::after {
+  width: var(--f);
+  height: var(--f);
 }
-/* Le clip-path coupe la bordure du bloc sans la tracer : la diagonale du pli est
-   donc dessinee ici, au degrade, en plus des deux cotes droits du rabat. */
-.paper-outline.fold-tr::before,
-.paper-outline.fold-bl::before {
+
+/* --- coin bas-droit --- */
+.paper.paper-outline.fold-br::before {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--f)), calc(100% - var(--f)) 100%, 0 100%);
+}
+.paper.paper-outline.fold-br::after {
+  right: 0;
+  bottom: 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.8px),
+    currentColor calc(50% - 0.8px),
+    currentColor calc(50% + 0.8px),
+    transparent calc(50% + 0.8px)
+  );
+}
+
+/* --- coin haut-droit --- */
+.paper.paper-outline.fold-tr::before {
+  clip-path: polygon(0 0, calc(100% - var(--f)) 0, 100% var(--f), 100% 100%, 0 100%);
+}
+.paper.paper-outline.fold-tr::after {
+  right: 0;
+  top: 0;
+  border-right: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
   background: linear-gradient(
     to bottom right,
     transparent calc(50% - 0.8px),
@@ -235,8 +281,16 @@ body {
     transparent calc(50% + 0.8px)
   );
 }
-.paper-outline.fold-br::before,
-.paper-outline.fold-tl::before {
+
+/* --- coin haut-gauche --- */
+.paper.paper-outline.fold-tl::before {
+  clip-path: polygon(var(--f) 0, 100% 0, 100% 100%, 0 100%, 0 var(--f));
+}
+.paper.paper-outline.fold-tl::after {
+  left: 0;
+  top: 0;
+  border-left: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
   background: linear-gradient(
     to bottom left,
     transparent calc(50% - 0.8px),
@@ -245,21 +299,23 @@ body {
     transparent calc(50% + 0.8px)
   );
 }
-.paper-outline.fold-tr::before {
+
+/* --- coin bas-gauche --- */
+.paper.paper-outline.fold-bl::before {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, var(--f) 100%, 0 calc(100% - var(--f)));
+}
+.paper.paper-outline.fold-bl::after {
+  left: 0;
+  bottom: 0;
   border-left: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-}
-.paper-outline.fold-br::before {
-  border-left: 1.5px solid currentColor;
-  border-top: 1.5px solid currentColor;
-}
-.paper-outline.fold-tl::before {
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-}
-.paper-outline.fold-bl::before {
-  border-right: 1.5px solid currentColor;
-  border-top: 1.5px solid currentColor;
+  background: linear-gradient(
+    to top left,
+    transparent calc(50% - 0.8px),
+    currentColor calc(50% - 0.8px),
+    currentColor calc(50% + 0.8px),
+    transparent calc(50% + 0.8px)
+  );
 }
 
 /* ============================================================
@@ -609,6 +665,7 @@ body {
   padding-bottom: clamp(1.5rem, 4vw, 3rem);
 }
 .hz__grid {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
@@ -656,8 +713,11 @@ body {
   left: max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5));
 }
 .hz--mirror .hz__cartouche {
-  left: auto;
-  right: max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5));
+  /* la photo est a gauche en miroir : le cartouche se pose dessus */
+  left: clamp(2rem, 4.5vw, 5.5rem);
+  right: auto;
+  bottom: auto;
+  top: 14%;
 }
 .hz__cta {
   position: absolute;
@@ -666,8 +726,9 @@ body {
   z-index: 3;
 }
 .hz--mirror .hz__cta {
-  left: auto;
-  right: clamp(9rem, 16vw, 15rem);
+  /* du cote oppose au rabat du coin bas-droit */
+  left: clamp(1.5rem, 4vw, 4rem);
+  right: auto;
 }
 .hz__media {
   min-width: 0;
