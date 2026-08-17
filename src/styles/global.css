@@ -446,10 +446,11 @@ body {
 .silo > * {
   height: 100%;
 }
-.silo :global(svg),
 .silo svg {
   height: 100%;
   width: auto;
+  /* la regle globale `svg { max-width: 100% }` ecraserait la hauteur */
+  max-width: none;
 }
 .silo--left {
   left: 0;

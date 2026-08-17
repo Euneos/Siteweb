@@ -60,10 +60,10 @@ const parcours = [
 
   <!-- 2. CONSTAT -->
   <section class="section constat has-silo">
-    <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" /></div>
+    <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
     <div class="page g16 constat__in">
       <h2 style="grid-column: 4 / 9">Apaisons l’environnement éducatif</h2>
-      <div style="grid-column: 10 / 17" class="constat__txt">
+      <div style="grid-column: 10 / 15" class="constat__txt">
         <p>
           Aujourd’hui, + de 50 % des élèves de collèges et lycées présentent des plaintes
           psychologiques ou somatiques hebdomadaires, amplifiées par la saturation
@@ -76,25 +76,29 @@ const parcours = [
   </section>
 
   <!-- 3. NOTRE APPROCHE -->
-  <section class="section">
-    <div class="page g16 approche">
+  <section class="section approche-sec">
+    <div class="page approche">
       <Paper surface="orange" fold="none" class="approche__tag" as="h2">Notre approche</Paper>
 
       <div class="approche__media">
-        <Photo ratio="4/3" label="photo — équipe éducative" />
+        <Photo ratio="3/2" label="photo — équipe éducative" />
         <div class="approche__picto">
-          <PictoBox picto="asterisque" surface="jaune" size="clamp(74px, 8vw, 112px)" />
+          <PictoBox picto="asterisque" surface="jaune" size="clamp(64px, 5.5vw, 80px)" />
         </div>
       </div>
 
-      <Paper surface="vert" fold="br" class="approche__txt">
-        <p>
-          EUNEOS forme les équipes éducatives, premiers leviers d’apprentissage des jeunes,
-          à la prévention en santé mentale, à la transmission des compétences psychosociales
-          et à l’accompagnement du rapport au numérique.
-        </p>
-        <Cta href="/qui-sommes-nous" surface="papier">En savoir +</Cta>
-      </Paper>
+      <div class="approche__col">
+        <Paper surface="vert" fold="tr" class="approche__txt">
+          <p>
+            EUNEOS forme les équipes éducatives, premiers leviers d’apprentissage des jeunes,
+            à la prévention en santé mentale, à la transmission des compétences psychosociales
+            et à l’accompagnement du rapport au numérique.
+          </p>
+        </Paper>
+        <div class="approche__cta">
+          <Cta href="/qui-sommes-nous" surface="papier">En savoir +</Cta>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -189,7 +193,7 @@ const parcours = [
 
   <!-- 9. PARCOURS -->
   <section class="section parcours">
-    <div class="filigrane" aria-hidden="true"><div class="parcours__fig"><Brand name="fig4" /></div></div>
+    <div class="filigrane" aria-hidden="true"><div class="parcours__fig"><Brand name="fig4" height="100%" /></div></div>
     <div class="page parcours__in">
       <h2 class="parcours__t">Vous souhaitez prendre part au projet ?</h2>
       <ul class="parcours__cards">
@@ -212,8 +216,15 @@ const parcours = [
 
 <style is:global>
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
+  /* la maquette donne beaucoup d'air a ce bloc : la silhouette y fait toute la
+     hauteur de la bande */
+  .constat {
+    padding-block: clamp(5rem, 14vw, 11rem);
+  }
   .constat__fig {
     color: var(--vert);
+    height: clamp(19rem, 36vw, 32rem);
+    max-width: 30vw;
   }
   .constat__in {
     position: relative;
@@ -230,40 +241,89 @@ const parcours = [
     }
   }
 
-  /* --- APPROCHE --- */
+  /* --- APPROCHE ---
+     Proportions relevees sur la maquette : l'etiquette orange coiffe la photo
+     par le haut-droit, le cartouche jaune est a cheval sur son coin haut-gauche,
+     le bloc vert descend a mi-hauteur et chevauche la photo, le CTA est pose a
+     cheval sur le bord bas du bloc vert. */
   .approche {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     align-items: start;
   }
   .approche__tag {
-    grid-column: 7 / 14;
+    grid-column: 1 / -1;
+    justify-self: end;
+    width: min(32%, 22rem);
+    margin-right: 22%;
+    margin-bottom: -3.5rem;
     position: relative;
-    z-index: 2;
-    padding: 1rem clamp(1rem, 3vw, 2rem);
-    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+    z-index: 3;
+    padding: clamp(1rem, 2.4vw, 1.75rem) clamp(1rem, 2.4vw, 1.75rem);
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
     line-height: 1.2;
     font-weight: 600;
-    margin: 0 0 -1px 0;
+    text-align: center;
   }
   .approche__media {
-    grid-column: 1 / 9;
+    grid-column: 1;
+    grid-row: 2;
     position: relative;
-    margin-top: clamp(-3rem, -3vw, -1.5rem);
     z-index: 1;
   }
   .approche__picto {
     position: absolute;
-    left: -6%;
-    bottom: -8%;
+    left: -7%;
+    top: 8%;
     z-index: 3;
   }
+  .approche__col {
+    grid-column: 2;
+    grid-row: 2;
+    position: relative;
+    align-self: center;
+    margin-top: 18%;
+    margin-left: -18%;
+    z-index: 2;
+  }
   .approche__txt {
-    grid-column: 9 / 17;
-    align-self: end;
-    margin-bottom: clamp(1rem, 4vw, 3rem);
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    display: grid;
-    gap: 1.5rem;
-    justify-items: start;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    padding-left: clamp(2.25rem, 5vw, 4rem);
+    padding-bottom: clamp(2rem, 4vw, 3rem);
+  }
+  .approche__cta {
+    position: absolute;
+    left: clamp(2.25rem, 5vw, 4rem);
+    bottom: 0;
+    transform: translateY(45%);
+    z-index: 3;
+  }
+  @media (max-width: 860px) {
+    .approche {
+      grid-template-columns: 1fr;
+    }
+    .approche__tag {
+      width: auto;
+      margin-right: 0;
+      margin-bottom: -2rem;
+      justify-self: start;
+    }
+    .approche__media,
+    .approche__col {
+      grid-column: 1;
+      grid-row: auto;
+    }
+    .approche__col {
+      margin: 1.5rem 0 0;
+    }
+    .approche__txt {
+      padding-left: clamp(1.5rem, 3vw, 2.25rem);
+    }
+    .approche__cta {
+      position: static;
+      transform: none;
+      margin-top: 1rem;
+    }
   }
 
   /* --- CONFIANCE --- */
