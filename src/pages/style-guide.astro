@@ -111,42 +111,66 @@ const calibres = [
   { v: 'sm', label: 'Étiquette', usage: 'un CTA, un champ de formulaire' },
 ] as const
 
-const modifs = [
+const demandes = [
   {
-    quoi: 'Changer un texte',
-    ou: 'src/pages/<page>.astro',
-    comment:
-      'Les textes sont écrits en clair dans la page. Chercher la phrase à changer et l’éditer. Les listes répétées (les 6 étapes, la FAQ, l’équipe) sont regroupées en haut du fichier, entre les deux ---.',
+    quoi: 'Corriger un texte',
+    exemple:
+      '« Sur la page d’accueil, remplace “Apaisons l’environnement éducatif” par “Apaisons le climat scolaire”. »',
+    delai: 'immédiat',
   },
   {
-    quoi: 'Remplacer une photo',
-    ou: 'src/assets/photos/',
-    comment:
-      'Déposer l’image, puis l’importer dans la page. Le site génère seul les formats webp et les tailles pour mobile. Direction imposée par la charte : humaine, authentique, lumineuse — pas de studio, pas de détourage, pas de pose.',
+    quoi: 'Ajouter les textes manquants',
+    exemple:
+      '« Voici les trois paragraphes du bloc Programme de l’accueil : … Mets-les à la place des “À rédiger”. »',
+    delai: 'immédiat',
   },
   {
-    quoi: 'Changer une couleur partout',
-    ou: 'src/styles/global.css',
-    comment:
-      'Les couleurs sont déclarées une seule fois, en haut du fichier, sous forme de variables. Modifier la valeur met à jour tout le site. Ne pas écrire une couleur en dur dans une page.',
+    quoi: 'Changer une photo',
+    exemple:
+      '« Utilise la photo que je viens de déposer dans le Drive, dossier SITE WEB, pour le bandeau de la page Programme. »',
+    delai: 'immédiat',
+  },
+  {
+    quoi: 'Ajouter un témoignage d’établissement',
+    exemple:
+      '« Ajoute un témoignage sur la page Programme : “…”, signé Mme Untel, principale du collège X. »',
+    delai: 'immédiat',
+  },
+  {
+    quoi: 'Mettre à jour les chiffres',
+    exemple: '« On est passés à 21 établissements engagés, mets à jour partout où le chiffre apparaît. »',
+    delai: 'immédiat',
   },
   {
     quoi: 'Ajouter une page',
-    ou: 'src/pages/',
-    comment:
-      'Copier une page existante, la renommer : le nom du fichier devient l’adresse (contact.astro → /contact). Ajouter l’entrée dans le menu se fait dans src/components/Header.astro.',
+    exemple: '« Crée une page “Ressources” avec la même mise en page que “Qui sommes-nous”, et ajoute-la au menu. »',
+    delai: 'à cadrer ensemble',
   },
   {
-    quoi: 'Modifier le menu ou le pied de page',
-    ou: 'src/components/Header.astro · Footer.astro',
-    comment:
-      'Un seul fichier chacun, partagé par toutes les pages. La segmentation de la newsletter (établissement / partenaire / curieux) est dans le footer.',
+    quoi: 'Changer une couleur de la charte',
+    exemple: '« Le vert doit être un peu plus clair : #004A3B au lieu de #00382D. »',
+    delai: 'à cadrer ensemble',
+  },
+]
+
+const seule = [
+  {
+    quoi: 'Voir les demandes reçues',
+    ou: 'La boîte contact@euneos.fr et la base opérationnelle',
+    detail:
+      'Les formulaires du site (contact et newsletter) arrivent par mail et alimentent la base. La newsletter distingue déjà établissement / partenaire / curieux.',
   },
   {
-    quoi: 'Publier',
-    ou: 'GitHub → Cloudflare',
-    comment:
-      'Chaque modification enregistrée sur GitHub est mise en ligne automatiquement par Cloudflare. L’historique complet des versions est conservé : on peut toujours revenir en arrière.',
+    quoi: 'Relire avant publication',
+    ou: 'Un lien de prévisualisation',
+    detail:
+      'Chaque modification produit une adresse de test avant d’être publiée. Vous validez, puis ça part en ligne.',
+  },
+  {
+    quoi: 'Revenir en arrière',
+    ou: 'Demander à l’agent',
+    detail:
+      'Chaque version du site est conservée. « Reviens à la version d’avant-hier » suffit. Rien n’est jamais perdu.',
   },
 ]
 ---
@@ -442,23 +466,62 @@ const modifs = [
 
   <!-- MODE D'EMPLOI -->
   <section class="section page sg">
-    <h2 class="sg__t">8. Mode d’emploi pour l’équipe</h2>
+    <h2 class="sg__t">8. Comment l’équipe fait vivre le site</h2>
     <p class="sg__p">
-      Le site n’a pas d’interface d’administration : il est fait de fichiers texte, versionnés.
-      C’est volontaire — rien ne peut se casser sans qu’on puisse revenir en arrière, et
-      l’agent IA peut modifier ces fichiers pour vous en langage naturel.
+      Le site n’a pas d’interface d’administration à apprendre, et c’est volontaire : vous
+      passez par l’agent, en français. Vous lui dites ce que vous voulez changer, il modifie le
+      site, vous relisez, il publie. C’est exactement le fonctionnement prévu au départ du
+      projet : <strong>une demande en langage naturel devient du code, versionné, puis mis en
+      ligne automatiquement.</strong>
     </p>
+    <p class="sg__p">
+      Aucune de ces demandes ne peut casser le site : chaque version est conservée, et un
+      retour en arrière est toujours possible.
+    </p>
+
+    <h3 class="sg__st">Ce que vous demandez à l’agent</h3>
     <div class="sg-modifs">
       {
-        modifs.map((m) => (
+        demandes.map((d) => (
           <Paper surface="blanc" fold="br" foldSize="md" class="sg-modif">
-            <h3>{m.quoi}</h3>
-            <code>{m.ou}</code>
-            <p>{m.comment}</p>
+            <h3>{d.quoi}</h3>
+            <p class="sg-modif__ex">{d.exemple}</p>
+            <span class="sg-tag">{d.delai}</span>
           </Paper>
         ))
       }
     </div>
+
+    <h3 class="sg__st">Ce que vous gardez la main dessus</h3>
+    <ul class="sg-seule">
+      {
+        seule.map((x) => (
+          <li>
+            <b>{x.quoi}</b>
+            <span class="sg-seule__ou">{x.ou}</span>
+            <p>{x.detail}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h3 class="sg__st">Les deux règles à retenir</h3>
+    <ol class="sg-regles">
+      <li>
+        <b>Le bleu appartient au Programme.</b> Si une nouvelle page parle de WISE-UP, elle peut
+        être bleue. Sinon, non — c’est le repère visuel qui permet de reconnaître le Programme
+        d’un coup d’œil.
+      </li>
+      <li>
+        <b>Le pli, une ou deux fois par composition.</b> C’est la charte qui le dit. Au-delà, le
+        motif se banalise et la page devient bruyante.
+      </li>
+    </ol>
+
+    <p class="sg__p sg__note">
+      Les chemins de fichiers et le détail technique ne sont pas ici : ils sont dans le
+      <code>AGENTS.md</code> du projet, à destination de qui intervient dans le code.
+    </p>
   </section>
 </Base>
 
@@ -789,5 +852,47 @@ const modifs = [
   }
   .sg-modif p {
     font-size: 0.92rem;
+  }
+  .sg-modif__ex {
+    font-style: italic;
+    color: color-mix(in srgb, var(--noir) 78%, transparent);
+  }
+  .sg-seule {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .sg-seule li {
+    border-top: 1px solid color-mix(in srgb, var(--noir) 12%, transparent);
+    padding-top: 0.85rem;
+  }
+  .sg-seule b {
+    display: block;
+    color: var(--vert);
+  }
+  .sg-seule__ou {
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.6;
+    margin-bottom: 0.35rem;
+  }
+  .sg-regles {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.85rem;
+    max-width: 68ch;
+  }
+  .sg-regles b {
+    color: var(--vert);
+  }
+  .sg__note {
+    margin-top: clamp(2rem, 5vw, 3rem);
+    font-size: 0.9rem;
+    opacity: 0.75;
   }
 </style>

@@ -1,5 +1,10 @@
 # EUNEOS — site web
 
+> **Ce fichier est la doc technique, à destination de qui intervient dans le code
+> (Stella / LAOM).** Le document destiné à l'équipe d'EUNEOS — Candice, Charlotte,
+> Pauline — est la page `/style-guide` : elle explique la charte et comment leur
+> faire vivre le site **via l'agent**, sans jamais ouvrir un fichier.
+
 Site des 4 pages validées par Candice le 7 août 2026. Construit à partir de
 `charte_graphique.pdf` (V3, juillet 2026) et `maquette_euneos V 7 aout candice.pdf`.
 La spécification complète est dans le vault NILA :
@@ -63,15 +68,23 @@ H1 56 px / 110 % · H2 40 px / 120 % · H3 20 px / 120 % · Chapô 20 px / 140 %
 Body 16 px / 160 % · letter-spacing 0 partout · SemiBold (600) + Regular (400).
 La variante SemiCondensed s'obtient par l'axe `wdth` à 87.5 %.
 
-## `/style-guide` — l'outil de passation
+## `/style-guide` — le document de passation à EUNEOS
 
 Page interne (hors sitemap, `noindex`) qui montre la charte **telle qu'elle est
 codée** : les pastilles de couleur affichent les variables CSS du site, pas des
-captures. Huit sections : concept, couleurs (hex + variable + règle d'usage +
-contrastes mesurés), typographie, logo, les 15 pictogrammes nommés, le pli
-(4 coins × 4 calibres), les composants, et un mode d'emploi qui indique où
-intervenir pour chaque type de modification. C'est ce qu'on montre à l'équipe
-d'EUNEOS pour qu'elle puisse reprendre le site.
+captures. Sept sections de référence (concept, couleurs avec hex + règle d'usage
++ contrastes mesurés, typographie, logo, les 15 pictogrammes, le pli, les
+composants), puis une huitième écrite pour **une équipe non technique** :
+
+- l'équipe d'EUNEOS ne code pas et n'ouvrira aucun fichier. Elle formule ses
+  demandes **à l'agent, en français** — c'est le fonctionnement vendu le 4/08 :
+  demande en langage naturel → code → GitHub → déploiement Cloudflare ;
+- la section liste donc des **exemples de phrases à dire**, pas des chemins de
+  fichiers, plus ce dont elles gardent la main (demandes reçues, relecture avant
+  publication, retour arrière) et les deux règles de charte à ne pas casser
+  (le bleu réservé au Programme, un ou deux plis par composition).
+
+Ne pas y remettre de chemin de fichier ni de vocabulaire de dev : ça vit ici.
 
 ## Composants
 
