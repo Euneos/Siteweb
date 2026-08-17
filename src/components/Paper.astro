@@ -15,8 +15,8 @@ interface Props {
   fold?: 'br' | 'tr' | 'tl' | 'bl' | 'none'
   /** variante a filet (la bulle du hero) */
   outline?: boolean
-  /** taille du pli, libre selon la charte */
-  foldSize?: string
+  /** taille du pli : 'xl' (coin de section) | 'lg' (defaut) | 'md' (carte) | 'sm' (etiquette) | une longueur CSS */
+  foldSize?: 'xl' | 'lg' | 'md' | 'sm' | string
   as?: string
   class?: string
 }
@@ -30,6 +30,14 @@ const {
   class: cls = '',
 } = Astro.props
 
+const CALIBRES: Record<string, string> = {
+  xl: 'var(--fold-xl)',
+  lg: 'var(--fold)',
+  md: 'var(--fold-md)',
+  sm: 'var(--fold-sm)',
+}
+const foldVar = foldSize ? (CALIBRES[foldSize] ?? foldSize) : undefined
+
 const classes = [
   'paper',
   `s-${surface}`,
@@ -41,6 +49,6 @@ const classes = [
   .join(' ')
 ---
 
-<Tag class={classes} style={foldSize ? `--f:${foldSize}` : undefined}>
+<Tag class={classes} style={foldVar ? `--f:${foldVar}` : undefined}>
   <slot />
 </Tag>

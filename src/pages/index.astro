@@ -39,21 +39,21 @@ const parcours = [
   heroSurface="vert"
 >
   <!-- 1. HERO -->
-  <section slot="hero" class="page hero">
-    <div class="hero__grid">
-      <Paper outline fold="tr" class="hero__bubble">
-        <h1>
-          Prévention en santé mentale et soutien du rapport au numérique
-          <span class="hero__soft">dans les milieux éducatifs.</span>
-        </h1>
-        <Cta href="/programme" surface="papier">En savoir +</Cta>
-      </Paper>
-
-      <div class="hero__media">
-        <Paper fold="br" surface="vert" class="hero__photo">
-          <Photo ratio="4/3" label="photo — climat de classe" />
+  <section slot="hero" class="hz">
+    <div class="hz__grid">
+      <div class="hz__side">
+        <Paper outline fold="tr" class="hz__bubble">
+          <h1>
+            Prévention en santé mentale et soutien du rapport au numérique
+            <span class="hz__soft">dans les milieux éducatifs.</span>
+          </h1>
         </Paper>
-        <div class="hero__cartouche"><Cartouche surface="ocre" fig="fig2" /></div>
+        <div class="hz__cartouche"><Cartouche surface="ocre" fig="fig2" /></div>
+        <div class="hz__cta"><Cta href="/programme" surface="papier">En savoir +</Cta></div>
+      </div>
+
+      <div class="hz__media">
+        <Photo ratio="5/4" label="photo — climat de classe" />
       </div>
     </div>
   </section>
@@ -211,41 +211,6 @@ const parcours = [
 </Base>
 
 <style is:global>
-  /* --- HERO --- */
-  .hero {
-    padding-bottom: clamp(2.5rem, 7vw, 5rem);
-  }
-  .hero__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    gap: clamp(1rem, 2.5vw, 2rem);
-    align-items: center;
-  }
-  .hero__bubble {
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    display: grid;
-    gap: clamp(1.5rem, 4vw, 3rem);
-    justify-items: start;
-    align-content: space-between;
-    min-height: 22rem;
-  }
-  .hero__soft {
-    color: var(--vert-clair);
-  }
-  .hero__media {
-    position: relative;
-  }
-  .hero__photo {
-    padding: 0;
-  }
-  .hero__cartouche {
-    position: absolute;
-    left: -8%;
-    bottom: -12%;
-    width: 22%;
-    min-width: 84px;
-  }
-
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
   .constat {
     position: relative;
@@ -256,7 +221,7 @@ const parcours = [
     left: -6%;
     top: 50%;
     transform: translateY(-50%);
-    height: clamp(15rem, 27vw, 24rem);
+    height: clamp(19rem, 38vw, 34rem);
     color: var(--vert);
     pointer-events: none;
     z-index: 0;
@@ -374,7 +339,7 @@ const parcours = [
     display: grid;
     gap: 1rem;
     align-content: start;
-    --f: var(--fold-sm);
+    --f: var(--fold-md);
   }
   .prog__picto {
     width: 3.25rem;
@@ -411,7 +376,7 @@ const parcours = [
     display: grid;
     gap: 0.5rem;
     align-content: start;
-    --f: var(--fold-sm);
+    --f: var(--fold-md);
   }
   .impact__n {
     font-size: clamp(2.25rem, 5vw, 3.25rem);
@@ -575,7 +540,7 @@ const parcours = [
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
-    --f: var(--fold-sm);
+    --f: var(--fold-md);
     transition: transform 0.15s ease;
   }
   .parcours__link:hover .paper {

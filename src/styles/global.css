@@ -65,12 +65,16 @@
   --gutter: var(--unit);
   --page-max: 1240px;
 
-  /* --- Pli : hauteur et largeur libres (charte p.22) --- */
-  --fold: clamp(1.75rem, 3vw, 2.75rem);
-  --fold-sm: 1.25rem;
+  /* --- Pli : « sa hauteur et sa largeur sont libres » (charte p.22).
+     Trois calibres, releves sur la maquette : le rabat y est franc, pas discret. --- */
+  --fold-xl: clamp(3.5rem, 9vw, 9.5rem); /* coin de section */
+  --fold: clamp(2.25rem, 5vw, 6.5rem); /* bloc / bulle */
+  --fold-md: clamp(1.5rem, 2.6vw, 2.5rem); /* carte */
+  --fold-sm: 1.15rem; /* etiquette, CTA, champ */
 }
 
 html {
+  overflow-x: hidden; /* garde-fou : les debords de silhouettes ne creent jamais de scroll horizontal */
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -212,30 +216,50 @@ body {
   color: inherit;
   border: 1.5px solid currentColor;
 }
-/* Le rabat de la version contour n'est qu'un trait : la diagonale du pli. */
-.paper-outline::before {
+/* Version contour : le rabat n'est pas un aplat mais un carre dont le clip du
+   bloc n'a garde qu'un triangle. Ses deux cotes droits, traces au filet,
+   dessinent le rabat replie exactement comme sur la maquette. */
+.paper-outline[class*='fold-']::before {
   background: none;
   clip-path: none;
+}
+/* Le clip-path coupe la bordure du bloc sans la tracer : la diagonale du pli est
+   donc dessinee ici, au degrade, en plus des deux cotes droits du rabat. */
+.paper-outline.fold-tr::before,
+.paper-outline.fold-bl::before {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.8px),
+    currentColor calc(50% - 0.8px),
+    currentColor calc(50% + 0.8px),
+    transparent calc(50% + 0.8px)
+  );
 }
 .paper-outline.fold-br::before,
 .paper-outline.fold-tl::before {
   background: linear-gradient(
     to bottom left,
-    transparent calc(50% - 1px),
-    currentColor calc(50% - 1px),
-    currentColor calc(50% + 1px),
-    transparent calc(50% + 1px)
+    transparent calc(50% - 0.8px),
+    currentColor calc(50% - 0.8px),
+    currentColor calc(50% + 0.8px),
+    transparent calc(50% + 0.8px)
   );
 }
-.paper-outline.fold-tr::before,
+.paper-outline.fold-tr::before {
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+}
+.paper-outline.fold-br::before {
+  border-left: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
+}
+.paper-outline.fold-tl::before {
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+}
 .paper-outline.fold-bl::before {
-  background: linear-gradient(
-    to bottom right,
-    transparent calc(50% - 1px),
-    currentColor calc(50% - 1px),
-    currentColor calc(50% + 1px),
-    transparent calc(50% + 1px)
-  );
+  border-right: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
 }
 
 /* ============================================================
@@ -481,6 +505,116 @@ body {
   }
   .ct__media {
     margin-right: 0 !important;
+  }
+}
+
+/* ============================================================
+   HERO — geometrie relevee sur la maquette, commune aux pages 1, 2 et 3.
+   La photo touche le bord de la page, la bulle a filet occupe l'autre moitie
+   avec un grand rabat au coin haut-droit, le cartouche est a cheval sur son
+   bord exterieur et le CTA a cheval sur son bord bas.
+   `.hz--mirror` inverse le sens (photo a gauche) comme sur les pages 2 et 3.
+   ============================================================ */
+.hz {
+  padding-bottom: clamp(1.5rem, 4vw, 3rem);
+}
+.hz__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+}
+.hz--mirror .hz__media {
+  order: -1;
+}
+/* --gutter-page : la gouttiere de .page, elargie de la place du cartouche */
+.hz__side {
+  position: relative;
+  padding-block: clamp(1rem, 3vw, 2rem);
+  padding-inline-start: calc(
+    max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5)) +
+      clamp(60px, 7vw, 104px)
+  );
+  padding-inline-end: clamp(1rem, 2.5vw, 2.5rem);
+}
+.hz--mirror .hz__side {
+  padding-inline-start: clamp(1rem, 2.5vw, 2.5rem);
+  padding-inline-end: calc(
+    max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5)) +
+      clamp(60px, 7vw, 104px)
+  );
+}
+.hz__bubble {
+  min-height: 21rem;
+  display: flex;
+  align-items: center;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding-right: clamp(3rem, 6vw, 6rem);
+}
+/* Ecart assume : dans la maquette le titre du hero est compose plus petit que le
+   H1 de 56 px de la charte, pour tenir dans la bulle. */
+.hz__bubble h1 {
+  font-size: clamp(1.75rem, 3.1vw, 2.85rem);
+}
+.hz__soft {
+  color: color-mix(in srgb, currentColor 55%, transparent);
+}
+.hz__cartouche {
+  position: absolute;
+  bottom: clamp(1.5rem, 5vw, 4.5rem);
+  width: clamp(84px, 10vw, 136px);
+  z-index: 2;
+  left: max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5));
+}
+.hz--mirror .hz__cartouche {
+  left: auto;
+  right: max(calc(var(--unit) * 1.5), calc((100vw - var(--page-max)) / 2 + var(--unit) * 1.5));
+}
+.hz__cta {
+  position: absolute;
+  bottom: clamp(0.25rem, 1.5vw, 1.25rem);
+  left: clamp(9rem, 16vw, 15rem);
+  z-index: 3;
+}
+.hz--mirror .hz__cta {
+  left: auto;
+  right: clamp(9rem, 16vw, 15rem);
+}
+.hz__media {
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-start;
+  padding-top: clamp(1rem, 3vw, 2rem);
+}
+.hz__media > * {
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .hz__grid {
+    grid-template-columns: 1fr;
+  }
+  .hz__media {
+    order: -1;
+    padding-inline: 0;
+  }
+  .hz__side {
+    padding-inline: calc(var(--unit) * 1.5) !important;
+    padding-top: clamp(2.5rem, 8vw, 4rem);
+  }
+  .hz__bubble {
+    min-height: 0;
+    padding-right: clamp(1.5rem, 5vw, 3rem);
+  }
+  .hz__cartouche {
+    left: auto !important;
+    right: 6% !important;
+    top: -3rem;
+    bottom: auto;
+  }
+  .hz__cta {
+    position: static;
+    margin-top: 1.25rem;
   }
 }
 

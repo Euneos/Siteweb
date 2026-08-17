@@ -95,17 +95,19 @@ const equipe = [
   heroSurface="vert"
 >
   <!-- HERO -->
-  <section slot="hero" class="page hero3">
-    <div class="hero3__grid">
-      <div class="hero3__media">
-        <Photo ratio="4/3" label="photo — lieu éducatif" />
-        <div class="hero3__cartouche"><Cartouche surface="bleu" fig="fig1" /></div>
+  <section slot="hero" class="hz hz--mirror">
+    <div class="hz__grid">
+      <div class="hz__side">
+        <Paper outline fold="tr" class="hz__bubble">
+          <h1>Inscrivons dans les parcours pédagogiques une culture durable du prendre soin.</h1>
+        </Paper>
+        <div class="hz__cartouche"><Cartouche surface="bleu" fig="fig1" /></div>
+        <div class="hz__cta"><Cta href="#fondements" surface="papier">En savoir +</Cta></div>
       </div>
 
-      <Paper outline fold="tr" class="hero3__bubble">
-        <h1>Inscrivons dans les parcours pédagogiques une culture durable du prendre soin.</h1>
-        <Cta href="#fondements" surface="papier">En savoir +</Cta>
-      </Paper>
+      <div class="hz__media">
+        <Photo ratio="5/4" label="photo — lieu éducatif" />
+      </div>
     </div>
   </section>
 
@@ -256,34 +258,6 @@ const equipe = [
 </Base>
 
 <style is:global>
-  .hero3 {
-    padding-bottom: clamp(2.5rem, 7vw, 5rem);
-  }
-  .hero3__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(1rem, 2.5vw, 2rem);
-    align-items: center;
-  }
-  .hero3__media {
-    position: relative;
-  }
-  .hero3__cartouche {
-    position: absolute;
-    left: -7%;
-    bottom: 8%;
-    width: 20%;
-    min-width: 84px;
-  }
-  .hero3__bubble {
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    display: grid;
-    gap: clamp(1.5rem, 4vw, 3rem);
-    justify-items: start;
-    align-content: space-between;
-    min-height: 20rem;
-  }
-
   /* FONDEMENTS */
   .fond {
     position: relative;
@@ -472,7 +446,7 @@ const equipe = [
     justify-items: center;
     text-align: center;
     align-content: start;
-    --f: var(--fold-sm);
+    --f: var(--fold-md);
   }
   .niveau__sur {
     font-size: 0.95rem;
@@ -519,7 +493,7 @@ const equipe = [
     padding: 1rem 1.25rem;
     display: grid;
     gap: 0.4rem;
-    --f: var(--fold-sm);
+    --f: var(--fold-md);
   }
   .membre__card a {
     font-weight: 600;

@@ -61,26 +61,30 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   .hdr__logo {
     display: block;
     flex: none;
+    color: color-mix(in srgb, currentColor 82%, transparent);
+  }
+  .hdr__logo:hover {
+    color: currentColor;
   }
   .hdr__nav {
     display: flex;
     gap: clamp(1rem, 2.2vw, 2.25rem);
     align-items: baseline;
   }
+  /* Maquette : les entrees inactives sont en teinte claire, l'active en blanc.
+     Pas de soulignement (l'etat actif se lit a la couleur et a la graisse). */
   .hdr__link {
     text-decoration: none;
     font-size: 1rem;
-    opacity: 0.72;
+    color: color-mix(in srgb, currentColor 55%, transparent);
     padding-block: 0.25rem;
-    border-bottom: 2px solid transparent;
   }
   .hdr__link:hover {
-    opacity: 1;
+    color: currentColor;
   }
   .hdr__link.is-active {
-    opacity: 1;
+    color: currentColor;
     font-weight: 600;
-    border-bottom-color: currentColor;
   }
   .hdr__burger {
     display: none;

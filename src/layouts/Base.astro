@@ -8,9 +8,11 @@ interface Props {
   description: string
   /** teinte du hero, dont le header herite la couleur de texte */
   heroSurface?: 'vert' | 'bleu'
+  /** grand coin plie de la section hero (maquette : bas-droit sur p.1 et p.3) */
+  heroFold?: 'br' | 'bl' | 'none'
 }
 
-const { title, description, heroSurface = 'vert' } = Astro.props
+const { title, description, heroSurface = 'vert', heroFold = 'br' } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 ---
 
@@ -65,7 +67,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   <body>
     <a class="skip-link" href="#main">Aller au contenu</a>
 
-    <div class:list={['hero-zone', `s-${heroSurface}`]}>
+    <div
+      class:list={[
+        'hero-zone',
+        `s-${heroSurface}`,
+        heroFold !== 'none' && 'paper',
+        heroFold !== 'none' && `fold-${heroFold}`,
+      ]}
+    >
       <Header />
       <slot name="hero" />
     </div>
@@ -80,6 +89,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       .hero-zone {
         background: var(--surface);
         color: var(--on-surface);
+        --f: var(--fold-xl);
       }
     </style>
   </body>
