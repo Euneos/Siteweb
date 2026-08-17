@@ -12,10 +12,12 @@ import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
+/* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
+   un cartouche. Chaque colonne se termine par une fleche de depliage. */
 const methodo = [
-  { picto: 'main', surface: 'bleu', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
-  { picto: 'asterisque', surface: 'rose', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
-  { picto: 'oiseau', surface: 'orange', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+  { picto: 'main', couleur: 'var(--bleu)', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+  { picto: 'asterisque', couleur: 'var(--rose)', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
+  { picto: 'oiseau', couleur: 'var(--orange)', titre: 'À REDIGER', texte: 'Texte attendu de Pauline (retour le 26/08).' },
 ] as const
 
 /* Les 6 etapes, avec une couleur par etape (maquette p.2) */
@@ -76,7 +78,7 @@ const faq = [
           </h1>
         </Paper>
         <div class="hz__cartouche"><Cartouche surface="rose" fig="fig3" /></div>
-        <div class="hz__cta"><Cta href="#candidater" surface="bleu-clair">En savoir +</Cta></div>
+        <div class="hz__cta"><Cta href="#candidater" surface="bleu-fonce">En savoir +</Cta></div>
       </div>
 
       <div class="hz__media">
@@ -95,7 +97,7 @@ const faq = [
           Bloc « pourquoi / quoi » — caractéristiques précises attendues : durée, outils,
           nombre d’animateurs, adaptations possibles. Texte à fournir par Pauline.
         </p>
-        <Cta href="/qui-sommes-nous" surface="bleu">Qui sommes-nous ?</Cta>
+        <Cta href="/qui-sommes-nous" surface="bleu-fonce">Qui sommes-nous ?</Cta>
       </div>
     </div>
   </section>
@@ -109,10 +111,17 @@ const faq = [
           methodo.map((m) => (
             <li>
               <div class="methodo__head">
-                <PictoBox picto={m.picto} surface={m.surface} size="76px" />
+                <div class="methodo__picto" style={`color:${m.couleur}`}>
+                  <Brand name={m.picto} />
+                </div>
                 <h3>{m.titre}</h3>
               </div>
               <p>{m.texte}</p>
+              <span class="methodo__more" aria-hidden="true">
+                <svg viewBox="0 0 24 32" fill="currentColor"
+                  ><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z"></path></svg
+                >
+              </span>
             </li>
           ))
         }
@@ -139,7 +148,7 @@ const faq = [
         }
       </ol>
       <div class="c-cta">
-        <Cta href="#candidater" surface="bleu">Candidatez pour la rentrée 2026</Cta>
+        <Cta href="#candidater" surface="bleu-fonce">Candidatez pour la rentrée 2026</Cta>
       </div>
     </div>
   </section>
@@ -185,7 +194,7 @@ const faq = [
         }
       </ul>
       <div class="c-cta">
-        <Cta href="#candidater" surface="bleu">Candidatez pour la rentrée 2026</Cta>
+        <Cta href="#candidater" surface="bleu-fonce">Candidatez pour la rentrée 2026</Cta>
       </div>
     </div>
   </section>
@@ -245,17 +254,6 @@ const faq = [
     }
   }
 
-  /* titres centres reutilisables */
-  .c-t {
-    text-align: center;
-    color: var(--vert);
-    margin-bottom: clamp(2rem, 5vw, 3.25rem);
-  }
-  .c-cta {
-    display: flex;
-    justify-content: center;
-    margin-top: clamp(2rem, 5vw, 3rem);
-  }
 
   /* METHODOLOGIE */
   .methodo {
@@ -264,7 +262,7 @@ const faq = [
     margin: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1.5rem, 4vw, 3rem);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
   }
   .methodo__head {
     display: flex;
@@ -272,8 +270,23 @@ const faq = [
     gap: 1rem;
     margin-bottom: 1rem;
   }
+  .methodo__picto {
+    width: clamp(2.5rem, 4vw, 3.5rem);
+    flex: none;
+  }
   .methodo__head h3 {
     color: var(--vert);
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+  }
+  .methodo li p {
+    max-width: 34ch;
+  }
+  /* fleche de depliage, comme sur la maquette */
+  .methodo__more {
+    display: block;
+    width: 1rem;
+    margin-top: clamp(1rem, 2.5vw, 1.75rem);
+    color: color-mix(in srgb, var(--noir) 28%, transparent);
   }
   @media (max-width: 860px) {
     .methodo {
@@ -290,14 +303,14 @@ const faq = [
     gap: clamp(0.75rem, 2vw, 1.5rem);
   }
   .etapes__item {
-    width: min(100%, 46rem);
+    width: min(100%, 41rem);
   }
   .etapes__item.is-right {
     margin-left: auto;
   }
   .etapes__card {
     padding: clamp(1.1rem, 2.4vw, 1.75rem);
-    --f: var(--fold-md);
+    --f: clamp(1.75rem, 3vw, 2.75rem);
   }
   .etapes__n {
     font-size: 1.25rem;

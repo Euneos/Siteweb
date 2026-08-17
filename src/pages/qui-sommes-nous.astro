@@ -48,7 +48,7 @@ const niveaux: {
   titre: string
   texte: string
   cta: string
-  ctaSurface: 'jaune' | 'bleu' | 'rose' | 'ocre'
+  ctaSurface: 'jaune' | 'bleu-fonce' | 'rose' | 'ocre'
   href: string
 }[] = [
   {
@@ -63,7 +63,7 @@ const niveaux: {
     titre: 'Le Programme',
     texte: '16 h pour le personnel en poste qui anime ensuite les ateliers auprès des jeunes.',
     cta: 'Découvrir notre programme clé',
-    ctaSurface: 'bleu',
+    ctaSurface: 'bleu-fonce',
     href: '/programme',
   },
   {
@@ -318,36 +318,44 @@ const equipe = [
     top: -8%;
     z-index: 3;
   }
+  /* maquette : le badge est large, a cheval sur le bord gauche de la photo, avec
+     le wordmark en grand et un coin plie */
   .mission__badge {
     position: absolute;
-    left: -14%;
-    bottom: 16%;
-    width: 78%;
-    padding: 0.9rem 1.1rem;
+    left: -26%;
+    bottom: 22%;
+    width: 104%;
+    padding: clamp(1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.4vw, 1.75rem);
     z-index: 4;
-    --f: 1.1rem;
+    --f: clamp(1.25rem, 2.4vw, 2rem);
   }
   .mission__badge-mark {
     display: block;
-    width: 62%;
-    margin-bottom: 0.4rem;
+    width: 72%;
+    margin-bottom: 0.5rem;
   }
   .mission__badge-txt {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.35;
     display: block;
   }
   .mission__card {
     margin-left: -6%;
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    padding-left: clamp(2.5rem, 6vw, 5rem);
+    padding: clamp(1.75rem, 3.5vw, 3rem);
+    padding-left: clamp(2.5rem, 7vw, 6rem);
     display: grid;
     gap: 1rem;
     z-index: 1;
+    --f: clamp(2rem, 4vw, 3.5rem);
+  }
+  /* maquette : ce bloc est compose en corps fort, pas en corps de texte */
+  .mission__card > p {
+    font-size: clamp(1.05rem, 1.7vw, 1.3rem);
+    line-height: 1.45;
   }
   .mission__strong {
-    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-size: clamp(1.15rem, 2vw, 1.5rem) !important;
     font-weight: 600;
     line-height: 1.3;
   }
@@ -366,16 +374,6 @@ const equipe = [
     }
   }
 
-  /* APPROCHE */
-  .a-surtitre {
-    text-align: center;
-  }
-  .a-t {
-    text-align: center;
-    color: var(--vert);
-    max-width: 42ch;
-    margin: 0.5rem auto clamp(2rem, 5vw, 3.25rem);
-  }
   .actions {
     list-style: none;
     padding: 0;
@@ -460,24 +458,30 @@ const equipe = [
   .membre {
     display: grid;
   }
+  /* maquette : l'etiquette est large et coiffe la photo en debordant a gauche */
   .membre__name {
-    justify-self: start;
-    padding: 0.7rem 1.2rem;
+    justify-self: stretch;
+    width: 88%;
+    padding: 0.8rem 1.2rem;
     font-weight: 600;
     position: relative;
     z-index: 2;
-    margin-bottom: -0.4rem;
-    margin-left: 8%;
+    margin-bottom: -0.6rem;
+    margin-left: 0;
   }
   .membre__ph {
     position: relative;
     z-index: 1;
+    width: 78%;
+    margin-left: 12%;
   }
   .membre__card {
     padding: 1rem 1.25rem;
     display: grid;
     gap: 0.4rem;
     --f: var(--fold-md);
+    width: 78%;
+    margin-left: 12%;
   }
   .membre__card a {
     font-weight: 600;

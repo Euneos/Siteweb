@@ -290,6 +290,12 @@ body {
   --on-surface: var(--vert);
   --fold-color: var(--bleu);
 }
+/* le bleu fonce des CTA de la page Programme (blanc dessus : 5,4:1, conforme) */
+.s-bleu-fonce {
+  --surface: var(--bleu-fold);
+  --on-surface: var(--blanc);
+  --fold-color: var(--bleu);
+}
 .s-orange {
   --surface: var(--orange);
   --on-surface: var(--blanc);
@@ -508,6 +514,28 @@ body {
   width: 100%;
   height: auto;
   object-fit: cover;
+}
+
+/* Titre de section centre + rangee de CTA centree : utilitaires partages par
+   plusieurs pages, donc declares ici et non dans le style d'une page. */
+.c-t {
+  text-align: center;
+  color: var(--vert);
+  margin-bottom: clamp(2rem, 5vw, 3.25rem);
+}
+.c-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: clamp(2rem, 5vw, 3rem);
+}
+.a-surtitre {
+  text-align: center;
+}
+.a-t {
+  text-align: center;
+  color: var(--vert);
+  max-width: 42ch;
+  margin: 0.5rem auto clamp(2rem, 5vw, 3.25rem);
 }
 
 /* Accessibilite */
