@@ -209,113 +209,71 @@ body {
   clip-path: polygon(0 0, 100% 100%, 0 100%);
 }
 
-/* Variante « contour » : la bulle a filet du hero.
+/* Variante « contour » : la bulle a filet des heros.
    ------------------------------------------------------------
-   Le rabat replie se trace À L'EXTÉRIEUR du contour : c'est le triangle du coin
-   qu'on a corne. Impossible de le dessiner depuis un enfant du bloc si le bloc
-   porte le clip-path — il serait coupe avec lui (ca donnait un escalier).
-   On deporte donc :
-     ::before = le contour, rectangle a coin coupe (il porte le clip)
-     ::after  = le rabat, non coupe : la diagonale du pli + les deux cotes du
-                carre du coin.
-   Le bloc lui-meme n'est plus clippe, son contenu ne risque donc plus rien.
+   ::before  = le contour, rectangle a coin coupe (c'est lui qui porte le clip,
+               pas le bloc : le contenu du bloc n'est donc jamais rogne).
+   .fold-flap = le rabat, un triangle au filet dessine en SVG par le composant
+               Paper. Geometrie relevee au vecteur dans le PDF : hypotenuse = la
+               diagonale du pli, troisieme sommet a 62 % du cote.
    ------------------------------------------------------------ */
 .paper.paper-outline {
   background: transparent;
   color: inherit;
   border: 0;
   clip-path: none !important;
+  /* Maquette : sur la page Programme le filet est BLANC alors que le titre est
+     vert fonce. Le filet a donc sa propre couleur, independante du texte. */
+  --filet: var(--blanc);
 }
-.paper.paper-outline::before,
+/* pas de rabat en aplat sur la version a filet */
 .paper.paper-outline::after {
+  content: none;
+}
+.paper.paper-outline::before {
   content: '';
   position: absolute;
-  pointer-events: none;
-  background: none;
-}
-/* le contour */
-.paper.paper-outline::before {
   inset: 0;
   width: auto;
   height: auto;
-  border: 1.5px solid currentColor;
+  background: none;
+  border: 1.5px solid var(--filet, currentColor);
+  pointer-events: none;
 }
-/* le rabat */
-.paper.paper-outline::after {
+.paper.paper-outline > .fold-flap {
+  position: absolute;
   width: var(--f);
   height: var(--f);
+  overflow: visible;
+  pointer-events: none;
 }
-
-/* --- coin bas-droit --- */
 .paper.paper-outline.fold-br::before {
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--f)), calc(100% - var(--f)) 100%, 0 100%);
 }
-.paper.paper-outline.fold-br::after {
+.paper.paper-outline.fold-br > .fold-flap {
   right: 0;
   bottom: 0;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  background: linear-gradient(
-    to top right,
-    transparent calc(50% - 0.8px),
-    currentColor calc(50% - 0.8px),
-    currentColor calc(50% + 0.8px),
-    transparent calc(50% + 0.8px)
-  );
 }
-
-/* --- coin haut-droit --- */
 .paper.paper-outline.fold-tr::before {
   clip-path: polygon(0 0, calc(100% - var(--f)) 0, 100% var(--f), 100% 100%, 0 100%);
 }
-.paper.paper-outline.fold-tr::after {
+.paper.paper-outline.fold-tr > .fold-flap {
   right: 0;
   top: 0;
-  border-right: 1.5px solid currentColor;
-  border-top: 1.5px solid currentColor;
-  background: linear-gradient(
-    to bottom right,
-    transparent calc(50% - 0.8px),
-    currentColor calc(50% - 0.8px),
-    currentColor calc(50% + 0.8px),
-    transparent calc(50% + 0.8px)
-  );
 }
-
-/* --- coin haut-gauche --- */
 .paper.paper-outline.fold-tl::before {
   clip-path: polygon(var(--f) 0, 100% 0, 100% 100%, 0 100%, 0 var(--f));
 }
-.paper.paper-outline.fold-tl::after {
+.paper.paper-outline.fold-tl > .fold-flap {
   left: 0;
   top: 0;
-  border-left: 1.5px solid currentColor;
-  border-top: 1.5px solid currentColor;
-  background: linear-gradient(
-    to bottom left,
-    transparent calc(50% - 0.8px),
-    currentColor calc(50% - 0.8px),
-    currentColor calc(50% + 0.8px),
-    transparent calc(50% + 0.8px)
-  );
 }
-
-/* --- coin bas-gauche --- */
 .paper.paper-outline.fold-bl::before {
   clip-path: polygon(0 0, 100% 0, 100% 100%, var(--f) 100%, 0 calc(100% - var(--f)));
 }
-.paper.paper-outline.fold-bl::after {
+.paper.paper-outline.fold-bl > .fold-flap {
   left: 0;
   bottom: 0;
-  border-left: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  background: linear-gradient(
-    to top left,
-    transparent calc(50% - 0.8px),
-    currentColor calc(50% - 0.8px),
-    currentColor calc(50% + 0.8px),
-    transparent calc(50% + 0.8px)
-  );
 }
 
 /* ============================================================

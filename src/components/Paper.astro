@@ -7,6 +7,15 @@
  *
  * La charte precise « 1 ou 2 plis par compo maximum » : le pli est donc
  * optionnel (fold="none") pour les blocs de remplissage.
+ *
+ * VERSION A FILET (`outline`) — geometrie relevee AU VECTEUR dans le PDF de la
+ * maquette (page 2, hero) et non a l'oeil sur une capture. Le contour est un
+ * rectangle a coin coupe ; le rabat replie est un TRIANGLE dont l'hypotenuse est
+ * la diagonale du pli et dont le troisieme sommet est sur le bord
+ * perpendiculaire, a 62 % du cote du pli.
+ * Mesures du PDF : bloc 214,5 x 156,6 pt, pli 47 pt, sommet a 29,1 pt du coin
+ * (soit 0,62 x le pli). Comme la boite du pli est carree, on peut dessiner ce
+ * triangle en SVG sans deformation.
  */
 export type Surface = 'vert' | 'jaune' | 'bleu' | 'bleu-clair' | 'bleu-fonce' | 'orange' | 'rose' | 'papier' | 'blanc' | 'ocre'
 
@@ -38,6 +47,15 @@ const CALIBRES: Record<string, string> = {
 }
 const foldVar = foldSize ? (CALIBRES[foldSize] ?? foldSize) : undefined
 
+/* Le triangle du rabat, par coin. Repere local 0..100 dans la boite carree du
+   pli : les deux extremites de la diagonale, plus le sommet a 62 % du cote. */
+const RABAT: Record<string, string> = {
+  br: 'M100 0 L0 100 L38 0 Z',
+  tr: 'M100 100 L0 0 L38 100 Z',
+  tl: 'M0 100 L100 0 L62 100 Z',
+  bl: 'M0 0 L100 100 L62 0 Z',
+}
+
 const classes = [
   'paper',
   `s-${surface}`,
@@ -51,4 +69,17 @@ const classes = [
 
 <Tag class={classes} style={foldVar ? `--f:${foldVar}` : undefined}>
   <slot />
+  {
+    outline && fold !== 'none' && (
+      <svg class="fold-flap" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <path
+          d={RABAT[fold]}
+          fill="none"
+          stroke="var(--filet, currentColor)"
+          stroke-width="1.5"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
+    )
+  }
 </Tag>
