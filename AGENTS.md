@@ -180,11 +180,13 @@ Programme de l'accueil, blocs « pourquoi/quoi » et méthodologie de la page
 Programme, 3 témoignages d'établissements pilotes, fonctions et contacts de
 l'équipe, 6 logos partenaires, textes réglementaires des 3 pages légales.
 
-**Photos** : le site utilise pour l'instant **la photo de la maquette** (celle
-que Candice a validée), importée dans `src/assets/photos/jeunes.jpg`. Deux
-réserves à lever avant la mise en ligne :
-- **résolution** : 816 × 552, suffisant pour la démo, trop juste pour un hero en
-  écran retina. Il faut l'original ;
+**Photos** : le hero de la page d'accueil utilise `classe.jpg` (collégiens en
+atelier), choisie par Charly — elle colle mieux à la direction de la charte que
+la photo de la maquette. Les autres emplacements gardent `jeunes.jpg`, la photo
+de la maquette. Réserves identiques sur les deux :
+- **résolution** : 816 × 552 pour `jeunes.jpg`, 1137 × 540 pour `classe.jpg` —
+  suffisant pour la démo, trop juste pour un hero en écran retina. Il faut les
+  originaux ;
 - **licence** : à vérifier auprès de Pauline (probablement une banque d'images).
 
 Direction imposée par la charte pour les suivantes — humaine, authentique,

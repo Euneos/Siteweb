@@ -9,6 +9,7 @@ import Cartouche from '../components/Cartouche.astro'
 import Cta from '../components/Cta.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
+import classe from '../assets/photos/classe.jpg'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
@@ -58,7 +59,11 @@ const parcours = [
       </div>
 
       <div class="hz__media">
-        <Photo ratio="5/4" label="photo — climat de classe" />
+        <Photo
+          src={classe}
+          ratio="260/177.3"
+          alt="Des collégiens assis en groupe, attentifs, pendant un atelier"
+        />
       </div>
 
     </div>
