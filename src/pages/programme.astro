@@ -157,23 +157,28 @@ const faq = [
     </div>
   </section>
 
-  <!-- IMPACT : bandeau bleu + silhouette en filigrane -->
-  <section class="s-bleu impact2">
-    <div class="filigrane" aria-hidden="true">
-      <div class="impact2__fig"><Brand name="fig3" height="100%" /></div>
-    </div>
-    <div class="page section impact2__in">
-      <h2 class="impact2__t">Notre impact</h2>
-      <ul class="impact2__list">
-        {
-          impact.map((s) => (
-            <li>
-              <span class="impact2__n">{s.valeur}</span>
-              <p>{s.legende}</p>
-            </li>
-          ))
-        }
-      </ul>
+  <!-- IMPACT — releve au vecteur : bloc encadre (marges de 6,2 %), ratio 2,04,
+       coin haut-droit coupe par un pli APLATI (69,2 x 22,7 pt). -->
+  <section class="section">
+    <div class="page">
+      <Paper surface="bleu" fold="tr" class="impact2">
+        <div class="filigrane" aria-hidden="true">
+          <div class="impact2__fig"><Brand name="fig3" height="100%" /></div>
+        </div>
+        <div class="impact2__in">
+          <h2 class="impact2__t">Notre impact</h2>
+          <ul class="impact2__list">
+            {
+              impact.map((s) => (
+                <li>
+                  <span class="impact2__n">{s.valeur}</span>
+                  <p>{s.legende}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </Paper>
     </div>
   </section>
 
@@ -227,14 +232,19 @@ const faq = [
     </div>
   </section>
 
-  <!-- CTA FINAL -->
-  <section id="candidater" class="s-bleu final">
-    <div class="filigrane" aria-hidden="true">
-      <div class="final__fig"><Brand name="fig3" height="100%" /></div>
-    </div>
-    <div class="page section final__in">
-      <h2>Candidatez pour rejoindre le Programme à la rentrée 2026</h2>
-      <Cta href="/contact" outline>Infos et candidature</Cta>
+  <!-- CTA FINAL — releve au vecteur : bloc encadre en bleu clair, recouvert par
+       un eclat en bleu fonce (extrait du PDF), silhouette par-dessus, CTA blanc
+       plein occupant 29,7 % de la largeur. -->
+  <section id="candidater" class="section">
+    <div class="page">
+      <div class="final s-bleu">
+        <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
+        <div class="final__fig" aria-hidden="true"><Brand name="fig3" height="100%" /></div>
+        <div class="final__in">
+          <h2>Candidatez pour rejoindre le Programme à la rentrée 2026</h2>
+          <Cta href="/contact" surface="blanc" class="final__cta">Infos et candidature</Cta>
+        </div>
+      </div>
     </div>
   </section>
 </Base>
@@ -334,25 +344,34 @@ const faq = [
     opacity: 0.9;
   }
 
-  /* IMPACT bandeau */
+  /* IMPACT — bloc encadre, ratio et pli releves au vecteur */
   .impact2 {
     position: relative;
     overflow: hidden;
-    background: var(--surface);
-    color: var(--on-surface);
+    aspect-ratio: 520.3 / 254.5;
+    display: grid;
+    place-items: center;
+    /* pli aplati : 69,2 x 22,7 pt sur un bloc de 520,3 de large */
+    --fx: 13.3%;
+    --fy: 8.9%;
   }
   .impact2__fig {
-    left: 32%;
+    left: 26%;
     color: var(--bleu-clair);
+  }
+  .impact2 .filigrane {
+    opacity: 0.22;
   }
   .impact2__in {
     position: relative;
     z-index: 1;
+    width: 100%;
+    padding: clamp(1.5rem, 4vw, 3rem);
   }
   .impact2__t {
     text-align: center;
     color: var(--blanc);
-    margin-bottom: clamp(2rem, 5vw, 3rem);
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
   }
   .impact2__list {
     list-style: none;
@@ -360,23 +379,29 @@ const faq = [
     margin: 0;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(1rem, 3vw, 2rem);
+    gap: clamp(0.75rem, 2.5vw, 2rem);
     text-align: center;
     color: var(--blanc);
   }
   .impact2__n {
     display: block;
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-size: clamp(1.75rem, 4.4vw, 3rem);
     font-weight: 600;
     line-height: 1;
   }
   .impact2__list p {
-    margin-top: 0.5rem;
-    font-size: 0.95rem;
+    margin: 0.5rem auto 0;
+    font-size: 0.92rem;
+    line-height: 1.3;
+    max-width: 15ch;
   }
   @media (max-width: 860px) {
+    .impact2 {
+      aspect-ratio: auto;
+    }
     .impact2__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
     }
   }
 
@@ -511,27 +536,57 @@ const faq = [
     }
   }
 
-  /* CTA FINAL */
+  /* CTA FINAL — bloc encadre + eclat vectoriel du PDF */
   .final {
     position: relative;
     overflow: hidden;
+    aspect-ratio: 519.6 / 257;
     background: var(--surface);
     color: var(--on-surface);
+    display: grid;
+    place-items: center;
+  }
+  .final__eclat {
+    position: absolute;
+    inset: 0;
+    color: var(--bleu-fold);
+  }
+  .final__eclat :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   .final__fig {
-    left: -3%;
+    position: absolute;
+    left: -2%;
+    top: 8%;
+    height: 84%;
     color: var(--bleu-clair);
+    z-index: 1;
   }
   .final__in {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: grid;
     justify-items: center;
-    gap: clamp(1.5rem, 4vw, 2.5rem);
+    gap: clamp(1.25rem, 3.5vw, 2.25rem);
     text-align: center;
+    padding: clamp(1.5rem, 4vw, 3rem);
   }
   .final__in h2 {
-    max-width: 26ch;
+    max-width: 30ch;
     color: var(--blanc);
+  }
+  /* releve : 154,5 pt sur 519,6 -> 29,7 % */
+  .final__cta {
+    min-width: 29.7%;
+    text-align: center;
+    --on-surface: var(--bleu-fold);
+    --fold-color: var(--bleu-clair);
+  }
+  @media (max-width: 860px) {
+    .final {
+      aspect-ratio: auto;
+    }
   }
 </style>

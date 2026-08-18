@@ -28,8 +28,10 @@ import etoile from '../assets/brand/fig12-etoile.svg?raw'
 import galet from '../assets/brand/fig13-galet.svg?raw'
 import confettis from '../assets/brand/fig14-confettis.svg?raw'
 import arche from '../assets/brand/fig15-arche.svg?raw'
+/* Motif d'eclat du bandeau final de la page Programme, extrait au vecteur du PDF */
+import eclat from '../assets/brand/eclat.svg?raw'
 
-export type BrandName = 'wordmark' | 'fig1' | 'fig2' | 'fig3' | 'fig4' | 'fig5' | 'papillon' | 'coeur' | 'main' | 'asterisque' | 'oiseau' | 'plante' | 'etoile' | 'galet' | 'confettis' | 'arche'
+export type BrandName = 'wordmark' | 'fig1' | 'fig2' | 'fig3' | 'fig4' | 'fig5' | 'papillon' | 'coeur' | 'main' | 'asterisque' | 'oiseau' | 'plante' | 'etoile' | 'galet' | 'confettis' | 'arche' | 'eclat'
 
 const svgs: Record<string, string> = {
   wordmark,
@@ -48,6 +50,7 @@ const svgs: Record<string, string> = {
   galet,
   confettis,
   arche,
+  eclat,
 }
 
 interface Props {

@@ -163,15 +163,25 @@ body {
 .paper[class*='fold-']::before {
   content: '';
   position: absolute;
-  width: var(--f);
-  height: var(--f);
+  width: var(--fx, var(--f));
+  height: var(--fy, var(--f));
   background: var(--fold-color, var(--gris-fold));
   pointer-events: none;
 }
 
+/* Le pli n'est pas forcement carre : la charte dit « sa hauteur et sa largeur
+   sont libres », et la maquette en donne un de 69,2 x 22,7 pt sur le bandeau
+   d'impact. --fx et --fy retombent sur --f quand le pli est carre. */
+
 /* coin bas-droit (defaut) */
 .fold-br {
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--f)), calc(100% - var(--f)) 100%, 0 100%);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--fy, var(--f))),
+    calc(100% - var(--fx, var(--f))) 100%,
+    0 100%
+  );
 }
 .fold-br::before {
   right: 0;
@@ -181,7 +191,7 @@ body {
 
 /* coin haut-droit */
 .fold-tr {
-  clip-path: polygon(0 0, calc(100% - var(--f)) 0, 100% var(--f), 100% 100%, 0 100%);
+  clip-path: polygon(0 0, calc(100% - var(--fx, var(--f))) 0, 100% var(--fy, var(--f)), 100% 100%, 0 100%);
 }
 .fold-tr::before {
   right: 0;
@@ -191,7 +201,7 @@ body {
 
 /* coin haut-gauche */
 .fold-tl {
-  clip-path: polygon(var(--f) 0, 100% 0, 100% 100%, 0 100%, 0 var(--f));
+  clip-path: polygon(var(--fx, var(--f)) 0, 100% 0, 100% 100%, 0 100%, 0 var(--fy, var(--f)));
 }
 .fold-tl::before {
   left: 0;
@@ -201,7 +211,7 @@ body {
 
 /* coin bas-gauche */
 .fold-bl {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, var(--f) 100%, 0 calc(100% - var(--f)));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, var(--fx, var(--f)) 100%, 0 calc(100% - var(--fy, var(--f))));
 }
 .fold-bl::before {
   left: 0;
