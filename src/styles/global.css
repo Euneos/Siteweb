@@ -168,6 +168,13 @@ body {
   color: var(--on-surface, var(--noir));
   --f: var(--fold);
 }
+/* Garde-fou systemique : un fond pose sur l'element lui-meme recouvrirait le
+   rabat, qui est peint en arriere-plan. C'est ce qui rendait le rabat invisible
+   sur la section hero et sur les cartouches, alors qu'il marchait sur les CTA.
+   Le fond d'un bloc a pli passe TOUJOURS par ::before. */
+.paper[class*='fold-'] {
+  background: transparent !important;
+}
 /* Le fond du bloc, et c'est LUI qui porte le coin coupe.
    Le bloc lui-meme n'est jamais clippe : sinon le rabat, qui se dessine dans le
    coin retire, serait supprime avec lui — et le contenu risquerait d'etre rogne. */

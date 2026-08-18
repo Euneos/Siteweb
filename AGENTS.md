@@ -151,7 +151,13 @@ Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pd
 4. **Le style scopé d'un composant gagne en spécificité** sur une règle
    extérieure. Pour dimensionner un `Brand` par la hauteur, passer par son API
    (`height="100%"`) plutôt que d'écrire une règle concurrente.
-5. **Un utilitaire partagé entre pages doit vivre dans `global.css`.** Déclaré
+5. **Un `background` posé sur un bloc à pli masque son rabat.** Le rabat est
+   peint en arrière-plan (`::after` en `z-index: -1`) : un fond sur l'élément
+   lui-même passe devant. C'est ce qui rendait le rebord invisible sur la section
+   hero et les cartouches alors qu'il marchait sur les boutons. Un garde-fou
+   `.paper[class*='fold-'] { background: transparent !important }` l'empêche
+   désormais : **le fond d'un bloc à pli passe toujours par `::before`.**
+6. **Un utilitaire partagé entre pages doit vivre dans `global.css`.** Déclaré
    dans le `<style is:global>` d'une page, il n'existe que sur cette page :
    `.c-t` était dans la page Programme, et tous les titres de section des autres
    pages s'affichaient alignés à gauche.

@@ -385,13 +385,15 @@ const parcours = [
   .prog__in {
     padding-block: clamp(3.5rem, 9vw, 7rem) 0;
   }
-  /* le grand pli en haut-gauche, en bleu soutenu sur le fond clair */
+  /* releve au vecteur : pli aplati de 93,8 x 29,4 pt, soit 15,76 % x 4,94 %
+     de la largeur de page — et non un triangle a 1,7:1 */
   .prog__fold {
     position: absolute;
     left: 0;
     top: 0;
-    width: clamp(5rem, 14vw, 12rem);
-    aspect-ratio: 1.7 / 1;
+    width: 15.76vw;
+    max-width: 14rem;
+    aspect-ratio: 93.8 / 29.4;
     background: var(--bleu);
     clip-path: polygon(0 0, 100% 0, 0 100%);
   }
