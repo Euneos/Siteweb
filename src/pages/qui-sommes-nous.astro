@@ -345,6 +345,9 @@ const equipe = [
     display: block;
   }
   .mission__card {
+    /* releve : pli aplati 76,3 x 25,2 pt */
+    --fx: clamp(3rem, 12.8vw, 12rem);
+    --fy: clamp(1.1rem, 4.2vw, 4rem);
     margin-left: -6%;
     padding: clamp(1.75rem, 3.5vw, 3rem);
     padding-left: clamp(2.5rem, 7vw, 6rem);
@@ -464,6 +467,8 @@ const equipe = [
   }
   /* maquette : l'etiquette est large et coiffe la photo en debordant a gauche */
   .membre__name {
+    --fx: clamp(1.2rem, 3.1vw, 2.9rem);
+    --fy: clamp(0.3rem, 0.6vw, 0.6rem);
     justify-self: stretch;
     width: 88%;
     padding: 0.8rem 1.2rem;
@@ -483,7 +488,9 @@ const equipe = [
     padding: 1rem 1.25rem;
     display: grid;
     gap: 0.4rem;
-    --f: var(--fold-md);
+    /* releve : pli aplati 32,3 x 8,8 pt, soit 26 % de la largeur de carte */
+    --fx: clamp(1.6rem, 3.6vw, 3.4rem);
+    --fy: clamp(0.5rem, 1vw, 0.95rem);
     width: 78%;
     margin-left: 12%;
   }

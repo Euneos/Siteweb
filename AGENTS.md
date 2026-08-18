@@ -43,6 +43,30 @@ CSS (`clip-path` + pseudo-élément), aucune image.
 La charte précise « 1 ou 2 plis par compo maximum » — c'est le point n°2 des
 arbitrages à valider (voir plus bas).
 
+### Le pli a une taille ABSOLUE, pas un pourcentage
+
+Relevé sur les **59 plis des 4 pages** du PDF (extraction vectorielle) : un CTA
+de 88 pt de large et un de 295 pt ont le **même** pli de 12,9 pt. La taille
+dépend de la famille de bloc, jamais de sa largeur.
+
+| Famille | PDF | Calibre | Valeur |
+|---|---|---|---|
+| CTA, étiquette, champ | 12,9 pt | `foldSize="sm"` | ~31 px |
+| Carte de grille | 27,5 pt | `foldSize="md"` | ~67 px |
+| Bulle de titre | 46,9 pt | `foldSize="lg"` (défaut) | ~113 px |
+| Coin de section | 94,3 pt | `foldSize="xl"` | ~228 px |
+
+Conversion : la page PDF fait 595,3 pt pour 1440 px, soit 1 pt = 2,419 px.
+
+**Le pli n'est pas toujours carré.** La charte dit « sa hauteur et sa largeur
+sont libres », et la maquette s'en sert : bandeau d'impact 69,2 × 22,7 ·
+témoignage 60,3 × 25,2 · photo mission 76,3 × 25,2 · étiquette d'équipe
+18,5 × 3,6. On pose alors `--fx` et `--fy` sur le bloc ; ils retombent sur `--f`
+quand le pli est carré.
+
+Les CTA du PDF font **26,7 pt de haut, soit ~64 px** — beaucoup plus généreux
+qu'un bouton web ordinaire.
+
 ## Règles de couleur (charte p.10 à 16)
 
 - **Vert `#00382D`** = couleur principale · **Jaune `#F8C702`** = principale également

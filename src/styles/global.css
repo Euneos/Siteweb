@@ -65,12 +65,18 @@
   --gutter: var(--unit);
   --page-max: 1240px;
 
-  /* --- Pli : « sa hauteur et sa largeur sont libres » (charte p.22).
-     Trois calibres, releves sur la maquette : le rabat y est franc, pas discret. --- */
-  --fold-xl: clamp(3.5rem, 9vw, 9.5rem); /* coin de section */
-  --fold: clamp(2.25rem, 5vw, 6.5rem); /* bloc / bulle */
-  --fold-md: clamp(1.5rem, 2.6vw, 2.5rem); /* carte */
-  --fold-sm: 1.15rem; /* etiquette, CTA, champ */
+  /* --- Pli : taille ABSOLUE par famille, relevee sur les 59 plis des 4 pages
+     du PDF. Le pli ne se calcule pas en pourcentage du bloc : un CTA de 88 pt
+     et un de 295 pt ont le meme pli de 12,9 pt.
+     Conversion : page = 595,3 pt pour 1440 px, soit 1 pt = 2,419 px.
+       CTA / etiquette   12,9 pt ->  31 px  (2,17 % de la largeur de page)
+       carte             27,5 pt ->  67 px  (4,62 %)
+       bulle de titre    46,9 pt -> 113 px  (7,88 %)
+       coin de section   94,3 pt -> 228 px  (15,84 %)  --- */
+  --fold-xl: clamp(5rem, 15.84vw, 15rem);
+  --fold: clamp(3.25rem, 7.88vw, 7.5rem);
+  --fold-md: clamp(2.25rem, 4.62vw, 4.4rem);
+  --fold-sm: clamp(1.2rem, 2.17vw, 2rem);
 }
 
 html {
@@ -379,7 +385,8 @@ body {
 .cta {
   display: inline-block;
   position: relative;
-  padding: 0.7rem 1.6rem;
+  /* releve : 26,7 pt de haut, soit ~64 px a 1440 de large */
+  padding: 1.15rem 1.9rem;
   font-weight: 600;
   text-decoration: none;
   background: var(--surface, var(--vert));
