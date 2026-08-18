@@ -58,7 +58,7 @@
   --noir: #101312; /* le texte */
   --papier: #f1eeee; /* le fond — ce n'est PAS du blanc pur */
   --blanc: #ffffff;
-  --gris-fold: #d9d5d5; /* pli des cartes grises/papier */
+  --gris-fold: #dbdbdb; /* pli des cartes grises/papier (releve au vecteur) */
 
   /* --- Grille : conteneur ratio A, 16 colonnes, 1 unite de marge (charte p.24) --- */
   --unit: clamp(0.75rem, 1.4vw, 1.25rem);
@@ -400,8 +400,9 @@ body {
 .cta {
   display: inline-block;
   position: relative;
-  /* releve : 26,7 pt de haut, soit ~64 px a 1440 de large */
-  padding: 1.15rem 1.9rem;
+  /* releve : 26,7 pt de haut (~64 px) et ~22 pt de padding horizontal (~53 px).
+     Les CTA de la maquette sont larges : « En savoir + » fait 88,8 pt. */
+  padding: 1.15rem 3.3rem;
   font-weight: 600;
   text-decoration: none;
   background: var(--surface, var(--vert));
@@ -665,6 +666,13 @@ body {
 .hz {
   padding-bottom: clamp(1.5rem, 4vw, 3rem);
 }
+/* releve : la section hero fait 318,7 pt de haut, soit 53,5 % de la largeur de page */
+.hero-zone {
+  min-height: min(53.5vw, 800px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
 .hz__grid {
   position: relative;
   display: grid;
@@ -728,10 +736,9 @@ body {
   --surface: var(--vert-clair);
   --on-surface: var(--blanc);
   --fold-color: var(--vert);
-  /* releve : 88,8 pt de large sur une bulle de 214,5 -> 41 % */
-  min-width: 41%;
+  /* releve : 88,8 x 26,7 pt — largeur minimale garantie meme sur libelle court */
+  min-width: 13.4rem;
   text-align: center;
-  padding: 0.7rem 1.4rem;
 }
 /* sur la page Programme, le CTA du hero est dans la famille bleue */
 .hz--mirror .hz__cta > .cta {

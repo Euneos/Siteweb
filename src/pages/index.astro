@@ -89,12 +89,19 @@ const parcours = [
       <div class="approche__media">
         <Photo ratio="3/2" label="photo — équipe éducative" />
         <div class="approche__picto">
-          <PictoBox picto="asterisque" surface="jaune" size="clamp(64px, 5.5vw, 80px)" />
+          <PictoBox
+            picto="asterisque"
+            surface="jaune"
+            size="clamp(96px, 12.1vw, 174px)"
+            fold
+            foldColor="var(--rose-fold)"
+            class="approche__pbox"
+          />
         </div>
       </div>
 
       <div class="approche__col">
-        <Paper surface="vert" fold="tr" class="approche__txt">
+        <Paper surface="vert" fold="tr" foldSize="md" class="approche__txt">
           <p>
             EUNEOS forme les équipes éducatives, premiers leviers d’apprentissage des jeunes,
             à la prévention en santé mentale, à la transmission des compétences psychosociales
@@ -211,7 +218,7 @@ const parcours = [
           parcours.map((p) => (
             <li>
               <a href={p.href} class="parcours__link">
-                <Paper surface={p.surface} fold="br" foldSize="md" class="parcours__card">
+                <Paper surface={p.surface} fold="br" foldSize="sm" class="parcours__card">
                   <div class="parcours__picto" style={`color:${p.picto}`}><Brand name="main" /></div>
                   <span>{p.label}</span>
                 </Paper>
@@ -287,6 +294,11 @@ const parcours = [
     top: 8%;
     z-index: 3;
   }
+  /* releve : pli etire 11,1 x 19,6 pt */
+  .approche__pbox {
+    --fx: clamp(1rem, 1.9vw, 1.7rem);
+    --fy: clamp(1.7rem, 3.3vw, 3rem);
+  }
   .approche__col {
     grid-column: 2;
     grid-row: 2;
@@ -296,7 +308,10 @@ const parcours = [
     margin-left: -18%;
     z-index: 2;
   }
+  /* releve : 214,8 x 108,6 pt */
   .approche__txt {
+    max-width: 32.5rem;
+    min-height: clamp(9rem, 18.2vw, 16.4rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
     padding-left: clamp(2.25rem, 5vw, 4rem);
     padding-bottom: clamp(2rem, 4vw, 3rem);
@@ -444,22 +459,26 @@ const parcours = [
     color: var(--vert);
     margin-bottom: clamp(2rem, 5vw, 3rem);
   }
+  /* releve : 3 cartes de 172,2 pt = 86,8 % de la page, gouttieres tres fines */
   .impact__cards {
     list-style: none;
     padding: 0;
-    margin: 0;
+    margin-inline: auto;
+    width: min(86.8vw, 76rem);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1rem, 3vw, 2.5rem);
+    gap: 0.6%;
   }
   /* maquette : cartes paysage, chiffre imposant, pli large et net */
+  /* releve : 172,2 x 103,2 pt, pli 27,5 */
   .impact__card {
     height: 100%;
+    min-height: clamp(9rem, 17.3vw, 15.6rem);
     padding: clamp(1.25rem, 2.4vw, 1.75rem);
     display: grid;
     gap: 0.35rem;
     align-content: start;
-    --f: clamp(2rem, 3.4vw, 3.25rem);
+    --f: var(--fold-md);
   }
   .impact__n {
     font-size: clamp(2rem, 4vw, 2.75rem);
@@ -529,12 +548,16 @@ const parcours = [
     position: relative;
     z-index: 2;
   }
+  /* releve : 381,7 x 132,3 pt */
   .citation__card {
     grid-column: 2 / 3;
     grid-row: 2;
+    min-height: clamp(11rem, 22.2vw, 20rem);
+    max-width: 57.7rem;
     margin-left: -12%;
     z-index: 1;
-    --f: clamp(2.5rem, 5vw, 4.5rem);
+    /* releve : pli 60,3 pt */
+    --f: clamp(4rem, 10.1vw, 9.5rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
     padding-left: clamp(3rem, 10vw, 9.5rem);
     padding-bottom: clamp(2.5rem, 5vw, 4rem);
@@ -623,8 +646,10 @@ const parcours = [
     display: block;
     height: 100%;
   }
+  /* releve : 152 x 80,6 pt, pli d'etiquette (12,9) et non de carte */
   .parcours__card {
     height: 100%;
+    min-height: clamp(7rem, 13.5vw, 12.2rem);
     padding: clamp(1.1rem, 2.2vw, 1.5rem);
     display: flex;
     align-items: center;
@@ -632,6 +657,7 @@ const parcours = [
     font-size: 1.15rem;
     font-weight: 600;
     line-height: 1.25;
+    --f: var(--fold-sm);
     transition: transform 0.15s ease;
   }
   .parcours__link:hover .paper {

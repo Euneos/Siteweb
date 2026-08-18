@@ -18,15 +18,24 @@ interface Props {
   size?: string
   /** coin plie, comme le cartouche rose de la page d'accueil */
   fold?: boolean
+  /** couleur du rabat : la maquette ne prend PAS toujours la variante foncee de
+      la teinte du bloc (le cartouche jaune a un rabat rose #DD83DA) */
+  foldColor?: string
   class?: string
 }
 
-const { picto, surface = 'jaune', size = '104px', fold = false, class: cls } = Astro.props
+const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, class: cls } = Astro.props
 ---
 
 <div
   class:list={['pbox', `s-${surface}`, fold && 'paper fold-br', cls]}
-  style={`--pbox:${size}${fold ? ';--f:calc(var(--pbox) * 0.28)' : ''}`}
+  style={[
+    `--pbox:${size}`,
+    fold ? '--f:calc(var(--pbox) * 0.28)' : '',
+    foldColor ? `--fold-color:${foldColor}` : '',
+  ]
+    .filter(Boolean)
+    .join(';')}
 >
   <div class="pbox__in"><Brand name={picto} /></div>
 </div>
@@ -36,7 +45,7 @@ const { picto, surface = 'jaune', size = '104px', fold = false, class: cls } = A
     width: var(--pbox);
     padding: calc(var(--pbox) * 0.17);
     box-sizing: border-box;
-    aspect-ratio: 1 / 1.2;
+    aspect-ratio: 71.9 / 100.3;
     display: grid;
     grid-template-columns: 1fr;
     align-content: center;
