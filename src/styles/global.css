@@ -77,6 +77,8 @@
   --fold: clamp(3.25rem, 7.88vw, 7.5rem);
   --fold-md: clamp(2.25rem, 4.62vw, 4.4rem);
   --fold-sm: clamp(1.2rem, 2.17vw, 2rem);
+  /* corps de texte a l'echelle de la maquette */
+  --texte: 1.1875rem;
 }
 
 html {
@@ -94,7 +96,10 @@ body {
   font-stretch: 87.5%;
   background: var(--papier);
   color: var(--noir);
-  font-size: 1rem;
+  /* ARBITRAGE : la charte donne 16 px de corps, la maquette rend ~19 px une fois
+     ramenee a 1440 de large. C'est la maquette que Candice a validee et qui sert
+     de reference visuelle : on suit la maquette. A confirmer avec elle. */
+  font-size: 1.1875rem;
   line-height: 1.6; /* body 160 % */
   margin: 0;
 }
@@ -140,9 +145,9 @@ body {
   }
 }
 
-/* Chapo : 20 px / 140 % */
+/* Chapo : 20 px / 140 % (echelle maquette : ~1,19x) */
 .chapo {
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   line-height: 1.4;
 }
 /* Surtitre : petit label au-dessus d'un H2 (vu p.3 de la maquette) */

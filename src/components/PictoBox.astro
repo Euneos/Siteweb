@@ -19,16 +19,18 @@ interface Props {
   /** coin plie, comme le cartouche rose de la page d'accueil */
   fold?: boolean
   /** couleur du rabat : la maquette ne prend PAS toujours la variante foncee de
-      la teinte du bloc (le cartouche jaune a un rabat rose #DD83DA) */
+      la teinte du bloc (le cartouche rose du bloc image a un rabat #DD83DA) */
   foldColor?: string
+  /** format A en paysage (le cartouche orange du bloc image : 59,1 x 41,8 pt) */
+  paysage?: boolean
   class?: string
 }
 
-const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, class: cls } = Astro.props
+const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, paysage = false, class: cls } = Astro.props
 ---
 
 <div
-  class:list={['pbox', `s-${surface}`, fold && 'paper fold-br', cls]}
+  class:list={['pbox', `s-${surface}`, paysage && 'pbox--paysage', fold && 'paper fold-br', cls]}
   style={[
     `--pbox:${size}`,
     fold ? '--f:calc(var(--pbox) * 0.28)' : '',
@@ -41,6 +43,8 @@ const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, class
 </div>
 
 <style>
+  /* Releve au vecteur : les cartouches font 71,9 x 100,3 pt en portrait
+     (format A) et 59,1 x 41,8 pt en paysage. */
   .pbox {
     width: var(--pbox);
     padding: calc(var(--pbox) * 0.17);
@@ -52,6 +56,9 @@ const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, class
     background: var(--surface);
     color: var(--blanc);
     flex: none;
+  }
+  .pbox--paysage {
+    aspect-ratio: 59.1 / 41.8;
   }
   /* « Les textes comme le logo ne s'utilisent qu'en noir ou blanc » : sur les
      surfaces claires, le picto passe en noir pour rester lisible. */

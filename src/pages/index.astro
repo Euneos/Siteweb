@@ -68,8 +68,8 @@ const parcours = [
   <section class="section constat has-silo">
     <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
     <div class="page g16 constat__in">
-      <h2 style="grid-column: 4 / 9">Apaisons l’environnement éducatif</h2>
-      <div style="grid-column: 10 / 15" class="constat__txt">
+      <h2 style="grid-column: 5 / 9">Apaisons l’environnement éducatif</h2>
+      <div style="grid-column: 9 / 15" class="constat__txt">
         <p>
           Aujourd’hui, + de 50 % des élèves de collèges et lycées présentent des plaintes
           psychologiques ou somatiques hebdomadaires, amplifiées par la saturation
@@ -89,14 +89,7 @@ const parcours = [
       <div class="approche__media">
         <Photo ratio="3/2" label="photo — équipe éducative" />
         <div class="approche__picto">
-          <PictoBox
-            picto="asterisque"
-            surface="jaune"
-            size="clamp(96px, 12.1vw, 174px)"
-            fold
-            foldColor="var(--rose-fold)"
-            class="approche__pbox"
-          />
+          <PictoBox picto="asterisque" surface="jaune" size="clamp(62px, 6.2vw, 89px)" />
         </div>
       </div>
 
@@ -179,10 +172,17 @@ const parcours = [
     <div class="page bloc-image">
       <div class="bloc-image__ph"><Photo ratio="16/10" label="photo — jeunes en situation réelle" /></div>
       <div class="bloc-image__picto">
-        <PictoBox picto="asterisque" surface="orange" size="clamp(70px, 6.5vw, 96px)" />
+        <PictoBox picto="asterisque" surface="orange" size="clamp(96px, 9.9vw, 143px)" paysage />
       </div>
       <div class="bloc-image__picto2">
-        <PictoBox picto="coeur" surface="rose" size="clamp(84px, 8vw, 118px)" fold />
+        <PictoBox
+          picto="coeur"
+          surface="rose"
+          size="clamp(116px, 12.1vw, 174px)"
+          fold
+          foldColor="var(--rose-fold)"
+          class="bloc-image__rose"
+        />
       </div>
     </div>
   </section>
@@ -271,9 +271,12 @@ const parcours = [
   .approche__tag {
     grid-column: 1 / -1;
     justify-self: end;
-    width: min(32%, 22rem);
-    margin-right: 22%;
-    margin-bottom: -3.5rem;
+    width: min(38%, 24.9rem);
+    min-height: clamp(8rem, 19.5vw, 17.6rem);
+    display: grid;
+    place-items: center;
+    margin-right: 18%;
+    margin-bottom: -6rem;
     position: relative;
     z-index: 3;
     padding: clamp(1rem, 2.4vw, 1.75rem) clamp(1rem, 2.4vw, 1.75rem);
@@ -294,11 +297,7 @@ const parcours = [
     top: 8%;
     z-index: 3;
   }
-  /* releve : pli etire 11,1 x 19,6 pt */
-  .approche__pbox {
-    --fx: clamp(1rem, 1.9vw, 1.7rem);
-    --fy: clamp(1.7rem, 3.3vw, 3rem);
-  }
+
   .approche__col {
     grid-column: 2;
     grid-row: 2;
@@ -363,10 +362,10 @@ const parcours = [
     margin: clamp(2rem, 5vw, 3.5rem) 0 0;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: clamp(1.25rem, 4vw, 3.25rem);
+    gap: 5.75%;
   }
   .confiance__logos li {
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 60.5 / 42.8;
     background: var(--vert-clair);
     opacity: 0.85;
   }
@@ -515,6 +514,11 @@ const parcours = [
     left: 0;
     bottom: 0;
     transform: translate(-46%, 34%);
+  }
+  /* releve : pli etire 11,1 x 19,6 pt sur le cartouche rose */
+  .bloc-image__rose {
+    --fx: clamp(1rem, 1.9vw, 1.7rem);
+    --fy: clamp(1.7rem, 3.3vw, 3rem);
   }
   .bloc-image__picto2 {
     right: 0;
