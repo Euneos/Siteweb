@@ -161,26 +161,36 @@ body {
    ============================================================ */
 .paper {
   position: relative;
-  background: var(--surface, var(--blanc));
+  /* contexte d'empilement : les pseudo-elements passent DERRIERE le contenu */
+  z-index: 0;
+  isolation: isolate;
+  background: transparent;
   color: var(--on-surface, var(--noir));
   --f: var(--fold);
 }
-/* Le rabat n'existe que si un coin est plie (fold="none" -> aucun pseudo-element). */
-.paper[class*='fold-']::before {
+/* Le fond du bloc, et c'est LUI qui porte le coin coupe.
+   Le bloc lui-meme n'est jamais clippe : sinon le rabat, qui se dessine dans le
+   coin retire, serait supprime avec lui — et le contenu risquerait d'etre rogne. */
+.paper::before {
   content: '';
   position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--surface, var(--blanc));
+}
+/* Le rabat : il remplit exactement le coin retire par le clip du fond. */
+.paper[class*='fold-']::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
   width: var(--fx, var(--f));
   height: var(--fy, var(--f));
   background: var(--fold-color, var(--gris-fold));
   pointer-events: none;
 }
 
-/* Le pli n'est pas forcement carre : la charte dit « sa hauteur et sa largeur
-   sont libres », et la maquette en donne un de 69,2 x 22,7 pt sur le bandeau
-   d'impact. --fx et --fy retombent sur --f quand le pli est carre. */
-
 /* coin bas-droit (defaut) */
-.fold-br {
+.paper.fold-br::before {
   clip-path: polygon(
     0 0,
     100% 0,
@@ -189,40 +199,40 @@ body {
     0 100%
   );
 }
-.fold-br::before {
+.paper.fold-br::after {
   right: 0;
   bottom: 0;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 /* coin haut-droit */
-.fold-tr {
+.paper.fold-tr::before {
   clip-path: polygon(0 0, calc(100% - var(--fx, var(--f))) 0, 100% var(--fy, var(--f)), 100% 100%, 0 100%);
 }
-.fold-tr::before {
+.paper.fold-tr::after {
   right: 0;
   top: 0;
-  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
 /* coin haut-gauche */
-.fold-tl {
+.paper.fold-tl::before {
   clip-path: polygon(var(--fx, var(--f)) 0, 100% 0, 100% 100%, 0 100%, 0 var(--fy, var(--f)));
 }
-.fold-tl::before {
+.paper.fold-tl::after {
   left: 0;
   top: 0;
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 /* coin bas-gauche */
-.fold-bl {
+.paper.fold-bl::before {
   clip-path: polygon(0 0, 100% 0, 100% 100%, var(--fx, var(--f)) 100%, 0 calc(100% - var(--fy, var(--f))));
 }
-.fold-bl::before {
+.paper.fold-bl::after {
   left: 0;
   bottom: 0;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
 }
 
 /* Variante « contour » : la bulle a filet des heros.
@@ -238,13 +248,18 @@ body {
   color: inherit;
   border: 0;
   clip-path: none !important;
+  isolation: auto;
   /* Maquette : sur la page Programme le filet est BLANC alors que le titre est
      vert fonce. Le filet a donc sa propre couleur, independante du texte. */
   --filet: var(--blanc);
 }
-/* pas de rabat en aplat sur la version a filet */
+/* pas de rabat en aplat sur la version a filet : il est trace en SVG */
 .paper.paper-outline::after {
   content: none;
+}
+.paper.paper-outline::before {
+  background: none;
+  z-index: auto;
 }
 .paper.paper-outline::before {
   content: '';
