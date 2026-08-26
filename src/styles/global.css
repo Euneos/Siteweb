@@ -346,6 +346,12 @@ body {
   --on-surface: var(--noir);
   --fold-color: var(--jaune-fold);
 }
+/* Jaune clair : releve sur l'etape 5 du parcours, page 2 (#fbe380). */
+.s-jaune-clair {
+  --surface: var(--jaune-clair);
+  --on-surface: var(--noir);
+  --fold-color: var(--jaune);
+}
 .s-bleu {
   --surface: var(--bleu);
   --on-surface: var(--vert);
@@ -712,9 +718,7 @@ body {
   align-items: start;
   padding-inline: 4.86% 5.09%;
 }
-.hz--mirror .hz__grid {
-  grid-template-columns: 43.7fr 46.25fr;
-}
+
 /* HERO PAGE 1 — geometrie relevee au pixel dans la maquette v2. Candice a
    elargi la bulle pour loger le nouveau titre : elle passe de 36,08 % de la
    page (v7) a 39,27 % (v2), et la photo se decale d'autant vers la droite
@@ -743,11 +747,31 @@ body {
   grid-template-columns: 21.8% 78.2%;
   align-items: end;
 }
+/* HEROS EN MIROIR (pages 2 et 3) — le cartouche logo est a L'EXTREME GAUCHE
+   dans la maquette, chevauchant le bord gauche de la photo. Il etait place a
+   droite depuis le debut : erreur presente des la v7.
+   Releve : cartouche 5,0 → 15,5 % de la page (identique sur les pages 2 et 3). */
+/* Releve pages 2 et 3 : photo 7,7 → 52,3 % · bulle 52,8 → 89,1 % */
+.hz--mirror .hz__grid {
+  position: relative;
+  grid-template-columns: 52.96% 47.04%;
+}
 .hz--mirror .hz__side {
-  grid-template-columns: 78.2% 21.8%;
+  /* static, sinon le cartouche en absolu s'ancre ici au lieu de la grille */
+  position: static;
+  grid-template-columns: 100%;
+  margin-right: 13.8%;
+}
+.hz--mirror .hz__media {
+  padding-left: 5.36%;
 }
 .hz--mirror .hz__cartouche {
-  order: 2;
+  position: absolute;
+  left: 5%;
+  top: 34%;
+  /* plancher : a 10,5 % le cartouche tombe a 39 px sur un telephone */
+  width: max(10.5%, 68px);
+  z-index: 3;
 }
 
 .hz__cartouche {

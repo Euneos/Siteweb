@@ -54,14 +54,14 @@ const etapes = [
   {
     n: 1,
     titre: 'Rencontre de lancement',
-    surface: 'blanc',
+    surface: 'papier',
     texte:
       'Présentation du programme à l’équipe éducative, identification du personnel volontaire (min. 5) et de la classe participante à l’évaluation scientifique.',
   },
   {
     n: 2,
     titre: 'Formation (16 h)',
-    surface: 'bleu',
+    surface: 'bleu-clair',
     texte:
       'Formation structurée en présentiel ou hybride : attention, stress numérique, émotions, communication.',
   },
@@ -82,7 +82,7 @@ const etapes = [
   {
     n: 5,
     titre: 'Évaluation & restitution',
-    surface: 'jaune',
+    surface: 'jaune-clair',
     texte:
       'Questionnaires avant/après élèves, collaboration avec la recherche européenne. Questionnaires pré et post formation et suivi à + 45 jours.',
   },
@@ -220,11 +220,9 @@ const faq = [
                 <h3>{m.titre}</h3>
               </div>
               <p class="methodo__intro">{m.intro}</p>
-              <ul class="methodo__points">
-                {m.points.map((pt) => (
-                  <li>{pt}</li>
-                ))}
-              </ul>
+              {m.points.map((pt) => (
+                <p class="methodo__point">{pt}</p>
+              ))}
               <span class="methodo__more" aria-hidden="true">
                 <svg viewBox="0 0 24 32" fill="currentColor"
                   ><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z"></path></svg
@@ -438,28 +436,13 @@ const faq = [
   .methodo li p {
     max-width: 34ch;
   }
-  .methodo__points {
-    list-style: none;
-    margin: 0.6rem 0 0;
-    padding: 0;
-    display: grid;
-    gap: 0.45rem;
+  /* La maquette n'utilise pas de puces : les points s'enchainent en
+     paragraphes. */
+  .methodo__point {
     max-width: 34ch;
+    margin-top: 0.5rem;
     font-size: max(0.95rem, 0.95em);
     line-height: 1.45;
-  }
-  .methodo__points li {
-    position: relative;
-    padding-left: 0.9rem;
-  }
-  .methodo__points li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 0.35rem;
-    height: 0.35rem;
-    background: currentColor;
   }
   /* fleche de depliage, comme sur la maquette */
   .methodo__more {
