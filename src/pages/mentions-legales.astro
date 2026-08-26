@@ -1,9 +1,10 @@
 ---
 /**
- * Page legale — coquille conforme a la structure demandee par le client
- * (« Mentions legales · politique de confidentialite · cookies (RGPD) »,
- * « mise en page sobre, aucun element graphique superflu »).
- * Le texte reglementaire doit etre fourni par EUNEOS.
+ * Mentions legales — obligatoires (LCEN art. 6-III).
+ *
+ * Redigees a partir des elements connus du site. Les trois points marques
+ * « A COMPLETER » ne peuvent venir que d'EUNEOS : numero RNA, identite du
+ * directeur de publication, et le cas echeant le numero SIRET.
  */
 import Base from '../layouts/Base.astro'
 ---
@@ -11,9 +12,53 @@ import Base from '../layouts/Base.astro'
 <Base title="Mentions légales — EUNEOS" description="Mentions légales du site euneos.fr.">
   <section class="section page legal">
     <h1>Mentions légales</h1>
-    <p class="chapo">
-      Texte réglementaire à fournir par EUNEOS. Cette page existe pour que les liens du pied
-      de page soient valides dès la mise en ligne.
+
+    <h2>Éditeur du site</h2>
+    <p>
+      <strong>EUNEOS</strong> — association loi 1901 d'intérêt général, fondée en avril 2026.<br />
+      118 route d'Espagne, 31100 Toulouse, France<br />
+      <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>
+    </p>
+    <p class="acompleter">
+      À COMPLÉTER par EUNEOS : numéro RNA (déclaration en préfecture), numéro SIRET le cas
+      échéant, et nom du directeur de la publication.
+    </p>
+
+    <h2>Hébergement</h2>
+    <p>
+      Le site est hébergé par <strong>Cloudflare, Inc.</strong><br />
+      101 Townsend St, San Francisco, CA 94107, États-Unis —
+      <a href="https://www.cloudflare.com" rel="noopener noreferrer" target="_blank">cloudflare.com</a>
+    </p>
+    <p>
+      Le nom de domaine <code>euneos.fr</code> est enregistré auprès de <strong>Viaduc</strong>,
+      qui héberge également les boîtes de messagerie de l'association.
+    </p>
+
+    <h2>Propriété intellectuelle</h2>
+    <p>
+      L'ensemble des contenus de ce site — textes, identité visuelle, pictogrammes,
+      photographies — est la propriété d'EUNEOS ou de ses partenaires, sauf mention contraire.
+      Toute reproduction ou représentation, totale ou partielle, sans autorisation écrite
+      préalable, est interdite.
+    </p>
+    <p>
+      Le Programme WISE-UP est mené dans le cadre d'un programme européen Erasmus+ 2025-2027
+      et financé par le fonds de dotation Nouveau Monde.
+    </p>
+
+    <h2>Données personnelles</h2>
+    <p>
+      Le traitement des données recueillies sur ce site est décrit dans notre
+      <a href="/politique-de-confidentialite">politique de confidentialité</a>. L'usage des
+      cookies est décrit sur la page <a href="/cookies">Cookies</a>.
+    </p>
+
+    <h2>Signaler un contenu</h2>
+    <p>
+      Pour toute demande relative au contenu de ce site — correction, retrait d'une
+      photographie, exercice d'un droit —
+      écrivez à <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>.
     </p>
   </section>
 </Base>
@@ -25,5 +70,32 @@ import Base from '../layouts/Base.astro'
   .legal h1 {
     margin-bottom: 1.5rem;
     color: var(--vert);
+  }
+  .legal h2 {
+    color: var(--vert);
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+    margin-top: 2.25rem;
+    margin-bottom: 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    margin-bottom: 0.85rem;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .legal a {
+    color: inherit;
+  }
+  .legal code {
+    font-size: 0.92em;
+  }
+  /* Ce qui reste a fournir par EUNEOS — visible expres, pour ne pas l'oublier. */
+  .legal .acompleter {
+    border-left: 4px solid var(--jaune);
+    padding: 0.7rem 0 0.7rem 0.9rem;
+    background: color-mix(in srgb, var(--jaune) 12%, transparent);
+    font-size: 0.92rem;
   }
 </style>

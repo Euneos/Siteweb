@@ -1,29 +1,117 @@
 ---
 /**
- * Page legale — coquille conforme a la structure demandee par le client
- * (« Mentions legales · politique de confidentialite · cookies (RGPD) »,
- * « mise en page sobre, aucun element graphique superflu »).
- * Le texte reglementaire doit etre fourni par EUNEOS.
+ * Politique de confidentialite — RGPD art. 13.
+ *
+ * Redigee a partir de ce que le site collecte REELLEMENT : les deux
+ * formulaires de candidature et le formulaire de contact, dont les champs
+ * sont definis dans src/pages/api/. Si un champ change la-bas, cette page
+ * doit changer ici.
+ *
+ * Les durees de conservation et le responsable de traitement nomme ne
+ * peuvent venir que d'EUNEOS.
  */
 import Base from '../layouts/Base.astro'
 ---
 
-<Base title="Politique de confidentialité — EUNEOS" description="Politique de confidentialité du site euneos.fr.">
+<Base
+  title="Politique de confidentialité — EUNEOS"
+  description="Quelles données EUNEOS recueille sur euneos.fr, pourquoi, combien de temps, et comment exercer vos droits."
+>
   <section class="section page legal">
     <h1>Politique de confidentialité</h1>
     <p class="chapo">
-      Texte réglementaire à fournir par EUNEOS. Cette page existe pour que les liens du pied
-      de page soient valides dès la mise en ligne.
+      EUNEOS recueille des données personnelles uniquement pour instruire les candidatures au
+      Programme WISE-UP et répondre aux demandes de contact. Elles ne sont ni cédées, ni
+      revendues, ni utilisées à des fins publicitaires.
+    </p>
+
+    <h2>Qui est responsable de ces données</h2>
+    <p>
+      <strong>EUNEOS</strong>, association loi 1901 d'intérêt général, 118 route d'Espagne,
+      31100 Toulouse — <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>.
+    </p>
+
+    <h2>Ce que nous recueillons, et pourquoi</h2>
+
+    <h3>Candidature d'un établissement</h3>
+    <p>
+      Nom et type de l'établissement, adresse, code postal, ville, région, académie, statut
+      public ou privé ; nom, fonction, adresse e-mail et téléphone du référent ; adresse
+      e-mail institutionnelle ; le message libre que vous rédigez.
+    </p>
+    <p>
+      <em>Finalité</em> : instruire la candidature, organiser le déploiement du Programme.
+      <em>Base légale</em> : mesures précontractuelles prises à votre demande.
+    </p>
+
+    <h3>Candidature de formateur·rice</h3>
+    <p>
+      Nom, prénom, adresse e-mail, téléphone, code postal, ville, région, académie, activité
+      professionnelle, et le texte de motivation que vous rédigez.
+    </p>
+    <p>
+      <em>Finalité</em> : instruire la candidature, constituer les cohortes de formation.
+      <em>Base légale</em> : mesures précontractuelles prises à votre demande.
+    </p>
+
+    <h3>Formulaire de contact et newsletter</h3>
+    <p>
+      Nom, prénom, fonction, adresse e-mail et le contenu de votre message.
+      <em>Base légale</em> : votre consentement, retirable à tout moment.
+    </p>
+
+    <h2>Données concernant des élèves</h2>
+    <p>
+      Dans le cadre de l'évaluation scientifique du Programme, des questionnaires sont
+      proposés à des classes participantes. <strong>Ces réponses sont recueillies sous code
+      anonyme</strong> : elles ne comportent ni nom, ni prénom, ni coordonnées, et ne
+      permettent pas de réidentifier un élève. Ces questionnaires ne passent pas par ce site.
+    </p>
+
+    <h2>Qui y a accès</h2>
+    <p>
+      Seule l'équipe opérationnelle d'EUNEOS. Les données sont conservées chez deux
+      sous-traitants, tous deux engagés par contrat :
+    </p>
+    <ul>
+      <li><strong>NocoDB</strong> — base de données des candidatures et du suivi</li>
+      <li><strong>Cloudflare</strong> — hébergement du site et acheminement des formulaires</li>
+      <li><strong>Viaduc</strong> — messagerie de l'association</li>
+    </ul>
+    <p>Aucune donnée n'est transmise à un tiers à des fins commerciales.</p>
+
+    <h2>Combien de temps</h2>
+    <p class="acompleter">
+      À COMPLÉTER par EUNEOS : durées de conservation retenues. À titre indicatif et usuel —
+      candidatures non retenues : 2 ans après le dernier contact ; établissements et
+      formateurs engagés : durée de la relation puis 5 ans ; demandes de contact : 1 an.
+    </p>
+
+    <h2>Vos droits</h2>
+    <p>
+      Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation,
+      d'opposition et de portabilité sur vos données. Pour l'exercer, écrivez à
+      <a href="mailto:contact@euneos.fr">contact@euneos.fr</a> — une réponse vous sera
+      apportée dans un délai d'un mois.
+    </p>
+    <p>
+      Si la réponse ne vous satisfait pas, vous pouvez saisir la
+      <a href="https://www.cnil.fr" rel="noopener noreferrer" target="_blank">CNIL</a>.
+    </p>
+
+    <h2>Droit à l'image</h2>
+    <p>
+      Les photographies publiées sur ce site le sont avec l'autorisation des personnes
+      représentées ou de leurs représentants légaux lorsqu'il s'agit de mineurs. Pour
+      demander le retrait d'une photographie, écrivez à
+      <a href="mailto:contact@euneos.fr">contact@euneos.fr</a> : elle sera retirée sans
+      délai et sans justification à fournir.
+    </p>
+
+    <h2>Modifications</h2>
+    <p>
+      Cette politique peut évoluer avec le Programme. La version en vigueur est celle publiée
+      sur cette page.
     </p>
   </section>
 </Base>
-
-<style is:global>
-  .legal {
-    max-width: 70ch;
-  }
-  .legal h1 {
-    margin-bottom: 1.5rem;
-    color: var(--vert);
-  }
-</style>

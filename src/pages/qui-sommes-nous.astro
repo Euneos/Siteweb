@@ -85,10 +85,12 @@ const niveaux: {
 /* Fonctions corrigees le 20/08 (maquette v2 p.3). NB : la page 1 signe la
    citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
    maquette elle-meme, a trancher avec elle. */
-/* 3 emplacements, tous marques « ??? » dans la maquette v2 : Candice n'a pas
-   encore livre les noms. On garde la marque visible pour ne pas l'oublier.
-   Le gabarit est celui des cartes de l'equipe (etiquette + portrait + carte). */
-const ca = Array.from({ length: 3 }, () => ({ nom: '???', champ: '???' }))
+/* Les 3 membres du conseil d'administration sont encore « ??? » dans la
+   maquette : Candice n'a pas livre les noms.
+   On NE PUBLIE PAS des cartes « ??? » sur un site public. Le bloc de texte,
+   lui, est vrai et se suffit a lui-meme. Des que les noms arrivent, remplir
+   ce tableau et les cartes reapparaissent toutes seules. */
+const ca: { nom: string; champ: string }[] = []
 
 const equipe = [
   { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale' },
@@ -247,21 +249,25 @@ const equipe = [
         complémentaires : éducation et politiques éducatives, santé mentale des jeunes,
         numérique et attention, innovation sociale, santé publique et prévention.
       </p>
-      <ul class="equipe">
-        {
-          ca.map((m) => (
-            <li class="membre">
-              <Paper surface="ocre" fold="none" class="membre__name">{m.nom}</Paper>
-              <div class="membre__ph">
-                <Photo ratio="3/4" label="portrait" />
-              </div>
-              <Paper surface="blanc" fold="br" class="membre__card">
-                <p>{m.champ}</p>
-              </Paper>
-            </li>
-          ))
-        }
-      </ul>
+      {
+        ca.length > 0 && (
+          <ul class="equipe">
+            {ca.map((m) => (
+              <li class="membre">
+                <Paper surface="ocre" fold="none" class="membre__name">
+                  {m.nom}
+                </Paper>
+                <div class="membre__ph">
+                  <Photo ratio="3/4" label="portrait" />
+                </div>
+                <Paper surface="blanc" fold="br" class="membre__card">
+                  <p>{m.champ}</p>
+                </Paper>
+              </li>
+            ))}
+          </ul>
+        )
+      }
     </div>
   </section>
 

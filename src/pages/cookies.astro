@@ -1,29 +1,61 @@
 ---
 /**
- * Page legale — coquille conforme a la structure demandee par le client
- * (« Mentions legales · politique de confidentialite · cookies (RGPD) »,
- * « mise en page sobre, aucun element graphique superflu »).
- * Le texte reglementaire doit etre fourni par EUNEOS.
+ * Page Cookies.
+ *
+ * Etat au 26/08/2026 : le site ne depose AUCUN cookie et n'embarque aucun
+ * traceur — pas d'analytics, pas de pixel, pas de police externe, pas de
+ * video incorporee. C'est verifiable dans le code.
+ *
+ * Si un jour on ajoute une mesure d'audience ou une video YouTube, il faudra
+ * reecrire cette page ET poser un bandeau de consentement.
  */
 import Base from '../layouts/Base.astro'
 ---
 
-<Base title="Cookies — EUNEOS" description="Cookies du site euneos.fr.">
+<Base
+  title="Cookies — EUNEOS"
+  description="Le site euneos.fr ne dépose aucun cookie et n'utilise aucun traceur."
+>
   <section class="section page legal">
     <h1>Cookies</h1>
+
     <p class="chapo">
-      Texte réglementaire à fournir par EUNEOS. Cette page existe pour que les liens du pied
-      de page soient valides dès la mise en ligne.
+      <strong>Ce site ne dépose aucun cookie et n'utilise aucun traceur.</strong> Pas de mesure
+      d'audience, pas de pixel publicitaire, pas de bouton de réseau social, pas de police de
+      caractères chargée depuis un serveur tiers.
+    </p>
+
+    <h2>Pourquoi il n'y a pas de bandeau</h2>
+    <p>
+      Le bandeau de consentement est obligatoire dès qu'un site dépose des cookies non
+      strictement nécessaires. Comme ce site n'en dépose aucun, il n'y a rien à consentir —
+      et donc rien à vous demander.
+    </p>
+
+    <h2>Ce qui est tout de même enregistré</h2>
+    <p>
+      Notre hébergeur, Cloudflare, conserve des journaux techniques de connexion (adresse IP,
+      date, page demandée) pendant une courte durée, pour assurer la sécurité et le bon
+      fonctionnement du site. Ces journaux ne servent pas à vous profiler et ne sont pas
+      exploités par EUNEOS.
+    </p>
+
+    <h2>Si vous remplissez un formulaire</h2>
+    <p>
+      Les informations que vous saisissez sont traitées comme décrit dans notre
+      <a href="/politique-de-confidentialite">politique de confidentialité</a>. Elles ne
+      transitent par aucun outil de suivi.
+    </p>
+
+    <h2>Si cela change</h2>
+    <p>
+      L'ajout d'une mesure d'audience, d'une vidéo intégrée ou d'un outil tiers modifierait
+      cette situation. Cette page serait alors mise à jour et un bandeau de consentement
+      apparaîtrait avant tout dépôt.
+    </p>
+
+    <p>
+      Question sur ce point : <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>.
     </p>
   </section>
 </Base>
-
-<style is:global>
-  .legal {
-    max-width: 70ch;
-  }
-  .legal h1 {
-    margin-bottom: 1.5rem;
-    color: var(--vert);
-  }
-</style>
