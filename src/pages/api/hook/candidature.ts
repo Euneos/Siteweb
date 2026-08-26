@@ -75,10 +75,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!lignes.length) {
     // On trace la forme reelle : c'est le seul moyen de la corriger.
-    console.log('[hook-candidature] aucune ligne trouvee. Cles :',
-      Object.keys(charge), 'cles de data :', d ? Object.keys(d) : '(pas de data)',
-      'extrait :', brut.slice(0, 300))
-    return new Response('rien a signaler', { status: 200 })
+    // Le diagnostic part aussi dans la reponse : c'est ce que NocoDB affiche
+    // dans son journal de webhook, et donc le seul endroit ou on peut le lire.
+    const diag = `rien a signaler | cles=${Object.keys(charge).join(',')}` +
+      ` | data=${d ? Object.keys(d).join(',') : 'absent'}`
+    console.log('[hook-candidature]', diag, brut.slice(0, 300))
+    return new Response(diag, { status: 200 })
   }
   const resume = lignes.map((r) => {
     const etab = (r.etablissement as { nom?: string } | undefined)?.nom ?? '(etablissement non relie)'
