@@ -1,0 +1,8 @@
+# EUNEOS — https://euneos.fr
+User-agent: *
+Allow: /
+
+# Page de travail interne, pas destinee au public
+Disallow: /style-guide
+
+Sitemap: https://euneos.fr/sitemap-index.xml

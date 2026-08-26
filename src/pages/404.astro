@@ -1,0 +1,64 @@
+---
+/**
+ * Page 404. Sans elle, Cloudflare renvoyait une page en HTTP 200 pour
+ * n'importe quelle URL inconnue : les moteurs indexaient des adresses
+ * inexistantes et le visiteur ne comprenait pas ou il etait.
+ */
+import Cta from '../components/Cta.astro'
+import Paper from '../components/Paper.astro'
+import Base from '../layouts/Base.astro'
+---
+
+<Base
+  title="Page introuvable — EUNEOS"
+  description="Cette page n’existe pas ou plus."
+  heroFold="none"
+  noindex
+>
+  <section class="section nf">
+    <div class="page">
+      <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="nf__panel">
+        <p class="nf__code">404</p>
+        <h1>Cette page n’existe pas</h1>
+        <p class="nf__txt">
+          Le lien est peut-être ancien, ou l’adresse comporte une coquille.
+        </p>
+        <div class="nf__liens">
+          <Cta href="/">Retour à l’accueil</Cta>
+          <Cta href="/programme" outline>Découvrir le Programme</Cta>
+          <Cta href="/contact" outline>Nous écrire</Cta>
+        </div>
+      </Paper>
+    </div>
+  </section>
+</Base>
+
+<style is:global>
+  .nf__panel {
+    --filet: var(--vert);
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 4vw, 3rem);
+    text-align: center;
+  }
+  .nf__code {
+    font-size: clamp(3rem, 9vw, 6rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--vert-clair);
+  }
+  .nf__panel h1 {
+    color: var(--vert);
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    margin-top: 0.5rem;
+  }
+  .nf__txt {
+    max-width: 44ch;
+    margin: 0.75rem auto 0;
+  }
+  .nf__liens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    justify-content: center;
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+</style>
