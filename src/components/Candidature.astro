@@ -1,0 +1,116 @@
+---
+/**
+ * Portail de candidature — gabarit partage par les deux routes
+ * (« Je suis un etablissement » et « Je souhaite devenir formateur·rice »).
+ *
+ * Remplace les Google Forms disperses : les reponses partent directement
+ * dans la base NocoDB d'EUNEOS.
+ *
+ * Principe repris du systeme d'Elsa, volontairement conserve : AUCUN email
+ * automatique vers l'exterieur. La candidature est enregistree et l'equipe
+ * la traite ; l'accuse de reception part quand elle passe le statut.
+ */
+import Paper from './Paper.astro'
+
+export interface Champ {
+  id: string
+  label: string
+  type?: 'text' | 'email' | 'tel' | 'textarea' | 'select'
+  requis?: boolean
+  autocomplete?: string
+  options?: readonly string[]
+  aide?: string
+  large?: boolean
+}
+
+interface Props {
+  titre: string
+  chapo: string
+  action: string
+  champs: readonly Champ[]
+  ok?: string | null
+  erreur?: string | null
+  manquants?: string | null
+}
+
+const { titre, chapo, action, champs, ok, erreur, manquants } = Astro.props
+const absents = (manquants ?? '').split(',').filter(Boolean)
+
+const MESSAGES: Record<string, string> = {
+  champs: 'Il manque des informations obligatoires.',
+  email: 'L’adresse e-mail ne semble pas valide.',
+  indisponible:
+    'Le service d’enregistrement est momentanément indisponible. Votre candidature n’a pas été enregistrée — merci de réessayer dans quelques minutes ou de nous écrire à contact@euneos.fr.',
+  technique:
+    'Une erreur technique est survenue. Votre candidature n’a pas été enregistrée — merci de réessayer ou de nous écrire à contact@euneos.fr.',
+}
+---
+
+<section class="section cand">
+  <div class="page">
+    <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="cand__panel">
+      <h1>{titre}</h1>
+      <p class="cand__chapo">{chapo}</p>
+
+      {
+        ok && (
+          <p class="cand__ok" role="status">
+            <strong>Candidature bien reçue.</strong> Notre équipe l’étudie et revient vers vous dans
+            les prochaines semaines. Vous ne recevrez pas d’e-mail automatique : c’est une personne
+            qui vous répondra.
+          </p>
+        )
+      }
+      {
+        erreur && (
+          <p class="cand__err" role="alert">
+            {MESSAGES[erreur] ?? 'Une erreur est survenue.'}
+            {absents.length > 0 && <> Champs manquants : {absents.join(', ')}.</>}
+          </p>
+        )
+      }
+
+      <form class="cand__form" id="cand-form" method="POST" action={action}>
+        {
+          champs.map((c) => (
+            <p class:list={['cand__row', c.large && 'cand__row--large']}>
+              <label for={c.id}>
+                {c.label}
+                {c.requis && <abbr title="obligatoire">&nbsp;*</abbr>}
+              </label>
+              <span class:list={['cand__field', 'paper', 'fold-br', c.type === 'textarea' && 'cand__field--area']}>
+                {c.type === 'textarea' ? (
+                  <textarea id={c.id} name={c.id} rows="5" required={c.requis} />
+                ) : c.type === 'select' ? (
+                  <select id={c.id} name={c.id} required={c.requis}>
+                    {(c.options ?? []).map((o) => (
+                      <option value={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id={c.id}
+                    name={c.id}
+                    type={c.type ?? 'text'}
+                    autocomplete={c.autocomplete}
+                    required={c.requis}
+                  />
+                )}
+              </span>
+              {c.aide && <span class="cand__aide">{c.aide}</span>}
+            </p>
+          ))
+        }
+        <p class="cand__legal">
+          Les informations recueillies servent uniquement à instruire votre candidature au Programme
+          WISE-UP. Elles ne sont ni cédées ni revendues. Vous pouvez demander leur suppression à
+          <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>.
+        </p>
+      </form>
+
+      <div class="cand__submit">
+        <button type="submit" form="cand-form" class="cta s-papier">Envoyer ma candidature</button>
+      </div>
+    </Paper>
+  </div>
+</section>

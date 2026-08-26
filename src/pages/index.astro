@@ -13,7 +13,7 @@ import classe from '../assets/photos/classe.jpg'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
-/* Textes fournis le 26/08 (« texte home dépliant.docx » + maquette v2).
+/* Textes fournis le 20/08 (« texte home dépliant.docx » + maquette v2).
    NB : le docx nomme la 2e colonne « Équipes formées », la maquette v2 dit
    « Enseignants formés » — on suit le docx, qui est le document de texte. */
 const programme = [
@@ -47,7 +47,7 @@ const programme = [
   },
 ] as const
 
-/* Resultats de la cohorte 1, fournis le 26/08 (maquette v2). */
+/* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
 const impact = [
   { valeur: '92 %', legende: 'recommanderaient le Programme sans hésiter' },
   {
@@ -60,8 +60,11 @@ const impact = [
 /* Maquette : le picto n'est pas blanc mais en ton sur ton avec l'etiquette —
    c'est la regle des paires de la charte (p.12). */
 const parcours = [
-  { surface: 'bleu-clair', label: 'Je suis un établissement', href: '/programme', picto: 'var(--bleu-fold)' },
-  { surface: 'jaune', label: 'Je souhaite devenir membre', href: '/contact', picto: 'var(--jaune-clair)' },
+  /* Les deux routes de candidature tranchees par Candice au call du 18/08 :
+     « candidater en tant qu'etablissement et candidater en tant que formateur ».
+     NB : la maquette v2 dit « devenir membre » — libelle a confirmer avec elle. */
+  { surface: 'bleu-clair', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
+  { surface: 'jaune', label: 'Je souhaite devenir formateur·rice', href: '/candidater/formateur', picto: 'var(--jaune-clair)' },
   { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
 ] as const
 ---

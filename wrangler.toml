@@ -1,0 +1,6 @@
+# Configuration Cloudflare Pages du site EUNEOS.
+# nodejs_compat est requis par l'adaptateur @astrojs/cloudflare.
+name = "euneos-site"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]

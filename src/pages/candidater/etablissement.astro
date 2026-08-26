@@ -1,0 +1,50 @@
+---
+import Candidature, { type Champ } from '../../components/Candidature.astro'
+import Base from '../../layouts/Base.astro'
+
+const url = Astro.url.searchParams
+
+const CHAMPS: readonly Champ[] = [
+  { id: 'nom_etab', label: 'Nom de l’établissement', requis: true, large: true, autocomplete: 'organization' },
+  {
+    id: 'type_etab', label: 'Type d’établissement', type: 'select', requis: true,
+    options: ['College', 'Lycee general et technologique', 'Lycee professionnel',
+              'Ecole primaire', 'Ecole elementaire', 'Autre'],
+  },
+  { id: 'public_prive', label: 'Statut', type: 'select', options: ['Public', 'Prive'] },
+  { id: 'adresse', label: 'Adresse', large: true, autocomplete: 'street-address' },
+  { id: 'cp', label: 'Code postal', requis: true, autocomplete: 'postal-code' },
+  { id: 'ville', label: 'Ville', requis: true, autocomplete: 'address-level2' },
+  { id: 'region', label: 'Région' },
+  { id: 'academie', label: 'Académie' },
+  { id: 'referent_nom', label: 'Nom du référent', requis: true, autocomplete: 'name' },
+  { id: 'referent_fonction', label: 'Fonction du référent', autocomplete: 'organization-title' },
+  { id: 'referent_email', label: 'E-mail du référent', type: 'email', requis: true, autocomplete: 'email' },
+  { id: 'referent_telephone', label: 'Téléphone', type: 'tel', autocomplete: 'tel' },
+  {
+    id: 'email_institutionnel', label: 'E-mail institutionnel de l’établissement', type: 'email',
+    aide: 'Utile si la boîte académique filtre nos messages.',
+  },
+  {
+    id: 'message', label: 'Votre contexte et vos attentes', type: 'textarea', large: true,
+    aide: 'Effectifs concernés, personnes déjà mobilisées, calendrier envisagé…',
+  },
+]
+---
+
+<Base
+  title="Candidater — Je suis un établissement | EUNEOS"
+  description="Votre établissement souhaite rejoindre le Programme WISE-UP pour l’année 2026-2027 : déposez votre candidature. 100 % des frais sont pris en charge par le Programme."
+  heroFold="none"
+  noindex={false}
+>
+  <Candidature
+    titre="Je suis un établissement"
+    chapo="Le Programme WISE-UP forme vos équipes éducatives et accompagne vos élèves sur une année scolaire. 100 % des frais sont pris en charge. Il faut au minimum 5 membres volontaires de l’équipe."
+    action="/api/candidature-etablissement"
+    champs={CHAMPS}
+    ok={url.get('ok')}
+    erreur={url.get('erreur')}
+    manquants={url.get('manquants')}
+  />
+</Base>

@@ -205,9 +205,9 @@ conditionne le portail de candidature.
 (constructeur Viaduc) : **alerte de sécurité navigateur pour tout visiteur**.
 Rien à préserver, la bascule DNS vers Cloudflare ne détruit aucun site existant.
 
-## Maquette v2 (26/08) — ce qui a change dans le code
+## Maquette v2 (20/08) — ce qui a change dans le code
 
-`maquette_euneos_2.pdf` remplace `maquette_euneos V 7 aout candice.pdf` comme reference.
+Recue par mail le 20/08. `maquette_euneos_2.pdf` remplace `maquette_euneos V 7 aout candice.pdf` comme reference.
 Les deux vivent dans le dossier client (`Client/EUNEOS/Ressources/`).
 
 ### Geometrie du hero page 1

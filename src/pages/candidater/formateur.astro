@@ -1,0 +1,41 @@
+---
+import Candidature, { type Champ } from '../../components/Candidature.astro'
+import Base from '../../layouts/Base.astro'
+
+const url = Astro.url.searchParams
+
+const CHAMPS: readonly Champ[] = [
+  { id: 'prenom', label: 'Prénom', requis: true, autocomplete: 'given-name' },
+  { id: 'nom', label: 'Nom', requis: true, autocomplete: 'family-name' },
+  { id: 'email', label: 'Adresse e-mail', type: 'email', requis: true, autocomplete: 'email' },
+  { id: 'telephone', label: 'Téléphone', type: 'tel', autocomplete: 'tel' },
+  { id: 'cp', label: 'Code postal', autocomplete: 'postal-code' },
+  { id: 'ville', label: 'Ville', requis: true, autocomplete: 'address-level2' },
+  { id: 'region', label: 'Région' },
+  { id: 'academie', label: 'Académie' },
+  {
+    id: 'profession', label: 'Votre activité actuelle', requis: true, large: true,
+    aide: 'Enseignant·e, instructeur·rice de pleine conscience, psychologue, infirmier·ère scolaire…',
+  },
+  {
+    id: 'motivation', label: 'Ce qui vous amène vers WISE-UP', type: 'textarea', large: true,
+    aide: 'Votre expérience auprès des jeunes, votre pratique, vos disponibilités.',
+  },
+]
+---
+
+<Base
+  title="Candidater — Devenir formateur·rice | EUNEOS"
+  description="Rejoignez les formateur·rices du Programme WISE-UP : 16 h de formation, puis l’accompagnement d’établissements sur l’année scolaire."
+  heroFold="none"
+>
+  <Candidature
+    titre="Je souhaite devenir formateur·rice"
+    chapo="Les formateur·rices WISE-UP suivent 16 h de formation, puis accompagnent des établissements sur l’année scolaire. Une réunion d’information précède chaque cohorte."
+    action="/api/candidature-formateur"
+    champs={CHAMPS}
+    ok={url.get('ok')}
+    erreur={url.get('erreur')}
+    manquants={url.get('manquants')}
+  />
+</Base>
