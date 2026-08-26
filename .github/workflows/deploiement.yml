@@ -1,0 +1,44 @@
+# Deploiement automatique du site EUNEOS.
+#
+# A chaque push sur main : build Astro, puis mise en ligne sur Cloudflare Pages.
+# L'equipe d'EUNEOS n'a rien a lancer : elle demande une modification a l'agent,
+# l'agent pousse sur GitHub, et le site se met a jour tout seul.
+#
+# Les trois secrets vivent dans Settings > Secrets and variables > Actions :
+#   CLOUDFLARE_API_TOKEN · CLOUDFLARE_ACCOUNT_ID · NOCODB_TOKEN
+name: Deploiement
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Installer les dependances
+        run: bun install
+
+      - name: Construire le site
+        run: bun run build
+
+      - name: Mettre en ligne sur Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=euneos-site --branch=main
