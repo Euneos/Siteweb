@@ -1,0 +1,129 @@
+# EUNEOS — contexte de travail
+
+Ce fichier est lu automatiquement par l'agent au démarrage. Il lui dit qui vous êtes,
+où sont vos données, et ce qu'il a le droit de faire.
+
+Vous pouvez le modifier : c'est votre mode d'emploi, pas le sien.
+
+---
+
+## Qui vous êtes
+
+**EUNEOS** — association loi 1901 d'intérêt général, fondée en avril 2026, basée à Toulouse.
+Mission : prévenir les difficultés de santé mentale des jeunes en milieu éducatif et les
+accompagner dans leur rapport au numérique.
+
+**Le Programme WISE-UP** est le programme phare : 16 h de formation pour les équipes
+éducatives, puis 4 à 8 ateliers avec les élèves sur l'année scolaire, avec une évaluation
+scientifique. Programme européen Erasmus+ 2025-2027, 100 % financé par le fonds de dotation
+Nouveau Monde. Aucun frais pour l'établissement.
+
+**L'objectif de l'année : 30 établissements engagés pour 2026-2027.**
+
+### L'équipe
+
+| | |
+|---|---|
+| **Candice Marro** | Fondatrice — direction, partenariats, représentation |
+| **Charlotte Térouanne** | Coordination et développement — suivi des établissements |
+| **Pauline Miqueu-Petit** | Communication — textes, réseaux, newsletter |
+
+---
+
+## Où sont les choses
+
+| Quoi | Où |
+|---|---|
+| **La base de données** | NocoDB — `app.nocodb.com`, base *EUNEOS - WISE-UP* |
+| **Le site** | `euneos.fr` — le code est dans ce dossier |
+| **Le code en ligne** | `github.com/Euneos/Siteweb` |
+| **Les mails** | Viaduc (inchangé) — `webmail.viaduc.fr` |
+
+La base contient 18 tables : établissements, participations, formateurs, engagements,
+missions, adultes formés, groupes d'élèves, sessions, présences, et les modèles d'e-mails.
+
+**Deux notions à ne pas confondre**, parce que toute la base repose dessus :
+
+- un **établissement** est une école, une fois pour toutes ;
+- une **participation** est cette école **dans une cohorte donnée**.
+
+Une école qui revient l'année suivante n'est pas un doublon : c'est une seconde
+participation. Même logique côté formateurs : une **personne**, et ses **engagements**.
+
+---
+
+## Ce que l'agent peut faire aujourd'hui
+
+### Consulter et faire avancer les dossiers
+
+```
+bun scripts/base.mjs campagne            où en est le recrutement
+bun scripts/base.mjs candidatures        les candidatures établissements
+bun scripts/base.mjs formateurs          les candidatures formateurs
+bun scripts/base.mjs etablissement <id>  la fiche complète d'un dossier
+bun scripts/base.mjs statut <id> "..."   faire avancer un dossier
+```
+
+Vous n'avez pas à retenir ces commandes : demandez à l'agent en français.
+*« Où en est la campagne ? »*, *« Montre-moi les candidatures pas encore traitées »*,
+*« Passe le collège Vauban en accusé de réception »*.
+
+### Modifier le site
+
+Décrivez le changement, l'agent s'occupe du reste : *« Sur la page Bienvenue, remplace la
+photo du haut par celle qui est sur mon bureau »*, *« Change le texte du bloc Programme
+par ceci : … »*.
+
+Le site se met en ligne **tout seul** après chaque modification — comptez deux à trois
+minutes. Vérifiez toujours le résultat sur `euneos.fr`, et sur votre téléphone : un site
+ne rend jamais tout à fait pareil sur petit écran.
+
+Les règles graphiques (couleurs, typographie, pliures, silhouettes) sont dans `AGENTS.md`
+et sur la page `euneos.fr/style-guide`. Si vous voulez changer une règle, modifiez ces
+documents : l'agent les suivra.
+
+---
+
+## Règles de conduite
+
+**1. Aucun e-mail automatique vers l'extérieur.**
+Une candidature est enregistrée et vous la traitez. L'accusé de réception part quand
+**vous** décidez de le faire, jamais tout seul. C'est un choix délibéré : les personnes qui
+candidatent doivent recevoir une réponse humaine.
+
+**2. Les données personnelles ne sortent pas de la base.**
+Les fiches contiennent des enseignants, des formateurs et des élèves. Elles ne se copient
+pas dans un document partagé, un mail groupé ou un outil externe sans raison explicite.
+
+**3. En cas de doute sur une suppression, demander.**
+Rien ne se supprime dans la base sans validation d'une personne.
+
+**4. Toujours dire ce qui a été fait.**
+Après une action, l'agent doit lister ce qu'il a modifié — quel dossier, quel statut, quelle
+page. Si ce n'est pas dit, c'est que ce n'est pas fait.
+
+---
+
+## Ce que l'agent NE peut PAS encore faire
+
+À dire clairement plutôt que de laisser croire le contraire :
+
+- **Envoyer un e-mail.** Les 16 modèles sont dans la base, mais rien ne les envoie encore.
+  Les envois passent toujours par l'ancien système.
+- **Relancer automatiquement.** La table existe, le déclencheur non.
+- **Vous prévenir d'une nouvelle candidature.** Elle arrive en base sans notification.
+- **Générer les codes anonymes des élèves** ni piloter les questionnaires avant/après.
+- **Toucher aux cohortes en cours** (missions, formations, groupes) : ces données sont dans
+  la base mais la mécanique qui les fait tourner vit encore dans l'ancien système Google.
+
+---
+
+## Si quelque chose ne va pas
+
+- **Le site affiche une erreur** → dites-le à l'agent, il regarde le dernier déploiement.
+- **La base est injoignable** → il manque probablement le fichier `.env` (voir
+  `.env.example`). Le jeton est fourni par Charly.
+- **Un dossier a disparu** → rien n'est supprimé automatiquement. Cherchez d'abord sous un
+  autre statut : `bun scripts/base.mjs candidatures`.
+
+Pour tout le reste : Charly.

@@ -4,3 +4,6 @@ dist
 .wrangler
 .dev.vars
 .DS_Store
+
+# jeton d acces a la base — jamais commite
+.env
