@@ -53,20 +53,37 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const recu = request.headers.get('x-hook-secret')
   if (!attendu || recu !== attendu) return new Response('non autorise', { status: 401 })
 
+  // NocoDB a change la forme de sa charge entre versions. On lit le texte
+  // brut et on cherche les lignes la ou elles peuvent etre, plutot que de
+  // refuser une forme qu'on n'avait pas prevue.
+  const brut = await request.text()
   let charge: Record<string, unknown> = {}
   try {
-    charge = (await request.json()) as Record<string, unknown>
+    charge = JSON.parse(brut) as Record<string, unknown>
   } catch {
+    console.error('[hook-candidature] charge illisible :', brut.slice(0, 400))
     return new Response('charge illisible', { status: 400 })
   }
 
-  const lignes = (charge?.data as { rows?: Record<string, unknown>[] })?.rows ?? []
+  const d = charge?.data as Record<string, unknown> | undefined
+  const lignes =
+    (d?.rows as Record<string, unknown>[] | undefined) ??
+    (d?.records as Record<string, unknown>[] | undefined) ??
+    (charge?.rows as Record<string, unknown>[] | undefined) ??
+    (Array.isArray(d) ? (d as Record<string, unknown>[]) : []) ??
+    []
+
+  if (!lignes.length) {
+    // On trace la forme reelle : c'est le seul moyen de la corriger.
+    console.log('[hook-candidature] aucune ligne trouvee. Cles :',
+      Object.keys(charge), 'cles de data :', d ? Object.keys(d) : '(pas de data)',
+      'extrait :', brut.slice(0, 300))
+    return new Response('rien a signaler', { status: 200 })
+  }
   const resume = lignes.map((r) => {
     const etab = (r.etablissement as { nom?: string } | undefined)?.nom ?? '(etablissement non relie)'
     return `• ${etab} — statut ${r.statut ?? '?'} — reçue le ${r.date_candidature ?? "aujourd'hui"}`
   })
-  if (!resume.length) return new Response('rien a signaler', { status: 200 })
-
   const sujet =
     resume.length === 1
       ? 'Nouvelle candidature sur euneos.fr'
