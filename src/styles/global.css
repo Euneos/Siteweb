@@ -86,7 +86,9 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--papier);
+  /* Releve sur les 4 pages de la maquette : le fond est BLANC, pas papier.
+     Les cartes, elles, sont en papier. Le site avait l'inverse. */
+  background: var(--blanc);
 }
 
 body {
@@ -94,7 +96,7 @@ body {
   /* SemiCondensed = axe wdth a 87.5 % */
   font-variation-settings: 'wdth' 87.5;
   font-stretch: 87.5%;
-  background: var(--papier);
+  background: var(--blanc);
   color: var(--noir);
   /* ARBITRAGE : la charte donne 16 px de corps, la maquette rend ~19 px une fois
      ramenee a 1440 de large. C'est la maquette que Candice a validee et qui sert

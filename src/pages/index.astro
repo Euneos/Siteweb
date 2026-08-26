@@ -91,7 +91,7 @@ const parcours = [
             mentale et à accompagner les jeunes à l’ère du numérique
           </h1>
           </Paper>
-          <div class="hz__cta"><Cta href="/programme" surface="papier">En savoir +</Cta></div>
+          <div class="hz__cta"><Cta href="/programme" surface="vert-clair">En savoir +</Cta></div>
         </div>
       </div>
 
@@ -255,7 +255,7 @@ const parcours = [
     <div class="page citation">
       <Paper surface="ocre" fold="none" class="citation__name">Candice Marro</Paper>
       <div class="citation__ph"><Photo ratio="3/4" label="portrait" /></div>
-      <Paper surface="blanc" fold="br" class="citation__card">
+      <Paper surface="papier" fold="br" class="citation__card">
         <blockquote>
           « EUNEOS s’inscrit à l’intersection entre les enjeux éducatifs, numériques et de
           santé mentale. Le numérique agit comme un amplificateur des problématiques de
@@ -655,7 +655,8 @@ const parcours = [
   /* --- CITATION --- */
   .citation {
     display: grid;
-    grid-template-columns: minmax(0, 0.62fr) minmax(0, 2.38fr);
+    /* la colonne 2 demarre a 24,4 % de la page, la ou commence le bloc */
+    grid-template-columns: 18.73% 81.27%;
     grid-template-rows: auto auto auto;
     align-items: start;
     column-gap: 0;
@@ -676,7 +677,7 @@ const parcours = [
   .citation__ph {
     grid-column: 1 / 2;
     grid-row: 2;
-    margin-left: 8%;
+    margin-left: 16.7%;
     position: relative;
     z-index: 2;
   }
@@ -685,8 +686,9 @@ const parcours = [
     grid-column: 2 / 3;
     grid-row: 2;
     min-height: clamp(11rem, 22.2vw, 20rem);
-    max-width: 57.7rem;
-    margin-left: -12%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 3.13%;
     z-index: 1;
     /* releve : pli 60,3 pt */
     --f: clamp(4rem, 10.1vw, 9.5rem);
@@ -765,13 +767,20 @@ const parcours = [
     max-width: 22ch;
     margin: 0 auto clamp(2rem, 5vw, 3.5rem);
   }
+  /* Releve : les trois cartes vont de 5,2 % a 95,5 % de la page — donc au-dela
+     du padding de .page. Centrees sur la fenetre, pas sur le conteneur. */
   .parcours__cards {
     list-style: none;
     padding: 0;
     margin: 0;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90.3vw;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1rem, 4vw, 3.25rem);
+    /* releve : cartes de 25,4 % separees par 6,8 % de la page */
+    gap: 7.5%;
   }
   .parcours__link {
     text-decoration: none;
