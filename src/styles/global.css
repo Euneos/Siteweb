@@ -332,6 +332,13 @@ body {
   --on-surface: var(--blanc);
   --fold-color: var(--vert-clair);
 }
+/* Vert clair : releve dans la maquette sur le CTA « En savoir + » de la
+   section Notre approche (#809b96 sur le bloc vert). */
+.s-vert-clair {
+  --surface: var(--vert-clair);
+  --on-surface: var(--vert);
+  --fold-color: var(--vert);
+}
 .s-jaune {
   --surface: var(--jaune);
   --on-surface: var(--noir);

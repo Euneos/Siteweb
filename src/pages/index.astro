@@ -48,6 +48,10 @@ const programme = [
 ] as const
 
 /* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
+/* Logos des partenaires — a fournir par EUNEOS (12 organisations partenaires
+   d'apres la maquette). Tant que le tableau est vide, la rangee ne s'affiche pas. */
+const logos: { src: string; alt: string }[] = []
+
 const impact = [
   { valeur: '92 %', legende: 'recommanderaient le Programme sans hésiter' },
   {
@@ -145,7 +149,7 @@ const parcours = [
           </p>
         </Paper>
         <div class="approche__cta">
-          <Cta href="/qui-sommes-nous" surface="papier">En savoir +</Cta>
+          <Cta href="/qui-sommes-nous" surface="vert-clair">En savoir +</Cta>
         </div>
       </div>
     </div>
@@ -155,13 +159,20 @@ const parcours = [
   <section class="section confiance">
     <div class="page">
       <h2 class="confiance__t">Merci pour leur confiance</h2>
-      <ul class="confiance__logos">
-        {
-          Array.from({ length: 6 }).map(() => (
-            <li aria-label="Logo partenaire à fournir" />
-          ))
-        }
-      </ul>
+      {
+        /* Les logos des partenaires ne sont pas fournis. On n'affiche PAS six
+           rectangles vides sur un site public : des que les fichiers arrivent,
+           remplir ce tableau et la rangee reapparait. */
+        logos.length > 0 && (
+          <ul class="confiance__logos">
+            {logos.map((l) => (
+              <li>
+                <img src={l.src} alt={l.alt} loading="lazy" />
+              </li>
+            ))}
+          </ul>
+        )
+      }
     </div>
   </section>
 
@@ -316,20 +327,26 @@ const parcours = [
      par le haut-droit, le cartouche jaune est a cheval sur son coin haut-gauche,
      le bloc vert descend a mi-hauteur et chevauche la photo, le CTA est pose a
      cheval sur le bord bas du bloc vert. */
+  /* Geometrie relevee au pixel sur la maquette v2 (page 1), exprimee en % de
+     la largeur de page :
+       orange  35,6 → 63,1     photo  11,4 → 59,8
+       vert    58,9 → 94,8     picto   5,0 → 11,0
+     Le conteneur .page s'arrete a 93,06 % : le bloc vert doit donc DEBORDER
+     a droite pour rejoindre le bord de la maquette. */
   .approche {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: 61.4% 38.6%;
     align-items: start;
   }
   .approche__tag {
     grid-column: 1 / -1;
     justify-self: end;
-    width: min(38%, 24.9rem);
-    min-height: clamp(8rem, 19.5vw, 17.6rem);
+    width: 31.9%;
+    min-height: clamp(7.5rem, 17.5vw, 15.75rem);
     display: grid;
     place-items: center;
-    margin-right: 18%;
-    margin-bottom: -6rem;
+    margin-right: 34.8%;
+    margin-bottom: -4.7rem;
     position: relative;
     z-index: 3;
     padding: clamp(1rem, 2.4vw, 1.75rem) clamp(1rem, 2.4vw, 1.75rem);
@@ -342,6 +359,8 @@ const parcours = [
     grid-column: 1;
     grid-row: 2;
     position: relative;
+    /* la photo commence a 11,4 % de la page, pas au bord du conteneur */
+    padding-left: 4.8%;
     z-index: 1;
   }
   .approche__picto {
@@ -355,14 +374,17 @@ const parcours = [
     grid-column: 2;
     grid-row: 2;
     position: relative;
-    align-self: center;
-    margin-top: 18%;
-    margin-left: -18%;
+    align-self: start;
+    /* le bloc vert commence 80 px sous le haut de la photo, et deborde de 2 %
+       a droite pour atteindre le bord de la maquette */
+    margin-top: 17.2%;
+    margin-left: -1.1%;
+    margin-right: -11.7%;
     z-index: 2;
   }
   /* releve : 214,8 x 108,6 pt */
   .approche__txt {
-    max-width: 32.5rem;
+    max-width: none;
     min-height: clamp(9rem, 18.2vw, 16.4rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
     padding-left: clamp(2.25rem, 5vw, 4rem);
@@ -370,7 +392,7 @@ const parcours = [
   }
   .approche__cta {
     position: absolute;
-    left: clamp(2.25rem, 5vw, 4rem);
+    left: 30.7%;
     bottom: 0;
     transform: translateY(45%);
     z-index: 3;
@@ -506,6 +528,11 @@ const parcours = [
   }
   .prog__picto {
     width: 28%;
+    /* hauteur commune : les trois pictos n'ont pas le meme ratio, et sans
+       cela les titres des trois cartes ne s'alignent pas */
+    height: clamp(70px, 6.4vw, 92px);
+    display: flex;
+    align-items: flex-end;
     color: var(--blanc);
     margin-bottom: 0.35rem;
   }
