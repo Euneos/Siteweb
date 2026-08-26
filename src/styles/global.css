@@ -587,6 +587,16 @@ body {
   justify-content: center;
   margin-top: clamp(2rem, 5vw, 3rem);
 }
+/* Note de source bas de bloc (Ofcom p.1, OMS p.3) — utilisee sur 2 pages. */
+.source {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  opacity: 0.62;
+  max-width: 60ch;
+}
+.source em {
+  font-style: italic;
+}
 .a-surtitre {
   text-align: center;
 }
@@ -695,6 +705,23 @@ body {
 .hz--mirror .hz__grid {
   grid-template-columns: 43.7fr 46.25fr;
 }
+/* HERO PAGE 1 — geometrie relevee au pixel dans la maquette v2. Candice a
+   elargi la bulle pour loger le nouveau titre : elle passe de 36,08 % de la
+   page (v7) a 39,27 % (v2), et la photo se decale d'autant vers la droite
+   (bord gauche 54,68 %, bord droit inchange a 94,91 %).
+   Les pages 2 et 3 (hz--mirror) gardent leur geometrie : verifiee inchangee
+   sur la page 3, bord droit de la bulle identique en v7 et v2. */
+.hz:not(.hz--mirror) .hz__grid {
+  grid-template-columns: 54.82% 44.67%;
+  gap: 0.51%;
+}
+.hz:not(.hz--mirror) .hz__side {
+  grid-template-columns: 20.45% 79.55%;
+}
+.hz:not(.hz--mirror) .hz__bubble {
+  /* marge interne gauche relevee : 7,98 % de la largeur de la bulle */
+  padding: 8% 16% 12% 8%;
+}
 .hz--mirror .hz__media {
   order: -1;
 }
@@ -728,11 +755,37 @@ body {
   padding: 8% 22.5% 12% 9%;
   --filet: var(--vert-clair);
 }
+/* Le H1 du hero vaut 1,883 x le corps de texte dans la maquette (encre relevee
+   au pixel : ligne « equipes educatives » 18,98 pt contre 10,08 pt pour une
+   ligne de paragraphe ; meme rapport verifie sur le bandeau Erasmus+).
+   A 1440 px et un corps de 19 px, cela fait 35,8 px -> 2,49vw. */
 .hz__bubble h1 {
-  font-size: clamp(1.6rem, 2.9vw, 2.7rem);
+  font-size: clamp(1.38rem, 2.49vw, 2.33rem);
+  line-height: 1.23;
+}
+/* Titre de hero bicolore. Releve au pixel dans la maquette v2 :
+   - page 1 : SUPPRIME, le H1 est blanc uni du debut a la fin (la v7 l'avait) ;
+   - page 2 : conserve, en bleu clair #c5d4ff sur le hero bleu ;
+   - page 3 : jamais eu de seconde teinte.
+   La teinte suit donc la surface du hero. */
+/* Sur le hero bleu, le titre est blanc — pas dans l'encre par defaut de la
+   surface bleue (vert). Releve au pixel : « Le Programme EUNEOS : » en #ffffff,
+   la suite en bleu clair. */
+.s-bleu .hz__bubble h1 {
+  color: var(--blanc);
 }
 .hz__soft {
-  color: var(--vert-clair);
+  color: var(--hz-soft-ink, var(--vert-clair));
+}
+/* la premiere partie du titre garde l'encre pleine, la seconde la teinte douce.
+   Passage a la ligne apres les deux-points, comme dans la maquette. */
+.hz__strong {
+  color: inherit;
+  display: block;
+}
+.hz.s-bleu,
+.s-bleu .hz {
+  --hz-soft-ink: var(--bleu-clair);
 }
 /* le CTA est a cheval sur le bord bas : 71 % dedans, 29 % dehors */
 .hz__cta {

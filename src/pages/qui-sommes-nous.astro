@@ -82,10 +82,18 @@ const niveaux: {
   },
 ]
 
+/* Fonctions corrigees le 26/08 (maquette v2 p.3). NB : la page 1 signe la
+   citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
+   maquette elle-meme, a trancher avec elle. */
+/* 3 emplacements, tous marques « ??? » dans la maquette v2 : Candice n'a pas
+   encore livre les noms. On garde la marque visible pour ne pas l'oublier.
+   Le gabarit est celui des cartes de l'equipe (etiquette + portrait + carte). */
+const ca = Array.from({ length: 3 }, () => ({ nom: '???', champ: '???' }))
+
 const equipe = [
-  { nom: 'Candice Marro', fonction: 'Fondatrice et Directrice Générale' },
-  { nom: 'Charlotte Térouanne', fonction: 'Responsable établissements' },
-  { nom: 'Pauline Miqueu-Petit', fonction: 'Communication' },
+  { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale' },
+  { nom: 'Charlotte Térouanne', fonction: 'Coordination & Développement' },
+  { nom: 'Pauline Miqueu-Petit', fonction: 'Responsable communication' },
 ]
 ---
 
@@ -126,7 +134,7 @@ const equipe = [
       <div style="grid-column: 11 / 17" class="fond__txt">
         <p>
           L’adolescence est une étape décisive du développement humain, marquée par des
-          transitions physiques, émotionnelles et sociales majeures.
+          transitions physiques, émotionnelles et sociales majeures.<sup>*</sup>
           <strong>
             Quand cette période de vulnérabilité est saturée par le numérique, c’est
             l’équilibre global des jeunes qui peut être d’autant plus fragilisé.
@@ -140,6 +148,10 @@ const equipe = [
         <ul class="fond__jalons">
           {jalons.map((j) => <li>{j}</li>)}
         </ul>
+        <p class="source">
+          * OMS, 2024, <em>“Securing adolescent health and well-being today is vital for
+          the health of future generations”</em>.
+        </p>
       </div>
     </div>
     <div class="page fond__cta">
@@ -224,10 +236,39 @@ const equipe = [
     </div>
   </section>
 
+  <!-- CONSEIL D'ADMINISTRATION — ajoute dans la maquette v2.
+       Les 6 membres y sont encore des « ??? » : noms et portraits a fournir. -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t ca__t">Notre conseil d’administration</h2>
+      <p class="ca__lead">EUNEOS est une association loi 1901 d’intérêt général.</p>
+      <p class="ca__p">
+        Notre conseil d’administration réunit des membres issus de cinq champs
+        complémentaires : éducation et politiques éducatives, santé mentale des jeunes,
+        numérique et attention, innovation sociale, santé publique et prévention.
+      </p>
+      <ul class="equipe">
+        {
+          ca.map((m) => (
+            <li class="membre">
+              <Paper surface="ocre" fold="none" class="membre__name">{m.nom}</Paper>
+              <div class="membre__ph">
+                <Photo ratio="3/4" label="portrait" />
+              </div>
+              <Paper surface="blanc" fold="br" class="membre__card">
+                <p>{m.champ}</p>
+              </Paper>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
   <!-- EQUIPE -->
   <section class="section">
     <div class="page">
-      <h2 class="c-t">Notre équipe</h2>
+      <h2 class="c-t">Notre équipe opérationnelle</h2>
       <ul class="equipe">
         {
           equipe.map((m) => (
@@ -238,7 +279,7 @@ const equipe = [
               </div>
               <Paper surface="blanc" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
-                <a href="/contact">Nous contacter</a>
+                <a href="/contact">Contacter</a>
               </Paper>
             </li>
           ))
@@ -451,6 +492,20 @@ const equipe = [
     .niveaux {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* CONSEIL D'ADMINISTRATION (v2) */
+  .ca__t {
+    margin-bottom: 0.75rem;
+  }
+  .ca__lead,
+  .ca__p {
+    text-align: center;
+    max-width: 78ch;
+    margin: 0 auto;
+  }
+  .ca__p {
+    margin-bottom: clamp(2rem, 5vw, 3rem);
   }
 
   /* EQUIPE */

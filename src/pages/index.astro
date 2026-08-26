@@ -13,25 +13,55 @@ import classe from '../assets/photos/classe.jpg'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
+/* Textes fournis le 26/08 (« texte home dépliant.docx » + maquette v2).
+   NB : le docx nomme la 2e colonne « Équipes formées », la maquette v2 dit
+   « Enseignants formés » — on suit le docx, qui est le document de texte. */
 const programme = [
-  { picto: 'main', titre: 'Former les équipes', texte: 'À REDIGER — Pauline (retour le 26/08).' },
-  { picto: 'asterisque', titre: 'Animer les ateliers', texte: 'À REDIGER — Pauline (retour le 26/08).' },
-  { picto: 'oiseau', titre: 'Mesurer l’impact', texte: 'À REDIGER — Pauline (retour le 26/08).' },
+  {
+    picto: 'main',
+    titre: '2 pôles de compétences',
+    intro: 'Une formation pensée pour transmettre de manière complémentaire :',
+    points: [
+      'Des compétences psychosociales : attention, régulation émotionnelle, coopération, empathie.',
+      'Des pratiques équilibrées et régulées du numérique : clarifier les habitudes, comprendre les usages.',
+    ],
+  },
+  {
+    picto: 'asterisque',
+    titre: 'Équipes formées',
+    intro: 'Un accompagnement qui renforce la coopération, l’attention et apaise les climats de classe :',
+    points: [
+      'Avec une pratique de présence attentive intégrée au quotidien professionnel ;',
+      'et des outils concrets pour réguler le stress numérique et la surcharge informationnelle.',
+    ],
+  },
+  {
+    picto: 'oiseau',
+    titre: 'Jeunes équilibrés',
+    intro: 'Des jeunes qui développent des compétences fondamentales :',
+    points: [
+      'Concentration et stabilisation de leur attention.',
+      'Régulation émotionnelle et une estime de soi plus solide.',
+      'Des usages numériques plus conscients.',
+    ],
+  },
 ] as const
 
-/* Chiffres reels, releves page 2 de la maquette. Les « 86 % » de la maquette
-   page 1 sont des placeholders : remplaces ici par les vrais chiffres. */
+/* Resultats de la cohorte 1, fournis le 26/08 (maquette v2). */
 const impact = [
-  { valeur: '16', legende: 'établissements pilotes engagés en 2025/2026' },
-  { valeur: '6', legende: 'pays ont adhéré au Programme' },
-  { valeur: '12', legende: 'organisations partenaires' },
+  { valeur: '92 %', legende: 'recommanderaient le Programme sans hésiter' },
+  {
+    valeur: '45 %',
+    legende: 'déclarent une évolution importante ou significative de leur posture professionnelle',
+  },
+  { valeur: '36 %', legende: 'rapportent une amélioration de l’attention des élèves' },
 ]
 
 /* Maquette : le picto n'est pas blanc mais en ton sur ton avec l'etiquette —
    c'est la regle des paires de la charte (p.12). */
 const parcours = [
   { surface: 'bleu-clair', label: 'Je suis un établissement', href: '/programme', picto: 'var(--bleu-fold)' },
-  { surface: 'jaune', label: 'Je souhaite devenir partenaire', href: '/contact', picto: 'var(--jaune-clair)' },
+  { surface: 'jaune', label: 'Je souhaite devenir membre', href: '/contact', picto: 'var(--jaune-clair)' },
   { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
 ] as const
 ---
@@ -50,8 +80,8 @@ const parcours = [
         <div class="hz__bubblewrap">
           <Paper outline fold="tr" class="hz__bubble">
             <h1>
-            Prévention en santé mentale et soutien du rapport au numérique
-            <span class="hz__soft">dans les milieux éducatifs.</span>
+            Nous formons les équipes éducatives à prévenir les difficultés de santé
+            mentale et à accompagner les jeunes à l’ère du numérique
           </h1>
           </Paper>
           <div class="hz__cta"><Cta href="/programme" surface="papier">En savoir +</Cta></div>
@@ -73,13 +103,18 @@ const parcours = [
   <section class="section constat has-silo">
     <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
     <div class="page g16 constat__in">
-      <h2 style="grid-column: 5 / 9">Apaisons l’environnement éducatif</h2>
+      <h2 style="grid-column: 5 / 9">Soutenons des climats de classe sereins et des éducateurs en santé</h2>
       <div style="grid-column: 9 / 15" class="constat__txt">
         <p>
           Aujourd’hui, + de 50 % des élèves de collèges et lycées présentent des plaintes
           psychologiques ou somatiques hebdomadaires, amplifiées par la saturation
           numérique… Quels outils et ressources mobiliser pour prévenir et soutenir le
-          développement des jeunes ?
+          développement des jeunes ?<sup>*</sup>
+        </p>
+        <p class="source">
+          * Ofcom (régulateur des communications britannique), données citées par le UK
+          Parliament Education Committee, <em>Screen time: impacts on education and
+          wellbeing</em>, 2023.
         </p>
         <Cta href="/programme">Découvrir notre programme</Cta>
       </div>
@@ -141,7 +176,12 @@ const parcours = [
               <Paper surface="bleu" fold="tr" foldSize="md" class="prog__card">
                 <div class="prog__picto"><Brand name={c.picto} /></div>
                 <h3>{c.titre}</h3>
-                <p>{c.texte}</p>
+                <p class="prog__intro">{c.intro}</p>
+                <ul class="prog__points">
+                  {c.points.map((pt) => (
+                    <li>{pt}</li>
+                  ))}
+                </ul>
               </Paper>
             </li>
           ))
@@ -156,7 +196,11 @@ const parcours = [
   <!-- 6. NOTRE IMPACT -->
   <section class="section impact-sec">
     <div class="page">
-      <h2 class="impact__t">Notre impact</h2>
+      <h2 class="impact__t">Le résultat ?</h2>
+      <p class="impact__sur">
+        Retour d’expérience de 147 professionnels de l’éducation formés en 2025-2026 dans
+        16 établissements pilotes
+      </p>
       <ul class="impact__cards">
         {
           impact.map((s) => (
@@ -199,11 +243,12 @@ const parcours = [
       <div class="citation__ph"><Photo ratio="3/4" label="portrait" /></div>
       <Paper surface="blanc" fold="br" class="citation__card">
         <blockquote>
-          « À l’intersection entre la santé globale et l’éducation, EUNEOS part d’un principe
-          scientifiquement établi : le développement des jeunes s’équilibre quand ils
-          apprennent à se reconnecter à eux-mêmes et aux autres. »
+          « EUNEOS s’inscrit à l’intersection entre les enjeux éducatifs, numériques et de
+          santé mentale. Le numérique agit comme un amplificateur des problématiques de
+          santé mentale. L’action d’EUNEOS est d’agir en prévention, de donner des clés pour
+          apprendre aux jeunes à se réguler grâce à des éducateurs formés et outillés. »
         </blockquote>
-        <p class="citation__role">Fondatrice et Directrice Générale Euneos</p>
+        <p class="citation__role">Fondatrice et Présidente EUNEOS</p>
       </Paper>
       <div class="citation__cta">
         <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
@@ -254,7 +299,7 @@ const parcours = [
   }
   .constat__txt {
     display: grid;
-    gap: 1.75rem;
+    gap: 1.25rem;
     justify-items: start;
   }
   @media (max-width: 860px) {
@@ -426,11 +471,33 @@ const parcours = [
     align-content: start;
   }
   .prog__card h3 {
-    font-size: clamp(0.95rem, 1.35vw, 1.15rem);
+    font-size: clamp(1rem, 1.5vw, 1.3rem);
   }
-  .prog__card p {
-    font-size: clamp(0.82rem, 1.15vw, 0.95rem);
+  .prog__intro {
+    font-size: clamp(0.8rem, 1.1vw, 0.95rem);
     line-height: 1.45;
+  }
+  .prog__points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+    font-size: clamp(0.78rem, 1.05vw, 0.9rem);
+    line-height: 1.4;
+  }
+  .prog__points li {
+    padding-left: 0.9rem;
+    position: relative;
+  }
+  .prog__points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.35rem;
+    height: 0.35rem;
+    background: currentColor;
   }
   .prog__picto {
     width: 28%;
@@ -463,7 +530,15 @@ const parcours = [
   .impact__t {
     text-align: center;
     color: var(--vert);
-    margin-bottom: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 0.75rem;
+  }
+  /* surtitre de provenance des chiffres (maquette v2) */
+  .impact__sur {
+    text-align: center;
+    max-width: 62ch;
+    margin: 0 auto clamp(2rem, 5vw, 3rem);
+    font-size: 0.92rem;
+    opacity: 0.75;
   }
   /* releve : 3 cartes de 172,2 pt = 86,8 % de la page, gouttieres tres fines */
   .impact__cards {
@@ -492,8 +567,9 @@ const parcours = [
     line-height: 1;
   }
   .impact__card p {
-    font-size: 0.95rem;
-    max-width: 30ch;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    max-width: 26ch;
   }
   @media (max-width: 860px) {
     .impact__cards {

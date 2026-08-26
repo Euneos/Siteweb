@@ -204,3 +204,66 @@ conditionne le portail de candidature.
 `euneos.fr` répond aujourd'hui avec un certificat `*.conceptiondesite.com`
 (constructeur Viaduc) : **alerte de sécurité navigateur pour tout visiteur**.
 Rien à préserver, la bascule DNS vers Cloudflare ne détruit aucun site existant.
+
+## Maquette v2 (26/08) — ce qui a change dans le code
+
+`maquette_euneos_2.pdf` remplace `maquette_euneos V 7 aout candice.pdf` comme reference.
+Les deux vivent dans le dossier client (`Client/EUNEOS/Ressources/`).
+
+### Geometrie du hero page 1
+
+Candice a **elargi la bulle** pour loger le nouveau titre. Releve au pixel sur les deux PDF
+(rendu a 110 dpi, page 595,276 pt ramenee a 1440 px) :
+
+| | v7 | v2 | dans le code |
+|---|---|---|---|
+| bord gauche de la bulle | 15,02 % | 15,02 % | inchange |
+| bord droit de la bulle | 51,08 % | **54,29 %** | `.hz:not(.hz--mirror) .hz__grid` |
+| largeur de la bulle | 36,08 % | **39,27 %** | rendu mesure : 39,27 % |
+| bord gauche de la photo | 51,27 % | **54,68 %** | rendu mesure : 54,68 % |
+| bord droit de la photo | 95,05 % | 95,05 % | inchange |
+
+Les pages 2 et 3 (`hz--mirror`) gardent leur geometrie : le bord droit de la bulle page 3
+est identique dans les deux versions.
+
+### Titre bicolore : la regle est par page, pas globale
+
+Erreur commise puis corrigee : j'ai d'abord supprime la seconde teinte partout. Releve a
+l'encre, page par page :
+
+- **page 1** : la v7 avait un titre bicolore, la **v2 le passe en blanc uni** (#ffffff sur
+  toute la hauteur) -> plus de `hz__soft` dans `index.astro` ;
+- **page 2** : bicolore **conserve**, « Le Programme EUNEOS : » en blanc puis le reste en
+  bleu clair #c5d4ff -> `.hz__strong` + `.hz__soft`, et `.s-bleu .hz__bubble h1` doit forcer
+  le blanc (l'encre par defaut de la surface bleue est le vert, ce qui rendait le titre
+  vert fonce) ;
+- **page 3** : n'a jamais eu de seconde teinte.
+
+### Echelle typographique : mesurer l'encre, pas la bbox
+
+`pdftotext -bbox` donne une boite qui depend du descripteur de la fonte : le rapport
+bbox/corps n'est **pas** le meme pour le gras de titrage (1,375) et pour le regular de
+labeur (1,665). Comparer deux bbox de fontes differentes donne un rapport faux (1,98 au
+lieu de 1,88).
+
+La methode fiable : rendre a 300-400 dpi, detecter les bandes d'encre par ligne, et
+comparer des lignes de meme profil (avec accent **et** jambage), dont l'empan vaut ~0,97 em.
+
+Mesures sur la v2 (a 1440 px) :
+
+| | encre | corps deduit | interligne |
+|---|---|---|---|
+| paragraphe | 10,08 pt | ~25 px | 1,15 |
+| H1 du hero | 18,98 pt | ~47 px | 1,18 |
+| bandeau Erasmus+ ligne 1 | 19,70 pt | ~47 px | — |
+| bandeau Erasmus+ ligne 2 | 10,10 pt | ~25 px (= le corps) | — |
+
+**Rapport H1 / corps = 1,883** — c'est cette valeur qui est codee
+(`.hz__bubble h1: clamp(1.38rem, 2.49vw, 2.33rem)` a un corps de 19 px), pas l'echelle
+absolue de la maquette. Voir l'arbitrage ouvert dans `CONTEXT.md`.
+
+### Piege n7 — un utilitaire partage dans le `is:global` d'une seule page
+
+Meme piege que `.c-t` / `.c-cta` : `.source` (la note de bas de bloc) a d'abord ete
+declaree dans `index.astro`, donc invisible sur `qui-sommes-nous.astro`. Tout selecteur
+utilise par plus d'une page vit dans `global.css`.
