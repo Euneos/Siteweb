@@ -187,15 +187,26 @@ const parcours = [
         {
           programme.map((c) => (
             <li>
-              <Paper surface="bleu" fold="tr" foldSize="md" class="prog__card">
-                <div class="prog__picto"><Brand name={c.picto} /></div>
-                <h3>{c.titre}</h3>
-                <p class="prog__intro">{c.intro}</p>
-                <ul class="prog__points">
+              <Paper surface="bleu" fold="tr" foldSize="md" class="prog__card" as="details">
+                <summary class="prog__resume">
+                  <span class="prog__head">
+                    <span class="prog__picto">
+                      <Brand name={c.picto} />
+                    </span>
+                    <span class="prog__titre">{c.titre}</span>
+                  </span>
+                  <span class="prog__apercu">{c.intro}</span>
+                  <span class="prog__fleche" aria-hidden="true">
+                    <svg viewBox="0 0 24 32" fill="currentColor">
+                      <path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" />
+                    </svg>
+                  </span>
+                </summary>
+                <div class="prog__suite">
                   {c.points.map((pt) => (
-                    <li>{pt}</li>
+                    <p>{pt}</p>
                   ))}
-                </ul>
+                </div>
               </Paper>
             </li>
           ))
@@ -494,13 +505,23 @@ const parcours = [
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 13.68%;
   }
-  .prog__card {
+  .prog__card.s-bleu {
     height: 100%;
+    min-height: 0;
     aspect-ratio: 125.6 / 166.7;
     padding: 11%;
     display: grid;
     gap: 0.6rem;
     align-content: start;
+    position: relative;
+    /* releve : sur le bleu du Programme, le texte est BLANC. L'encre par
+       defaut de la surface bleue est le vert — valable pour la navigation
+       du hero, pas pour ces cartes. On surcharge la variable, pas la
+       propriete : sinon la regle de .paper reprend le dessus. */
+    --on-surface: var(--blanc);
+  }
+  .prog__card[open] {
+    aspect-ratio: auto;
   }
   .prog__card h3 {
     font-size: clamp(1rem, 1.5vw, 1.3rem);
@@ -510,15 +531,64 @@ const parcours = [
     font-size: max(0.95rem, 1.1vw);
     line-height: 1.45;
   }
-  .prog__points {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  /* La carte est un <details> : repliee elle montre un apercu tronque et une
+     fleche, depliee elle montre tout. Aucun JavaScript. */
+  /* la fleche se cale en bas de la carte, comme dans la maquette */
+  .prog__resume {
     display: grid;
-    gap: 0.45rem;
-    /* plancher mobile : jamais sous 15 px */
+    gap: 0.6rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .prog__resume::-webkit-details-marker {
+    display: none;
+  }
+  .prog__head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .prog__titre {
+    font-weight: 600;
+    font-size: clamp(1rem, 1.5vw, 1.3rem);
+    line-height: 1.15;
+  }
+  .prog__apercu,
+  .prog__suite p {
     font-size: max(0.95rem, 1.05vw);
     line-height: 1.45;
+  }
+  /* replie : l'apercu est coupe, comme dans la maquette */
+  .prog__card:not([open]) .prog__apercu {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .prog__suite {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+  /* ancree en bas a droite de la carte, comme dans la maquette */
+  .prog__fleche {
+    position: absolute;
+    right: 11%;
+    bottom: 9%;
+    display: block;
+    width: 0.9rem;
+    transition: transform 0.2s ease;
+  }
+  .prog__card[open] .prog__fleche {
+    transform: rotate(180deg);
+  }
+  .prog__card[open] .prog__suite {
+    padding-bottom: 1.5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prog__fleche {
+      transition: none;
+    }
   }
   .prog__points li {
     padding-left: 0.9rem;
@@ -534,14 +604,13 @@ const parcours = [
     background: currentColor;
   }
   .prog__picto {
-    width: 28%;
-    /* hauteur commune : les trois pictos n'ont pas le meme ratio, et sans
+    /* largeur commune : les trois pictos n'ont pas le meme ratio, et sans
        cela les titres des trois cartes ne s'alignent pas */
-    height: clamp(70px, 6.4vw, 92px);
+    width: clamp(30px, 2.6vw, 38px);
+    flex: none;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     color: var(--blanc);
-    margin-bottom: 0.35rem;
   }
   /* le CTA est pose a cheval sur le bord bas de la section */
   .prog__cta {
