@@ -133,6 +133,34 @@ const commandes = {
     console.log(`\n  ${p.etablissement?.nom ?? id} → ${nouveau}\n`)
   },
 
+  /** Ce qui est arrive recemment — a defaut de notification par mail. */
+  async nouveautes(jours = '7') {
+    const seuil = new Date(Date.now() - Number(jours) * 86400000)
+    const [p, e] = await Promise.all([
+      lire('participations', '&fields=Id,statut,date_candidature,etablissement&sort=-Id'),
+      lire('engagements', '&fields=Id,statut,date_candidature,formateur&sort=-Id'),
+    ])
+    const recent = (l) => l.filter((x) => x.date_candidature && new Date(x.date_candidature) >= seuil)
+    const pe = recent(p), fe = recent(e)
+    console.log(`\nArrive depuis ${jours} jours\n`)
+    if (pe.length) {
+      console.log('  Etablissements :')
+      tableau(pe.map((x) => ({ id: x.Id, etablissement: x.etablissement?.nom ?? '?',
+                               statut: x.statut ?? '', le: x.date_candidature })),
+              ['id', 'etablissement', 'statut', 'le'])
+    } else console.log('  Etablissements : aucun')
+    console.log()
+    if (fe.length) {
+      console.log('  Formateurs :')
+      tableau(fe.map((x) => ({ id: x.Id,
+                               personne: [x.formateur?.prenom, x.formateur?.nom].filter(Boolean).join(' ') || '?',
+                               statut: x.statut ?? '', le: x.date_candidature })),
+              ['id', 'personne', 'statut', 'le'])
+    } else console.log('  Formateurs : aucun')
+    console.log("\n  Rappel : aucune notification par mail n'est encore branchee.")
+    console.log('  Cette commande est le seul moyen de voir ce qui est arrive.\n')
+  },
+
   /** Dossiers bloques sur le meme statut depuis longtemps. */
   async dormants(jours = '21') {
     const seuil = Number(jours)
@@ -207,6 +235,7 @@ Base EUNEOS — commandes disponibles
   bun scripts/base.mjs formateurs          les candidatures formateurs a traiter
   bun scripts/base.mjs etablissement <id>  la fiche complete d'un dossier
   bun scripts/base.mjs statut <id> "..."   faire avancer un dossier
+  bun scripts/base.mjs nouveautes [jours]  ce qui est arrive recemment (defaut 7 j)
   bun scripts/base.mjs dormants [jours]    les dossiers sans mouvement (defaut 21 j)
   bun scripts/base.mjs modeles             les modeles d'e-mails disponibles
   bun scripts/base.mjs modele <code>       lire un modele en entier
