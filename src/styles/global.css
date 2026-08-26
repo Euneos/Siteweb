@@ -587,9 +587,10 @@ body {
   justify-content: center;
   margin-top: clamp(2rem, 5vw, 3rem);
 }
-/* Note de source bas de bloc (Ofcom p.1, OMS p.3) — utilisee sur 2 pages. */
+/* Note de source bas de bloc (Ofcom p.1, OMS p.3) — utilisee sur 2 pages.
+   Plancher a 13 px : sous cette taille une note devient illisible sur mobile. */
 .source {
-  font-size: 0.72rem;
+  font-size: max(0.81rem, 0.75vw);
   line-height: 1.4;
   opacity: 0.62;
   max-width: 60ch;

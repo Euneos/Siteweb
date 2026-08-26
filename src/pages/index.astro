@@ -474,7 +474,8 @@ const parcours = [
     font-size: clamp(1rem, 1.5vw, 1.3rem);
   }
   .prog__intro {
-    font-size: clamp(0.8rem, 1.1vw, 0.95rem);
+    /* plancher mobile : jamais sous 15 px */
+    font-size: max(0.95rem, 1.1vw);
     line-height: 1.45;
   }
   .prog__points {
@@ -483,8 +484,9 @@ const parcours = [
     padding: 0;
     display: grid;
     gap: 0.45rem;
-    font-size: clamp(0.78rem, 1.05vw, 0.9rem);
-    line-height: 1.4;
+    /* plancher mobile : jamais sous 15 px */
+    font-size: max(0.95rem, 1.05vw);
+    line-height: 1.45;
   }
   .prog__points li {
     padding-left: 0.9rem;
