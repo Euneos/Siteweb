@@ -60,9 +60,27 @@ participation. Même logique côté formateurs : une **personne**, et ses **enga
 bun scripts/base.mjs campagne            où en est le recrutement
 bun scripts/base.mjs candidatures        les candidatures établissements
 bun scripts/base.mjs formateurs          les candidatures formateurs
+bun scripts/base.mjs dormants [jours]    les dossiers qui n'avancent plus
 bun scripts/base.mjs etablissement <id>  la fiche complète d'un dossier
 bun scripts/base.mjs statut <id> "..."   faire avancer un dossier
+bun scripts/base.mjs modeles             les 16 modèles d'e-mails
+bun scripts/base.mjs modele <code>       lire un modèle en entier
 ```
+
+### Cinq compétences installées
+
+L'agent les déclenche tout seul selon ce que vous demandez :
+
+| | |
+|---|---|
+| **point-de-campagne** | où en est le recrutement des 30 établissements |
+| **traiter-une-candidature** | consulter un dossier, le faire avancer |
+| **relancer-un-dossier** | trouver ce qui dort, préparer la relance |
+| **preparer-un-email** | rédiger à partir des 16 modèles officiels |
+| **modifier-le-site** | changer un texte, une photo, puis publier |
+
+Elles sont dans `.claude/skills/`. Ce sont des fichiers texte : vous pouvez les lire, les
+corriger, en ajouter.
 
 Vous n'avez pas à retenir ces commandes : demandez à l'agent en français.
 *« Où en est la campagne ? »*, *« Montre-moi les candidatures pas encore traitées »*,

@@ -13,6 +13,8 @@ const API = 'https://app.nocodb.com/api/v2'
 
 const T = {
   etablissements: 'mg12klh5zv7b5n5',
+  templates_emails: 'mzpstich70x80a1',
+  blocs_template: 'movmgkxcx89hto4',
   participations: 'mbunbu0f1zztce4',
   formateurs: 'mblganql53o34gm',
   engagements: 'mom9m2q83nainyz',
@@ -131,6 +133,58 @@ const commandes = {
     console.log(`\n  ${p.etablissement?.nom ?? id} → ${nouveau}\n`)
   },
 
+  /** Dossiers bloques sur le meme statut depuis longtemps. */
+  async dormants(jours = '21') {
+    const seuil = Number(jours)
+    const p = await lire('participations', '&fields=Id,statut,date_candidature,etablissement')
+    const aujourdhui = new Date()
+    const bloques = p
+      .filter((x) => !['Engage', 'Refuse', 'Abandonne'].includes(x.statut) && x.date_candidature)
+      .map((x) => ({
+        id: x.Id,
+        etablissement: x.etablissement?.nom ?? '?',
+        statut: x.statut ?? '',
+        depuis_jours: Math.floor((aujourdhui - new Date(x.date_candidature)) / 86400000),
+      }))
+      .filter((x) => x.depuis_jours >= seuil)
+      .sort((a, b) => b.depuis_jours - a.depuis_jours)
+    console.log(`\nDossiers sans mouvement depuis ${seuil} jours ou plus — ${bloques.length}\n`)
+    tableau(bloques, ['id', 'etablissement', 'statut', 'depuis_jours'])
+    if (bloques.length) {
+      console.log("\n  Aucun mail ne part tout seul : ces relances sont a envoyer a la main.")
+      console.log('  Pour un modele : bun scripts/base.mjs modele <code>\n')
+    } else console.log()
+  },
+
+  /** Les modeles d'e-mails que l'equipe edite dans la base. */
+  async modeles() {
+    const t = await lire('templates_emails', '&fields=Id,code,libelle,cible,sujet')
+    console.log(`\nModeles d'e-mails — ${t.length}\n`)
+    tableau(t.map((x) => ({ code: x.code, cible: x.cible ?? '', libelle: (x.libelle ?? '').slice(0, 46) })),
+            ['code', 'cible', 'libelle'])
+    console.log('\n  Pour en lire un : bun scripts/base.mjs modele <code>\n')
+  },
+
+  async modele(code) {
+    if (!code) return console.error('Usage : bun scripts/base.mjs modele <code>')
+    const t = await lire('templates_emails', '&where=' + encodeURIComponent(`(code,eq,${code})`))
+    if (!t.length) return console.error(`Modele « ${code} » introuvable. Liste : bun scripts/base.mjs modeles`)
+    const m = t[0]
+    const blocs = (await lire('blocs_template', '&fields=Id,ordre,type,contenu,url,template'))
+      .filter((b) => b.template?.Id === m.Id)
+      .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+    console.log('\n' + '─'.repeat(64))
+    console.log('  ' + (m.libelle ?? m.code))
+    console.log('  Objet : ' + (m.sujet ?? '(sans objet)'))
+    console.log('─'.repeat(64))
+    for (const b of blocs) {
+      console.log(`\n  [${b.type}]${b.url ? '  → ' + b.url : ''}`)
+      console.log('  ' + (b.contenu ?? '').replace(/\n/g, '\n  '))
+    }
+    console.log('\n  Variables : {{prenom}} {{nom}} {{etablissement}} {{cohorte}} {{date}} …')
+    console.log('  Ce modele se modifie dans NocoDB, table templates_emails.\n')
+  },
+
   async chiffres() {
     const n = {}
     for (const t of Object.keys(T)) {
@@ -153,6 +207,9 @@ Base EUNEOS — commandes disponibles
   bun scripts/base.mjs formateurs          les candidatures formateurs a traiter
   bun scripts/base.mjs etablissement <id>  la fiche complete d'un dossier
   bun scripts/base.mjs statut <id> "..."   faire avancer un dossier
+  bun scripts/base.mjs dormants [jours]    les dossiers sans mouvement (defaut 21 j)
+  bun scripts/base.mjs modeles             les modeles d'e-mails disponibles
+  bun scripts/base.mjs modele <code>       lire un modele en entier
   bun scripts/base.mjs chiffres            combien de lignes dans chaque table
 `)
   process.exit(cmd ? 1 : 0)
