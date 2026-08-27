@@ -1,0 +1,99 @@
+---
+/**
+ * Encart final « Candidatez pour rejoindre le Programme ».
+ *
+ * Releve au vecteur sur la maquette v2 : bloc encadre en bleu clair, recouvert
+ * par un eclat en bleu fonce, silhouette par-dessus, CTA blanc plein occupant
+ * 29,7 % de la largeur (154,5 pt sur 519,6).
+ *
+ * Utilise sur `programme.astro` (bas de page) et `index.astro` (apres « Le
+ * resultat ? »). Un seul endroit a modifier pour les deux.
+ */
+import Brand from './Brand.astro'
+import Cta from './Cta.astro'
+
+interface Props {
+  /** ancre de la section — un seul `id="candidater"` par page */
+  id?: string
+  titre?: string
+  libelle?: string
+  href?: string
+}
+
+const {
+  id,
+  titre = 'Candidatez pour rejoindre le Programme',
+  libelle = 'Candidater',
+  href = '/candidater/etablissement',
+} = Astro.props
+---
+
+<section id={id} class="section">
+  <div class="page">
+    <div class="final s-bleu">
+      <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
+      <div class="final__fig" aria-hidden="true"><Brand name="fig3" height="100%" /></div>
+      <div class="final__in">
+        <h2>{titre}</h2>
+        <Cta href={href} surface="blanc" class="final__cta">{libelle}</Cta>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  /* global : `.final__cta` est une classe passee en prop a <Cta>,
+     elle ne recevrait pas le hash de scope. */
+  .final {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 519.6 / 257;
+    background: var(--surface);
+    color: var(--on-surface);
+    display: grid;
+    place-items: center;
+  }
+  .final__eclat {
+    position: absolute;
+    inset: 0;
+    color: var(--bleu-fold);
+  }
+  .final__eclat :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .final__fig {
+    position: absolute;
+    left: -2%;
+    top: 8%;
+    height: 84%;
+    color: var(--bleu-clair);
+    z-index: 1;
+  }
+  .final__in {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.25rem, 3.5vw, 2.25rem);
+    text-align: center;
+    padding: clamp(1.5rem, 4vw, 3rem);
+  }
+  .final__in h2 {
+    max-width: 30ch;
+    color: var(--blanc);
+  }
+  /* releve : 154,5 pt sur 519,6 -> 29,7 % */
+  .final__cta {
+    min-width: 29.7%;
+    text-align: center;
+    --on-surface: var(--bleu-fold);
+    --fold-color: var(--bleu-clair);
+  }
+  @media (max-width: 860px) {
+    .final {
+      aspect-ratio: auto;
+    }
+  }
+</style>

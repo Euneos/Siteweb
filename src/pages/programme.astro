@@ -7,6 +7,7 @@
 import Brand from '../components/Brand.astro'
 import Cartouche from '../components/Cartouche.astro'
 import Cta from '../components/Cta.astro'
+import CtaFinal from '../components/CtaFinal.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
@@ -346,21 +347,7 @@ const faq = [
     </div>
   </section>
 
-  <!-- CTA FINAL — releve au vecteur : bloc encadre en bleu clair, recouvert par
-       un eclat en bleu fonce (extrait du PDF), silhouette par-dessus, CTA blanc
-       plein occupant 29,7 % de la largeur. -->
-  <section id="candidater" class="section">
-    <div class="page">
-      <div class="final s-bleu">
-        <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
-        <div class="final__fig" aria-hidden="true"><Brand name="fig3" height="100%" /></div>
-        <div class="final__in">
-          <h2>Candidatez pour rejoindre le Programme</h2>
-          <Cta href="/candidater/etablissement" surface="blanc" class="final__cta">Candidater</Cta>
-        </div>
-      </div>
-    </div>
-  </section>
+  <CtaFinal id="candidater" />
 </Base>
 
 <style is:global>
@@ -694,57 +681,4 @@ const faq = [
     }
   }
 
-  /* CTA FINAL — bloc encadre + eclat vectoriel du PDF */
-  .final {
-    position: relative;
-    overflow: hidden;
-    aspect-ratio: 519.6 / 257;
-    background: var(--surface);
-    color: var(--on-surface);
-    display: grid;
-    place-items: center;
-  }
-  .final__eclat {
-    position: absolute;
-    inset: 0;
-    color: var(--bleu-fold);
-  }
-  .final__eclat :global(svg) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .final__fig {
-    position: absolute;
-    left: -2%;
-    top: 8%;
-    height: 84%;
-    color: var(--bleu-clair);
-    z-index: 1;
-  }
-  .final__in {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    justify-items: center;
-    gap: clamp(1.25rem, 3.5vw, 2.25rem);
-    text-align: center;
-    padding: clamp(1.5rem, 4vw, 3rem);
-  }
-  .final__in h2 {
-    max-width: 30ch;
-    color: var(--blanc);
-  }
-  /* releve : 154,5 pt sur 519,6 -> 29,7 % */
-  .final__cta {
-    min-width: 29.7%;
-    text-align: center;
-    --on-surface: var(--bleu-fold);
-    --fold-color: var(--bleu-clair);
-  }
-  @media (max-width: 860px) {
-    .final {
-      aspect-ratio: auto;
-    }
-  }
 </style>
