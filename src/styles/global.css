@@ -711,6 +711,10 @@ body {
   flex-direction: column;
   justify-content: space-between;
 }
+/* Pages sans banniere : la bande verte se reduit a l'en-tete. */
+.hero-zone--nue {
+  min-height: 0;
+}
 .hz__grid {
   position: relative;
   display: grid;
@@ -949,13 +953,20 @@ body {
   text-decoration: none;
   color: var(--orange);
 }
-/* chaque champ est une petite feuille a coin plie, comme le formulaire de contact */
-.cand__field {
+/* Petit coin coupe en bas a droite (releve maquette p.4), bordure comprise.
+   La classe est doublee : sinon le --f de .paper l'emporte et le pli devient
+   enorme. Meme traitement que le formulaire de contact. */
+.cand__field.paper {
   --surface: transparent;
-  --fold-color: currentColor;
-  --f: 0.85rem;
+  --fold-color: transparent;
+  --f: 14px;
   border: 1.5px solid currentColor;
   display: block;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+.cand__field.paper::after,
+.cand__field.paper::before {
+  display: none;
 }
 .cand__field input,
 .cand__field select,
@@ -979,10 +990,7 @@ body {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
-.cand__field.paper::after {
-  background: currentColor;
-  opacity: 0.55;
-}
+
 .cand__aide {
   font-size: 0.82rem;
   opacity: 0.7;

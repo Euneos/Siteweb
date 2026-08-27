@@ -126,12 +126,23 @@ const champs = [
     font-weight: 600;
   }
   /* chaque champ est une petite feuille a coin plie */
-  .ct__field {
+  /* Le champ porte un PETIT coin coupe en bas a droite (releve maquette p.4),
+     pas un triangle plein. Deux corrections :
+     - la classe doit etre doublee, sinon le --f de .paper (7,5 rem) l'emporte
+       et le pli fait 120 px sur un champ de 54 px de haut ;
+     - le rabat plein est supprime, et c'est le champ LUI-MEME qui est coupe,
+       bordure comprise. */
+  .ct__field.paper {
     --surface: transparent;
-    --fold-color: currentColor;
-    --f: 0.85rem;
+    --fold-color: transparent;
+    --f: 14px;
     border: 1.5px solid currentColor;
     display: block;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  }
+  .ct__field.paper::after,
+  .ct__field.paper::before {
+    display: none;
   }
   .ct__field input,
   .ct__field textarea {
