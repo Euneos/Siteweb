@@ -195,18 +195,19 @@ const parcours = [
                     </span>
                     <span class="prog__titre">{c.titre}</span>
                   </span>
-                  <span class="prog__apercu">{c.intro}</span>
+                  <span class="prog__texte">
+                    <span class="prog__p">{c.intro}</span>
+                    {c.points.map((pt) => (
+                      <span class="prog__p">{pt}</span>
+                    ))}
+                  </span>
+                  <span class="prog__voile" aria-hidden="true" />
                   <span class="prog__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor">
                       <path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" />
                     </svg>
                   </span>
                 </summary>
-                <div class="prog__suite">
-                  {c.points.map((pt) => (
-                    <p>{pt}</p>
-                  ))}
-                </div>
               </Paper>
             </li>
           ))
@@ -522,6 +523,7 @@ const parcours = [
   }
   .prog__card[open] {
     aspect-ratio: auto;
+    padding-bottom: 14%;
   }
   .prog__card h3 {
     font-size: clamp(1rem, 1.5vw, 1.3rem);
@@ -553,23 +555,41 @@ const parcours = [
     font-size: clamp(1rem, 1.5vw, 1.3rem);
     line-height: 1.15;
   }
-  .prog__apercu,
-  .prog__suite p {
+  /* Tout le texte est present des l'etat replie : c'est la CARTE qui le coupe,
+     exactement comme dans la maquette ou la phrase s'arrete en plein milieu.
+     Depliee, la carte grandit et laisse tout voir. */
+  .prog__texte {
+    display: grid;
+    gap: 0.7rem;
+    align-content: start;
+  }
+  .prog__p {
     font-size: max(0.95rem, 1.05vw);
     line-height: 1.45;
   }
-  /* replie : l'apercu est coupe, comme dans la maquette */
-  .prog__card:not([open]) .prog__apercu {
-    display: -webkit-box;
-    -webkit-line-clamp: 5;
-    -webkit-box-orient: vertical;
+  /* Replie : l'apercu remplit la place disponible et se fait couper par le
+     bord de la carte, exactement comme dans la maquette. Un nombre de lignes
+     fixe laissait un vide sous le texte. La reserve du bas laisse passer la
+     fleche. */
+  /* Repliee, la carte garde la hauteur de la maquette et COUPE simplement ce
+     qui depasse. Un voile degrade rend la coupe volontaire et degage la
+     fleche, qui sinon passerait par-dessus le texte. */
+  .prog__card:not([open]) {
     overflow: hidden;
   }
-  .prog__suite {
-    display: grid;
-    gap: 0.5rem;
-    margin-top: 0.6rem;
+  .prog__voile {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5.5rem;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--surface) 55%);
   }
+  .prog__card[open] .prog__voile {
+    display: none;
+  }
+
   /* ancree en bas a droite de la carte, comme dans la maquette */
   .prog__fleche {
     position: absolute;
@@ -582,9 +602,7 @@ const parcours = [
   .prog__card[open] .prog__fleche {
     transform: rotate(180deg);
   }
-  .prog__card[open] .prog__suite {
-    padding-bottom: 1.5rem;
-  }
+
   @media (prefers-reduced-motion: reduce) {
     .prog__fleche {
       transition: none;
