@@ -98,6 +98,16 @@ const champs = [
     z-index: 2;
   }
 
+  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
+     negatif ci-dessus poussait l'element hors cadre et faisait scroller
+     TOUTE la page sur le cote. On rentre le debordement au point de
+     bascule ; sur ordinateur rien ne change. */
+  @media (max-width: 860px) {
+    .ct__cartouche {
+      right: 0;
+    }
+  }
+
   .ct__panel {
     position: relative;
     z-index: 3;

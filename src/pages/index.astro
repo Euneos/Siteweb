@@ -745,6 +745,23 @@ const parcours = [
     transform: translate(58%, 8%);
   }
 
+  /* Sur petit ecran, les deux pictos debordaient hors de l'ecran : le rose
+     poussait la page de 67 px et TOUTE la page d'accueil scrollait sur le
+     cote. Les pictos ne retrecissent pas (clamp plancher a 96 et 116 px), donc
+     on retrecit le bloc et on rentre le debordement. L'effet de debordement
+     reste, il devient juste proportionne a l'ecran. */
+  @media (max-width: 860px) {
+    .bloc-image {
+      width: 84%;
+    }
+    .bloc-image__picto {
+      transform: translate(-20%, 34%);
+    }
+    .bloc-image__picto2 {
+      transform: translate(18%, 8%);
+    }
+  }
+
   /* --- CITATION --- */
   .citation {
     display: grid;

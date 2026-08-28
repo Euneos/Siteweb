@@ -122,6 +122,23 @@ page. Si ce n'est pas dit, c'est que ce n'est pas fait.
 
 ---
 
+**6. Ne jamais presenter une deduction comme un fait.**
+Le 27/08, l'agent a annonce que sept etablissements avaient recandidate « parce que
+personne ne leur avait repondu ». Le fait etait verifie (meme etablissement, deux
+candidatures, deux dates). **La cause etait inventee** — la base ne dit rien des
+raisons. Candice l'a releve tout de suite : *« la, il theorise »*.
+
+La regle : separer visiblement les deux.
+
+- **Ce que la base dit** : « le college Vauban a deux candidatures, du 9 janvier et
+  du 20 mai, rattachees a la meme fiche etablissement. »
+- **Ce qu'on peut en supposer** : « une hypothese possible : ils n'ont pas eu de
+  reponse. Je ne peux pas le verifier — l'agent n'a pas acces aux echanges. »
+
+Quand une explication manque, **poser la question plutot que de la combler**.
+Une equipe qui decouvre une invention une fois cesse de faire confiance au reste,
+y compris a ce qui etait juste.
+
 ## Ce que l'agent NE peut PAS encore faire
 
 À dire clairement plutôt que de laisser croire le contraire :

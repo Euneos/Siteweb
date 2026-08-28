@@ -17,6 +17,12 @@ concurrency:
   group: deploiement-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Meme version que `bun.lock` et que les postes de l'equipe.
+  # Surtout pas `latest` : le 27/08 le runner a tire 1.4.0 et le
+  # telechargement a casse (ECONNRESET), le site n'est pas parti.
+  BUN_VERSION: 1.3.11
+
 jobs:
   deployer:
     runs-on: ubuntu-latest
@@ -26,12 +32,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Installer bun
+        id: bun
+        continue-on-error: true
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # Secours : le telechargement de bun echoue de temps en temps sur les
+      # runners. Sans ce filet, une panne reseau de dix secondes fait croire
+      # a l'equipe que sa modification est en ligne alors qu'elle ne l'est pas.
+      - name: Installer bun — deuxieme essai
+        if: steps.bun.outcome == 'failure'
+        run: |
+          for essai in 1 2 3; do
+            curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}" && break
+            echo "::warning::tentative $essai echouee, nouvel essai dans 10 s"
+            sleep 10
+          done
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
 
       - name: Installer les dependances
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Construire le site
         run: bun run build

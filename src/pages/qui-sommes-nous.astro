@@ -369,6 +369,16 @@ const equipe = [
     top: -8%;
     z-index: 3;
   }
+
+  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
+     negatif ci-dessus poussait l'element hors cadre et faisait scroller
+     TOUTE la page sur le cote. On rentre le debordement au point de
+     bascule ; sur ordinateur rien ne change. */
+  @media (max-width: 860px) {
+    .mission__picto {
+      right: 0;
+    }
+  }
   /* maquette : le badge est large, a cheval sur le bord gauche de la photo, avec
      le wordmark en grand et un coin plie */
   .mission__badge {
@@ -574,6 +584,16 @@ const equipe = [
   .conf3__fig {
     right: -2%;
     color: var(--vert-clair);
+  }
+
+  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
+     negatif ci-dessus poussait l'element hors cadre et faisait scroller
+     TOUTE la page sur le cote. On rentre le debordement au point de
+     bascule ; sur ordinateur rien ne change. */
+  @media (max-width: 860px) {
+    .conf3__fig {
+      right: 0;
+    }
   }
   .conf3__in {
     position: relative;

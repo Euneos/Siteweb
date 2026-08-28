@@ -675,6 +675,17 @@ const faq = [
     min-width: 90px;
     z-index: 1;
   }
+
+  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
+     negatif ci-dessus poussait l'element hors cadre et faisait scroller
+     TOUTE la page sur le cote. On rentre le debordement au point de
+     bascule ; sur ordinateur rien ne change. */
+  @media (max-width: 860px) {
+    .faq__cartouche {
+      right: 0;
+      bottom: -8%;
+    }
+  }
   @media (max-width: 860px) {
     .faq {
       grid-template-columns: 1fr;
