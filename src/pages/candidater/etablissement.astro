@@ -1,34 +1,281 @@
 ---
+/**
+ * Candidature — Je suis un établissement.
+ *
+ * Les questions sont reprises A L'IDENTIQUE du Google Form
+ * « WISE-UP — 1. Candidature établissement », releve le 28/08/2026 sur le formulaire en ligne :
+ * meme ordre, memes libelles, memes choix, memes blocs, meme case de
+ * consentement finale.
+ *
+ * Candice a demande le 27/08 que les deux versions soient identiques.
+ * NE RIEN REFORMULER sans le lui demander — et si le Google Form change,
+ * c'est ce fichier qu'il faut remettre a jour.
+ *
+ * Source : docs.google.com/forms/d/1ZaQBtmZm25tc89_y0J-nPh06x5Rf-ApuGa4OTy8iNFo
+ */
 import Candidature, { type Champ } from '../../components/Candidature.astro'
 import Base from '../../layouts/Base.astro'
 
 const url = Astro.url.searchParams
 
 const CHAMPS: readonly Champ[] = [
-  { id: 'nom_etab', label: 'Nom de l’établissement', requis: true, large: true, autocomplete: 'organization' },
   {
-    id: 'type_etab', label: 'Type d’établissement', type: 'select', requis: true,
-    options: ['College', 'Lycee general et technologique', 'Lycee professionnel',
-              'Ecole primaire', 'Ecole elementaire', 'Autre'],
-  },
-  { id: 'public_prive', label: 'Statut', type: 'select', options: ['Public', 'Prive'] },
-  { id: 'adresse', label: 'Adresse', large: true, autocomplete: 'street-address' },
-  { id: 'cp', label: 'Code postal', requis: true, autocomplete: 'postal-code' },
-  { id: 'ville', label: 'Ville', requis: true, autocomplete: 'address-level2' },
-  { id: 'region', label: 'Région' },
-  { id: 'academie', label: 'Académie' },
-  { id: 'referent_nom', label: 'Nom du référent', requis: true, autocomplete: 'name' },
-  { id: 'referent_fonction', label: 'Fonction du référent', autocomplete: 'organization-title' },
-  { id: 'referent_email', label: 'E-mail du référent', type: 'email', requis: true, autocomplete: 'email' },
-  { id: 'referent_telephone', label: 'Téléphone', type: 'tel', autocomplete: 'tel' },
-  {
-    id: 'email_institutionnel', label: 'E-mail institutionnel de l’établissement', type: 'email',
-    aide: 'Utile si la boîte académique filtre nos messages.',
+    id: "__bloc1",
+    label: "Bloc 1 — Identification de l'établissement",
+    type: "section"
   },
   {
-    id: 'message', label: 'Votre contexte et vos attentes', type: 'textarea', large: true,
-    aide: 'Effectifs concernés, personnes déjà mobilisées, calendrier envisagé…',
+    id: "nom_etab",
+    label: "Nom de l'établissement",
+    requis: true
   },
+  {
+    id: "type_etab",
+    label: "Type d'établissement",
+    type: "radio",
+    requis: true,
+    options: [
+      "École primaire",
+      "Collège",
+      "Lycée général et technologique",
+      "Lycée professionnel",
+      "Autre"
+    ]
+  },
+  {
+    id: "adresse",
+    label: "Adresse de l'établissement",
+    requis: true
+  },
+  {
+    id: "ville",
+    label: "Ville",
+    requis: true
+  },
+  {
+    id: "cp",
+    label: "Code postal",
+    requis: true
+  },
+  {
+    id: "region",
+    label: "Région",
+    type: "select",
+    requis: true,
+    options: [
+      "Auvergne-Rhône-Alpes",
+      "Bourgogne-Franche-Comté",
+      "Bretagne",
+      "Centre-Val de Loire",
+      "Corse",
+      "Grand Est",
+      "Guadeloupe",
+      "Guyane",
+      "Hauts-de-France",
+      "Île-de-France",
+      "La Réunion",
+      "Martinique",
+      "Mayotte",
+      "Normandie",
+      "Nouvelle-Aquitaine",
+      "Occitanie",
+      "Pays de la Loire",
+      "Provence-Alpes-Côte d'Azur"
+    ]
+  },
+  {
+    id: "academie",
+    label: "Académie",
+    requis: true
+  },
+  {
+    id: "__bloc2",
+    label: "Bloc 2 — Contact principal",
+    type: "section"
+  },
+  {
+    id: "referent_nom",
+    label: "Nom et prénom de la personne qui porte la demande",
+    requis: true
+  },
+  {
+    id: "referent_fonction",
+    label: "Fonction",
+    type: "radio",
+    requis: true,
+    options: [
+      "Chef d'établissement",
+      "Direction adjointe",
+      "CPE",
+      "Enseignant·e",
+      "Enseignant·e référent·e",
+      "Personnel éducatif / vie scolaire",
+      "Personnel médico-social",
+      "Autre"
+    ]
+  },
+  {
+    id: "referent_email",
+    label: "Email professionnel",
+    type: "email",
+    requis: true
+  },
+  {
+    id: "referent_telephone",
+    label: "Téléphone",
+    type: "tel"
+  },
+  {
+    id: "__bloc3",
+    label: "Bloc 3 — Besoin / motivation",
+    type: "section"
+  },
+  {
+    id: "enjeux",
+    label: "Quels sont aujourd'hui les principaux enjeux identifiés dans votre établissement ?",
+    type: "checkbox",
+    requis: true,
+    options: [
+      "Attention / concentration des élèves",
+      "Gestion du stress ou de la surcharge",
+      "Usages numériques",
+      "Climat scolaire / qualité des relations",
+      "Besoin de renforcer les compétences psychosociales",
+      "Besoin d'outils concrets pour les équipes",
+      "Autre"
+    ],
+    large: true
+  },
+  {
+    id: "besoin_partage",
+    label: "Ce besoin est-il partagé par la direction et/ou une partie de l'équipe ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui, clairement",
+      "Oui, partiellement",
+      "Pas encore vraiment",
+      "Je ne sais pas"
+    ],
+    large: true
+  },
+  {
+    id: "__bloc4",
+    label: "Bloc 4 — Public concerné",
+    type: "section"
+  },
+  {
+    id: "nb_professionnels",
+    label: "Combien de professionnels pourraient être concernés par la formation ?\n(minimum de 5 personnes volontaires)",
+    type: "radio",
+    requis: true,
+    options: [
+      "Moins de 10",
+      "10 à 20",
+      "21 à 40",
+      "Plus de 40",
+      "À préciser ultérieurement"
+    ],
+    large: true
+  },
+  {
+    id: "__bloc5",
+    label: "Bloc 5 — Conditions de mise en œuvre",
+    type: "section"
+  },
+  {
+    id: "faisabilite",
+    label: "À ce stade, la mise en place du programme vous semble :",
+    type: "radio",
+    requis: true,
+    options: [
+      "Facilement envisageable",
+      "Envisageable sous certaines conditions",
+      "Encore incertaine",
+      "Trop tôt pour le dire"
+    ]
+  },
+  {
+    id: "point_vigilance",
+    label: "Quel est aujourd'hui le principal point de vigilance pour mettre en place le programme ?",
+    type: "radio",
+    options: [
+      "Calendrier / disponibilité",
+      "Mobilisation des équipes",
+      "Arbitrage de direction",
+      "Organisation interne",
+      "Besoin de mieux comprendre le programme",
+      "Autre"
+    ],
+    large: true
+  },
+  {
+    id: "accord_direction",
+    label: "Disposez-vous déjà d'un accord de principe de la direction pour avancer ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui",
+      "Non",
+      "En discussion"
+    ],
+    large: true
+  },
+  {
+    id: "document_lien",
+    label: "Souhaitez-vous joindre un document utile à l'étude de votre demande ? (lien Google Drive)",
+    type: "url",
+    large: true
+  },
+  {
+    id: "__bloc6",
+    label: "Bloc 6 — Calendrier",
+    type: "section"
+  },
+  {
+    id: "demarrage_souhaite",
+    label: "À partir de quand souhaiteriez-vous idéalement démarrer ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Dans les 1 à 2 prochains mois",
+      "Dans le trimestre à venir",
+      "Au prochain semestre",
+      "À la prochaine rentrée",
+      "À définir"
+    ]
+  },
+  {
+    id: "contrainte_calendrier",
+    label: "Y a-t-il une contrainte de calendrier importante à connaître ?",
+    type: "textarea",
+    large: true
+  },
+  {
+    id: "__bloc7",
+    label: "Avez-vous été mis en relation par un formateur WISE-UP ?",
+    type: "section"
+  },
+  {
+    id: "apporteur_nom",
+    label: "Nom et prénom du formateur"
+  },
+  {
+    id: "apporteur_email",
+    label: "Email du formateur",
+    type: "email"
+  },
+  {
+    id: "__bloc8",
+    label: "Merci pour votre candidature !",
+    type: "section",
+    aide: "Si votre établissement rempli les critères, vous recevrez prochainement une invitation à une réunion d'information."
+  },
+  {
+    id: "consentement",
+    label: "Je confirme avoir lu les informations transmises et j'autorise l'association à me recontacter dans le cadre de cette demande.",
+    type: "consentement"
+  }
 ]
 ---
 
@@ -40,7 +287,7 @@ const CHAMPS: readonly Champ[] = [
 >
   <Candidature
     titre="Je suis un établissement"
-    chapo="Le Programme WISE-UP forme vos équipes éducatives et accompagne vos élèves sur une année scolaire. 100 % des frais sont pris en charge. Il faut au minimum 5 membres volontaires de l’équipe."
+    chapo="Merci pour votre intérêt pour le programme WISE-UP.<br />Ce formulaire nous permet de mieux comprendre votre établissement, vos besoins, et les conditions possibles de mise en œuvre.<br />Il sert de base pour étudier votre candidature et organiser un échange si nécessaire.<br />Durée estimée : 5 à 7 minutes."
     action="/api/candidature-etablissement"
     champs={CHAMPS}
     ok={url.get('ok')}

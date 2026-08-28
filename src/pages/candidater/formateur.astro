@@ -1,37 +1,281 @@
 ---
+/**
+ * Candidature — Je souhaite devenir formateur·rice.
+ *
+ * Les questions sont reprises A L'IDENTIQUE du Google Form
+ * « WISE-UP — 1. Candidature formateur·rice WISE UP », releve le 28/08/2026 sur le formulaire en ligne :
+ * meme ordre, memes libelles, memes choix, memes blocs, meme case de
+ * consentement finale.
+ *
+ * Candice a demande le 27/08 que les deux versions soient identiques.
+ * NE RIEN REFORMULER sans le lui demander — et si le Google Form change,
+ * c'est ce fichier qu'il faut remettre a jour.
+ *
+ * Source : docs.google.com/forms/d/1bBluOrhjHDuEfWgb743OFJYfm9XSpLMxs7Hhk1Y6SBI
+ */
 import Candidature, { type Champ } from '../../components/Candidature.astro'
 import Base from '../../layouts/Base.astro'
 
 const url = Astro.url.searchParams
 
 const CHAMPS: readonly Champ[] = [
-  { id: 'prenom', label: 'Prénom', requis: true, autocomplete: 'given-name' },
-  { id: 'nom', label: 'Nom', requis: true, autocomplete: 'family-name' },
-  { id: 'email', label: 'Adresse e-mail', type: 'email', requis: true, autocomplete: 'email' },
-  { id: 'telephone', label: 'Téléphone', type: 'tel', autocomplete: 'tel' },
-  { id: 'cp', label: 'Code postal', autocomplete: 'postal-code' },
-  { id: 'ville', label: 'Ville', requis: true, autocomplete: 'address-level2' },
-  { id: 'region', label: 'Région' },
-  { id: 'academie', label: 'Académie' },
   {
-    id: 'profession', label: 'Votre activité actuelle', requis: true, large: true,
-    aide: 'Enseignant·e, instructeur·rice de pleine conscience, psychologue, infirmier·ère scolaire…',
+    id: "__bloc1",
+    label: "Bloc 1 — Identité et coordonnées",
+    type: "section"
   },
   {
-    id: 'motivation', label: 'Ce qui vous amène vers WISE-UP', type: 'textarea', large: true,
-    aide: 'Votre expérience auprès des jeunes, votre pratique, vos disponibilités.',
+    id: "nom",
+    label: "Nom",
+    requis: true
   },
+  {
+    id: "prenom",
+    label: "Prénom",
+    requis: true
+  },
+  {
+    id: "ville",
+    label: "Ville",
+    requis: true
+  },
+  {
+    id: "cp",
+    label: "Code postal",
+    requis: true
+  },
+  {
+    id: "region",
+    label: "Région",
+    type: "select",
+    options: [
+      "Auvergne-Rhône-Alpes",
+      "Bourgogne-Franche-Comté",
+      "Bretagne",
+      "Centre-Val de Loire",
+      "Corse",
+      "Grand Est",
+      "Guadeloupe",
+      "Guyane",
+      "Hauts-de-France",
+      "Île-de-France",
+      "La Réunion",
+      "Martinique",
+      "Mayotte",
+      "Normandie",
+      "Nouvelle-Aquitaine",
+      "Occitanie",
+      "Pays de la Loire",
+      "Provence-Alpes-Côte d'Azur"
+    ]
+  },
+  {
+    id: "email",
+    label: "E-mail",
+    type: "email",
+    requis: true
+  },
+  {
+    id: "telephone",
+    label: "Téléphone",
+    type: "tel",
+    requis: true
+  },
+  {
+    id: "profession",
+    label: "Profession actuelle",
+    requis: true
+  },
+  {
+    id: "__bloc2",
+    label: "Bloc 2 — Parcours et qualifications",
+    type: "section"
+  },
+  {
+    id: "formation_instructeur",
+    label: "Avez-vous été formé·e comme instructeur·rice à un programme de pleine conscience ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui, je suis instructeur·rice certifié·e MBSR",
+      "Oui, je suis instructeur·rice certifié·e MBCT",
+      "Oui, je suis instructeur·rice / formateur·rice PEACE",
+      "Oui, j'ai suivi une autre formation professionnelle de formateur·rice en mindfulness",
+      "Non, j'ai uniquement suivi un cycle en tant que participant·e"
+    ],
+    large: true
+  },
+  {
+    id: "__bloc3",
+    label: "Bloc 3 — Expérience d'animation",
+    type: "section"
+  },
+  {
+    id: "experience_animation",
+    label: "Avez-vous déjà animé des séances ou formations  basées sur la présence attentive en tant que formateur·rice ?",
+    type: "checkbox",
+    requis: true,
+    options: [
+      "Oui, auprès d'adultes",
+      "Oui, auprès d'enseignants",
+      "Oui, auprès d'élèves",
+      "Non"
+    ],
+    large: true
+  },
+  {
+    id: "pratique_personnelle",
+    label: "Avez vous une pratique personnelle basée sur la présence attentive le yoga, la sophrologie, l’intériorité ou autres approches similaires?",
+    type: "textarea",
+    requis: true,
+    large: true
+  },
+  {
+    id: "annees_experience",
+    label: "Combien d'années ou de sessions d'expérience avez-vous dans l'animation de groupe ?",
+    requis: true,
+    large: true
+  },
+  {
+    id: "interventions_animees",
+    label: "Pouvez-vous décrire une ou deux interventions que vous avez animées ?",
+    type: "textarea",
+    requis: true,
+    aide: "contexte, durée, objectifs, taille du groupe",
+    large: true
+  },
+  {
+    id: "__bloc4",
+    label: "Bloc 4 — Motivation et disponibilité",
+    type: "section"
+  },
+  {
+    id: "motivation",
+    label: "Pourquoi souhaitez-vous devenir formateur·rice WISE-UP ?",
+    type: "textarea",
+    requis: true,
+    large: true
+  },
+  {
+    id: "disponible_2026_27",
+    label: "Êtes-vous disponible pour vous former lors de l'année scolaire 2026-27 ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui",
+      "Non",
+      "Partiellement"
+    ],
+    large: true
+  },
+  {
+    id: "__bloc5",
+    label: "Bloc 5 — Lien éventuel avec un établissement",
+    type: "section"
+  },
+  {
+    id: "etab_pressenti",
+    label: "Avez-vous déjà un établissement intéressé ou pressenti pour accueillir le programme ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui",
+      "Non",
+      "En discussion"
+    ],
+    large: true
+  },
+  {
+    id: "etab_pressenti_nom",
+    label: "Nom de l'établissement candidat",
+    requis: true
+  },
+  {
+    id: "etab_pressenti_adresse",
+    label: "Adresse postal de l'établissement candidat",
+    requis: true
+  },
+  {
+    id: "etab_pressenti_ville",
+    label: "Ville de l'établissement candidat",
+    requis: true
+  },
+  {
+    id: "etab_pressenti_cp",
+    label: "Code postal de l'établissement candidat",
+    requis: true
+  },
+  {
+    id: "etab_pressenti_academie",
+    label: "Académie de l'établissement candidat",
+    requis: true
+  },
+  {
+    id: "etab_pressenti_type",
+    label: "Type d'établissement",
+    type: "radio",
+    requis: true,
+    options: [
+      "École primaire",
+      "Collège",
+      "Lycée général et technologique",
+      "Lycée professionnel",
+      "Autre",
+      "Non défini à ce stade"
+    ]
+  },
+  {
+    id: "direction_nom",
+    label: "Nom de la personne de direction contactée dans l'établissement",
+    requis: true,
+    large: true
+  },
+  {
+    id: "direction_email",
+    label: "Email de la direction / contact de direction",
+    type: "email",
+    requis: true
+  },
+  {
+    id: "accord_principe",
+    label: "Accord de principe de l'établissement ?",
+    type: "radio",
+    requis: true,
+    options: [
+      "Oui",
+      "Non",
+      "En discussion"
+    ]
+  },
+  {
+    id: "contexte_complement",
+    label: "Si vous le souhaitez, vous pouvez préciser le contexte, le timing ou les besoins exprimés",
+    type: "textarea",
+    large: true
+  },
+  {
+    id: "__bloc6",
+    label: "Merci pour votre candidature !",
+    type: "section",
+    aide: "Nous vous recontacterons si votre candidature rempli les critères."
+  },
+  {
+    id: "consentement",
+    label: "Je confirme avoir lu les conditions de participation et j'autorise l'association à me contacter dans le cadre de cette candidature.",
+    type: "consentement"
+  }
 ]
 ---
 
 <Base
   title="Candidater — Devenir formateur·rice | EUNEOS"
-  description="Rejoignez les formateur·rices du Programme WISE-UP : 16 h de formation, puis l’accompagnement d’établissements sur l’année scolaire."
+  description="Rejoignez une prochaine cohorte de formateur·rices WISE-UP : parcours, expérience d’animation et disponibilités."
   heroFold="none"
+  noindex={false}
 >
   <Candidature
     titre="Je souhaite devenir formateur·rice"
-    chapo="Les formateur·rices WISE-UP suivent 16 h de formation, puis accompagnent des établissements sur l’année scolaire. Une réunion d’information précède chaque cohorte."
+    chapo="Merci de votre intérêt pour le programme WISE-UP.<br />Ce formulaire nous permet de mieux connaître votre parcours, votre expérience d&#x27;animation, votre lien éventuel avec un établissement, ainsi que vos disponibilités pour rejoindre une prochaine cohorte de formateur·rices WISE-UP.<br />Les informations recueillies serviront à étudier votre candidature et, si besoin, à organiser un échange complémentaire.<br />Durée estimée : 8 à 10 minutes."
     action="/api/candidature-formateur"
     champs={CHAMPS}
     ok={url.get('ok')}

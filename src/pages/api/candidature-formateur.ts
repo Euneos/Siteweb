@@ -3,20 +3,58 @@ import { cohorteActive, creer, jeton, parEmail, relier } from '../../lib/nocodb'
 
 export const prerender = false
 
-const REQUIS = ['nom', 'prenom', 'email', 'ville', 'profession'] as const
+/**
+ * Candidature formateur·rice.
+ *
+ * Les champs correspondent 1 pour 1 aux 27 questions du Google Form
+ * « WISE-UP — 1. Candidature formateur·rice WISE UP ». L'identite de la
+ * personne va dans `formateurs`, tout ce qui decrit la CANDIDATURE (parcours,
+ * experience, motivation, etablissement pressenti, consentement) va dans
+ * `engagements` : une personne peut candidater sur plusieurs cohortes.
+ */
+
+const ROUTE = '/candidater/formateur'
+
+/** Obligatoires cote Google Form — meme liste, meme exigence. */
+const REQUIS = [
+  'nom', 'prenom', 'ville', 'cp', 'email', 'telephone', 'profession',
+  'formation_instructeur', 'pratique_personnelle', 'annees_experience',
+  'interventions_animees', 'motivation', 'disponible_2026_27',
+  'etab_pressenti', 'etab_pressenti_nom', 'etab_pressenti_adresse',
+  'etab_pressenti_ville', 'etab_pressenti_cp', 'etab_pressenti_academie',
+  'etab_pressenti_type', 'direction_nom', 'direction_email', 'accord_principe',
+] as const
+
+const vider = (v: string | undefined) => {
+  const s = (v ?? '').trim()
+  return s === '' ? undefined : s
+}
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const form = await request.formData()
   const d = Object.fromEntries(form) as Record<string, string>
-  const vide = REQUIS.filter((k) => !d[k]?.trim())
-  if (vide.length) return redirect(`/candidater/formateur?erreur=champs&manquants=${vide.join(',')}`, 303)
+  // Cases a cocher : plusieurs valeurs pour un meme nom. Le libelle du Google
+  // Form contient des virgules, donc on stocke en texte separe par « · »
+  // (NocoDB refuse les virgules dans un MultiSelect).
+  const experience = form.getAll('experience_animation').map(String).filter(Boolean)
+
+  const vide = REQUIS.filter((k) => !vider(d[k]))
+  if (!experience.length) vide.push('experience_animation' as never)
+  if (vide.length) {
+    return redirect(`${ROUTE}?erreur=champs&manquants=${vide.join(',')}`, 303)
+  }
   const email = d.email.trim().toLowerCase()
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return redirect('/candidater/formateur?erreur=email', 303)
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return redirect(`${ROUTE}?erreur=email`, 303)
+  }
+  if (!vider(d.consentement)) {
+    return redirect(`${ROUTE}?erreur=consentement`, 303)
+  }
 
   const token = jeton(locals)
   if (!token) {
     console.error('[candidature-formateur] NOCODB_TOKEN absent, candidature NON enregistree', email)
-    return redirect('/candidater/formateur?erreur=indisponible', 303)
+    return redirect(`${ROUTE}?erreur=indisponible`, 303)
   }
 
   try {
@@ -28,11 +66,10 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
         nom: d.nom.trim(),
         prenom: d.prenom.trim(),
         email,
-        telephone: d.telephone || undefined,
-        cp: d.cp || undefined,
+        telephone: vider(d.telephone),
+        cp: vider(d.cp),
         ville: d.ville.trim(),
-        region: d.region || undefined,
-        academie: d.academie || undefined,
+        region: vider(d.region),
         profession: d.profession.trim(),
       })
     }
@@ -40,15 +77,33 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     const engId = await creer(token, 'engagements', {
       statut: 'Candidature recue',
       date_candidature: new Date().toISOString().slice(0, 10),
-      notes: d.motivation || undefined,
+      formation_instructeur: d.formation_instructeur,
+      experience_animation: experience.join(' · '),
+      pratique_personnelle: vider(d.pratique_personnelle),
+      annees_experience: vider(d.annees_experience),
+      interventions_animees: vider(d.interventions_animees),
+      motivation: vider(d.motivation),
+      disponible_2026_27: d.disponible_2026_27,
+      etab_pressenti: d.etab_pressenti,
+      etab_pressenti_nom: vider(d.etab_pressenti_nom),
+      etab_pressenti_adresse: vider(d.etab_pressenti_adresse),
+      etab_pressenti_ville: vider(d.etab_pressenti_ville),
+      etab_pressenti_cp: vider(d.etab_pressenti_cp),
+      etab_pressenti_academie: vider(d.etab_pressenti_academie),
+      etab_pressenti_type: vider(d.etab_pressenti_type),
+      direction_nom: vider(d.direction_nom),
+      direction_email: vider(d.direction_email)?.toLowerCase(),
+      accord_principe: d.accord_principe,
+      contexte_complement: vider(d.contexte_complement),
+      consentement: true,
     })
     await relier(token, 'engagements.formateur', 'engagements', engId, formId)
     const coh = await cohorteActive(token)
     if (coh) await relier(token, 'engagements.cohorte', 'engagements', engId, coh)
 
-    return redirect('/candidater/formateur?ok=1', 303)
+    return redirect(`${ROUTE}?ok=1`, 303)
   } catch (e) {
     console.error('[candidature-formateur]', e instanceof Error ? e.message : e)
-    return redirect('/candidater/formateur?erreur=technique', 303)
+    return redirect(`${ROUTE}?erreur=technique`, 303)
   }
 }
