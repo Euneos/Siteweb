@@ -96,17 +96,16 @@ const impact = [
   { valeur: '100 %', legende: 'des frais pris en charge par le Programme' },
 ]
 
-/* Temoignages fournis le 20/08. Les prenoms portent un « ? » dans la maquette :
-   Candice ne les a pas confirmes — on garde la marque pour ne pas l'oublier. */
+/* Les prenoms ne sont pas publies tant qu'ils ne sont pas confirmes. */
 const temoins = [
   {
-    nom: 'Marie ?',
+    nom: 'Témoignage',
     citation:
       '« L’importance de s’arrêter et prendre conscience de soi et de ce que l’on ressent, accepter et accueillir nos émotions pour pouvoir guider les élèves. »',
     role: 'Enseignant·e, Collège Alexander Fleming (Orsay)',
   },
   {
-    nom: 'Romain ?',
+    nom: 'Témoignage',
     citation:
       '« Formation essentielle pour que notre posture puisse accueillir le mal-être des élèves — ouvrir le débat, libérer la parole dans un emploi du temps très chargé. »',
     role: 'Enseignant·e, Lycée Jean d’Ormesson (Châteaurenard)',
@@ -306,8 +305,8 @@ const faq = [
           temoins.map((t) => (
             <li class="temoin">
               <Paper surface="ocre" fold="none" class="temoin__name">{t.nom}</Paper>
-              <div class="temoin__ph">
-                <Photo ratio="3/4" label="portrait" />
+              <div class="temoin__ph temoin__ph--symbol" aria-hidden="true">
+                <Brand name="fig2" />
               </div>
               <Paper surface="papier" fold="br" class="temoin__card">
                 <blockquote>{t.citation}</blockquote>
@@ -330,7 +329,7 @@ const faq = [
         <h2 class="faq__t">Questions fréquentes</h2>
         <dl class="faq__list">
           {
-            faq.map((item) => (
+            faq.filter((item) => !item.brouillon).map((item) => (
               <details class="faq__item">
                 <summary>{item.q}</summary>
                 <p class:list={[item.brouillon && 'is-brouillon']}>{item.r}</p>
@@ -446,8 +445,8 @@ const faq = [
 
   /* reponse de FAQ encore a valider par le client */
   .faq__item p.is-brouillon {
-    border-left: 3px solid var(--jaune);
-    padding-left: 0.75rem;
+    border: 1.5px solid var(--jaune);
+    padding: 0.75rem;
   }
 
   /* ETAPES */
@@ -576,6 +575,14 @@ const faq = [
     z-index: 2;
     position: relative;
   }
+  .temoin__ph--symbol {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    padding: 18%;
+    background: var(--rose-clair);
+    color: var(--vert);
+  }
   .temoin__card {
     /* releve : pli aplati 60,3 x 25,2 pt sur un bloc de 205,9 x 175,9 */
     --fx: clamp(2.5rem, 10.1vw, 9.5rem);
@@ -674,6 +681,12 @@ const faq = [
     width: 26%;
     min-width: 90px;
     z-index: 1;
+  }
+
+  @media (min-width: 861px) and (max-width: 1100px) {
+    .faq__cartouche {
+      right: 0;
+    }
   }
 
   /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage

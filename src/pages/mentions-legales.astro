@@ -2,9 +2,8 @@
 /**
  * Mentions legales — obligatoires (LCEN art. 6-III).
  *
- * Redigees a partir des elements connus du site. Les trois points marques
- * « A COMPLETER » ne peuvent venir que d'EUNEOS : numero RNA, identite du
- * directeur de publication, et le cas echeant le numero SIRET.
+ * RNA et SIRET verifies dans l'API Recherche d'entreprises de l'Etat.
+ * L'identite du directeur de publication doit encore etre confirmee par EUNEOS.
  */
 import Base from '../layouts/Base.astro'
 ---
@@ -17,11 +16,11 @@ import Base from '../layouts/Base.astro'
     <p>
       <strong>EUNEOS</strong> — association loi 1901 d'intérêt général, fondée en avril 2026.<br />
       118 route d'Espagne, 31100 Toulouse, France<br />
+      RNA : W313042230 — SIRET : 105 557 425 00011<br />
       <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>
     </p>
     <p class="acompleter">
-      À COMPLÉTER par EUNEOS : numéro RNA (déclaration en préfecture), numéro SIRET le cas
-      échéant, et nom du directeur de la publication.
+      À COMPLÉTER par EUNEOS : nom du directeur ou de la directrice de la publication.
     </p>
 
     <h2>Hébergement</h2>
@@ -93,8 +92,8 @@ import Base from '../layouts/Base.astro'
   }
   /* Ce qui reste a fournir par EUNEOS — visible expres, pour ne pas l'oublier. */
   .legal .acompleter {
-    border-left: 4px solid var(--jaune);
-    padding: 0.7rem 0 0.7rem 0.9rem;
+    border: 1.5px solid var(--jaune);
+    padding: 0.7rem 0.9rem;
     background: color-mix(in srgb, var(--jaune) 12%, transparent);
     font-size: 0.92rem;
   }

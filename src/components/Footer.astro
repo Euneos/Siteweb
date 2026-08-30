@@ -15,16 +15,17 @@ import Brand from './Brand.astro'
   </div>
 
   <div class="page ftr__in">
-    <form class="ftr__news" method="POST" action="/api/newsletter">
+    <form class="ftr__news" id="newsletter" method="POST" action="/api/newsletter">
+      <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="ftr__lead">
         Rejoignez notre newsletter pour recevoir nos ressources et dernières actualités :
       </p>
 
       <div class="ftr__fields">
         <label class="sr-only" for="nl-nom">Nom et prénom</label>
-        <input id="nl-nom" name="nom" type="text" placeholder="Nom/Prénom" autocomplete="name" required />
+        <input id="nl-nom" name="nom" type="text" placeholder="Nom/Prénom" autocomplete="name" maxlength="160" required />
         <label class="sr-only" for="nl-mail">Adresse e-mail</label>
-        <input id="nl-mail" name="email" type="email" placeholder="Email" autocomplete="email" required />
+        <input id="nl-mail" name="email" type="email" placeholder="Email" autocomplete="email" maxlength="254" required />
       </div>
 
       <fieldset class="ftr__radios">
@@ -33,6 +34,13 @@ import Brand from './Brand.astro'
         <label><input type="radio" name="profil" value="partenaire" /> <span>Je suis partenaire</span></label>
         <label><input type="radio" name="profil" value="curieux" /> <span>Je suis curieuse/curieux</span></label>
       </fieldset>
+
+      <p class="ftr__privacy">
+        En envoyant ce formulaire, vous acceptez de recevoir la newsletter EUNEOS. Vous pourrez
+        vous désinscrire à tout moment. <a href="/politique-de-confidentialite">En savoir plus</a>.
+      </p>
+
+      <p class="ftr__status" id="newsletter-status" aria-live="polite"></p>
 
       <button type="submit" class="ftr__submit">Envoyer</button>
     </form>
@@ -69,6 +77,29 @@ import Brand from './Brand.astro'
     <a href="/cookies">Cookies</a>
   </div>
 </footer>
+
+<script>
+  const params = new URLSearchParams(window.location.search)
+  const state = params.get('nl')
+  const status = document.querySelector<HTMLElement>('#newsletter-status')
+
+  if (state && status) {
+    const messages: Record<string, string> = {
+      ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
+      confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
+      confirme: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
+      erreur: 'Renseignez votre nom et votre adresse e-mail.',
+      email: 'L’adresse e-mail ne semble pas valide.',
+      profil: 'Choisissez le profil qui vous correspond.',
+      indisponible: 'L’inscription est momentanément indisponible. Réessayez plus tard.',
+      technique: 'Une erreur technique empêche l’inscription. Réessayez plus tard.',
+    }
+    status.textContent = messages[state] ?? 'Une erreur est survenue.'
+    const success = ['ok', 'confirmation', 'confirme'].includes(state)
+    status.classList.add(success ? 'is-ok' : 'is-error')
+    if (!success) status.setAttribute('role', 'alert')
+  }
+</script>
 
 <style>
   .ftr {
@@ -130,6 +161,21 @@ import Brand from './Brand.astro'
     accent-color: var(--jaune);
     width: 1rem;
     height: 1rem;
+  }
+  .ftr__privacy {
+    max-width: 42rem;
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+  .ftr__privacy a {
+    color: inherit;
+  }
+  .ftr__status:not(:empty) {
+    margin: 0 0 1rem;
+    padding: 0.75rem;
+    border: 1.5px solid currentColor;
+    font-weight: 600;
   }
   .ftr__submit {
     background: var(--blanc);

@@ -167,11 +167,29 @@ Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pd
 - `POST /api/contact` — page Nous contacter
 - `POST /api/newsletter` — pied de page, avec la **segmentation en 3**
   (établissement / partenaire / curieux) portée par le design lui-même
+- `POST /api/candidature-etablissement` et `/api/candidature-formateur` —
+  écriture dans NocoDB et accusé Brevo lorsque le transport est configuré
 
-Les deux valident les champs et tracent la demande dans les logs Cloudflare.
-**Il ne manque que `BREVO_API_KEY`** pour brancher l'envoi et l'accusé de
-réception prévus au brief. La segmentation doit alimenter la même base que le
-portail de candidature.
+Les formulaires refusent les valeurs trop longues, les choix inconnus et les
+soumissions d'une autre origine. Ils comportent aussi un champ piège anti-robot.
+Contact et newsletter ne renvoient jamais un faux succès : sans configuration
+Brevo, ils affichent une indisponibilité et ne jettent pas les données dans les
+logs.
+
+Variables Cloudflare nécessaires (voir `.dev.vars.example`) :
+
+- `NOCODB_TOKEN` pour les candidatures ;
+- `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` et `EQUIPE_EMAIL` pour les e-mails ;
+- `BREVO_LIST_ETABLISSEMENT`, `BREVO_LIST_PARTENAIRE` et
+  `BREVO_LIST_CURIEUX` pour la segmentation de la newsletter ;
+- `BREVO_DOI_TEMPLATE_ID` pour l'e-mail de double confirmation de la newsletter ;
+- `HOOK_SECRET` pour authentifier le webhook NocoDB.
+
+Les quatre endpoints de formulaire publics sont proteges dans Cloudflare par la
+regle de securite `Limiter les formulaires publics EUNEOS` : blocage pendant
+10 secondes au-dela de 5 requetes en 10 secondes pour une meme adresse IP. La
+limitation reste au niveau de la zone car Pages ne prend pas en charge les
+bindings `ratelimits` de Workers.
 
 ## Ce qui reste à obtenir du client
 

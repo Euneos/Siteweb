@@ -23,8 +23,6 @@ export const NC = {
   },
 } as const
 
-type Env = Record<string, string> | undefined
-
 export function jeton(locals: unknown): string | null {
   const env = (locals as { runtime?: { env?: Record<string, string> } })?.runtime?.env
   return env?.NOCODB_TOKEN ?? null
@@ -35,9 +33,21 @@ async function appel(token: string, chemin: string, corps?: unknown) {
     method: corps === undefined ? 'GET' : 'POST',
     headers: { 'xc-token': token, 'Content-Type': 'application/json' },
     body: corps === undefined ? undefined : JSON.stringify(corps),
+    signal: AbortSignal.timeout(12_000),
   })
   if (!r.ok) throw new Error(`NocoDB ${r.status} ${chemin} : ${(await r.text()).slice(0, 200)}`)
   return r.json()
+}
+
+/** Supprime un enregistrement cree pendant une operation restee incomplete. */
+export async function supprimer(token: string, table: keyof typeof NC.tables, id: number) {
+  const r = await fetch(`${API}/tables/${NC.tables[table]}/records`, {
+    method: 'DELETE',
+    headers: { 'xc-token': token, 'Content-Type': 'application/json' },
+    body: JSON.stringify([{ Id: id }]),
+    signal: AbortSignal.timeout(12_000),
+  })
+  if (!r.ok) throw new Error(`NocoDB ${r.status} suppression ${table}#${id} : ${(await r.text()).slice(0, 200)}`)
 }
 
 /** Cree un enregistrement et renvoie son Id. */
@@ -66,4 +76,14 @@ export async function parEmail(token: string, table: 'formateurs', email: string
     list: { Id: number }[]
   }
   return r.list[0]?.Id ?? null
+}
+
+/** Retrouve un etablissement existant sans confondre deux ecoles ayant le meme referent. */
+export async function parEtablissement(token: string, email: string, nom: string): Promise<number | null> {
+  const w = encodeURIComponent(`(referent_email,eq,${email})`)
+  const r = (await appel(token, `/tables/${NC.tables.etablissements}/records?limit=50&where=${w}&fields=Id,nom`)) as {
+    list: { Id: number; nom?: string }[]
+  }
+  const nomNormalise = nom.trim().toLocaleLowerCase('fr')
+  return r.list.find((e) => e.nom?.trim().toLocaleLowerCase('fr') === nomNormalise)?.Id ?? null
 }

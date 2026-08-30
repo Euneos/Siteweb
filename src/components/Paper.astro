@@ -30,14 +30,15 @@ interface Props {
   class?: string
 }
 
+const props = Astro.props as Props
 const {
   surface = 'blanc',
   fold = 'br',
   outline = false,
   foldSize,
-  as: Tag = 'div',
   class: cls = '',
-} = Astro.props
+} = props
+const Tag = (Astro.props as any).as ?? 'div'
 
 const CALIBRES: Record<string, string> = {
   xl: 'var(--fold-xl)',

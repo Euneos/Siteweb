@@ -6,11 +6,23 @@
  * dont CHAQUE champ est lui-meme une boite a coin plie.
  */
 import Cartouche from '../components/Cartouche.astro'
-import Cta from '../components/Cta.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
+
+export const prerender = false
+
+const params = Astro.url.searchParams
+const ok = params.has('ok')
+const emailEnvoye = params.has('email')
+const erreur = params.get('erreur')
+const messages: Record<string, string> = {
+  champs: 'Il manque des informations obligatoires.',
+  email: 'L’adresse e-mail ne semble pas valide.',
+  indisponible: 'Le formulaire est momentanément indisponible. Écrivez-nous directement à contact@euneos.fr.',
+  technique: 'Le message n’a pas pu être envoyé. Réessayez dans quelques minutes ou écrivez-nous à contact@euneos.fr.',
+}
 
 const champs = [
   { id: 'nom', label: 'Nom', type: 'text', autocomplete: 'family-name' },
@@ -35,13 +47,31 @@ const champs = [
     <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="ct__panel">
       <h1>Des questions<br />ou des suggestions ?</h1>
 
-      <form class="ct__form" id="ct-form" method="POST" action="/api/contact">
+      {
+        ok && (
+          <p class="ct__status ct__status--ok" role="status">
+            <strong>Message bien reçu.</strong> {emailEnvoye
+              ? 'Un accusé de réception vient de vous être envoyé par e-mail.'
+              : 'L’équipe EUNEOS vous répondra dans les meilleurs délais.'}
+          </p>
+        )
+      }
+      {
+        erreur && (
+          <p class="ct__status ct__status--err" role="alert">
+            {messages[erreur] ?? 'Une erreur est survenue.'}
+          </p>
+        )
+      }
+
+      {!ok && <form class="ct__form" id="ct-form" method="POST" action="/api/contact">
+        <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
         {
           champs.map((c) => (
             <p class="ct__row">
               <label for={c.id}>{c.label}</label>
               <span class="ct__field paper fold-br">
-                <input id={c.id} name={c.id} type={c.type} autocomplete={c.autocomplete} required />
+                <input id={c.id} name={c.id} type={c.type} autocomplete={c.autocomplete} maxlength={c.type === 'email' ? 254 : 160} required />
               </span>
             </p>
           ))
@@ -50,14 +80,18 @@ const champs = [
         <p class="ct__row">
           <label for="message">Message</label>
           <span class="ct__field ct__field--area paper fold-br">
-            <textarea id="message" name="message" rows="5" required></textarea>
+            <textarea id="message" name="message" rows="5" maxlength="5000" required></textarea>
           </span>
         </p>
 
-      </form>
-      <div class="ct__submit">
-        <button type="submit" form="ct-form" class="cta s-papier ct__submit-btn">Envoyer</button>
-      </div>
+      </form>}
+      {
+        !ok && (
+          <div class="ct__submit">
+            <button type="submit" form="ct-form" class="cta s-papier ct__submit-btn">Envoyer</button>
+          </div>
+        )
+      }
     </Paper>
 
     <address class="ct__adr">
@@ -67,6 +101,33 @@ const champs = [
     </address>
   </section>
 </Base>
+
+<script>
+  const storageKey = 'euneos-contact'
+  const form = document.querySelector<HTMLFormElement>('#ct-form')
+  const params = new URLSearchParams(window.location.search)
+
+  if (params.has('ok')) sessionStorage.removeItem(storageKey)
+
+  if (form && params.has('erreur')) {
+    try {
+      const values = JSON.parse(sessionStorage.getItem(storageKey) ?? '{}') as Record<string, string>
+      for (const [name, value] of Object.entries(values)) {
+        const control = form.elements.namedItem(name)
+        if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) control.value = value
+      }
+    } catch {
+      sessionStorage.removeItem(storageKey)
+    }
+  }
+
+  form?.addEventListener('submit', () => {
+    const values = Object.fromEntries(
+      [...new FormData(form)].filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    )
+    sessionStorage.setItem(storageKey, JSON.stringify(values))
+  })
+</script>
 
 <style is:global>
   .ct {
@@ -127,6 +188,18 @@ const champs = [
     max-width: 36rem;
     margin-inline: auto;
     padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .ct__status {
+    max-width: 36rem;
+    margin: 0 auto 1.5rem;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid currentColor;
+  }
+  .ct__status--ok {
+    background: color-mix(in srgb, var(--vert-clair) 24%, transparent);
+  }
+  .ct__status--err {
+    background: color-mix(in srgb, var(--orange) 18%, transparent);
   }
   .ct__row {
     display: grid;

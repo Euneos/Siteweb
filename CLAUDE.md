@@ -104,10 +104,9 @@ documents : l'agent les suivra.
 
 ## Règles de conduite
 
-**1. Aucun e-mail automatique vers l'extérieur.**
-Une candidature est enregistrée et vous la traitez. L'accusé de réception part quand
-**vous** décidez de le faire, jamais tout seul. C'est un choix délibéré : les personnes qui
-candidatent doivent recevoir une réponse humaine.
+**1. Seul l'accusé de réception est automatique.**
+Une candidature enregistrée déclenche un accusé Brevo, conformément à la décision du 27/08.
+L'étude du dossier et toutes les réponses qui font avancer son statut restent humaines.
 
 **2. Les données personnelles ne sortent pas de la base.**
 Les fiches contiennent des enseignants, des formateurs et des élèves. Elles ne se copient

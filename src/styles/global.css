@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* ============================================================
    EUNEOS — Design system
    Source : charte_graphique.pdf V3 (juillet 2026) + maquette_euneos V 7 aout candice.pdf
@@ -192,7 +198,9 @@ body {
   z-index: -1;
   background: var(--surface, var(--blanc));
 }
-/* Le rabat : il remplit exactement le coin retire par le clip du fond. */
+/* Le rabat : il se dessine cote feuille, contre le coin retire. Les CTA
+   utilisaient deja cette geometrie ; les cartes pleines remplissaient a tort le
+   triangle supprime, ce qui lisait comme une encoche plate plutot qu'un pli. */
 .paper[class*='fold-']::after {
   content: '';
   position: absolute;
@@ -216,7 +224,7 @@ body {
 .paper.fold-br::after {
   right: 0;
   bottom: 0;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 /* coin haut-droit */
@@ -226,7 +234,7 @@ body {
 .paper.fold-tr::after {
   right: 0;
   top: 0;
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
 }
 
 /* coin haut-gauche */
@@ -236,7 +244,7 @@ body {
 .paper.fold-tl::after {
   left: 0;
   top: 0;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 /* coin bas-gauche */
@@ -246,7 +254,7 @@ body {
 .paper.fold-bl::after {
   left: 0;
   bottom: 0;
-  clip-path: polygon(0 100%, 100% 100%, 0 0);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
 /* Variante « contour » : la bulle a filet des heros.
@@ -635,6 +643,14 @@ body {
   white-space: nowrap;
   border: 0;
 }
+.form-trap {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -920,7 +936,7 @@ body {
   max-width: 46rem;
   margin: 0 auto clamp(1.5rem, 3vw, 2rem);
   padding: 0.9rem 1.1rem;
-  border-left: 4px solid;
+  border: 1.5px solid;
 }
 .cand__ok {
   border-color: var(--vert);

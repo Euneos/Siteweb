@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro'
-import { cohorteActive, creer, jeton, parEmail, relier } from '../../lib/nocodb'
+import { brevoEnv, envoyerEmail } from '../../lib/brevo'
+import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte, emailValide, origineAutorisee } from '../../lib/forms'
+import { cohorteActive, creer, jeton, parEmail, relier, supprimer } from '../../lib/nocodb'
 
 export const prerender = false
 
@@ -25,14 +27,34 @@ const REQUIS = [
   'etab_pressenti_type', 'direction_nom', 'direction_email', 'accord_principe',
 ] as const
 
+const CHOIX = {
+  region: ['Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne', 'Centre-Val de Loire', 'Corse', 'Grand Est', 'Guadeloupe', 'Guyane', 'Hauts-de-France', 'Île-de-France', 'La Réunion', 'Martinique', 'Mayotte', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie', 'Pays de la Loire', "Provence-Alpes-Côte d'Azur"],
+  formation_instructeur: ['Oui, je suis instructeur·rice certifié·e MBSR', 'Oui, je suis instructeur·rice certifié·e MBCT', 'Oui, je suis instructeur·rice / formateur·rice PEACE', "Oui, j'ai suivi une autre formation professionnelle de formateur·rice en mindfulness", "Non, j'ai uniquement suivi un cycle en tant que participant·e"],
+  experience_animation: ["Oui, auprès d'adultes", "Oui, auprès d'enseignants", "Oui, auprès d'élèves", 'Non'],
+  disponible_2026_27: ['Oui', 'Non', 'Partiellement'],
+  etab_pressenti: ['Oui', 'Non', 'En discussion'],
+  etab_pressenti_type: ['École primaire', 'Collège', 'Lycée général et technologique', 'Lycée professionnel', 'Autre', 'Non défini à ce stade'],
+  accord_principe: ['Oui', 'Non', 'En discussion'],
+} as const
+
 const vider = (v: string | undefined) => {
   const s = (v ?? '').trim()
   return s === '' ? undefined : s
 }
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
+  if (!origineAutorisee(request)) return new Response('origine non autorisée', { status: 403 })
+
   const form = await request.formData()
-  const d = Object.fromEntries(form) as Record<string, string>
+  if (form.get('website')) return redirect(`${ROUTE}?ok=1`, 303)
+  if (
+    !aucunTexteTropLong(form) ||
+    !champsDansLesLimites(form, { email: 254, direction_email: 254 }) ||
+    !choixAutorises(form, CHOIX)
+  ) {
+    return redirect(`${ROUTE}?erreur=champs`, 303)
+  }
+  const d = donneesTexte(form)
   // Cases a cocher : plusieurs valeurs pour un meme nom. Le libelle du Google
   // Form contient des virgules, donc on stocke en texte separe par « · »
   // (NocoDB refuse les virgules dans un MultiSelect).
@@ -44,10 +66,11 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect(`${ROUTE}?erreur=champs&manquants=${vide.join(',')}`, 303)
   }
   const email = d.email.trim().toLowerCase()
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  const directionEmail = d.direction_email.trim().toLowerCase()
+  if (!emailValide(email) || !emailValide(directionEmail)) {
     return redirect(`${ROUTE}?erreur=email`, 303)
   }
-  if (!vider(d.consentement)) {
+  if (d.consentement !== 'Oui, je confirme') {
     return redirect(`${ROUTE}?erreur=consentement`, 303)
   }
 
@@ -57,10 +80,14 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect(`${ROUTE}?erreur=indisponible`, 303)
   }
 
+  let formId: number | null = null
+  let formCree = false
+  let engId: number | null = null
+
   try {
     // Une personne = une fiche. Si elle recandidate, on ajoute un engagement
     // a la fiche existante au lieu de creer un doublon.
-    let formId = await parEmail(token, 'formateurs', email)
+    formId = await parEmail(token, 'formateurs', email)
     if (!formId) {
       formId = await creer(token, 'formateurs', {
         nom: d.nom.trim(),
@@ -72,9 +99,10 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
         region: vider(d.region),
         profession: d.profession.trim(),
       })
+      formCree = true
     }
 
-    const engId = await creer(token, 'engagements', {
+    engId = await creer(token, 'engagements', {
       statut: 'Candidature recue',
       date_candidature: new Date().toISOString().slice(0, 10),
       formation_instructeur: d.formation_instructeur,
@@ -92,7 +120,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
       etab_pressenti_academie: vider(d.etab_pressenti_academie),
       etab_pressenti_type: vider(d.etab_pressenti_type),
       direction_nom: vider(d.direction_nom),
-      direction_email: vider(d.direction_email)?.toLowerCase(),
+      direction_email: directionEmail,
       accord_principe: d.accord_principe,
       contexte_complement: vider(d.contexte_complement),
       consentement: true,
@@ -101,8 +129,32 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     const coh = await cohorteActive(token)
     if (coh) await relier(token, 'engagements.cohorte', 'engagements', engId, coh)
 
-    return redirect(`${ROUTE}?ok=1`, 303)
+    let emailEnvoye = false
+    try {
+      emailEnvoye = await envoyerEmail(brevoEnv(locals), {
+        to: email,
+        subject: 'EUNEOS a bien reçu votre candidature WISE-UP',
+        text: `Bonjour ${d.prenom.trim()},\n\nVotre candidature pour devenir formateur·rice WISE-UP a bien été enregistrée. Notre équipe va l’étudier et reviendra vers vous dans les prochaines semaines.\n\nEUNEOS`,
+      })
+    } catch (emailError) {
+      console.error('[candidature-formateur-email]', emailError instanceof Error ? emailError.message : emailError)
+    }
+    return redirect(`${ROUTE}?ok=1${emailEnvoye ? '&email=1' : ''}`, 303)
   } catch (e) {
+    if (engId) {
+      try {
+        await supprimer(token, 'engagements', engId)
+      } catch (rollbackError) {
+        console.error('[candidature-formateur-rollback-engagement]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
+      }
+    }
+    if (formCree && formId) {
+      try {
+        await supprimer(token, 'formateurs', formId)
+      } catch (rollbackError) {
+        console.error('[candidature-formateur-rollback-formateur]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
+      }
+    }
     console.error('[candidature-formateur]', e instanceof Error ? e.message : e)
     return redirect(`${ROUTE}?erreur=technique`, 303)
   }

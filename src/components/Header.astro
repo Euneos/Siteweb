@@ -26,12 +26,12 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
       <Brand name="wordmark" height="2rem" />
     </a>
 
-    <input type="checkbox" id="nav-toggle" class="sr-only" />
-    <label for="nav-toggle" class="hdr__burger" aria-hidden="true">
-      <span></span><span></span><span></span>
-    </label>
+    <button type="button" class="hdr__burger" aria-expanded="false" aria-controls="menu-principal">
+      <span class="sr-only">Ouvrir le menu</span>
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
 
-    <nav class="hdr__nav" aria-label="Navigation principale">
+    <nav class="hdr__nav" id="menu-principal" aria-label="Navigation principale">
       {
         nav.map((item) => {
           const active = path === item.href
@@ -45,6 +45,33 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
     </nav>
   </div>
 </header>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('.hdr__burger')
+  const menu = document.querySelector<HTMLElement>('#menu-principal')
+
+  const fermer = () => {
+    if (!button || !menu) return
+    button.setAttribute('aria-expanded', 'false')
+    button.querySelector('.sr-only')!.textContent = 'Ouvrir le menu'
+    menu.classList.remove('is-open')
+  }
+
+  button?.addEventListener('click', () => {
+    if (!menu) return
+    const ouvert = button.getAttribute('aria-expanded') === 'true'
+    button.setAttribute('aria-expanded', String(!ouvert))
+    button.querySelector('.sr-only')!.textContent = ouvert ? 'Ouvrir le menu' : 'Fermer le menu'
+    menu.classList.toggle('is-open', !ouvert)
+  })
+  menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', fermer))
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && button?.getAttribute('aria-expanded') === 'true') {
+      fermer()
+      button.focus()
+    }
+  })
+</script>
 
 <style>
   .hdr {
@@ -76,7 +103,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   .hdr__link {
     text-decoration: none;
     font-size: 1rem;
-    color: color-mix(in srgb, currentColor 55%, transparent);
+    color: color-mix(in srgb, currentColor 75%, transparent);
     padding-block: 0.25rem;
   }
   .hdr__link:hover {
@@ -88,6 +115,13 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   }
   .hdr__burger {
     display: none;
+    color: inherit;
+    background: transparent;
+    border: 0;
+  }
+  .hdr__burger:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
   }
 
   @media (max-width: 860px) {
@@ -98,7 +132,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
       padding: 0.5rem;
       margin-right: -0.5rem;
     }
-    .hdr__burger span {
+    .hdr__burger > span:not(.sr-only) {
       display: block;
       width: 26px;
       height: 2px;
@@ -110,12 +144,11 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
       top: 100%;
       flex-direction: column;
       gap: 0;
-      background: color-mix(in srgb, currentColor 8%, transparent);
-      backdrop-filter: blur(14px);
+      background: var(--surface);
       padding: 0.5rem 0;
       display: none;
     }
-    #nav-toggle:checked ~ .hdr__nav {
+    .hdr__nav.is-open {
       display: flex;
     }
     .hdr__link {

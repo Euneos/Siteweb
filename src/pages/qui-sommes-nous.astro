@@ -257,8 +257,8 @@ const equipe = [
                 <Paper surface="ocre" fold="none" class="membre__name">
                   {m.nom}
                 </Paper>
-                <div class="membre__ph">
-                  <Photo ratio="3/4" label="portrait" />
+                <div class="membre__ph membre__ph--symbol" aria-hidden="true">
+                  <Brand name="fig2" />
                 </div>
                 <Paper surface="papier" fold="br" class="membre__card">
                   <p>{m.champ}</p>
@@ -280,8 +280,8 @@ const equipe = [
           equipe.map((m) => (
             <li class="membre">
               <Paper surface="ocre" fold="none" class="membre__name">{m.nom}</Paper>
-              <div class="membre__ph">
-                <Photo ratio="3/4" label="portrait" />
+              <div class="membre__ph membre__ph--symbol" aria-hidden="true">
+                <Brand name="fig2" />
               </div>
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
@@ -294,18 +294,6 @@ const equipe = [
     </div>
   </section>
 
-  <!-- PREUVE -->
-  <section class="section conf3">
-    <div class="filigrane" aria-hidden="true">
-      <div class="conf3__fig"><Brand name="fig3" height="100%" /></div>
-    </div>
-    <div class="page conf3__in">
-      <h2 class="c-t">Merci pour leur confiance</h2>
-      <ul class="conf3__logos">
-        {Array.from({ length: 6 }).map(() => <li aria-label="Logo partenaire à fournir" />)}
-      </ul>
-    </div>
-  </section>
 </Base>
 
 <style is:global>
@@ -555,6 +543,14 @@ const equipe = [
     width: 78%;
     margin-left: 12%;
   }
+  .membre__ph--symbol {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    padding: 18%;
+    background: var(--vert-clair);
+    color: var(--vert);
+  }
   .membre__card {
     padding: 1rem 1.25rem;
     display: grid;
@@ -576,45 +572,4 @@ const equipe = [
     }
   }
 
-  /* PREUVE */
-  .conf3 {
-    position: relative;
-    overflow: hidden;
-  }
-  .conf3__fig {
-    right: -2%;
-    color: var(--vert-clair);
-  }
-
-  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
-     negatif ci-dessus poussait l'element hors cadre et faisait scroller
-     TOUTE la page sur le cote. On rentre le debordement au point de
-     bascule ; sur ordinateur rien ne change. */
-  @media (max-width: 860px) {
-    .conf3__fig {
-      right: 0;
-    }
-  }
-  .conf3__in {
-    position: relative;
-    z-index: 1;
-  }
-  .conf3__logos {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: clamp(1rem, 3vw, 2.5rem);
-  }
-  .conf3__logos li {
-    aspect-ratio: 5 / 3;
-    background: var(--vert-clair);
-    opacity: 0.85;
-  }
-  @media (max-width: 860px) {
-    .conf3__logos {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
 </style>

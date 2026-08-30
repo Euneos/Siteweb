@@ -16,6 +16,8 @@
 import Candidature, { type Champ } from '../../components/Candidature.astro'
 import Base from '../../layouts/Base.astro'
 
+export const prerender = false
+
 const url = Astro.url.searchParams
 
 const CHAMPS: readonly Champ[] = [
@@ -279,6 +281,7 @@ const CHAMPS: readonly Champ[] = [
     action="/api/candidature-formateur"
     champs={CHAMPS}
     ok={url.get('ok')}
+    emailEnvoye={url.get('email')}
     erreur={url.get('erreur')}
     manquants={url.get('manquants')}
   />

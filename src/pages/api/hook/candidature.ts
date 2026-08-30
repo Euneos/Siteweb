@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { brevoEnv, envoyerEmail } from '../../../lib/brevo'
 
 /**
  * Point d'arrivee du webhook NocoDB : appele a chaque nouvelle candidature.
@@ -9,43 +10,22 @@ import type { APIRoute } from 'astro'
  * a NocoDB on a perdu cette notification : une candidature arrivait en
  * silence. C'est une regression, et elle se repare ici.
  *
- * ETAT : la plomberie est posee, l'ENVOI ne l'est pas. EUNEOS n'a pas encore
- * tranche par ou partent les e-mails (Brevo ? leur SMTP Viaduc ? autre).
- * Le jour ou c'est decide, il n'y a que `envoyer()` a completer et deux
- * variables a poser — le reste ne bouge pas.
+ * L'envoi passe par Brevo lorsque les secrets sont configures. Sans transport,
+ * la reponse et les logs indiquent explicitement que rien n'est parti.
  */
 export const prerender = false
 
-interface Env {
-  HOOK_SECRET?: string
-  EQUIPE_EMAIL?: string
-  BREVO_API_KEY?: string
-}
-
-const env = (locals: unknown): Env =>
-  ((locals as { runtime?: { env?: Env } })?.runtime?.env ?? {}) as Env
-
 /** Envoie la notification si un transport est configure. Sinon le dit. */
-async function envoyer(e: Env, sujet: string, corps: string): Promise<'envoye' | 'pas-de-transport'> {
+async function envoyer(e: ReturnType<typeof brevoEnv>, sujet: string, corps: string): Promise<'envoye' | 'pas-de-transport'> {
   const dest = e.EQUIPE_EMAIL
   if (!dest || !e.BREVO_API_KEY) return 'pas-de-transport'
 
-  const r = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: { 'api-key': e.BREVO_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sender: { name: 'Site EUNEOS', email: 'contact@euneos.fr' },
-      to: dest.split(',').map((x) => ({ email: x.trim() })),
-      subject: sujet,
-      textContent: corps,
-    }),
-  })
-  if (!r.ok) throw new Error(`Brevo ${r.status} : ${(await r.text()).slice(0, 160)}`)
+  await envoyerEmail(e, { to: dest, subject: sujet, text: corps })
   return 'envoye'
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const e = env(locals)
+  const e = brevoEnv(locals)
 
   // Le webhook est public : sans secret partage, n'importe qui pourrait
   // declencher des notifications. On refuse plutot que d'accepter.
@@ -96,7 +76,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     '',
     ...resume,
     '',
-    'Aucun accusé de réception n’a été envoyé : c’est volontaire.',
+    'Le site envoie un accusé de réception lorsque le transport Brevo est configuré.',
     'Ouvrez la base pour traiter le dossier, ou demandez à l’agent',
     '« montre-moi les candidatures pas encore traitées ».',
   ].join('\n')

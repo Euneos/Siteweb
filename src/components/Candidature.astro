@@ -10,9 +10,9 @@
  * sur les formulaires en ligne. Candice a demande le 27/08 que les deux
  * versions soient identiques : ne rien reformuler ici sans le lui demander.
  *
- * Principe repris du systeme d'Elsa, volontairement conserve : AUCUN email
- * automatique vers l'exterieur. La candidature est enregistree et l'equipe
- * la traite ; l'accuse de reception part quand elle passe le statut.
+ * Un accuse de reception Brevo est envoye apres l'enregistrement, conformement
+ * a la decision client du 27/08. La decision de fond reste humaine : l'equipe
+ * etudie la candidature et repond lorsqu'elle fait avancer son statut.
  */
 import Paper from './Paper.astro'
 
@@ -36,12 +36,14 @@ interface Props {
   action: string
   champs: readonly Champ[]
   ok?: string | null
+  emailEnvoye?: string | null
   erreur?: string | null
   manquants?: string | null
 }
 
-const { titre, chapo, action, champs, ok, erreur, manquants } = Astro.props
+const { titre, chapo, action, champs, ok, emailEnvoye, erreur, manquants } = Astro.props
 const absents = (manquants ?? '').split(',').filter(Boolean)
+const libelles = Object.fromEntries(champs.map((c) => [c.id, c.label]))
 
 const MESSAGES: Record<string, string> = {
   champs: 'Il manque des informations obligatoires.',
@@ -63,7 +65,7 @@ const pleineLargeur = (c: Champ) =>
   c.type === 'consentement'
 ---
 
-<section class="section cand">
+<section class="section cand" data-form-action={action}>
   <div class="page">
     <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="cand__panel">
       <h1>{titre}</h1>
@@ -73,8 +75,9 @@ const pleineLargeur = (c: Champ) =>
         ok && (
           <p class="cand__ok" role="status">
             <strong>Candidature bien reçue.</strong> Notre équipe l’étudie et revient vers vous dans
-            les prochaines semaines. Vous ne recevrez pas d’e-mail automatique : c’est une personne
-            qui vous répondra.
+            les prochaines semaines. {emailEnvoye
+              ? 'Un accusé de réception vient de vous être envoyé par e-mail.'
+              : 'Une personne de l’équipe vous répondra.'}
           </p>
         )
       }
@@ -82,12 +85,13 @@ const pleineLargeur = (c: Champ) =>
         erreur && (
           <p class="cand__err" role="alert">
             {MESSAGES[erreur] ?? 'Une erreur est survenue.'}
-            {absents.length > 0 && <> Champs manquants : {absents.join(', ')}.</>}
+            {absents.length > 0 && <> Champs manquants : {absents.map((id) => libelles[id] ?? id).join(', ')}.</>}
           </p>
         )
       }
 
-      <form class="cand__form" id="cand-form" method="POST" action={action}>
+      {!ok && <form class="cand__form" id="cand-form" method="POST" action={action}>
+        <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
         {
           champs.map((c) =>
             c.type === 'section' ? (
@@ -143,7 +147,7 @@ const pleineLargeur = (c: Champ) =>
                   ]}
                 >
                   {c.type === 'textarea' ? (
-                    <textarea id={c.id} name={c.id} rows="5" required={c.requis} />
+                    <textarea id={c.id} name={c.id} rows="5" maxlength="5000" required={c.requis} />
                   ) : c.type === 'select' ? (
                     <select id={c.id} name={c.id} required={c.requis}>
                       <option value="">— choisir —</option>
@@ -157,6 +161,7 @@ const pleineLargeur = (c: Champ) =>
                       name={c.id}
                       type={c.type === 'url' ? 'url' : (c.type ?? 'text')}
                       autocomplete={c.autocomplete}
+                      maxlength={c.type === 'email' ? 254 : c.type === 'url' ? 2000 : c.type === 'tel' ? 50 : 500}
                       required={c.requis}
                     />
                   )}
@@ -171,11 +176,83 @@ const pleineLargeur = (c: Champ) =>
           WISE-UP. Elles ne sont ni cédées ni revendues. Vous pouvez demander leur suppression à
           <a href="mailto:contact@euneos.fr">contact@euneos.fr</a>.
         </p>
-      </form>
+      </form>}
 
-      <div class="cand__submit">
-        <button type="submit" form="cand-form" class="cta s-papier">Envoyer ma candidature</button>
-      </div>
+      {
+        !ok && (
+          <div class="cand__submit">
+            <button type="submit" form="cand-form" class="cta s-papier">Envoyer ma candidature</button>
+          </div>
+        )
+      }
     </Paper>
   </div>
 </section>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.cand[data-form-action]')
+  const form = document.querySelector<HTMLFormElement>('#cand-form')
+  const action = root?.dataset.formAction
+  const storageKey = action ? `euneos-candidature:${new URL(action, window.location.origin).href}` : null
+  const params = new URLSearchParams(window.location.search)
+
+  if (storageKey && params.has('ok')) sessionStorage.removeItem(storageKey)
+
+  if (form && storageKey) {
+    if (params.has('erreur')) {
+      try {
+        const values = JSON.parse(sessionStorage.getItem(storageKey) ?? '{}') as Record<string, string[]>
+        for (const [name, saved] of Object.entries(values)) {
+          const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+            `[name="${CSS.escape(name)}"]`,
+          )
+          controls.forEach((control) => {
+            if (control instanceof HTMLInputElement && (control.type === 'checkbox' || control.type === 'radio')) {
+              control.checked = saved.includes(control.value)
+            } else {
+              control.value = saved[0] ?? ''
+            }
+          })
+        }
+      } catch {
+        sessionStorage.removeItem(storageKey)
+      }
+    }
+
+    const checkboxGroups = [...form.querySelectorAll<HTMLFieldSetElement>('.cand__choix')].filter(
+      (fieldset) => fieldset.querySelector('input[type="checkbox"]')?.closest('fieldset') === fieldset,
+    )
+
+    const validateCheckboxGroup = (fieldset: HTMLFieldSetElement) => {
+      const boxes = [...fieldset.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+      const first = boxes[0]
+      if (!first || !fieldset.querySelector('abbr[title="obligatoire"]')) return true
+      const valid = boxes.some((box) => box.checked)
+      first.setCustomValidity(valid ? '' : 'Sélectionnez au moins une réponse.')
+      return valid
+    }
+
+    checkboxGroups.forEach((fieldset) => {
+      fieldset.addEventListener('change', () => validateCheckboxGroup(fieldset))
+    })
+
+    form.addEventListener('submit', (event) => {
+      const invalidGroup = checkboxGroups.find((fieldset) => !validateCheckboxGroup(fieldset))
+      if (invalidGroup) {
+        event.preventDefault()
+        const first = invalidGroup.querySelector<HTMLInputElement>('input[type="checkbox"]')
+        first?.reportValidity()
+        first?.focus()
+        return
+      }
+
+      const values: Record<string, string[]> = {}
+      for (const [name, value] of new FormData(form)) {
+        if (typeof value !== 'string') continue
+        values[name] ??= []
+        values[name].push(value)
+      }
+      sessionStorage.setItem(storageKey, JSON.stringify(values))
+    })
+  }
+</script>

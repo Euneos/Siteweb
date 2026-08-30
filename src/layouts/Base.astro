@@ -47,6 +47,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <meta name="twitter:card" content="summary_large_image" />
 
     <script
+      is:inline
       type="application/ld+json"
       set:html={JSON.stringify({
         '@context': 'https://schema.org',
