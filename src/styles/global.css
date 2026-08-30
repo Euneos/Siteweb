@@ -179,6 +179,11 @@ body {
   isolation: isolate;
   background: transparent;
   color: var(--on-surface, var(--noir));
+}
+/* Le calibre est un fallback, pas une surcharge : les geometries propres a une
+   carte (--f, --fx, --fy) doivent gagner meme si global.css est emis apres les
+   styles de page par Astro. */
+:where(.paper) {
   --f: var(--fold);
 }
 /* Garde-fou systemique : un fond pose sur l'element lui-meme recouvrirait le
@@ -727,6 +732,11 @@ body {
   flex-direction: column;
   justify-content: space-between;
 }
+/* Dans la maquette, le grand rabat de section passe DEVANT la photo. Les plis
+   des cartes restent en arriere-plan pour ne jamais recouvrir leur texte. */
+.hero-zone.paper[class*='fold-']::after {
+  z-index: 2;
+}
 /* Pages sans banniere : la bande verte se reduit a l'en-tete. */
 .hero-zone--nue {
   min-height: 0;
@@ -755,6 +765,7 @@ body {
 .hz:not(.hz--mirror) .hz__bubble {
   /* marge interne gauche relevee : 7,98 % de la largeur de la bulle */
   padding: 8% 16% 12% 8%;
+  padding-right: max(16%, calc(var(--f) + 0.75rem));
 }
 .hz--mirror .hz__media {
   order: -1;
@@ -874,6 +885,10 @@ body {
 }
 
 @media (max-width: 860px) {
+  .hz {
+    /* Le contenu mobile s'arrete avant toute la boite du pli de section. */
+    padding-bottom: calc(var(--fold-xl) + 0.75rem);
+  }
   .hz__grid {
     grid-template-columns: 1fr !important;
     padding-inline: calc(var(--unit) * 1.5);
@@ -885,13 +900,20 @@ body {
     grid-template-columns: 1fr !important;
     margin-top: clamp(2rem, 7vw, 3.5rem);
   }
+  .hz--mirror .hz__side {
+    margin-right: 0;
+  }
+  .hz--mirror .hz__media {
+    padding-left: 0;
+  }
   .hz__cartouche {
     width: clamp(84px, 22vw, 130px);
     order: -1 !important;
     margin-bottom: -1rem;
     margin-left: auto;
   }
-  .hz__bubble {
+  .hz__bubble,
+  .hz:not(.hz--mirror) .hz__bubble {
     aspect-ratio: auto;
     padding: clamp(1.5rem, 5vw, 2rem);
     padding-right: clamp(3rem, 12vw, 4.5rem);
@@ -925,6 +947,11 @@ body {
   color: var(--vert);
   font-size: clamp(1.6rem, 3.2vw, 2.3rem);
   line-height: 1.15;
+}
+@media (max-width: 480px) {
+  .cand__panel {
+    padding-top: max(2rem, calc(var(--f) + 1rem));
+  }
 }
 .cand__chapo {
   text-align: center;
@@ -970,8 +997,7 @@ body {
   color: var(--orange);
 }
 /* Petit coin coupe en bas a droite (releve maquette p.4), bordure comprise.
-   La classe est doublee : sinon le --f de .paper l'emporte et le pli devient
-   enorme. Meme traitement que le formulaire de contact. */
+   Meme traitement que le formulaire de contact. */
 .cand__field.paper {
   --surface: transparent;
   --fold-color: transparent;

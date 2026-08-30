@@ -254,7 +254,7 @@ const equipe = [
           <ul class="equipe">
             {ca.map((m) => (
               <li class="membre">
-                <Paper surface="ocre" fold="none" class="membre__name">
+                <Paper surface="ocre" fold="br" class="membre__name">
                   {m.nom}
                 </Paper>
                 <div class="membre__ph membre__ph--symbol" aria-hidden="true">
@@ -279,7 +279,7 @@ const equipe = [
         {
           equipe.map((m) => (
             <li class="membre">
-              <Paper surface="ocre" fold="none" class="membre__name">{m.nom}</Paper>
+              <Paper surface="ocre" fold="br" class="membre__name">{m.nom}</Paper>
               <div class="membre__ph membre__ph--symbol" aria-hidden="true">
                 <Brand name="fig2" />
               </div>
@@ -396,6 +396,7 @@ const equipe = [
     margin-left: -6%;
     padding: clamp(1.75rem, 3.5vw, 3rem);
     padding-left: clamp(2.5rem, 7vw, 6rem);
+    padding-bottom: max(clamp(1.75rem, 3.5vw, 3rem), calc(var(--fy) + 0.75rem));
     display: grid;
     gap: 1rem;
     z-index: 1;
@@ -473,8 +474,10 @@ const equipe = [
     gap: clamp(1rem, 3vw, 2.25rem);
   }
   .niveau {
+    --niveau-padding: clamp(1.5rem, 3vw, 2.25rem);
     height: 100%;
-    padding: clamp(1.5rem, 3vw, 2.25rem);
+    padding: var(--niveau-padding);
+    padding-inline: max(var(--niveau-padding), calc(var(--f) + 0.75rem));
     display: grid;
     gap: 0.6rem;
     justify-items: center;
@@ -553,6 +556,7 @@ const equipe = [
   }
   .membre__card {
     padding: 1rem 1.25rem;
+    padding-bottom: max(1rem, calc(var(--fy) + 0.75rem));
     display: grid;
     gap: 0.4rem;
     /* releve : pli aplati 32,3 x 8,8 pt, soit 26 % de la largeur de carte */

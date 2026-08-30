@@ -464,8 +464,10 @@ const faq = [
     margin-left: auto;
   }
   .etapes__card {
-    padding: clamp(1.1rem, 2.4vw, 1.75rem);
+    --etape-padding: clamp(1.1rem, 2.4vw, 1.75rem);
     --f: var(--fold-md);
+    padding: var(--etape-padding);
+    padding-right: max(var(--etape-padding), calc(var(--f) + 0.75rem));
   }
   .etapes__n {
     font-size: 1.25rem;
@@ -540,6 +542,10 @@ const faq = [
     .impact2 {
       aspect-ratio: auto;
     }
+    .impact2__in {
+      padding-top: max(clamp(1.5rem, 4vw, 3rem), calc(var(--fy) + 0.75rem));
+      padding-right: max(clamp(1.5rem, 4vw, 3rem), calc(var(--fx) + 0.75rem));
+    }
     .impact2__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.5rem;
@@ -593,6 +599,7 @@ const faq = [
     margin-left: -10%;
     padding: clamp(1.1rem, 2.2vw, 1.75rem);
     padding-left: clamp(2rem, 4vw, 3.25rem);
+    padding-bottom: max(clamp(1.1rem, 2.2vw, 1.75rem), calc(var(--fy) + 0.75rem));
     z-index: 1;
     display: grid;
     gap: 0.9rem;
@@ -683,7 +690,7 @@ const faq = [
     z-index: 1;
   }
 
-  @media (min-width: 861px) and (max-width: 1100px) {
+  @media (min-width: 861px) and (max-width: 1300px) {
     .faq__cartouche {
       right: 0;
     }

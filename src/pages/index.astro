@@ -412,6 +412,7 @@ const parcours = [
     max-width: none;
     min-height: clamp(9rem, 18.2vw, 16.4rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
+    padding-top: max(clamp(1.5rem, 3vw, 2.25rem), calc(var(--f) + 0.75rem));
     padding-left: clamp(2.25rem, 5vw, 4rem);
     padding-bottom: clamp(2rem, 4vw, 3rem);
   }
@@ -422,7 +423,7 @@ const parcours = [
     transform: translateY(45%);
     z-index: 3;
   }
-  @media (min-width: 861px) and (max-width: 1100px) {
+  @media (min-width: 861px) and (max-width: 1300px) {
     .approche__col {
       margin-right: 0;
     }
@@ -518,10 +519,11 @@ const parcours = [
     gap: 13.68%;
   }
   .prog__card.s-bleu {
+    --prog-pad: 11%;
     height: 100%;
     min-height: 0;
     aspect-ratio: 125.6 / 166.7;
-    padding: 11%;
+    padding: var(--prog-pad);
     display: grid;
     gap: 0.6rem;
     align-content: start;
@@ -560,6 +562,7 @@ const parcours = [
     display: flex;
     align-items: center;
     gap: 0.7rem;
+    padding-right: max(0px, calc(var(--f) + 0.75rem - var(--prog-pad)));
   }
   .prog__titre {
     font-weight: 600;
@@ -650,13 +653,27 @@ const parcours = [
     transform: translateY(50%);
     z-index: 2;
   }
+  @media (min-width: 861px) and (max-width: 1100px) {
+    .prog__cards {
+      /* Les gouttieres de la maquette desktop deviennent disproportionnees
+         avant le passage en une colonne. */
+      gap: clamp(1rem, 3vw, 2rem);
+    }
+  }
   @media (max-width: 860px) {
     .prog__cards {
       grid-template-columns: 1fr;
+      gap: 1.5rem;
     }
-    .prog__card {
+    .prog__card.s-bleu {
+      --prog-pad: clamp(1.25rem, 5vw, 2rem);
+      height: auto;
       aspect-ratio: auto;
-      padding: clamp(1.25rem, 5vw, 2rem);
+      padding: var(--prog-pad);
+    }
+    .prog__card:not([open]) .prog__texte {
+      max-height: 12rem;
+      overflow: hidden;
     }
   }
 
@@ -755,7 +772,7 @@ const parcours = [
      cote. Les pictos ne retrecissent pas (clamp plancher a 96 et 116 px), donc
      on retrecit le bloc et on rentre le debordement. L'effet de debordement
      reste, il devient juste proportionne a l'ecran. */
-  @media (max-width: 860px) {
+  @media (max-width: 900px) {
     .bloc-image {
       width: 84%;
     }
@@ -805,11 +822,12 @@ const parcours = [
     margin-left: 0;
     margin-right: 3.13%;
     z-index: 1;
-    /* releve : pli 60,3 pt */
-    --f: clamp(4rem, 10.1vw, 9.5rem);
+    /* releve : pli aplati 60,3 x 25,2 pt */
+    --fx: clamp(2.5rem, 10.1vw, 9.5rem);
+    --fy: clamp(1.1rem, 4.2vw, 4rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
     padding-left: clamp(3rem, 10vw, 9.5rem);
-    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+    padding-bottom: max(clamp(2.5rem, 5vw, 4rem), calc(var(--fy) + 0.75rem));
     align-self: center;
     display: grid;
     gap: 1.25rem;

@@ -36,6 +36,7 @@ const champs = [
   title="Nous contacter — EUNEOS"
   description="Une question ou une suggestion ? Écrivez à l’équipe EUNEOS. Association loi 1901, 118 route d’Espagne, 31100 Toulouse."
   heroSurface="vert"
+  heroFold="none"
 >
   <section slot="hero" class="page ct">
     <div class="ct__media">
@@ -182,6 +183,11 @@ const champs = [
     line-height: 1.15;
     margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
   }
+  @media (max-width: 480px) {
+    .ct__panel {
+      padding-top: max(1.75rem, calc(var(--f) + 1rem));
+    }
+  }
   .ct__form {
     display: grid;
     gap: 1.1rem;
@@ -210,11 +216,8 @@ const champs = [
   }
   /* chaque champ est une petite feuille a coin plie */
   /* Le champ porte un PETIT coin coupe en bas a droite (releve maquette p.4),
-     pas un triangle plein. Deux corrections :
-     - la classe doit etre doublee, sinon le --f de .paper (7,5 rem) l'emporte
-       et le pli fait 120 px sur un champ de 54 px de haut ;
-     - le rabat plein est supprime, et c'est le champ LUI-MEME qui est coupe,
-       bordure comprise. */
+     pas un triangle plein. Le rabat plein est supprime, et c'est le champ
+     LUI-MEME qui est coupe, bordure comprise. */
   .ct__field.paper {
     --surface: transparent;
     --fold-color: transparent;

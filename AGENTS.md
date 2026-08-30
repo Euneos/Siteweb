@@ -157,6 +157,8 @@ Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pd
    hero et les cartouches alors qu'il marchait sur les boutons. Un garde-fou
    `.paper[class*='fold-'] { background: transparent !important }` l'empêche
    désormais : **le fond d'un bloc à pli passe toujours par `::before`.**
+   Exception conforme à la maquette : le grand rabat de `.hero-zone` passe au
+   premier plan pour recouvrir la partie de photo prise dans le pli.
 6. **Un utilitaire partagé entre pages doit vivre dans `global.css`.** Déclaré
    dans le `<style is:global>` d'une page, il n'existe que sur cette page :
    `.c-t` était dans la page Programme, et tous les titres de section des autres
