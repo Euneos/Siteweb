@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../lib/brevo'
-import { aucunTexteTropLong, champsDansLesLimites, donneesTexte, emailValide, origineAutorisee } from '../../lib/forms'
+import { aucunTexteTropLong, champsDansLesLimites, donneesTexte, emailValide, modeApercu, origineAutorisee } from '../../lib/forms'
 
 // Endpoint rendu a la demande (le reste du site est statique).
 export const prerender = false
@@ -28,6 +28,8 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!emailValide(email)) {
     return redirect('/contact?erreur=email', 303)
   }
+
+  if (modeApercu()) return redirect('/contact?ok=1&preview=1', 303)
 
   const env = brevoEnv(locals)
   if (!env.BREVO_API_KEY) return redirect('/contact?erreur=indisponible', 303)

@@ -3,6 +3,10 @@ export function origineAutorisee(request: Request) {
   return !origin || origin === new URL(request.url).origin
 }
 
+export function modeApercu() {
+  return import.meta.env.PUBLIC_STELLA_PREVIEW === 'true'
+}
+
 export function emailValide(email: string) {
   return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(email)
 }

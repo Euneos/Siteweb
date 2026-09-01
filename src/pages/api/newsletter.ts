@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, inscrireNewsletter } from '../../lib/brevo'
-import { aucunTexteTropLong, champsDansLesLimites, emailValide, origineAutorisee } from '../../lib/forms'
+import { aucunTexteTropLong, champsDansLesLimites, emailValide, modeApercu, origineAutorisee } from '../../lib/forms'
 
 export const prerender = false
 
@@ -22,6 +22,8 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!nom || !email) return redirect('/?nl=erreur#newsletter', 303)
   if (!emailValide(email)) return redirect('/?nl=email#newsletter', 303)
   if (!PROFILS.has(profil)) return redirect('/?nl=profil#newsletter', 303)
+
+  if (modeApercu()) return redirect('/?nl=confirmation&preview=1#newsletter', 303)
 
   try {
     const inscrit = await inscrireNewsletter(

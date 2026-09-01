@@ -1,6 +1,6 @@
 # Deploiement automatique du site EUNEOS.
 #
-# A chaque push sur main : build Astro, puis mise en ligne sur Cloudflare Pages.
+# A chaque PR : preview isolee. A chaque push sur main : mise en production.
 # L'equipe d'EUNEOS n'a rien a lancer : elle demande une modification a l'agent,
 # l'agent pousse sur GitHub, et le site se met a jour tout seul.
 #
@@ -10,6 +10,8 @@ name: Deploiement
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -22,6 +24,8 @@ env:
   # Surtout pas `latest` : le 27/08 le runner a tire 1.4.0 et le
   # telechargement a casse (ECONNRESET), le site n'est pas parti.
   BUN_VERSION: 1.3.11
+  SITE_URL: ${{ github.event_name == 'pull_request' && format('https://pr-{0}.euneos-site.pages.dev', github.event.number) || 'https://euneos.fr' }}
+  PUBLIC_STELLA_PREVIEW: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
 jobs:
   deployer:
@@ -58,9 +62,18 @@ jobs:
       - name: Construire le site
         run: bun run build
 
-      - name: Mettre en ligne sur Cloudflare Pages
+      - name: Mettre en production sur Cloudflare Pages
+        if: github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=euneos-site --branch=main
+
+      - name: Mettre la preview sur Cloudflare Pages
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=euneos-site --branch=pr-${{ github.event.number }}

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../lib/brevo'
-import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte, emailValide, origineAutorisee } from '../../lib/forms'
+import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte, emailValide, modeApercu, origineAutorisee } from '../../lib/forms'
 import { cohorteActive, creer, jeton, parEmail, relier, supprimer } from '../../lib/nocodb'
 
 export const prerender = false
@@ -73,6 +73,8 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (d.consentement !== 'Oui, je confirme') {
     return redirect(`${ROUTE}?erreur=consentement`, 303)
   }
+
+  if (modeApercu()) return redirect(`${ROUTE}?ok=1&preview=1`, 303)
 
   const token = jeton(locals)
   if (!token) {
