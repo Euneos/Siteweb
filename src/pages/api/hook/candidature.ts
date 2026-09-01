@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../../lib/brevo'
+import { modeApercu } from '../../../lib/forms'
 
 /**
  * Point d'arrivee du webhook NocoDB : appele a chaque nouvelle candidature.
@@ -25,6 +26,8 @@ async function envoyer(e: ReturnType<typeof brevoEnv>, sujet: string, corps: str
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  if (modeApercu(request)) return new Response('indisponible en aperçu', { status: 404 })
+
   const e = brevoEnv(locals)
 
   // Le webhook est public : sans secret partage, n'importe qui pourrait
