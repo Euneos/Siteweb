@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect(`${ROUTE}?erreur=consentement`, 303)
   }
 
-  if (modeApercu()) return redirect(`${ROUTE}?ok=1&preview=1`, 303)
+  if (modeApercu(request)) return redirect(`${ROUTE}?ok=1&preview=1`, 303)
 
   const token = jeton(locals)
   if (!token) {

@@ -26,7 +26,7 @@ async function envoyer(e: ReturnType<typeof brevoEnv>, sujet: string, corps: str
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  if (modeApercu()) return new Response('indisponible en aperçu', { status: 404 })
+  if (modeApercu(request)) return new Response('indisponible en aperçu', { status: 404 })
 
   const e = brevoEnv(locals)
 

@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect('/contact?erreur=email', 303)
   }
 
-  if (modeApercu()) return redirect('/contact?ok=1&preview=1', 303)
+  if (modeApercu(request)) return redirect('/contact?ok=1&preview=1', 303)
 
   const env = brevoEnv(locals)
   if (!env.BREVO_API_KEY) return redirect('/contact?erreur=indisponible', 303)

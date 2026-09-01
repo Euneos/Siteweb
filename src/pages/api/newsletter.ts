@@ -23,7 +23,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!emailValide(email)) return redirect('/?nl=email#newsletter', 303)
   if (!PROFILS.has(profil)) return redirect('/?nl=profil#newsletter', 303)
 
-  if (modeApercu()) return redirect('/?nl=confirmation&preview=1#newsletter', 303)
+  if (modeApercu(request)) return redirect('/?nl=confirmation&preview=1#newsletter', 303)
 
   try {
     const inscrit = await inscrireNewsletter(

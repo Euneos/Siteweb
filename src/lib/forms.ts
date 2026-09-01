@@ -3,8 +3,8 @@ export function origineAutorisee(request: Request) {
   return !origin || origin === new URL(request.url).origin
 }
 
-export function modeApercu() {
-  return import.meta.env.PUBLIC_STELLA_PREVIEW === 'true'
+export function modeApercu(request: Request) {
+  return !['euneos.fr', 'www.euneos.fr'].includes(new URL(request.url).hostname)
 }
 
 export function emailValide(email: string) {

@@ -25,7 +25,6 @@ env:
   # telechargement a casse (ECONNRESET), le site n'est pas parti.
   BUN_VERSION: 1.3.11
   SITE_URL: ${{ github.event_name == 'pull_request' && format('https://pr-{0}.euneos-site.pages.dev', github.event.number) || 'https://euneos.fr' }}
-  PUBLIC_STELLA_PREVIEW: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
 jobs:
   deployer:
