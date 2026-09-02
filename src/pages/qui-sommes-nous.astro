@@ -19,24 +19,26 @@ const jalons = [
   'En 2025, la santé mentale est déclarée Grande Cause nationale.',
 ]
 
+/* Maquette v4 : les trois pictos sont NUS et colores (vert clair, orange,
+   jaune), poses sur le fond — plus de cartouche. */
 const actions = [
   {
     picto: 'main',
-    surface: 'papier',
+    couleur: 'var(--vert-clair)',
     titre: 'Révéler',
     texte:
       'Appréhender les dynamiques d’apprentissage individuelles et collectives pour révéler ce qui freine le développement global des jeunes et ce qui peut le développer, en s’appuyant sur la recherche internationale (neurosciences, psychologie du développement, santé publique, sciences de l’éducation).',
   },
   {
     picto: 'etoile',
-    surface: 'orange',
+    couleur: 'var(--orange)',
     titre: 'Éclairer',
     texte:
       'Sensibiliser les équipes pédagogiques à la prévention de la santé mentale, à la transmission des compétences psychosociales et au rapport au numérique, et les accompagner dans l’appropriation d’outils adaptés à leurs pratiques existantes.',
   },
   {
     picto: 'asterisque',
-    surface: 'jaune',
+    couleur: 'var(--jaune)',
     titre: 'Diffuser',
     texte:
       'Mesurer l’impact des approches (questionnaires, indicateurs de suivi, évaluations) pour améliorer en continu les outils et les pratiques et les déployer à grande échelle.',
@@ -166,7 +168,7 @@ const equipe = [
     <div class="page mission">
       <div class="mission__media">
         <Photo ratio="3/4" label="photo — jeunes" />
-        <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="clamp(74px, 7vw, 104px)" /></div>
+        <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="md" /></div>
         <Paper surface="rose" fold="tl" class="mission__badge">
           <span class="mission__badge-mark"><Brand name="wordmark" /></span>
           <span class="mission__badge-txt">Association Loi 1901<br />fondée en avril 2026</span>
@@ -200,7 +202,7 @@ const equipe = [
           actions.map((a) => (
             <li class="action">
               <div class="action__head">
-                <PictoBox picto={a.picto} surface={a.surface} size="72px" />
+                <div class="action__picto" style={`color:${a.couleur}`}><Brand name={a.picto} /></div>
                 <h3>{a.titre}</h3>
               </div>
               <p>{a.texte}</p>
@@ -227,7 +229,7 @@ const equipe = [
                 {n.surtitre && <p class="niveau__sur">{n.surtitre}</p>}
                 <h3>{n.titre}</h3>
                 <p class="niveau__txt">{n.texte}</p>
-                <Cta href={n.href} surface={n.ctaSurface} class="niveau__cta">
+                <Cta href={n.href} surface={n.ctaSurface} class="cta--sm niveau__cta">
                   {n.cta}
                 </Cta>
               </Paper>
@@ -254,7 +256,7 @@ const equipe = [
           <ul class="equipe">
             {ca.map((m) => (
               <li class="membre">
-                <Paper surface="ocre" fold="br" class="membre__name">
+                <Paper surface="ocre" fold="br" class="etiquette membre__name">
                   {m.nom}
                 </Paper>
                 <div class="membre__ph membre__ph--symbol" aria-hidden="true">
@@ -279,7 +281,7 @@ const equipe = [
         {
           equipe.map((m) => (
             <li class="membre">
-              <Paper surface="ocre" fold="br" class="membre__name">{m.nom}</Paper>
+              <Paper surface="ocre" fold="br" class="etiquette membre__name">{m.nom}</Paper>
               <div class="membre__ph membre__ph--symbol" aria-hidden="true">
                 <Brand name="fig2" />
               </div>
@@ -299,9 +301,6 @@ const equipe = [
 <style is:global>
   /* FONDEMENTS */
   .fond__fig {
-    color: var(--vert);
-  }
-  .fond__in h2 {
     color: var(--vert);
   }
   .fond__txt {
@@ -333,7 +332,7 @@ const equipe = [
     position: relative;
     display: flex;
     justify-content: center;
-    margin-top: clamp(2rem, 5vw, 3rem);
+    margin-top: var(--s-titre);
   }
   @media (max-width: 860px) {
     .fond__fig {
@@ -351,9 +350,12 @@ const equipe = [
     position: relative;
     z-index: 2;
   }
+    /* releve v4 : le cartouche orange est pose sur le coin haut-droit de la
+     PHOTO, son bord droit contre le bord gauche du bloc vert — jamais sur le
+     texte. Le bloc vert mord de 6 % sur la colonne photo : on s'arrete avant. */
   .mission__picto {
     position: absolute;
-    right: -8%;
+    right: 9.3%;
     top: -8%;
     z-index: 3;
   }
@@ -384,33 +386,33 @@ const equipe = [
     margin-bottom: 0.5rem;
   }
   .mission__badge-txt {
-    font-size: 0.9rem;
+    font-size: var(--t-nav);
     font-weight: 600;
     line-height: 1.35;
     display: block;
   }
   .mission__card {
-    /* releve : pli aplati 76,3 x 25,2 pt */
-    --fx: clamp(3rem, 12.8vw, 12rem);
-    --fy: clamp(1.1rem, 4.2vw, 4rem);
+    /* releve v4 : bloc de 708 x 711 px, pli aplati 186 x 93, texte a 64 px
+       du bord gauche et 38 px du haut */
+    --fx: clamp(3rem, 12.9vw, 11.6rem);
+    --fy: clamp(1.5rem, 6.5vw, 5.8rem);
     margin-left: -6%;
-    padding: clamp(1.75rem, 3.5vw, 3rem);
-    padding-left: clamp(2.5rem, 7vw, 6rem);
-    padding-bottom: max(clamp(1.75rem, 3.5vw, 3rem), calc(var(--fy) + 0.75rem));
+    padding: var(--s-int);
+    padding-left: clamp(2rem, 4.4vw, 4rem);
+    padding-bottom: max(var(--s-int), calc(var(--fy) + 0.5rem));
     display: grid;
-    gap: 1rem;
+    gap: 0;
     z-index: 1;
-    --f: clamp(2rem, 4vw, 3.5rem);
   }
-  /* maquette : ce bloc est compose en corps fort, pas en corps de texte */
+  /* maquette : ce bloc est compose au corps des TITRES (47 px), en Regular,
+     et la derniere phrase en SemiBold */
   .mission__card > p {
-    font-size: clamp(1.05rem, 1.7vw, 1.3rem);
-    line-height: 1.45;
+    font-size: var(--t-titre);
+    line-height: var(--lh-titre);
+    font-weight: 400;
   }
   .mission__strong {
-    font-size: clamp(1.15rem, 2vw, 1.5rem) !important;
     font-weight: 600;
-    line-height: 1.3;
   }
   @media (max-width: 860px) {
     .mission {
@@ -448,11 +450,15 @@ const equipe = [
   .action__head {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  }
+  /* releve v4 : picto nu de 70 px, titre au corps des titres */
+  .action__picto {
+    width: var(--picto-md);
+    flex: none;
   }
   .action__head h3 {
-    color: var(--vert);
-    font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+    font-size: var(--t-titre);
   }
   @media (max-width: 860px) {
     .action {
@@ -473,21 +479,22 @@ const equipe = [
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(1rem, 3vw, 2.25rem);
   }
+  /* releve v4 : cartes de 552 x 316 px, titre au corps des CTA (36 px),
+     petit pli aplati en haut a gauche (42 x 18), petit CTA (23 px) */
   .niveau {
-    --niveau-padding: clamp(1.5rem, 3vw, 2.25rem);
     height: 100%;
-    padding: var(--niveau-padding);
-    padding-inline: max(var(--niveau-padding), calc(var(--f) + 0.75rem));
+    min-height: clamp(12rem, 22vw, 19.75rem);
+    padding: var(--s-int);
     display: grid;
-    gap: 0.6rem;
+    gap: 0.5rem;
     justify-items: center;
     text-align: center;
-    align-content: start;
-    --f: var(--fold-md);
+    align-content: center;
+    --fx: clamp(1.5rem, 3.1vw, 2.8rem);
+    --fy: clamp(0.6rem, 1.3vw, 1.2rem);
   }
-  .niveau__sur {
-    font-size: 0.95rem;
-    opacity: 0.85;
+  .niveau h3 {
+    font-size: var(--t-cta);
   }
   .niveau__txt {
     max-width: 34ch;
@@ -533,8 +540,6 @@ const equipe = [
     --fy: clamp(0.3rem, 0.6vw, 0.6rem);
     justify-self: stretch;
     width: 88%;
-    padding: 0.8rem 1.2rem;
-    font-weight: 600;
     position: relative;
     z-index: 2;
     margin-bottom: -0.6rem;
@@ -555,8 +560,8 @@ const equipe = [
     color: var(--vert);
   }
   .membre__card {
-    padding: 1rem 1.25rem;
-    padding-bottom: max(1rem, calc(var(--fy) + 0.75rem));
+    padding: var(--s-int);
+    padding-bottom: max(var(--s-int), calc(var(--fy) + 0.75rem));
     display: grid;
     gap: 0.4rem;
     /* releve : pli aplati 32,3 x 8,8 pt, soit 26 % de la largeur de carte */

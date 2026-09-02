@@ -40,7 +40,7 @@ const champs = [
 >
   <section slot="hero" class="page ct">
     <div class="ct__media">
-      <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="clamp(74px, 8vw, 112px)" /></div>
+      <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="lg" paysage /></div>
       <div class="ct__ph"><Photo ratio="16/10" label="photo — équipe" /></div>
       <div class="ct__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
     </div>
@@ -179,9 +179,7 @@ const champs = [
   }
   .ct__panel h1 {
     text-align: center;
-    font-size: clamp(1.75rem, 3.6vw, 2.5rem);
-    line-height: 1.15;
-    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: var(--s-int);
   }
   @media (max-width: 480px) {
     .ct__panel {
