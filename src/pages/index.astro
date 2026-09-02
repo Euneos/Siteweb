@@ -490,27 +490,44 @@ const parcours = [
   }
 
   /* --- PROGRAMME (famille bleue) --- */
+  /* releve au vecteur : pli aplati de 93,8 x 29,4 pt, soit 15,76 % x 4,94 %
+     de la largeur de page. Dimensions partagees par l'entaille et le rabat. */
   .prog {
     position: relative;
-    background: var(--surface);
     color: var(--on-surface);
+    --pf-w: min(15.76vw, 14rem);
+    --pf-h: calc(var(--pf-w) / 3.190);
     /* le CTA deborde du bandeau de la moitie de sa hauteur : la section
        suivante commence apres lui, a distance normale */
     margin-bottom: calc(var(--s-bloc) / 2 + var(--t-cta) * 0.9);
   }
+  /* Le fond de la bande vit sur ::before pour qu'on puisse ENTAILLER son coin
+     haut-gauche. Sans cette entaille, le triangle du pli se posait sur un coin
+     intact : il se lisait comme un triangle colle, pas comme un coin replie
+     (« le pli ne se replie pas », retour Charly). */
+  .prog::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: var(--surface);
+    clip-path: polygon(var(--pf-w) 0, 100% 0, 100% 100%, 0 100%, 0 var(--pf-h));
+  }
   /* releve v4 : 94 px entre le haut du bandeau et le titre */
   .prog__in {
+    position: relative;
+    z-index: 1;
     padding-block: calc(var(--s-bloc) * 0.77) 0;
   }
-  /* releve au vecteur : pli aplati de 93,8 x 29,4 pt, soit 15,76 % x 4,94 %
-     de la largeur de page — et non un triangle a 1,7:1 */
+  /* Le rabat : le dessous de la feuille (bleu moyen) qui remplit l'entaille,
+     avec un lisere de pli plus fonce le long de la diagonale (le crease). */
   .prog__fold {
     position: absolute;
     left: 0;
     top: 0;
-    width: 15.76vw;
-    max-width: 14rem;
-    aspect-ratio: 93.8 / 29.4;
+    z-index: 1;
+    width: var(--pf-w);
+    height: var(--pf-h);
     background: var(--bleu);
     clip-path: polygon(0 0, 100% 0, 0 100%);
   }
