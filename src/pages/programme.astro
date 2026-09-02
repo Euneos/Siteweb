@@ -14,13 +14,15 @@ import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
 /* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
-   un cartouche. Chaque colonne se termine par une fleche de depliage. */
+   un cartouche. La v4 n'a plus de fleche sous les colonnes : le texte est
+   complet ici, il n'y a rien a derouler (les fleches de la v2 etaient
+   decoratives et ne faisaient rien — retour de Pauline). */
 const methodo = [
   {
     picto: 'main',
     couleur: 'var(--bleu)',
     titre: '2 pôles de compétences',
-    intro: 'Une formation pensée pour transmettre de manière complémentaire :',
+    intro: 'Une formation conçue pour transmettre de manière complémentaire :',
     points: [
       'Des compétences psychosociales : attention, régulation émotionnelle, coopération, empathie.',
       'Des pratiques équilibrées et régulées du numérique : clarifier les habitudes, comprendre les usages.',
@@ -29,17 +31,17 @@ const methodo = [
   {
     picto: 'asterisque',
     couleur: 'var(--rose)',
-    titre: 'Enseignants formés',
-    intro: 'Un accompagnement qui renforce la coopération, l’attention et apaise les climats de classe :',
+    titre: 'Personnel formés',
+    intro: 'Un accompagnement qui renforce la coopération, l’attention et soutient le climat éducatif :',
     points: [
-      'Avec une pratique de présence attentive intégrée au quotidien professionnel ;',
+      'Avec une pratique de l’attention intégrée au quotidien professionnel ;',
       'et des outils concrets pour réguler le stress numérique et la surcharge informationnelle.',
     ],
   },
   {
     picto: 'oiseau',
     couleur: 'var(--orange)',
-    titre: 'Jeunes équilibrés',
+    titre: 'Jeunes régulés',
     intro: 'Des jeunes qui développent des compétences fondamentales :',
     points: [
       'Concentration et stabilisation de leur attention.',
@@ -47,6 +49,18 @@ const methodo = [
       'Des usages numériques plus conscients.',
     ],
   },
+] as const
+
+/* Les 8 modules de la formation (maquette v4 p.2). */
+const modules = [
+  { n: 1, titre: 'Santé mentale, bien-être numérique et attention' },
+  { n: 2, titre: 'Du pilote automatique à la présence : corps, attention et centration' },
+  { n: 3, titre: 'Du réseau par défaut à la régulation : attention, cerveau et choix' },
+  { n: 4, titre: 'Sortir du biais négatif : automatismes et reconnexion aux ressources' },
+  { n: 5, titre: 'Comprendre le stress pour mieux se réguler dans un monde connecté' },
+  { n: 6, titre: 'Créer un collectif attentif : écouter, communiquer, réguler' },
+  { n: 7, titre: 'Émotions et comportements : sortir des réactions automatiques' },
+  { n: 8, titre: 'Applications concrètes & soutien à la mise en œuvre' },
 ] as const
 
 /* Les 5 etapes et leurs descriptifs, fournis le 20/08 (maquette v2 p.2).
@@ -57,43 +71,43 @@ const etapes = [
     titre: 'Rencontre de lancement',
     surface: 'papier',
     texte:
-      'Présentation du programme à l’équipe éducative, identification du personnel volontaire (min. 5) et de la classe participante à l’évaluation scientifique.',
+      'Candidature étudiée et validée. Réunion d’information en ligne (replay disponible). Présentation du programme à l’équipe pour lancer une dynamique commune. Référent désigné et formateur attribué. Choix optionnel d’une classe participante à l’évaluation scientifique.',
   },
   {
     n: 2,
-    titre: 'Formation (16 h)',
+    titre: 'Formation des équipes (16 h)',
     surface: 'bleu-clair',
     texte:
-      'Formation structurée en présentiel ou hybride : attention, stress numérique, émotions, communication.',
+      'Format présentiel ou hybride. Les éducateurs s’approprient d’abord les outils, puis les transmettent aux élèves. Session supplémentaire pour animer la série d’ateliers plus longs.',
   },
   {
     n: 3,
     titre: 'Atelier élèves',
     surface: 'rose',
     texte:
-      '4 à 8 ateliers interactifs sur l’année : usages numériques, émotions, équilibre en ligne/hors ligne. Dès octobre, questionnaire T1 pour la classe participante à l’évaluation et la classe contrôle.',
+      '4 à 8 ateliers interactifs répartis sur l’année : usages numériques, émotions, équilibre en ligne/hors ligne, pour aider les élèves à mieux comprendre leurs habitudes numériques, leurs besoins émotionnels, et à trouver des réponses plus conscientes par eux-mêmes.',
   },
   {
     n: 4,
     titre: 'Intégration dans l’établissement',
     surface: 'orange',
     texte:
-      'Pauses attentionnelles, coopération, autorégulation émotionnelle. Moments thématiques avec les familles possibles.',
+      'Après la formation, les participants mettent progressivement en place des pratiques, routines et échanges entre collègues ou envers les familles : pauses attentionnelles, coopération, autorégulation émotionnelle. Moments thématiques avec familles possibles. Objectif : favoriser une intégration durable, adaptée au rythme et au contexte de l’établissement.',
   },
   {
     n: 5,
-    titre: 'Évaluation & restitution',
+    titre: 'Évaluation & restitution européenne',
     surface: 'jaune-clair',
     texte:
-      'Questionnaires avant/après élèves, collaboration avec la recherche européenne. Questionnaires pré et post formation et suivi à + 45 jours.',
+      'Questionnaires avant/après élèves, collaboration avec la recherche européenne. Questionnaires pré et post formation et suivi à + 45 jours pour les équipes. Objectif : contribuer à une amélioration continue, et inscrire l’établissement dans un réseau européen engagé.',
   },
 ] as const
 
 const impact = [
   { valeur: '16', legende: 'établissements pilotes engagés en 2025/2026 dans 6 pays européens' },
-  { valeur: '+145', legende: 'enseignants en formation et + de 800 élèves sensibilisés' },
+  { valeur: '+145', legende: 'enseignants en formation et + de 800 élèves sensibilisés et évalués' },
   { valeur: '12', legende: 'organisations partenaires' },
-  { valeur: '100 %', legende: 'des frais pris en charge par le Programme' },
+  { valeur: '100 %', legende: 'des frais pris en charge' },
 ]
 
 /* Les prenoms ne sont pas publies tant qu'ils ne sont pas confirmes. */
@@ -113,32 +127,33 @@ const temoins = [
 ] as const
 
 const faq = [
-  /* Les 5 questions viennent de la maquette v2. Seule la derniere reponse y
-     figure ; les 4 autres sont des propositions redigees a partir des donnees
-     du meme document (etapes, format, financement) — A VALIDER par Candice. */
+  /* Les 5 questions sont celles de la maquette v4 p.2. Seule la derniere y a
+     une reponse : les autres attendent le texte de Candice. On affiche les
+     5 questions (comme la maquette), en signalant celles sans reponse. */
   {
     q: 'À partir de combien de personnes pouvons-nous envisager de rejoindre le Programme EUNEOS ?',
-    r: 'À partir de 5 membres volontaires de l’équipe éducative. C’est le seuil qui permet à la dynamique de s’installer dans l’établissement plutôt que de reposer sur une seule personne. [proposition à valider]',
+    r: 'Réponse à venir.',
     brouillon: true,
   },
   {
     q: 'Quel est le format de la formation ?',
-    r: '16 h de formation structurée, en présentiel ou en hybride, autour de quatre axes : attention, stress numérique, émotions, communication. [proposition à valider]',
+    r: 'Réponse à venir.',
     brouillon: true,
   },
   {
-    q: 'Quelle typologie d’élèves peuvent participer aux ateliers et éventuels questionnaires d’évaluation ?',
-    r: '[réponse à fournir]',
+    q: 'Quels élèves et combien peuvent participer aux ateliers et éventuels questionnaires d’évaluation ?',
+    r: 'Réponse à venir.',
     brouillon: true,
   },
   {
-    q: 'Avec quelle équipe se déroule l’accompagnement ?',
-    r: '[réponse à fournir]',
+    q: 'Quelles sont les personnes clés du projet ?',
+    r: 'Réponse à venir.',
     brouillon: true,
   },
   {
     q: 'À partir de quel moment peut-on appliquer les activités du Programme ?',
     r: 'Tout personnel formé peut commencer à mettre en place des activités issues du Programme avec des élèves, que ces derniers participent ou non aux ateliers. La mise en place peut être progressive et les activités assez libres pour autant qu’elles soient issues du programme et des ressources mises à disposition. On peut aussi appliquer les activités en dehors de la classe, dans des contextes de suivi individuel.',
+    brouillon: false,
   },
 ]
 ---
@@ -197,18 +212,32 @@ const faq = [
     </div>
   </section>
 
-  <!-- BANDEAU ERASMUS+ — ajoute dans la maquette v2 -->
-  <section class="erasmus">
-    <div class="page erasmus__in">
-      <p class="erasmus__l1">Un Programme européen Erasmus+ (2025-2027)</p>
-      <p class="erasmus__l2">100 % financé par le fond de dotation Nouveau Monde</p>
+  <!-- BLOC ERASMUS+ — maquette v4 p.2 : photo a gauche (30 %) + carte bleue
+       (70 %), pli corne bleu clair en haut a droite, titre blanc au corps des
+       titres puis un paragraphe. Texte complet de la maquette. -->
+  <section class="section">
+    <div class="page erasmus">
+      <div class="erasmus__media"><Photo ratio="2/3" label="photo — formation" /></div>
+      <Paper surface="bleu" fold="tr" class="erasmus__card">
+        <p class="erasmus__l1">
+          Le Programme européen porté par Euneos a été développé et financé dans le cadre des
+          projets favorisant la prévention en santé mentale et les bons usages numériques
+          (Erasmus+ 2025–2027)
+        </p>
+        <p class="erasmus__l2">
+          Ce programme, à destination en priorité des collèges et lycées publics ou privés
+          (de la 6ème à la Terminale) en France hexagonale ou dans les DOMS, est développé
+          dans 6 pays et compte des collaborations entre 12 partenaires. Sa dissémination est
+          soutenue par le Fonds de Dotation Nouveau Monde.
+        </p>
+      </Paper>
     </div>
   </section>
 
-  <!-- METHODOLOGIE -->
+  <!-- LES 3 PRINCIPES DU PROGRAMME -->
   <section class="section">
     <div class="page">
-      <h2 class="c-t">Notre méthodologie</h2>
+      <h2 class="c-t">Les 3 principes du Programme Euneos</h2>
       <ul class="methodo">
         {
           methodo.map((m) => (
@@ -223,22 +252,83 @@ const faq = [
               {m.points.map((pt) => (
                 <p class="methodo__point">{pt}</p>
               ))}
-              <span class="methodo__more" aria-hidden="true">
-                <svg viewBox="0 0 24 32" fill="currentColor"
-                  ><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z"></path></svg
-                >
-              </span>
             </li>
           ))
         }
       </ul>
+      <div class="c-cta">
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
+      </div>
     </div>
   </section>
 
-  <!-- DEROULEMENT : 6 etapes en quinconce, une couleur par etape -->
+  <!-- NOTRE IMPACT — bloc de texte (maquette v4 p.2), juste avant les chiffres -->
+  <section class="section resultat">
+    <div class="page">
+      <h2 class="c-t">Notre impact</h2>
+      <p class="resultat__p">
+        Des professionnels de l’éducation reconnus, formés et outillés ; des établissements où
+        ces apprentissages se transmettent et s’évaluent dans la durée ; et des jeunes qui
+        trouvent les ressources pour traverser leur parcours scolaire et identitaire avec
+        équilibre.
+      </p>
+    </div>
+  </section>
+
+  <!-- IMPACT CHIFFRE — bloc encadre bleu, pli aplati haut-droit. -->
+  <section class="section">
+    <div class="page">
+      <Paper surface="bleu" fold="tr" class="impact2">
+        <div class="filigrane" aria-hidden="true">
+          <div class="impact2__fig"><Brand name="fig3" height="100%" /></div>
+        </div>
+        <div class="impact2__in">
+          <h2 class="impact2__t">Notre impact chiffré</h2>
+          <ul class="impact2__list">
+            {
+              impact.map((s) => (
+                <li>
+                  <span class="chiffre chiffre--xl">{s.valeur}</span>
+                  <p>{s.legende}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </Paper>
+    </div>
+  </section>
+
+  <!-- 16H / 8 MODULES — section ajoutee dans la maquette v4 p.2 -->
+  <section class="section">
+    <div class="page">
+      <h2 class="c-t">Une formation pratique en 16 h et 8 modules</h2>
+      <ol class="modules">
+        {
+          modules.map((m) => (
+            <li class="module">
+              <span class="module__n">{m.n}</span>
+              <span class="module__t">{m.titre}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <div class="c-cta">
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEROULEMENT : 5 etapes en quinconce, une couleur par etape -->
   <section class="section">
     <div class="page">
       <h2 class="c-t">Comment se déroule notre programme ?</h2>
+      <p class="deroule__lead">
+        De la candidature de l’établissement à l’implémentation des activités auprès des jeunes
+        (en passant par l’évaluation et la formation des équipes éducatives), notre programme se
+        déploie par étapes concrètes, pensées pour ancrer durablement les pratiques dans le
+        quotidien scolaire.
+      </p>
       <ol class="etapes">
         {
           etapes.map((e, i) => (
@@ -254,47 +344,12 @@ const faq = [
         }
       </ol>
       <div class="c-cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026</Cta>
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Téléchargez la brochure complète</Cta>
       </div>
     </div>
   </section>
 
-  <!-- LE RESULTAT — bloc de texte ajoute dans la maquette v2, juste avant les chiffres -->
-  <section class="section resultat">
-    <div class="page">
-      <h2 class="c-t">Le résultat ?</h2>
-      <p class="resultat__p">
-        Des professionnels de l’éducation reconnus, formés et équipés, des établissements où
-        ces apprentissages se transmettent et se mesurent, et des jeunes qui développent de
-        quoi traverser leur parcours scolaire et identitaire avec équilibre.
-      </p>
-    </div>
-  </section>
-
-  <!-- IMPACT — releve au vecteur : bloc encadre (marges de 6,2 %), ratio 2,04,
-       coin haut-droit coupe par un pli APLATI (69,2 x 22,7 pt). -->
-  <section class="section">
-    <div class="page">
-      <Paper surface="bleu" fold="tr" class="impact2">
-        <div class="filigrane" aria-hidden="true">
-          <div class="impact2__fig"><Brand name="fig3" height="100%" /></div>
-        </div>
-        <div class="impact2__in">
-          <h2 class="impact2__t">Notre impact chiffré</h2>
-          <ul class="impact2__list">
-            {
-              impact.map((s) => (
-                <li>
-                  <span class="impact2__n">{s.valeur}</span>
-                  <p>{s.legende}</p>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-      </Paper>
-    </div>
-  </section>
+  <CtaFinal id="candidater" />
 
   <!-- TEMOIGNAGES -->
   <section class="section">
@@ -304,7 +359,7 @@ const faq = [
         {
           temoins.map((t) => (
             <li class="temoin">
-              <Paper surface="ocre" fold="none" class="temoin__name">{t.nom}</Paper>
+              <Paper surface="ocre" fold="none" class="etiquette temoin__name">{t.nom}</Paper>
               <div class="temoin__ph temoin__ph--symbol" aria-hidden="true">
                 <Brand name="fig2" />
               </div>
@@ -329,7 +384,7 @@ const faq = [
         <h2 class="faq__t">Questions fréquentes</h2>
         <dl class="faq__list">
           {
-            faq.filter((item) => !item.brouillon).map((item) => (
+            faq.map((item) => (
               <details class="faq__item">
                 <summary>{item.q}</summary>
                 <p class:list={[item.brouillon && 'is-brouillon']}>{item.r}</p>
@@ -339,55 +394,161 @@ const faq = [
         </dl>
       </div>
       <div class="faq__media">
-        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="clamp(74px, 8vw, 112px)" /></div>
+        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="lg" paysage /></div>
         <Photo ratio="4/3" label="photo — équipe" />
         <div class="faq__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
       </div>
     </div>
   </section>
 
-  <CtaFinal id="candidater" />
+  <!-- BLOC FORMATEUR — grand bloc jaune (maquette v4 p.2, bas de page) -->
+  <section class="section">
+    <div class="page">
+      <div class="formateur s-jaune">
+        <h2>Vous souhaitez devenir formateur·rice ?</h2>
+        <Cta href="/candidater/formateur" surface="bleu-fonce" class="formateur__cta">En savoir plus</Cta>
+      </div>
+    </div>
+  </section>
 </Base>
 
 <style is:global>
-  /* BANDEAU ERASMUS — mesure au vecteur (maquette v2 p.2) :
-     ligne 1 = 1,98 x le corps de texte, ligne 2 = exactement le corps
-     (bbox identique a celle d'un mot de paragraphe : 13,08 pt). Vert #00382d. */
+  /* BLOC ERASMUS — releve v4 p.2 a 1440 px : photo 381 x 568 de 88 a 469,
+     carte bleue 890 x 568 de 469 a 1359, pli aplati 168 x 105 en bleu clair,
+     texte blanc a 71 px du bord gauche et 39 px du haut. */
   .erasmus {
-    padding-block: clamp(2rem, 5vw, 3.5rem) 0;
+    display: grid;
+    grid-template-columns: 30% 70%;
+    align-items: stretch;
   }
-  .erasmus__in {
-    text-align: center;
-    color: var(--vert);
+  .erasmus__media {
+    min-width: 0;
+  }
+  .erasmus__media > * {
+    height: 100%;
+    aspect-ratio: auto !important;
+  }
+  /* .s-bleu en plus : meme specificite que la surface, sinon l'encre verte
+     de .s-bleu reprend le dessus sur le blanc */
+  .erasmus__card.s-bleu {
+    --fx: clamp(4rem, 11.7vw, 10.5rem);
+    --fy: clamp(2.5rem, 7.3vw, 6.6rem);
+    --fold-color: var(--bleu-clair);
+    /* texte blanc sur le bleu, comme les cartes bleues de l'accueil */
+    --on-surface: var(--blanc);
+    min-height: clamp(12rem, 24vw, 22rem);
+    padding: var(--s-int) clamp(2rem, 5vw, 4.5rem);
+    padding-right: max(clamp(2rem, 5vw, 4.5rem), calc(var(--fx) + 0.5rem));
+    display: grid;
+    align-content: center;
+    gap: 1rem;
   }
   .erasmus__l1 {
-    font-size: 1.88em;
-    font-weight: 700;
-    line-height: 1.15;
+    font-size: var(--t-titre);
+    font-weight: 600;
+    line-height: var(--lh-titre);
   }
   .erasmus__l2 {
-    font-size: 1em;
-    margin-top: 0.35rem;
+    font-size: var(--t-corps);
+    line-height: var(--lh-corps);
+  }
+  @media (max-width: 860px) {
+    .erasmus {
+      grid-template-columns: 1fr;
+    }
+    .erasmus__media > * {
+      height: auto;
+      aspect-ratio: 3 / 2 !important;
+    }
+    .erasmus__card {
+      min-height: 0;
+      padding-top: max(var(--s-int), calc(var(--fy) + 0.5rem));
+    }
   }
 
-  /* LE RESULTAT (v2) */
+  /* NOTRE IMPACT (texte) */
   .resultat__p {
     max-width: 64ch;
     margin: 0 auto;
     text-align: center;
   }
 
+  /* intro « Comment se deroule » */
+  .deroule__lead {
+    max-width: 74ch;
+    margin: 0 auto var(--s-titre);
+    text-align: center;
+  }
+
+  /* 16H / 8 MODULES — deux colonnes, numero + titre (maquette v4 p.2) */
+  .modules {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1.5rem, 3.5vw, 3rem) clamp(2rem, 6vw, 5rem);
+  }
+  .module {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: clamp(0.75rem, 1.6vw, 1.25rem);
+    align-items: center;
+  }
+  .module__n {
+    display: grid;
+    place-items: center;
+    width: clamp(2.6rem, 3.6vw, 3.25rem);
+    aspect-ratio: 1;
+    flex: none;
+    background: var(--bleu-fold);
+    color: var(--blanc);
+    font-size: var(--t-h3);
+    font-weight: 600;
+    line-height: 1;
+  }
+  .module__t {
+    font-size: max(1.05rem, 1.05vw);
+    line-height: 1.35;
+  }
+  @media (max-width: 860px) {
+    .modules {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* BLOC FORMATEUR — grand bloc jaune, titre vert, CTA (maquette v4 p.2) */
+  .formateur {
+    background: var(--surface);
+    color: var(--on-surface);
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+    text-align: center;
+    padding: clamp(3rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+  }
+  .formateur h2 {
+    max-width: 20ch;
+  }
+
   /* WHY */
   .why__fig {
     color: var(--bleu);
   }
+  /* maquette p.2 : le haut du titre est aligne avec le haut du paragraphe */
   .why__in {
-    align-items: center;
+    align-items: start;
+  }
+  .why__in h2 {
+    margin-top: -0.12em;
   }
   .why__txt {
     display: grid;
-    gap: 1.75rem;
+    gap: 1.1rem;
     justify-items: start;
+  }
+  .why__txt .cta {
+    margin-top: 0.75rem;
   }
   @media (max-width: 860px) {
     .why__fig {
@@ -408,16 +569,16 @@ const faq = [
   .methodo__head {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    margin-bottom: clamp(1rem, 2.2vw, 2rem);
   }
+  /* releve v4 : picto de 70 px, titre au corps des titres (47 px) */
   .methodo__picto {
-    width: clamp(2.5rem, 4vw, 3.5rem);
+    width: var(--picto-md);
     flex: none;
   }
   .methodo__head h3 {
-    color: var(--vert);
-    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    font-size: var(--t-titre);
   }
   .methodo li p {
     max-width: 34ch;
@@ -427,15 +588,6 @@ const faq = [
   .methodo__point {
     max-width: 34ch;
     margin-top: 0.5rem;
-    font-size: max(0.95rem, 0.95em);
-    line-height: 1.45;
-  }
-  /* fleche de depliage, comme sur la maquette */
-  .methodo__more {
-    display: block;
-    width: 1rem;
-    margin-top: clamp(1rem, 2.5vw, 1.75rem);
-    color: color-mix(in srgb, var(--noir) 28%, transparent);
   }
   @media (max-width: 860px) {
     .methodo {
@@ -449,42 +601,81 @@ const faq = [
     padding: 0.75rem;
   }
 
-  /* ETAPES */
+  /* ETAPES — releve v4 (page 2, a 1440 px) : deux colonnes de cartes de
+     611 x 409 px, gouttiere de 37 px, 41 px entre deux cartes d'une meme
+     colonne, la colonne de droite decalee d'un quart de carte (104 px) vers
+     le bas. Numero 94 px, titre 39 px, texte 24 px, pli de carte en haut a
+     droite. Avant : une carte par ligne, chacune sur la moitie de la
+     largeur — la moitie de chaque ligne restait vide (« trop d'espace »). */
   .etapes {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
-    gap: clamp(0.75rem, 2vw, 1.5rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2.9%;
+    row-gap: clamp(1.25rem, 2.85vw, 2.6rem);
   }
   .etapes__item {
-    width: min(100%, 41rem);
+    min-width: 0;
   }
+  /* quinconce : la colonne de droite descend d'un quart de carte. Le
+     decalage est un transform, il ne modifie pas la grille : les cartes de
+     gauche gardent leur espacement de 41 px. */
   .etapes__item.is-right {
-    margin-left: auto;
+    transform: translateY(25%);
+  }
+  /* si le nombre d'etapes est pair, la derniere carte (a droite) deborde du
+     bas de la grille de ce quart : on le lui rend */
+  .etapes__item.is-right:last-child {
+    margin-bottom: 17%;
   }
   .etapes__card {
-    --etape-padding: clamp(1.1rem, 2.4vw, 1.75rem);
     --f: var(--fold-md);
-    padding: var(--etape-padding);
-    padding-right: max(var(--etape-padding), calc(var(--f) + 0.75rem));
+    height: 100%;
+    /* la maquette fait 409 px avec ses textes longs ; les textes actuels
+       sont plus courts, on garde une hauteur mini un peu sous la maquette
+       (22 vw = 317 px) pour ne pas laisser de vide — la carte grandit avec
+       le texte */
+    min-height: clamp(12rem, 22vw, 20rem);
+    padding: var(--s-int);
+    padding-right: max(var(--s-int), calc(var(--f) + 0.5rem));
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    /* les titres des etapes sont verts sur toutes les teintes, orange compris */
+    --ink-titre: var(--vert);
   }
   .etapes__n {
-    font-size: 1.25rem;
+    font-size: var(--t-h3);
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
     color: var(--vert);
     display: flex;
-    gap: 0.75rem;
-    align-items: baseline;
+    gap: 0.3em;
+    align-items: flex-start;
   }
   .etapes__n span {
-    font-size: 2.25rem;
-    line-height: 1;
+    font-size: var(--t-chiffre-xl);
+    line-height: 0.82;
+    flex: none;
   }
   .etapes__txt {
-    margin-top: 0.75rem;
-    opacity: 0.9;
+    margin-top: 0.5rem;
+  }
+  @media (max-width: 860px) {
+    .etapes {
+      grid-template-columns: 1fr;
+    }
+    .etapes__item.is-right {
+      transform: none;
+    }
+    .etapes__item.is-right:last-child {
+      margin-bottom: 0;
+    }
+    .etapes__card {
+      min-height: 0;
+    }
   }
 
   /* IMPACT — bloc encadre, ratio et pli releves au vecteur */
@@ -514,7 +705,7 @@ const faq = [
   .impact2__t {
     text-align: center;
     color: var(--blanc);
-    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: var(--s-int);
   }
   .impact2__list {
     list-style: none;
@@ -526,17 +717,12 @@ const faq = [
     text-align: center;
     color: var(--blanc);
   }
-  .impact2__n {
+  .impact2__list .chiffre {
     display: block;
-    font-size: clamp(1.75rem, 4.4vw, 3rem);
-    font-weight: 600;
-    line-height: 1;
   }
   .impact2__list p {
     margin: 0.5rem auto 0;
-    font-size: 0.92rem;
-    line-height: 1.3;
-    max-width: 15ch;
+    max-width: 18ch;
   }
   @media (max-width: 860px) {
     .impact2 {
@@ -569,11 +755,8 @@ const faq = [
     grid-column: 1;
     grid-row: 1;
     justify-self: start;
-    padding: 0.7rem 1.2rem;
-    font-weight: 600;
     z-index: 3;
     position: relative;
-    margin-bottom: -0.4rem;
   }
   .temoin__ph {
     grid-column: 1;
@@ -590,28 +773,26 @@ const faq = [
     color: var(--vert);
   }
   .temoin__card {
-    /* releve : pli aplati 60,3 x 25,2 pt sur un bloc de 205,9 x 175,9 */
-    --fx: clamp(2.5rem, 10.1vw, 9.5rem);
-    --fy: clamp(1.1rem, 4.2vw, 4rem);
+    /* releve v4 : pli aplati 147 x 77 px sur une carte de 499 x 361 */
+    --fx: clamp(2.5rem, 10.2vw, 9.5rem);
+    --fy: clamp(1.25rem, 5.3vw, 5rem);
     grid-column: 2;
     grid-row: 2;
     align-self: center;
     margin-left: -10%;
-    padding: clamp(1.1rem, 2.2vw, 1.75rem);
-    padding-left: clamp(2rem, 4vw, 3.25rem);
-    padding-bottom: max(clamp(1.1rem, 2.2vw, 1.75rem), calc(var(--fy) + 0.75rem));
+    padding: var(--s-int);
+    padding-left: clamp(2rem, 5vw, 4.6rem);
+    padding-bottom: max(var(--s-int), calc(var(--fy) + 0.5rem));
     z-index: 1;
     display: grid;
-    gap: 0.9rem;
+    gap: 1.1em;
   }
+  /* citation en romain, role en italique — comme la citation de la page 1 */
   .temoin__card blockquote {
     margin: 0;
-    font-style: italic;
   }
   .temoin__role {
     font-style: italic;
-    font-size: 0.9rem;
-    opacity: 0.8;
   }
   @media (max-width: 860px) {
     .temoins {
@@ -638,8 +819,7 @@ const faq = [
   }
   .faq__t {
     text-align: left;
-    color: var(--vert);
-    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: var(--s-titre);
   }
   .faq__list {
     margin: 0;
@@ -661,7 +841,7 @@ const faq = [
   }
   .faq__item summary::after {
     content: '+';
-    font-size: 1.4rem;
+    font-size: 1.2em;
     line-height: 1;
     color: var(--vert);
   }
@@ -681,11 +861,12 @@ const faq = [
     top: -10%;
     z-index: 1;
   }
+  /* releve v4 : cartouche de 180 px pour une colonne de ~560 */
   .faq__cartouche {
     position: absolute;
     right: -8%;
     bottom: -14%;
-    width: 26%;
+    width: 32%;
     min-width: 90px;
     z-index: 1;
   }

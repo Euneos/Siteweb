@@ -32,7 +32,7 @@ const {
   <div class="page">
     <div class="final s-bleu">
       <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
-      <div class="final__fig" aria-hidden="true"><Brand name="fig3" height="100%" /></div>
+      <div class="final__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
       <div class="final__in">
         <h2>{titre}</h2>
         <Cta href={href} surface="blanc" class="final__cta">{libelle}</Cta>
@@ -46,12 +46,18 @@ const {
      elle ne recevrait pas le hash de scope. */
   .final {
     position: relative;
-    overflow: hidden;
+    /* le bonhomme DOIT sortir de la carte (maquette p.1/p.2) : pas d'overflow
+       hidden sur desktop. Le fond eclat, lui, reste borne a la carte car il
+       est en inset:0. */
     aspect-ratio: 519.6 / 257;
     background: var(--surface);
     color: var(--on-surface);
     display: grid;
     place-items: center;
+  }
+  /* garde-fou : l'eclat de fond ne deborde pas, seul le bonhomme le fait */
+  .final__eclat {
+    overflow: hidden;
   }
   .final__eclat {
     position: absolute;
@@ -63,11 +69,14 @@ const {
     height: 100%;
     display: block;
   }
+  /* Releve v4 (p.1 et p.2, identique) : silhouette fig2 (bras leve a droite),
+     plus grande que le bloc et qui en SORT — elle deborde du bord gauche et du
+     bas de la carte, « pour montrer ce qu'il peut faire ». */
   .final__fig {
     position: absolute;
-    left: -2%;
-    top: 8%;
-    height: 84%;
+    left: -12%;
+    bottom: 0;
+    height: 128%;
     color: var(--bleu-clair);
     z-index: 1;
   }
@@ -84,16 +93,23 @@ const {
     max-width: 30ch;
     color: var(--blanc);
   }
-  /* releve : 154,5 pt sur 519,6 -> 29,7 % */
-  .final__cta {
+  /* releve : 154,5 pt sur 519,6 -> 29,7 % ; libelle en bleu fonce sur blanc.
+     Selecteur double : `.s-blanc` (posee par <Cta>) a la meme specificite et
+     reprenait le dessus, le libelle sortait noir au lieu de bleu. */
+  .final .final__cta {
     min-width: 29.7%;
-    text-align: center;
     --on-surface: var(--bleu-fold);
     --fold-color: var(--bleu-clair);
   }
   @media (max-width: 860px) {
     .final {
       aspect-ratio: auto;
+      /* en une colonne, pas de marge pour accueillir le debord : on rentre */
+      overflow: hidden;
+    }
+    .final__fig {
+      left: -8%;
+      height: 108%;
     }
   }
 </style>

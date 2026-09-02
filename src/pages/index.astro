@@ -29,7 +29,7 @@ const programme = [
   },
   {
     picto: 'asterisque',
-    titre: 'Équipes formées',
+    titre: 'Enseignants formés',
     intro: 'Un accompagnement qui renforce la coopération, l’attention et apaise les climats de classe :',
     points: [
       'Avec une pratique de présence attentive intégrée au quotidien professionnel ;',
@@ -68,7 +68,7 @@ const parcours = [
   /* Les deux routes de candidature tranchees par Candice au call du 18/08 :
      « candidater en tant qu'etablissement et candidater en tant que formateur ».
      NB : la maquette v2 dit « devenir membre » — libelle a confirmer avec elle. */
-  { surface: 'bleu-clair', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
+  { surface: 'bleu', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
   { surface: 'jaune', label: 'Je souhaite devenir formateur·rice', href: '/candidater/formateur', picto: 'var(--jaune-clair)' },
   { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
 ] as const
@@ -120,9 +120,9 @@ const parcours = [
           développement des jeunes ?<sup>*</sup>
         </p>
         <p class="source">
-          * Ofcom (régulateur des communications britannique), données citées par le UK
-          Parliament Education Committee, <em>Screen time: impacts on education and
-          wellbeing</em>, 2023.
+          * Santé publique France, 2024, <em>« La santé mentale et le bien-être des
+          collégiens et lycéens en France hexagonale »</em>, résultats de l’enquête
+          EnCLASS 2022.
         </p>
         <Cta href="/programme">Découvrir notre programme</Cta>
       </div>
@@ -137,7 +137,7 @@ const parcours = [
       <div class="approche__media">
         <Photo ratio="3/2" label="photo — équipe éducative" />
         <div class="approche__picto">
-          <PictoBox picto="asterisque" surface="jaune" size="clamp(62px, 6.2vw, 89px)" />
+          <PictoBox picto="asterisque" surface="jaune" size="sm" />
         </div>
       </div>
 
@@ -179,7 +179,16 @@ const parcours = [
 
   <!-- 5. NOTRE PROGRAMME — la famille bleue, reservee au Programme cle.
        Maquette : fond en bleu CLAIR, cartes en bleu soutenu pour qu'elles s'en
-       detachent, grand pli en haut-gauche, CTA a cheval sur le bord bas. -->
+       detachent, grand pli en haut-gauche, CTA a cheval sur le bord bas.
+
+       Chaque carte est un <details> : la partie visible (<summary>) porte le
+       picto, le titre, l'introduction et le premier point — ce que la maquette
+       montre carte repliee (le texte s'y arrete a « attention, regulation »,
+       suivi d'une fleche vers le bas) ; les autres points sont en dehors du
+       summary, donc caches tant que la carte est repliee. La fleche a ainsi
+       TOUJOURS quelque chose a derouler. Avant, tout le texte etait dans le
+       summary et seule la hauteur de la carte le coupait : sur un grand ecran
+       tout tenait, et la fleche ne faisait rien (retour de Pauline). -->
   <section class="s-bleu-clair prog">
     <div class="prog__fold" aria-hidden="true"></div>
     <div class="page prog__in">
@@ -196,12 +205,8 @@ const parcours = [
                     </span>
                     <span class="prog__titre">{c.titre}</span>
                   </span>
-                  <span class="prog__texte">
-                    <span class="prog__p">{c.intro}</span>
-                    {c.points.map((pt) => (
-                      <span class="prog__p">{pt}</span>
-                    ))}
-                  </span>
+                  <span class="prog__p">{c.intro}</span>
+                  <span class="prog__p">{c.points[0]}</span>
                   <span class="prog__voile" aria-hidden="true" />
                   <span class="prog__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor">
@@ -209,6 +214,11 @@ const parcours = [
                     </svg>
                   </span>
                 </summary>
+                <div class="prog__texte">
+                  {c.points.slice(1).map((pt) => (
+                    <p class="prog__p">{pt}</p>
+                  ))}
+                </div>
               </Paper>
             </li>
           ))
@@ -223,7 +233,7 @@ const parcours = [
   <!-- 6. NOTRE IMPACT -->
   <section class="section impact-sec">
     <div class="page">
-      <h2 class="impact__t">Le résultat ?</h2>
+      <h2 class="impact__t">Les premiers résultats</h2>
       <p class="impact__sur">
         Retour d’expérience de 147 professionnels de l’éducation formés en 2025-2026 dans
         16 établissements pilotes
@@ -233,7 +243,7 @@ const parcours = [
           impact.map((s) => (
             <li>
               <Paper surface="vert" fold="tr" class="impact__card">
-                <span class="impact__n">{s.valeur}</span>
+                <span class="chiffre">{s.valeur}</span>
                 <p>{s.legende}</p>
               </Paper>
             </li>
@@ -248,30 +258,11 @@ const parcours = [
        ou la preuve vient d'etre donnee. -->
   <CtaFinal />
 
-  <!-- 7. BLOC IMAGE -->
-  <section class="section">
-    <div class="page bloc-image">
-      <div class="bloc-image__ph"><Photo ratio="16/10" label="photo — jeunes en situation réelle" /></div>
-      <div class="bloc-image__picto">
-        <PictoBox picto="asterisque" surface="orange" size="clamp(96px, 9.9vw, 143px)" paysage />
-      </div>
-      <div class="bloc-image__picto2">
-        <PictoBox
-          picto="coeur"
-          surface="rose"
-          size="clamp(116px, 12.1vw, 174px)"
-          fold
-          foldColor="var(--rose-fold)"
-          class="bloc-image__rose"
-        />
-      </div>
-    </div>
-  </section>
-
-  <!-- 8. CITATION -->
+  <!-- 7. CITATION — dans la maquette p.1, la citation de Candice vient AVANT le
+       bloc image (l'ordre etait inverse sur le site). -->
   <section class="section">
     <div class="page citation">
-      <Paper surface="ocre" fold="none" class="citation__name">Candice Marro</Paper>
+      <Paper surface="ocre" fold="none" class="etiquette citation__name">Candice Marro</Paper>
       <div class="citation__ph"><Photo ratio="3/4" label="portrait" /></div>
       <Paper surface="papier" fold="br" class="citation__card">
         <blockquote>
@@ -280,10 +271,23 @@ const parcours = [
           santé mentale. L’action d’EUNEOS est d’agir en prévention, de donner des clés pour
           apprendre aux jeunes à se réguler grâce à des éducateurs formés et outillés. »
         </blockquote>
-        <p class="citation__role">Fondatrice et Présidente EUNEOS</p>
+        <p class="citation__role">Fondatrice et Directrice Générale EUNEOS</p>
       </Paper>
       <div class="citation__cta">
         <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. BLOC IMAGE -->
+  <section class="section">
+    <div class="page bloc-image">
+      <div class="bloc-image__ph"><Photo ratio="16/10" label="photo — jeunes en situation réelle" /></div>
+      <div class="bloc-image__picto">
+        <PictoBox picto="asterisque" surface="orange" size="lg" paysage />
+      </div>
+      <div class="bloc-image__picto2">
+        <PictoBox picto="coeur" surface="rose" size="lg" fold foldColor="var(--rose-fold)" class="bloc-image__rose" />
       </div>
     </div>
   </section>
@@ -315,10 +319,14 @@ const parcours = [
 
 <style is:global>
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
-  /* la maquette donne beaucoup d'air a ce bloc : la silhouette y fait toute la
-     hauteur de la bande */
+  /* La section garde le rythme commun (--s-bloc) ; elle est juste assez
+     haute pour la silhouette, et le texte se centre dessus. Avant, elle
+     avait son propre padding (jusqu'a 11 rem) : c'est un des espaces qui
+     « variaient d'un bloc a l'autre ». */
   .constat {
-    padding-block: clamp(5rem, 14vw, 11rem);
+    display: grid;
+    align-content: center;
+    min-height: clamp(20rem, 42vw, 37rem);
   }
   .silo--left.constat__fig {
     color: var(--vert);
@@ -334,12 +342,13 @@ const parcours = [
   }
   .constat__txt {
     display: grid;
-    gap: 1.25rem;
+    gap: 1.1rem;
     /* les paragraphes occupent toute la colonne ; seul le CTA se cale a gauche */
     justify-items: stretch;
   }
   .constat__txt .cta {
     justify-self: start;
+    margin-top: 0.75rem;
   }
   @media (max-width: 860px) {
     .silo--left.constat__fig {
@@ -375,9 +384,7 @@ const parcours = [
     position: relative;
     z-index: 3;
     padding: clamp(1rem, 2.4vw, 1.75rem) clamp(1rem, 2.4vw, 1.75rem);
-    font-size: clamp(1.4rem, 2.6vw, 2rem);
-    line-height: 1.2;
-    font-weight: 600;
+    /* c'est un H2 : il herite du corps des titres (47 px), comme les autres */
     text-align: center;
   }
   .approche__media {
@@ -407,20 +414,23 @@ const parcours = [
     margin-right: -11.7%;
     z-index: 2;
   }
-  /* releve : 214,8 x 108,6 pt */
+  /* releve : 214,8 x 108,6 pt ; texte a 45 px du bord (--s-int), et sous
+     le pli pour que la premiere ligne ne passe pas dessus */
   .approche__txt {
     max-width: none;
+    /* maquette : ce bloc est compose un peu plus gras que le corps courant */
+    font-weight: 600;
     min-height: clamp(9rem, 18.2vw, 16.4rem);
-    padding: clamp(1.5rem, 3vw, 2.25rem);
-    padding-top: max(clamp(1.5rem, 3vw, 2.25rem), calc(var(--f) + 0.75rem));
-    padding-left: clamp(2.25rem, 5vw, 4rem);
-    padding-bottom: clamp(2rem, 4vw, 3rem);
+    padding: var(--s-int);
+    padding-top: max(var(--s-int), calc(var(--f) + 0.5rem));
+    padding-bottom: calc(var(--s-int) + 0.75rem);
   }
+  /* le CTA est a cheval sur le bord bas du bloc vert : un tiers dedans */
   .approche__cta {
     position: absolute;
-    left: 30.7%;
+    left: 30.4%;
     bottom: 0;
-    transform: translateY(45%);
+    transform: translateY(65%);
     z-index: 3;
   }
   @media (min-width: 861px) and (max-width: 1300px) {
@@ -459,13 +469,11 @@ const parcours = [
   /* --- CONFIANCE --- */
   .confiance__t {
     text-align: center;
-    color: var(--vert);
-    font-size: clamp(1.4rem, 2.6vw, 1.9rem);
   }
   .confiance__logos {
     list-style: none;
     padding: 0;
-    margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+    margin: var(--s-titre) 0 0;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 5.75%;
@@ -482,50 +490,94 @@ const parcours = [
   }
 
   /* --- PROGRAMME (famille bleue) --- */
+  /* releve au vecteur : pli aplati de 93,8 x 29,4 pt, soit 15,76 % x 4,94 %
+     de la largeur de page. Dimensions partagees par l'entaille et le rabat. */
   .prog {
     position: relative;
-    background: var(--surface);
     color: var(--on-surface);
+    --pf-w: min(15.76vw, 14rem);
+    --pf-h: calc(var(--pf-w) / 3.190);
+    /* le CTA deborde du bandeau de la moitie de sa hauteur : la section
+       suivante commence apres lui, a distance normale */
+    margin-bottom: calc(var(--s-bloc) / 2 + var(--t-cta) * 0.9);
   }
+  /* Le fond de la bande vit sur ::before pour qu'on puisse ENTAILLER son coin
+     haut-gauche. Sans cette entaille, le triangle du pli se posait sur un coin
+     intact : il se lisait comme un triangle colle, pas comme un coin replie
+     (« le pli ne se replie pas », retour Charly). */
+  .prog::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: var(--surface);
+    clip-path: polygon(var(--pf-w) 0, 100% 0, 100% 100%, 0 100%, 0 var(--pf-h));
+  }
+  /* releve v4 : 94 px entre le haut du bandeau et le titre */
   .prog__in {
-    padding-block: clamp(3.5rem, 9vw, 7rem) 0;
+    position: relative;
+    z-index: 1;
+    padding-block: calc(var(--s-bloc) * 0.77) 0;
   }
-  /* releve au vecteur : pli aplati de 93,8 x 29,4 pt, soit 15,76 % x 4,94 %
-     de la largeur de page — et non un triangle a 1,7:1 */
+  /* Le rabat : le dessous de la feuille (bleu moyen) qui remplit l'entaille,
+     avec un lisere de pli plus fonce le long de la diagonale (le crease). */
   .prog__fold {
     position: absolute;
     left: 0;
     top: 0;
-    width: 15.76vw;
-    max-width: 14rem;
-    aspect-ratio: 93.8 / 29.4;
+    z-index: 1;
+    width: var(--pf-w);
+    /* le rabat descend un peu SOUS la pliure : c'est ce debord qui fait
+       « coin qui retombe » et non « triangle colorie » */
+    height: calc(var(--pf-h) * 1.15);
+    /* dessous de la feuille = bleu moyen (releve maquette : les cartes ont un
+       rabat plus fonce, mais le grand bandeau est en bleu moyen) */
     background: var(--bleu);
-    clip-path: polygon(0 0, 100% 0, 0 100%);
+    /* rabat mince pose SOUS la pliure. Son bord haut suit la diagonale de
+       l'entaille — (100% 0) sur le bord haut, (0 87%) sur le bord gauche — puis
+       il retombe en pointe. Le triangle AU-DESSUS de la pliure reste blanc (le
+       fond), ce qui donne la vraie lecture d'un coin replie. */
+    clip-path: polygon(100% 0, 0 87%, 68% 100%);
   }
   .prog__t {
     text-align: center;
-    margin-bottom: clamp(2rem, 5vw, 3.5rem);
-    color: var(--vert);
+    margin-bottom: var(--s-titre);
   }
-  /* releve au vecteur : cartes de 125,6 x 166,7 pt (ratio 0,753) separees par
-     des gouttieres de 71 pt, soit 13,7 % de la largeur du groupe */
+  /* releve v4 (p.1 a 1440 px) : trois cartes de 304 x 404 (ratio 0,753) de
+     189 a 1264 px, gouttieres de 82 px. Le rang fait donc 1075 px, soit
+     91,1 % de la zone de contenu (1180 px), et la gouttiere 7,6 % du rang. La v2 avait des
+     gouttieres de 172 px : les cartes etaient trop etroites et le texte s'y
+     coupait une ligne plus tot que dans la maquette. */
   .prog__cards {
     list-style: none;
     padding: 0;
     margin: 0 auto;
-    /* 3c + 2g = largeur, avec g = 0,565 c (71 / 125,6 pt) -> gap = 13,68 % */
+    width: 91.1%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 13.68%;
+    gap: 7.6%;
+    /* une carte qui s'ouvre grandit seule : ses voisines ne bougent pas */
+    align-items: start;
   }
+  /* releve v4 : texte a 39 px du bord d'une carte de 304 px (12,8 %).
+     PAS de height: 100 % ici : avec un aspect-ratio, une hauteur imposee par
+     la rangee faisait recalculer la LARGEUR des cartes fermees quand une
+     voisine s'ouvrait — elles s'elargissaient et sortaient de la grille
+     (« ca fait n'importe quoi », retour de Charly). */
   .prog__card.s-bleu {
-    --prog-pad: 11%;
-    height: 100%;
+    --prog-pad: 12.8%;
+    /* la reserve du bas loge la fleche, sous la derniere ligne */
+    --prog-reserve: calc(var(--prog-pad) * 0.7 + 2.6rem);
     min-height: 0;
     aspect-ratio: 125.6 / 166.7;
     padding: var(--prog-pad);
+    padding-bottom: var(--prog-reserve);
     display: grid;
-    gap: 0.6rem;
+    /* minmax(0, 1fr) et non auto : une piste auto s'elargit sur la largeur
+       min-content de son contenu (ici l'en-tete picto + titre) et faisait
+       deborder le texte a droite de la carte, hors de la zone de texte */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.8rem;
     align-content: start;
     position: relative;
     /* releve : sur le bleu du Programme, le texte est BLANC. L'encre par
@@ -536,24 +588,44 @@ const parcours = [
   }
   .prog__card[open] {
     aspect-ratio: auto;
-    padding-bottom: 14%;
   }
-  .prog__card h3 {
-    font-size: clamp(1rem, 1.5vw, 1.3rem);
+  /* Repliee, la carte garde la hauteur de la maquette : le resume remplit
+     la place disponible (une rangee 1fr) et ce qui depasse est coupe par le
+     bord de la zone de texte, comme dans la maquette ou la phrase s'arrete
+     en plein milieu. La fleche vit dans la reserve du bas, jamais sur le
+     texte. Depliee, la carte grandit et laisse tout voir. */
+  .prog__card:not([open]) {
+    grid-template-rows: minmax(0, 1fr);
   }
-  .prog__intro {
-    /* plancher mobile : jamais sous 15 px */
-    font-size: max(0.95rem, 1.1vw);
-    line-height: 1.45;
-  }
-  /* La carte est un <details> : repliee elle montre un apercu tronque et une
-     fleche, depliee elle montre tout. Aucun JavaScript. */
-  /* la fleche se cale en bas de la carte, comme dans la maquette */
   .prog__resume {
     display: grid;
-    gap: 0.6rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.8rem;
     cursor: pointer;
     list-style: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .prog__card[open] .prog__resume {
+    overflow: visible;
+  }
+  /* voile sur la derniere ligne coupee ; positionne par rapport a la carte,
+     il echappe a l'overflow du resume */
+  .prog__voile {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--prog-reserve);
+    height: 1.6rem;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--surface));
+  }
+  .prog__card[open] .prog__voile {
+    display: none;
+  }
+  .prog__resume:focus-visible {
+    outline: 3px solid var(--blanc);
+    outline-offset: -3px;
   }
   .prog__resume::-webkit-details-marker {
     display: none;
@@ -564,53 +636,32 @@ const parcours = [
     gap: 0.7rem;
     padding-right: max(0px, calc(var(--f) + 0.75rem - var(--prog-pad)));
   }
+  /* 27 px dans la maquette : le seul titre de carte plus petit qu'un titre */
   .prog__titre {
     font-weight: 600;
-    font-size: clamp(1rem, 1.5vw, 1.3rem);
-    line-height: 1.15;
+    font-size: var(--t-carte);
+    line-height: var(--lh-titre);
+    min-width: 0;
   }
-  /* Tout le texte est present des l'etat replie : c'est la CARTE qui le coupe,
-     exactement comme dans la maquette ou la phrase s'arrete en plein milieu.
-     Depliee, la carte grandit et laisse tout voir. */
   .prog__texte {
     display: grid;
-    gap: 0.7rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.8rem;
     align-content: start;
+    margin-top: 0.8rem;
   }
   .prog__p {
-    font-size: max(0.95rem, 1.05vw);
-    line-height: 1.45;
-  }
-  /* Replie : l'apercu remplit la place disponible et se fait couper par le
-     bord de la carte, exactement comme dans la maquette. Un nombre de lignes
-     fixe laissait un vide sous le texte. La reserve du bas laisse passer la
-     fleche. */
-  /* Repliee, la carte garde la hauteur de la maquette et COUPE simplement ce
-     qui depasse. Un voile degrade rend la coupe volontaire et degage la
-     fleche, qui sinon passerait par-dessus le texte. */
-  .prog__card:not([open]) {
-    overflow: hidden;
-  }
-  .prog__voile {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 5.5rem;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, var(--surface) 55%);
-  }
-  .prog__card[open] .prog__voile {
-    display: none;
+    line-height: var(--lh-corps);
   }
 
-  /* ancree en bas a droite de la carte, comme dans la maquette */
+  /* ancree en bas a droite de la carte, dans la reserve du bas, comme dans
+     la maquette (24 x 32 px a 28 px du bord) */
   .prog__fleche {
     position: absolute;
-    right: 11%;
-    bottom: 9%;
+    right: var(--prog-pad);
+    bottom: calc(var(--prog-pad) * 0.7);
     display: block;
-    width: 0.9rem;
+    width: clamp(0.9rem, 1.65vw, 1.5rem);
     transition: transform 0.2s ease;
   }
   .prog__card[open] .prog__fleche {
@@ -622,34 +673,22 @@ const parcours = [
       transition: none;
     }
   }
-  .prog__points li {
-    padding-left: 0.9rem;
-    position: relative;
-  }
-  .prog__points li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 0.35rem;
-    height: 0.35rem;
-    background: currentColor;
-  }
   .prog__picto {
     /* largeur commune : les trois pictos n'ont pas le meme ratio, et sans
        cela les titres des trois cartes ne s'alignent pas */
-    width: clamp(30px, 2.6vw, 38px);
+    width: var(--picto-sm);
     flex: none;
     display: flex;
     align-items: center;
     color: var(--blanc);
   }
-  /* le CTA est pose a cheval sur le bord bas de la section */
+  /* le CTA est pose a cheval sur le bord bas de la section (releve v4 :
+     132 px entre le bas des cartes et le bas du bandeau) */
   .prog__cta {
     position: relative;
     display: flex;
     justify-content: center;
-    margin-top: clamp(2.5rem, 6vw, 4rem);
+    margin-top: calc(var(--s-bloc) * 0.55);
     transform: translateY(50%);
     z-index: 2;
   }
@@ -662,28 +701,25 @@ const parcours = [
   }
   @media (max-width: 860px) {
     .prog__cards {
+      width: 100%;
       grid-template-columns: 1fr;
       gap: 1.5rem;
     }
     .prog__card.s-bleu {
       --prog-pad: clamp(1.25rem, 5vw, 2rem);
-      height: auto;
       aspect-ratio: auto;
       padding: var(--prog-pad);
+      padding-bottom: var(--prog-reserve);
     }
-    .prog__card:not([open]) .prog__texte {
-      max-height: 12rem;
-      overflow: hidden;
+    /* en une colonne la carte prend la hauteur de son texte : rien n'est coupe */
+    .prog__voile {
+      display: none;
     }
   }
 
   /* --- IMPACT --- */
-  .impact-sec {
-    padding-top: clamp(4rem, 10vw, 8rem);
-  }
   .impact__t {
     text-align: center;
-    color: var(--vert);
     margin-bottom: 0.75rem;
   }
   /* surtitre de provenance des chiffres (maquette v2) */
@@ -691,10 +727,7 @@ const parcours = [
      Le max-width de 62ch la coupait en deux. */
   .impact__sur {
     text-align: center;
-    max-width: 88%;
-    margin: 0 auto clamp(2rem, 5vw, 3rem);
-    font-size: 0.92rem;
-    opacity: 0.75;
+    margin: 0 auto var(--s-int);
   }
   /* releve : 3 cartes de 172,2 pt = 86,8 % de la page, gouttieres tres fines */
   /* La rangee va de 5,0 % a 94,8 % : elle deborde du padding de .page des
@@ -714,22 +747,15 @@ const parcours = [
   /* releve : 172,2 x 103,2 pt, pli 27,5 */
   .impact__card {
     height: 100%;
-    min-height: clamp(8.5rem, 15.4vw, 13.9rem);
-    padding: clamp(1.25rem, 2.4vw, 1.75rem);
+    min-height: clamp(8.5rem, 15vw, 13.5rem);
+    padding: var(--s-int);
     display: grid;
     gap: 0.35rem;
     align-content: start;
     --f: var(--fold-md);
   }
-  .impact__n {
-    font-size: clamp(2rem, 4vw, 2.75rem);
-    font-weight: 600;
-    line-height: 1;
-  }
   .impact__card p {
-    font-size: 0.92rem;
-    line-height: 1.4;
-    max-width: 26ch;
+    max-width: 30ch;
   }
   @media (max-width: 860px) {
     .impact__cards {
@@ -784,11 +810,15 @@ const parcours = [
     }
   }
 
-  /* --- CITATION --- */
+  /* --- CITATION ---
+     Releve v4 (page 1, a 1440 px) : photo 280 x 400 de 97 a 377 ; carte de
+     421 a 1346 (925 x 320), pli carre de 146 ; etiquette 303 x 94 posee sur
+     le bord haut de la carte, sans chevauchement ; citation en romain, role
+     en italique, les deux au corps de texte. */
   .citation {
     display: grid;
-    /* la colonne 2 demarre a 24,4 % de la page, la ou commence le bloc */
-    grid-template-columns: 18.73% 81.27%;
+    /* la carte demarre a 25,9 % du conteneur */
+    grid-template-columns: 25.9% 74.1%;
     grid-template-rows: auto auto auto;
     align-items: start;
     column-gap: 0;
@@ -797,59 +827,47 @@ const parcours = [
   .citation__name {
     grid-column: 1 / 3;
     grid-row: 1;
-    padding: 0.85rem 1.6rem;
-    font-weight: 600;
-    font-size: 1.25rem;
     position: relative;
     z-index: 3;
     justify-self: start;
-    margin-left: 20%;
-    margin-bottom: -0.6rem;
+    margin-left: 16.8%;
   }
   .citation__ph {
     grid-column: 1 / 2;
     grid-row: 2;
-    margin-left: 16.7%;
+    width: 87%;
     position: relative;
     z-index: 2;
   }
-  /* releve : 381,7 x 132,3 pt */
   .citation__card {
     grid-column: 2 / 3;
     grid-row: 2;
     min-height: clamp(11rem, 22.2vw, 20rem);
     max-width: none;
-    margin-left: 0;
-    margin-right: 3.13%;
+    margin: 0;
     z-index: 1;
-    /* releve : pli aplati 60,3 x 25,2 pt */
     --fx: clamp(2.5rem, 10.1vw, 9.5rem);
-    --fy: clamp(1.1rem, 4.2vw, 4rem);
-    padding: clamp(1.5rem, 3vw, 2.25rem);
-    padding-left: clamp(3rem, 10vw, 9.5rem);
-    padding-bottom: max(clamp(2.5rem, 5vw, 4rem), calc(var(--fy) + 0.75rem));
-    align-self: center;
+    --fy: clamp(2.5rem, 9.9vw, 9.25rem);
+    padding: var(--s-int);
+    padding-left: clamp(2rem, 5vw, 4.6rem);
+    padding-bottom: max(var(--s-int), calc(var(--fy) * 0.55));
+    align-self: start;
     display: grid;
-    gap: 1.25rem;
+    gap: 1.1em;
   }
   .citation__card blockquote {
     margin: 0;
-    font-style: italic;
-    font-size: 1rem;
-    line-height: 1.6;
-    max-width: 62ch;
+    max-width: 64ch;
   }
   .citation__role {
     font-style: italic;
-    font-size: 0.95rem;
-    opacity: 0.8;
   }
   .citation__cta {
     grid-column: 1 / 3;
     grid-row: 3;
     display: flex;
     justify-content: center;
-    margin-top: -1.25rem;
+    margin-top: -1.125rem;
     z-index: 2;
   }
   @media (max-width: 860px) {
@@ -862,6 +880,9 @@ const parcours = [
     .citation__cta {
       grid-column: 1 / -1;
       margin-left: 0;
+    }
+    .citation__ph {
+      width: 60%;
     }
     .citation__name {
       grid-row: auto;
@@ -882,8 +903,12 @@ const parcours = [
      Maquette : grande silhouette vert-gris a droite, PLEINE (elle passe derriere
      les etiquettes, qui sont opaques), et trois etiquettes d'un quart de largeur
      alignees a gauche. */
+  /* meme mecanique que le constat : rythme commun, hauteur mini pour la
+     silhouette, contenu centre dessus */
   .parcours {
-    padding-block: clamp(4rem, 10vw, 8rem);
+    display: grid;
+    align-content: center;
+    min-height: clamp(20rem, 42vw, 37rem);
   }
   .parcours__fig {
     color: var(--vert-clair);
@@ -896,9 +921,8 @@ const parcours = [
   }
   .parcours__t {
     text-align: center;
-    color: var(--vert);
     max-width: 22ch;
-    margin: 0 auto clamp(2rem, 5vw, 3.5rem);
+    margin: 0 auto var(--s-titre);
   }
   /* Releve : les trois cartes vont de 5,2 % a 95,5 % de la page — donc au-dela
      du padding de .page. Centrees sur la fenetre, pas sur le conteneur. */
@@ -912,33 +936,38 @@ const parcours = [
     width: 90.3vw;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* releve : cartes de 25,4 % separees par 6,8 % de la page */
-    gap: 7.5%;
+    /* releve v4 : cartes de 368 px separees par 80 px, soit 6,5 % du rang */
+    gap: 6.5%;
   }
   .parcours__link {
     text-decoration: none;
     display: block;
     height: 100%;
   }
-  /* releve : 152 x 80,6 pt, pli d'etiquette (12,9) et non de carte */
+  /* releve v4 : 368 x 196 px, libelle au corps des CTA (36 px), picto de
+     70 px, pli d'etiquette (12,9 pt) et non de carte */
   .parcours__card {
     height: 100%;
-    min-height: clamp(7rem, 13.5vw, 12.2rem);
-    padding: clamp(1.1rem, 2.2vw, 1.5rem);
+    min-height: clamp(7rem, 13.6vw, 12.25rem);
+    padding: var(--s-int);
     display: flex;
     align-items: center;
-    gap: 0.9rem;
-    font-size: 1.15rem;
+    gap: 0.5em;
+    font-size: var(--t-cta);
     font-weight: 600;
-    line-height: 1.25;
+    line-height: 1.15;
     --f: var(--fold-sm);
+    /* maquette p.1 : le libelle est BLANC sur les trois cartes (bleu, jaune,
+       vert). Contraste faible sur le jaune, assume — demande de Charly. */
+    --on-surface: var(--blanc);
+    color: var(--blanc);
     transition: transform 0.15s ease;
   }
   .parcours__link:hover .paper {
     transform: translateY(-3px);
   }
   .parcours__picto {
-    width: 2rem;
+    width: var(--picto-md);
     flex: none;
   }
   @media (max-width: 860px) {

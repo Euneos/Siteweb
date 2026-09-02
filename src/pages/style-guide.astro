@@ -76,12 +76,20 @@ const neutres = [
   { var: '--blanc', hex: '#FFFFFF', label: 'Cartes, lettrage sur cartouche' },
 ]
 
+/* L'echelle REELLE du site : les variables --t-* de global.css, relevees dans
+   la maquette v4 a 1440 px. La charte donnait H1 56 / H2 40 / H3 20 / body 16 ;
+   la maquette validee n'utilise pas ces valeurs, le site suit la maquette.
+   Les exemples ci-dessous sont rendus avec les variables du site : ce que
+   vous voyez ici est ce que le site affiche. */
 const typo = [
-  { n: 'H1', px: '56 px', lh: '110 %', poids: 'SemiBold', ex: 'Titre de page' },
-  { n: 'H2', px: '40 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre de section' },
-  { n: 'H3', px: '20 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre de bloc' },
-  { n: 'Chapô', px: '20 px', lh: '140 %', poids: 'Regular', ex: 'Phrase d’introduction' },
-  { n: 'Body', px: '16 px', lh: '160 %', poids: 'Regular', ex: 'Texte courant' },
+  { n: 'Titre', px: '47 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre de page et de section — H1 et H2 ont la même taille', cls: 'is-titre' },
+  { n: 'Sous-titre', px: '39 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre d’une étape du parcours', cls: 'is-h3' },
+  { n: 'Bouton / étiquette', px: '36 px', lh: '110 %', poids: 'SemiBold', ex: 'Libellé d’un bouton, nom sur une étiquette', cls: 'is-cta' },
+  { n: 'Titre de carte', px: '27 px', lh: '120 %', poids: 'SemiBold', ex: 'Titre des cartes bleues de l’accueil', cls: 'is-carte' },
+  { n: 'Texte', px: '24 px', lh: '130 %', poids: 'Regular', ex: 'Texte courant, labels de formulaire, surtitres', cls: 'is-corps' },
+  { n: 'Navigation', px: '21 px', lh: '130 %', poids: 'SemiBold', ex: 'Menu de l’en-tête', cls: 'is-nav' },
+  { n: 'Note', px: '17 px', lh: '135 %', poids: 'Italique', ex: 'Note de source en bas de bloc', cls: 'is-note' },
+  { n: 'Chiffre', px: '62 px · 94 px', lh: '100 %', poids: 'SemiBold', ex: '92 %', cls: 'is-chiffre' },
 ]
 
 const pictos = [
@@ -281,6 +289,12 @@ const seule = [
       Police libre (licence OFL), hébergée sur le site — aucune dépendance à Google.
       L’interlettrage est à zéro partout.
     </p>
+    <p class="sg__p">
+      Une seule taille par rôle, sur toutes les pages : tous les titres ont la même taille, tout
+      le texte courant aussi. Les valeurs ci-dessous sont celles de la maquette v4 sur un écran de
+      1440 px ; elles diminuent d’elles-mêmes sur un écran plus petit. Pour changer une taille,
+      demandez-le à l’agent : elle change partout d’un coup.
+    </p>
     <ul class="sg-typo">
       {
         typo.map((t) => (
@@ -288,7 +302,7 @@ const seule = [
             <span class="sg-typo__meta">
               <b>{t.n}</b> {t.px} · {t.lh} · {t.poids}
             </span>
-            <span class:list={['sg-typo__ex', `is-${t.n.toLowerCase().replace('ô', 'o')}`]}>{t.ex}</span>
+            <span class:list={['sg-typo__ex', t.cls]}>{t.ex}</span>
           </li>
         ))
       }
@@ -672,28 +686,42 @@ const seule = [
     display: block;
     color: var(--vert);
   }
-  .is-h1 {
-    font-size: clamp(2rem, 4.6vw, 3.5rem);
-    line-height: 1.1;
-    font-weight: 600;
-  }
-  .is-h2 {
-    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
-    line-height: 1.2;
+  .is-titre {
+    font-size: var(--t-titre);
+    line-height: var(--lh-titre);
     font-weight: 600;
   }
   .is-h3 {
-    font-size: 1.25rem;
-    line-height: 1.2;
+    font-size: var(--t-h3);
+    line-height: var(--lh-titre);
     font-weight: 600;
   }
-  .is-chapo {
-    font-size: 1.25rem;
-    line-height: 1.4;
+  .is-cta {
+    font-size: var(--t-cta);
+    line-height: 1.1;
+    font-weight: 600;
   }
-  .is-body {
-    font-size: 1rem;
-    line-height: 1.6;
+  .is-carte {
+    font-size: var(--t-carte);
+    line-height: var(--lh-titre);
+    font-weight: 600;
+  }
+  .is-corps {
+    font-size: var(--t-corps);
+    line-height: var(--lh-corps);
+  }
+  .is-nav {
+    font-size: var(--t-nav);
+    font-weight: 600;
+  }
+  .is-note {
+    font-size: var(--t-note);
+    font-style: italic;
+  }
+  .is-chiffre {
+    font-size: var(--t-chiffre);
+    line-height: 1;
+    font-weight: 600;
   }
 
   /* logo */

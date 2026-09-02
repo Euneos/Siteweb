@@ -82,8 +82,10 @@ import Brand from './Brand.astro'
   const params = new URLSearchParams(window.location.search)
   const state = params.get('nl')
   const status = document.querySelector<HTMLElement>('#newsletter-status')
+  // sur /newsletter, c'est la page qui affiche le resultat, pas le pied de page
+  const pageDediee = document.querySelector('[data-newsletter-page]')
 
-  if (state && status) {
+  if (state && status && !pageDediee) {
     const messages: Record<string, string> = {
       ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
       confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
@@ -165,7 +167,7 @@ import Brand from './Brand.astro'
   .ftr__privacy {
     max-width: 42rem;
     margin: 0 0 1rem;
-    font-size: 0.85rem;
+    font-size: var(--t-note);
     opacity: 0.85;
   }
   .ftr__privacy a {
@@ -177,12 +179,14 @@ import Brand from './Brand.astro'
     border: 1.5px solid currentColor;
     font-weight: 600;
   }
+  /* releve v4 : 121 x 57 px pour un libelle de 24 px — rectangle blanc, sans pli */
   .ftr__submit {
     background: var(--blanc);
     color: var(--vert);
     border: 0;
     font-weight: 600;
-    padding: 0.6rem 1.4rem;
+    line-height: 1.1;
+    padding: 0.6em 0.6em;
     cursor: pointer;
   }
   .ftr__submit:hover {
@@ -227,7 +231,6 @@ import Brand from './Brand.astro'
     justify-content: flex-end;
     flex-wrap: wrap;
     margin-top: 0.75rem;
-    font-size: 0.95rem;
   }
   .ftr__legal a {
     text-decoration: none;

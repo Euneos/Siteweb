@@ -40,8 +40,10 @@ const champs = [
 >
   <section slot="hero" class="page ct">
     <div class="ct__media">
-      <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="clamp(74px, 8vw, 112px)" /></div>
-      <div class="ct__ph"><Photo ratio="16/10" label="photo — équipe" /></div>
+      <!-- releve v4 p.4 : cartouche orange paysage de 148 x 105, contre le
+           bord gauche de la photo -->
+      <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="clamp(5rem, 10.3vw, 9.25rem)" paysage /></div>
+      <div class="ct__ph"><Photo ratio="3/2" label="photo — équipe" /></div>
       <div class="ct__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
     </div>
 
@@ -71,7 +73,7 @@ const champs = [
           champs.map((c) => (
             <p class="ct__row">
               <label for={c.id}>{c.label}</label>
-              <span class="ct__field paper fold-br">
+              <span class="champ">
                 <input id={c.id} name={c.id} type={c.type} autocomplete={c.autocomplete} maxlength={c.type === 'email' ? 254 : 160} required />
               </span>
             </p>
@@ -80,8 +82,8 @@ const champs = [
 
         <p class="ct__row">
           <label for="message">Message</label>
-          <span class="ct__field ct__field--area paper fold-br">
-            <textarea id="message" name="message" rows="5" maxlength="5000" required></textarea>
+          <span class="champ">
+            <textarea id="message" name="message" rows="4" maxlength="5000" required></textarea>
           </span>
         </p>
 
@@ -89,7 +91,7 @@ const champs = [
       {
         !ok && (
           <div class="ct__submit">
-            <button type="submit" form="ct-form" class="cta s-papier ct__submit-btn">Envoyer</button>
+            <button type="submit" form="ct-form" class="cta s-vert-clair ct__submit-btn">Envoyer</button>
           </div>
         )
       }
@@ -131,14 +133,28 @@ const champs = [
 </script>
 
 <style is:global>
+  /* Composition relevee v4 p.4 a 1440 px :
+       photo 635 x 426 CENTREE (x 397 -> 1032), ratio 3/2 ;
+       cartouche jaune 148 x 206 CONTRE le bord droit de la photo, aligne en
+       haut (pas a cheval sur le coin) ;
+       cartouche orange 148 x 105 contre le bord gauche, a 48 % de la hauteur ;
+       panneau 857 x 1095 (59,5 % de la page) juste SOUS la photo (5 px), pas
+       par-dessus ; titre a 70 px du haut ; champs 715 x 65 (83 % du panneau)
+       a 72 px du bord ; 40 px entre deux champs ; bouton vert clair a cheval
+       sur le bord bas (un quart dedans) ; rien d'autre sous le panneau.
+     Avant : photo calee a droite, cartouches a cheval sur les coins, panneau
+     mordant sur la photo, champs de 576 x 50, bouton gris. */
   .ct {
+    /* enfant d'une colonne flex avec des marges auto : sans largeur
+       explicite, il se retrecit sur son contenu et les % des enfants
+       s'effondrent avec lui */
+    width: 100%;
     padding-bottom: clamp(3rem, 8vw, 6rem);
   }
   .ct__media {
     position: relative;
-    width: min(100%, 46rem);
-    margin-left: auto;
-    margin-right: clamp(0rem, 6vw, 5rem);
+    width: min(51.2%, 40rem);
+    margin-inline: auto;
     margin-top: clamp(1rem, 3vw, 2.5rem);
   }
   .ct__ph {
@@ -147,53 +163,34 @@ const champs = [
   }
   .ct__picto {
     position: absolute;
-    left: -8%;
-    top: 38%;
+    right: 100%;
+    top: 48%;
     z-index: 2;
   }
   .ct__cartouche {
     position: absolute;
-    right: -9%;
-    top: -8%;
-    width: 15%;
+    left: 100%;
+    top: 0;
+    width: 23.3%;
     min-width: 76px;
     z-index: 2;
   }
-
-  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
-     negatif ci-dessus poussait l'element hors cadre et faisait scroller
-     TOUTE la page sur le cote. On rentre le debordement au point de
-     bascule ; sur ordinateur rien ne change. */
-  @media (max-width: 860px) {
-    .ct__cartouche {
-      right: 0;
-    }
-  }
-
   .ct__panel {
     position: relative;
     z-index: 3;
-    width: min(100%, 52rem);
-    margin: clamp(-3rem, -4vw, -1.5rem) auto 0;
-    padding: clamp(1.75rem, 4vw, 3rem);
+    width: min(100%, 69.1%);
+    margin: 0.3rem auto 0;
+    padding: clamp(2rem, 4.9vw, 4.4rem) clamp(1.5rem, 5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
   }
   .ct__panel h1 {
     text-align: center;
-    font-size: clamp(1.75rem, 3.6vw, 2.5rem);
-    line-height: 1.15;
-    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
-  }
-  @media (max-width: 480px) {
-    .ct__panel {
-      padding-top: max(1.75rem, calc(var(--f) + 1rem));
-    }
+    margin-bottom: var(--s-int);
   }
   .ct__form {
     display: grid;
-    gap: 1.1rem;
-    max-width: 36rem;
+    gap: clamp(1.25rem, 2.8vw, 2.5rem);
+    width: min(100%, 44.7rem);
     margin-inline: auto;
-    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
   }
   .ct__status {
     max-width: 36rem;
@@ -209,61 +206,53 @@ const champs = [
   }
   .ct__row {
     display: grid;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
   .ct__row label {
     font-weight: 600;
   }
-  /* chaque champ est une petite feuille a coin plie */
-  /* Le champ porte un PETIT coin coupe en bas a droite (releve maquette p.4),
-     pas un triangle plein. Le rabat plein est supprime, et c'est le champ
-     LUI-MEME qui est coupe, bordure comprise. */
-  .ct__field.paper {
-    --surface: transparent;
-    --fold-color: transparent;
-    --f: 14px;
-    border: 1.5px solid currentColor;
-    display: block;
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
-  }
-  .ct__field.paper::after,
-  .ct__field.paper::before {
-    display: none;
-  }
-  .ct__field input,
-  .ct__field textarea {
-    width: 100%;
-    background: transparent;
-    border: 0;
-    color: inherit;
-    padding: 0.65rem 0.85rem;
-    display: block;
-    resize: vertical;
-  }
-  .ct__field input:focus-visible,
-  .ct__field textarea:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-  }
-  .ct__field.paper::after {
-    background: currentColor;
-    opacity: 0.55;
-  }
+  /* les champs sont des .champ (global.css) : la geometrie de la maquette,
+     partagee avec /newsletter et le portail de candidature */
   .ct__submit {
     position: absolute;
     left: 50%;
     bottom: 0;
-    transform: translate(-50%, 50%);
+    transform: translate(-50%, 75%);
     z-index: 4;
   }
+  /* pas dans la maquette : l'adresse reste, discrete, sous le panneau */
   .ct__adr {
     position: relative;
     z-index: 3;
     text-align: center;
     font-style: normal;
-    margin-top: clamp(2rem, 5vw, 3rem);
+    margin-top: clamp(3rem, 6vw, 5rem);
     opacity: 0.9;
     line-height: 1.7;
+  }
+  @media (max-width: 860px) {
+    .ct__media {
+      width: 100%;
+    }
+    /* plus de marge autour de la photo : les cartouches rentrent dessus */
+    .ct__picto {
+      right: auto;
+      left: 0;
+    }
+    .ct__cartouche {
+      left: auto;
+      right: 0;
+      width: 26%;
+    }
+    .ct__panel {
+      width: 100%;
+      margin-top: 1rem;
+    }
+  }
+  @media (max-width: 480px) {
+    .ct__panel {
+      padding-top: max(2rem, calc(var(--f) + 1rem));
+    }
   }
   .ct__adr a {
     text-decoration: underline;

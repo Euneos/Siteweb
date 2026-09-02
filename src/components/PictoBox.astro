@@ -14,8 +14,11 @@ import type { Surface } from './Paper.astro'
 interface Props {
   picto: BrandName
   surface?: Surface
-  /** largeur du cartouche ; la hauteur suit le format A */
-  size?: string
+  /** largeur du cartouche ; la hauteur suit le format A.
+      'sm' (92 px) · 'md' (108 px) · 'lg' (180 px) : les trois calibres releves
+      dans la maquette v4, definis dans global.css (--pbox-*). Une longueur CSS
+      reste acceptee pour un cas particulier. */
+  size?: 'sm' | 'md' | 'lg' | string
   /** coin plie, comme le cartouche rose de la page d'accueil */
   fold?: boolean
   /** couleur du rabat : la maquette ne prend PAS toujours la variante foncee de
@@ -26,13 +29,15 @@ interface Props {
   class?: string
 }
 
-const { picto, surface = 'jaune', size = '104px', fold = false, foldColor, paysage = false, class: cls } = Astro.props
+const { picto, surface = 'jaune', size = 'md', fold = false, foldColor, paysage = false, class: cls } = Astro.props
+const CALIBRES: Record<string, string> = { sm: 'var(--pbox-sm)', md: 'var(--pbox-md)', lg: 'var(--pbox-lg)' }
+const largeur = CALIBRES[size] ?? size
 ---
 
 <div
   class:list={['pbox', `s-${surface}`, paysage && 'pbox--paysage', fold && 'paper fold-br', cls]}
   style={[
-    `--pbox:${size}`,
+    `--pbox:${largeur}`,
     fold ? '--f:calc(var(--pbox) * 0.28)' : '',
     foldColor ? `--fold-color:${foldColor}` : '',
   ]

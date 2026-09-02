@@ -86,11 +86,36 @@ La charte prescrit du **texte blanc sur rose et sur bleu clair** : ratios 1,7:1 
 ou du noir sur les teintes claires — solution **déjà employée par la maquette
 page 2** (titre « Notre Programme » en vert sur fond bleu). À faire valider.
 
-## Typographie (charte p.15, valeurs exactes)
+## Typographie — une echelle unique, dans `global.css`
 
-H1 56 px / 110 % · H2 40 px / 120 % · H3 20 px / 120 % · Chapô 20 px / 140 % ·
-Body 16 px / 160 % · letter-spacing 0 partout · SemiBold (600) + Regular (400).
-La variante SemiCondensed s'obtient par l'axe `wdth` à 87.5 %.
+La charte p.15 donnait H1 56 / H2 40 / H3 20 / body 16. **La maquette v4 n'utilise
+pas ces valeurs** et c'est elle que Candice a validee : le site suit la maquette.
+Relevees dans le PDF (tailles de police exactes des spans, ramenees a 1440 px),
+la maquette n'a que ces corps, codes une fois pour toutes en variables `--t-*` :
+
+| Role | px a 1440 | Variable | Ou |
+|---|---|---|---|
+| Titre (H1 = H2) | 47 | `--t-titre` | heros, sections, « Notre approche », 3 principes, Reveler/Eclairer/Diffuser, bloc mission |
+| Sous-titre (H3) | 39 | `--t-h3` | titres des 5 etapes |
+| CTA / etiquette | 36 | `--t-cta` | libelles de bouton, noms sur etiquette, titres des cartes « niveaux », cartes « prendre part » |
+| Titre de carte | 27 | `--t-carte` | cartes bleues de l'accueil |
+| Texte courant | 24 | `--t-corps` | tout le reste, labels, surtitres, bouton Envoyer |
+| Navigation | 21 | `--t-nav` | menu |
+| Note | 17 | `--t-note` | notes de source, mentions RGPD |
+| Chiffres | 62 · 94 | `--t-chiffre`, `--t-chiffre-xl` | pourcentages p.1 · impact chiffre et numeros d'etape p.2 |
+
+Chaque valeur est fluide (`clamp`), exacte a 1440 et reduite en dessous. Interlignes :
+1,3 pour le texte, 1,2 pour les titres. SemiBold (600) + Regular (400), `wdth` 87.5 %.
+**Aucune page ne pose de `font-size` en dur** : pour changer une taille, on change
+la variable.
+
+Meme logique pour les espaces (`--s-bloc` 122 px entre deux blocs, `--s-titre`
+79 px entre un titre et son contenu, `--s-int` 42 px de marge interne de carte),
+les elements graphiques (`--picto-sm/md`, `--pbox-sm/md/lg`, `--logo-h`) et les
+CTA (tout en `em` : un libelle de 36 px donne un bouton de 65 px, `.cta--sm` pour
+les petits CTA des cartes « niveaux »). `.section` porte la moitie de `--s-bloc`
+de chaque cote : deux sections qui se suivent donnent l'espace de la maquette,
+et aucune section ne redefinit son padding.
 
 ## `/style-guide` — le document de passation à EUNEOS
 
@@ -287,3 +312,29 @@ absolue de la maquette. Voir l'arbitrage ouvert dans `CONTEXT.md`.
 Meme piege que `.c-t` / `.c-cta` : `.source` (la note de bas de bloc) a d'abord ete
 declaree dans `index.astro`, donc invisible sur `qui-sommes-nous.astro`. Tout selecteur
 utilise par plus d'une page vit dans `global.css`.
+
+## Maquette v4 (1/09) — retour de Pauline, ce qui a change
+
+`maquette_euneos_4.pdf` remplace la v2 comme reference. Mail de Pauline : tailles
+d'elements graphiques, espaces qui varient, tailles de texte et de boutons
+incoherentes, fleches qui ne deroulent pas, blocs de couleur de la page
+Programme trop espaces, URL de newsletter. Tout est traite a la racine
+(variables de `global.css`), pas page par page — voir la section Typographie.
+
+- **Les fleches « qui ne deroulent pas »** avaient deux causes, verifiees sur un
+  build de prod : sur l'accueil, tout le texte des cartes bleues etait dans le
+  `<summary>` et seule la hauteur de la carte le coupait — sur un grand ecran
+  tout tenait, cliquer ne changeait rien ; sur la page Programme, les fleches
+  sous les 3 principes etaient un `<span aria-hidden>` decoratif sans aucune
+  interaction. Desormais : accueil, le summary porte titre + intro et les points
+  sont dans le corps du `<details>` (il y a toujours quelque chose a derouler) ;
+  Programme, plus de fleche, le texte est complet (comme la v4).
+- **Etapes de la page Programme** : grille a deux colonnes en quinconce (cartes
+  de 611 x 409 a 1440, gouttiere 37 px, colonne droite decalee d'un quart de
+  carte par `transform`), au lieu d'une carte par ligne sur une demi-largeur.
+- **`/newsletter`** : page dediee, meme formulaire et meme `POST /api/newsletter`
+  que le pied de page ; le champ cache `retour` (liste blanche) choisit la page
+  de retour. Rendue a la demande pour afficher `?nl=` sans JavaScript.
+- Titres verts par defaut (`--ink-titre`), blancs sur les surfaces foncees.
+- La page privee « facon Notion » n'est PAS faite : decision produit a cadrer.
+
