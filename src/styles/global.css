@@ -83,8 +83,71 @@
   --fold: clamp(3.25rem, 7.88vw, 7.5rem);
   --fold-md: clamp(2.25rem, 4.62vw, 4.4rem);
   --fold-sm: clamp(1.2rem, 2.17vw, 2rem);
-  /* corps de texte a l'echelle de la maquette */
-  --texte: 1.1875rem;
+
+  /* ------------------------------------------------------------------
+     ECHELLE TYPOGRAPHIQUE — une seule taille par role, sur les 4 pages.
+     Relevee dans maquette_euneos_4.pdf : tailles de police EXACTES des
+     spans du PDF (pas des boites d'encre), ramenees a 1440 px de large
+     (1 pt = 2,419 px). Sur 4 pages, la maquette n'utilise que ces corps :
+
+       94 px  chiffres du bloc « impact chiffre » et numeros des etapes
+       62 px  pourcentages « Les premiers resultats »
+       47 px  TOUS les titres : H1 des heros, H2 de section, « Notre
+              approche », les 3 principes, Reveler/Eclairer/Diffuser,
+              le grand texte du bloc mission
+       39 px  titres des 5 etapes du parcours (H3)
+       36 px  libelles des CTA, titres des cartes « niveaux », etiquettes
+              de nom (34), cartes « Vous souhaitez prendre part »
+       27 px  titres des 3 cartes bleues de l'accueil
+       24 px  TOUT le texte courant, labels, surtitres, bouton Envoyer
+       23 px  petits CTA dans les cartes « niveaux »
+       21 px  navigation
+       17 px  notes de source
+
+     Chaque valeur est fluide : exacte a 1440 px, reduite en dessous, avec
+     un plancher lisible sur telephone. Pour changer l'echelle de tout le
+     site, on touche ICI et nulle part ailleurs.
+     ------------------------------------------------------------------ */
+  --t-note: clamp(0.8125rem, 1.18vw, 1.0625rem); /* 17 px */
+  --t-nav: clamp(0.9375rem, 1.46vw, 1.3125rem); /* 21 px */
+  --t-corps: clamp(1.0625rem, 1.667vw, 1.5rem); /* 24 px */
+  --t-carte: clamp(1.125rem, 1.875vw, 1.6875rem); /* 27 px */
+  --t-cta: clamp(1.25rem, 2.5vw, 2.25rem); /* 36 px */
+  --t-h3: clamp(1.375rem, 2.71vw, 2.4375rem); /* 39 px */
+  --t-titre: clamp(1.75rem, 3.264vw, 2.9375rem); /* 47 px */
+  --t-chiffre: clamp(2.5rem, 4.3vw, 3.875rem); /* 62 px */
+  --t-chiffre-xl: clamp(3.25rem, 6.53vw, 5.875rem); /* 94 px */
+
+  /* Interlignes releves : texte courant 29 px pour 24 (1,2) ; titres 56 px
+     pour 47 (1,2). La charte dit 160 % pour le corps : la maquette, elle,
+     est composee serre — on suit la maquette, avec un peu d'air (1,3). */
+  --lh-corps: 1.3;
+  --lh-titre: 1.2;
+
+  /* ------------------------------------------------------------------
+     ECHELLE D'ESPACEMENT — trois valeurs, pas une par bloc.
+     Relevees sur la page 1 a 1440 px : entre deux blocs successifs la
+     maquette laisse 103 a 166 px (mediane ~125) ; entre un titre et son
+     contenu 74 a 96 px ; a l'interieur d'une carte 38 a 47 px.
+     ------------------------------------------------------------------ */
+  --s-bloc: clamp(3.5rem, 8.5vw, 7.75rem); /* 122 px : entre deux blocs */
+  --s-titre: clamp(1.75rem, 5.5vw, 5rem); /* 79 px : titre -> contenu */
+  --s-int: clamp(1.25rem, 2.9vw, 2.6rem); /* 42 px : marge interne d'une carte */
+
+  /* ------------------------------------------------------------------
+     ELEMENTS GRAPHIQUES — largeurs relevees a 1440 px.
+       picto nu (main, asterisque, oiseau) : 60 px dans les cartes bleues,
+                                             70 px dans les 3 principes
+       cartouche a picto : 92 px (jaune, approche) · 100-116 px (orange
+                           mission, rose FAQ) · 164-200 px (bloc image)
+       logo de l'en-tete : 232 x 50 px
+     ------------------------------------------------------------------ */
+  --picto-sm: clamp(1.875rem, 4.2vw, 3.75rem); /* 60 px */
+  --picto-md: clamp(2.5rem, 4.9vw, 4.4rem); /* 70 px */
+  --pbox-sm: clamp(3.75rem, 6.4vw, 5.75rem); /* 92 px */
+  --pbox-md: clamp(4.5rem, 7.5vw, 6.75rem); /* 108 px */
+  --pbox-lg: clamp(6rem, 12.5vw, 11.25rem); /* 180 px */
+  --logo-h: clamp(1.75rem, 3.47vw, 3.125rem); /* 50 px */
 }
 
 html {
@@ -104,15 +167,21 @@ body {
   font-stretch: 87.5%;
   background: var(--blanc);
   color: var(--noir);
-  /* ARBITRAGE : la charte donne 16 px de corps, la maquette rend ~19 px une fois
-     ramenee a 1440 de large. C'est la maquette que Candice a validee et qui sert
-     de reference visuelle : on suit la maquette. A confirmer avec elle. */
-  font-size: 1.1875rem;
-  line-height: 1.6; /* body 160 % */
+  /* ARBITRAGE : la charte donne 16 px de corps ; la maquette v4, ramenee a
+     1440 px, en fait 24 (10 pt dans le PDF). Le site etait a 19 px avec des
+     blocs a l'echelle de la maquette : le texte paraissait petit dans des
+     boutons et des cartes trop grands. On suit la maquette, que Candice a
+     validee ; pour tout changer d'un coup, modifier --t-corps. */
+  font-size: var(--t-corps);
+  line-height: var(--lh-corps);
   margin: 0;
 }
 
-/* --- Echelle typographique : valeurs exactes de la charte p.15 en borne haute --- */
+/* --- Echelle typographique : les roles, jamais des valeurs en dur ---
+   Un titre est un titre : H1 et H2 ont la meme taille sur les 4 pages de la
+   maquette (47 px). La couleur d'un titre est le vert sur fond clair, et
+   l'encre de la surface sur un bloc colore (--ink-titre est posee par les
+   classes s-*). */
 @layer base {
   h1,
   h2,
@@ -120,18 +189,15 @@ body {
     font-weight: 600; /* SemiBold */
     letter-spacing: 0;
     margin: 0;
+    line-height: var(--lh-titre);
+    color: var(--ink-titre, var(--vert));
   }
-  h1 {
-    font-size: clamp(2rem, 4.6vw, 3.5rem); /* 56 px */
-    line-height: 1.1; /* 110 % */
-  }
+  h1,
   h2 {
-    font-size: clamp(1.6rem, 3.4vw, 2.5rem); /* 40 px */
-    line-height: 1.2; /* 120 % */
+    font-size: var(--t-titre);
   }
   h3 {
-    font-size: 1.25rem; /* 20 px */
-    line-height: 1.2; /* 120 % */
+    font-size: var(--t-h3);
   }
   p {
     margin: 0;
@@ -153,16 +219,36 @@ body {
   }
 }
 
-/* Chapo : 20 px / 140 % (echelle maquette : ~1,19x) */
+/* Chapo : la maquette n'a pas de corps intermediaire entre le titre et le
+   texte courant — le chapo est du texte courant. */
 .chapo {
-  font-size: 1.45rem;
-  line-height: 1.4;
+  font-size: var(--t-corps);
+  line-height: var(--lh-corps);
 }
-/* Surtitre : petit label au-dessus d'un H2 (vu p.3 de la maquette) */
+/* Surtitre : petit label au-dessus d'un H2 (p.3 de la maquette) — corps de
+   texte, en vert. */
 .surtitre {
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: var(--t-corps);
+  line-height: var(--lh-corps);
   color: var(--vert);
+}
+/* Chiffres cles : deux tailles seulement dans la maquette. */
+.chiffre {
+  font-size: var(--t-chiffre);
+  font-weight: 600;
+  line-height: 1;
+}
+.chiffre--xl {
+  font-size: var(--t-chiffre-xl);
+}
+/* Etiquette de nom (Candice Marro, temoins, equipe) : meme famille que les
+   CTA — 34 px dans la maquette, arrondi au corps des CTA. */
+.etiquette {
+  display: inline-block;
+  font-size: var(--t-cta);
+  font-weight: 600;
+  line-height: 1.15;
+  padding: 0.75em 1.3em;
 }
 
 /* ============================================================
@@ -342,6 +428,16 @@ body {
    teintes claires — solution deja employee par la maquette p.2 (titre vert
    sur fond bleu).
    ============================================================ */
+/* Sur une surface FONCEE, les titres prennent l'encre de la surface (blanc)
+   et non le vert par defaut. Sur les teintes claires (bleu, rose, jaune,
+   papier), la maquette garde les titres en vert : rien a poser. */
+.s-vert,
+.s-vert-clair,
+.s-bleu-fonce,
+.s-orange,
+.s-ocre {
+  --ink-titre: var(--on-surface);
+}
 .s-vert {
   --surface: var(--vert);
   --on-surface: var(--blanc);
@@ -415,8 +511,12 @@ body {
   margin-inline: auto;
   padding-inline: calc(var(--unit) * 1.5);
 }
+/* Rythme vertical : chaque section porte la moitie de l'espace entre blocs,
+   deux sections qui se suivent donnent donc exactement --s-bloc. Aucune
+   section ne redefinit son padding : c'est ce qui faisait varier les
+   espaces d'un bloc a l'autre. */
 .section {
-  padding-block: clamp(3rem, 8vw, 6.5rem);
+  padding-block: calc(var(--s-bloc) / 2);
 }
 /* grille 16 colonnes de la charte */
 .g16 {
@@ -440,10 +540,19 @@ body {
 .cta {
   display: inline-block;
   position: relative;
-  /* releve : 26,7 pt de haut (~64 px) et ~22 pt de padding horizontal (~53 px).
-     Les CTA de la maquette sont larges : « En savoir + » fait 88,8 pt. */
-  padding: 1.15rem 3.3rem;
+  /* Releve maquette v4 : libelle 36 px, bouton 65 px de haut, 21 px de
+     marge de chaque cote du texte (« En savoir + » = 215 x 65 px a 1440).
+     Tout est en em : la hauteur et les marges suivent le corps du libelle,
+     un CTA a donc toujours les memes proportions, quel que soit son texte.
+     Avant : libelle 19 px dans un bouton de 64 px — le texte flottait. */
+  font-size: var(--t-cta);
+  line-height: 1.1;
+  padding: 0.35em 0.6em;
+  /* a droite, le pli d'etiquette (31 px) remplace la marge : le libelle
+     s'arrete au bord du rabat, jamais dessous (maquette : 30 px) */
+  padding-right: max(0.6em, var(--f));
   font-weight: 600;
+  text-align: center;
   text-decoration: none;
   background: var(--surface, var(--vert));
   color: var(--on-surface, var(--blanc));
@@ -478,6 +587,12 @@ body {
 }
 .cta-outline::before {
   display: none;
+}
+/* Petit CTA : celui des cartes « niveaux d'intervention » (p.3) — 23 px de
+   libelle, 41 px de haut, memes proportions. */
+.cta--sm {
+  font-size: var(--t-corps);
+  padding-inline: 0.9em max(0.9em, var(--f));
 }
 
 /* ============================================================
@@ -607,20 +722,20 @@ body {
    plusieurs pages, donc declares ici et non dans le style d'une page. */
 .c-t {
   text-align: center;
-  color: var(--vert);
-  margin-bottom: clamp(2rem, 5vw, 3.25rem);
+  margin-bottom: var(--s-titre);
 }
 .c-cta {
   display: flex;
   justify-content: center;
-  margin-top: clamp(2rem, 5vw, 3rem);
+  margin-top: var(--s-titre);
 }
 /* Note de source bas de bloc (Ofcom p.1, OMS p.3) — utilisee sur 2 pages.
-   Plancher a 13 px : sous cette taille une note devient illisible sur mobile. */
+   17 px dans la maquette, en italique. */
 .source {
-  font-size: max(0.81rem, 0.75vw);
-  line-height: 1.4;
-  opacity: 0.62;
+  font-size: var(--t-note);
+  line-height: 1.35;
+  font-style: italic;
+  opacity: 0.8;
   max-width: 60ch;
 }
 .source em {
@@ -631,9 +746,8 @@ body {
 }
 .a-t {
   text-align: center;
-  color: var(--vert);
   max-width: 42ch;
-  margin: 0.5rem auto clamp(2rem, 5vw, 3.25rem);
+  margin: 0.5rem auto var(--s-titre);
 }
 
 /* Accessibilite */
@@ -763,9 +877,12 @@ body {
   grid-template-columns: 20.45% 79.55%;
 }
 .hz:not(.hz--mirror) .hz__bubble {
-  /* marge interne gauche relevee : 7,98 % de la largeur de la bulle */
-  padding: 8% 16% 12% 8%;
-  padding-right: max(16%, calc(var(--f) + 0.75rem));
+  /* Releve v4 : texte de 264 a 747 px dans une bulle de 217 a 782, soit
+     8,3 % a gauche et 6,2 % a droite. Le titre a 47 px a besoin de toute
+     cette largeur (« a prevenir les difficultes » fait 482 px). La marge
+     haute vaut au moins le pli : aucune ligne ne passe sous le rabat. */
+  padding: max(8%, var(--f)) 6% 10% 8%;
+  align-items: start;
 }
 .hz--mirror .hz__media {
   order: -1;
@@ -817,17 +934,13 @@ body {
   aspect-ratio: 214.5 / 190.4;
   display: flex;
   align-items: center;
-  padding: 8% 22.5% 12% 9%;
+  /* pages 2 et 3 : texte de 799 a 1179 px dans une bulle de 760 a 1283 */
+  padding: 7% 20% 12% 7.5%;
   --filet: var(--vert-clair);
 }
-/* Le H1 du hero vaut 1,883 x le corps de texte dans la maquette (encre relevee
-   au pixel : ligne « equipes educatives » 18,98 pt contre 10,08 pt pour une
-   ligne de paragraphe ; meme rapport verifie sur le bandeau Erasmus+).
-   A 1440 px et un corps de 19 px, cela fait 35,8 px -> 2,49vw. */
-.hz__bubble h1 {
-  font-size: clamp(1.38rem, 2.49vw, 2.33rem);
-  line-height: 1.23;
-}
+/* Le H1 du hero est un titre comme les autres : 47 px a 1440, comme les H2
+   de section (releve v4, meme corps sur les 3 heros). Il herite de
+   --t-titre, rien a poser ici. */
 /* Titre de hero bicolore. Releve au pixel dans la maquette v2 :
    - page 1 : SUPPRIME, le H1 est blanc uni du debut a la fin (la v7 l'avait) ;
    - page 2 : conserve, en bleu clair #c5d4ff sur le hero bleu ;
@@ -866,9 +979,6 @@ body {
   --surface: var(--vert-clair);
   --on-surface: var(--blanc);
   --fold-color: var(--vert);
-  /* releve : 88,8 x 26,7 pt — largeur minimale garantie meme sur libelle court */
-  min-width: 13.4rem;
-  text-align: center;
 }
 /* sur la page Programme, le CTA du hero est dans la famille bleue */
 .hz--mirror .hz__cta > .cta {
@@ -918,6 +1028,10 @@ body {
     padding: clamp(1.5rem, 5vw, 2rem);
     padding-right: clamp(3rem, 12vw, 4.5rem);
   }
+  /* pli en haut a droite (pages 1 et 3) : la premiere ligne passe dessous */
+  .hz__bubble.fold-tr {
+    padding-top: max(clamp(1.5rem, 5vw, 2rem), var(--f));
+  }
   .hz__cta {
     position: static;
     transform: none;
@@ -944,9 +1058,6 @@ body {
 }
 .cand__panel h1 {
   text-align: center;
-  color: var(--vert);
-  font-size: clamp(1.6rem, 3.2vw, 2.3rem);
-  line-height: 1.15;
 }
 @media (max-width: 480px) {
   .cand__panel {
@@ -1047,12 +1158,14 @@ body {
   border-top: 0;
 }
 .cand__section h2 {
-  font-size: clamp(1.05rem, 1.9vw, 1.3rem);
+  /* titre de bloc d'un formulaire : le corps des titres de carte, pas un H2
+     de section */
+  font-size: var(--t-carte);
   line-height: 1.3;
   margin: 0;
 }
 .cand__section p {
-  font-size: 0.86rem;
+  font-size: var(--t-note);
   opacity: 0.75;
   margin: 0.35rem 0 0;
 }
@@ -1103,11 +1216,11 @@ body {
 }
 
 .cand__aide {
-  font-size: 0.82rem;
+  font-size: var(--t-note);
   opacity: 0.7;
 }
 .cand__legal {
-  font-size: 0.82rem;
+  font-size: var(--t-note);
   opacity: 0.75;
   margin-top: 0.5rem;
 }

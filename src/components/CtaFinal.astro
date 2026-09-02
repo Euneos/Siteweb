@@ -84,10 +84,11 @@ const {
     max-width: 30ch;
     color: var(--blanc);
   }
-  /* releve : 154,5 pt sur 519,6 -> 29,7 % */
-  .final__cta {
+  /* releve : 154,5 pt sur 519,6 -> 29,7 % ; libelle en bleu fonce sur blanc.
+     Selecteur double : `.s-blanc` (posee par <Cta>) a la meme specificite et
+     reprenait le dessus, le libelle sortait noir au lieu de bleu. */
+  .final .final__cta {
     min-width: 29.7%;
-    text-align: center;
     --on-surface: var(--bleu-fold);
     --fold-color: var(--bleu-clair);
   }

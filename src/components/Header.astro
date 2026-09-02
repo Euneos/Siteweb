@@ -23,7 +23,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
 <header class="hdr">
   <div class="page hdr__in">
     <a href="/" class="hdr__logo" aria-label="Euneos — accueil">
-      <Brand name="wordmark" height="2rem" />
+      <Brand name="wordmark" height="var(--logo-h)" />
     </a>
 
     <button type="button" class="hdr__burger" aria-expanded="false" aria-controls="menu-principal">
@@ -98,11 +98,13 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
     gap: clamp(1rem, 2.2vw, 2.25rem);
     align-items: baseline;
   }
-  /* Maquette : les entrees inactives sont en teinte claire, l'active en blanc.
-     Pas de soulignement (l'etat actif se lit a la couleur et a la graisse). */
+  /* Maquette v4 : toutes les entrees en SemiBold, 21 px a 1440 ; les
+     inactives en teinte claire, l'active en blanc. Pas de soulignement
+     (l'etat actif se lit a la couleur). */
   .hdr__link {
     text-decoration: none;
-    font-size: 1rem;
+    font-size: var(--t-nav);
+    font-weight: 600;
     color: color-mix(in srgb, currentColor 75%, transparent);
     padding-block: 0.25rem;
   }
@@ -111,7 +113,6 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   }
   .hdr__link.is-active {
     color: currentColor;
-    font-weight: 600;
   }
   .hdr__burger {
     display: none;
