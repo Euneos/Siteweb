@@ -527,12 +527,17 @@ const parcours = [
     top: 0;
     z-index: 1;
     width: var(--pf-w);
-    height: var(--pf-h);
-    /* le dessous de la feuille = la couleur « + » (bleu fonce), comme le rabat
-       des cartes qui se replient bien — le bleu moyen etait trop proche du fond
-       et le pli ne se lisait pas */
-    background: var(--bleu-fold);
-    clip-path: polygon(0 0, 100% 0, 0 100%);
+    /* le rabat descend un peu SOUS la pliure : c'est ce debord qui fait
+       « coin qui retombe » et non « triangle colorie » */
+    height: calc(var(--pf-h) * 1.15);
+    /* dessous de la feuille = bleu moyen (releve maquette : les cartes ont un
+       rabat plus fonce, mais le grand bandeau est en bleu moyen) */
+    background: var(--bleu);
+    /* rabat mince pose SOUS la pliure. Son bord haut suit la diagonale de
+       l'entaille — (100% 0) sur le bord haut, (0 87%) sur le bord gauche — puis
+       il retombe en pointe. Le triangle AU-DESSUS de la pliure reste blanc (le
+       fond), ce qui donne la vraie lecture d'un coin replie. */
+    clip-path: polygon(100% 0, 0 87%, 68% 100%);
   }
   .prog__t {
     text-align: center;
