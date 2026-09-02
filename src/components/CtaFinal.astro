@@ -46,12 +46,18 @@ const {
      elle ne recevrait pas le hash de scope. */
   .final {
     position: relative;
-    overflow: hidden;
+    /* le bonhomme DOIT sortir de la carte (maquette p.1/p.2) : pas d'overflow
+       hidden sur desktop. Le fond eclat, lui, reste borne a la carte car il
+       est en inset:0. */
     aspect-ratio: 519.6 / 257;
     background: var(--surface);
     color: var(--on-surface);
     display: grid;
     place-items: center;
+  }
+  /* garde-fou : l'eclat de fond ne deborde pas, seul le bonhomme le fait */
+  .final__eclat {
+    overflow: hidden;
   }
   .final__eclat {
     position: absolute;
@@ -63,16 +69,14 @@ const {
     height: 100%;
     display: block;
   }
-  /* Releve v4 (p.1 et p.2, identique) : c'est la silhouette fig2 (bras leve
-     a droite, l'autre a l'horizontale — celle du constat de l'accueil), pas
-     fig3. Elle est plus grande que le bloc : 115 % de sa hauteur, posee a
-     28 % du haut et debordant de 15,6 % a gauche ; le bloc la rogne en bas
-     et a gauche. Avant : fig3, entiere, a 84 %. */
+  /* Releve v4 (p.1 et p.2, identique) : silhouette fig2 (bras leve a droite),
+     plus grande que le bloc et qui en SORT — elle deborde du bord gauche et du
+     bas de la carte, « pour montrer ce qu'il peut faire ». */
   .final__fig {
     position: absolute;
-    left: -15.6%;
-    top: 28%;
-    height: 115%;
+    left: -12%;
+    bottom: 0;
+    height: 128%;
     color: var(--bleu-clair);
     z-index: 1;
   }
@@ -100,6 +104,12 @@ const {
   @media (max-width: 860px) {
     .final {
       aspect-ratio: auto;
+      /* en une colonne, pas de marge pour accueillir le debord : on rentre */
+      overflow: hidden;
+    }
+    .final__fig {
+      left: -8%;
+      height: 108%;
     }
   }
 </style>
