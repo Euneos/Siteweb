@@ -302,6 +302,13 @@ body {
   pointer-events: none;
 }
 
+/* Le RABAT est un vrai coin corne (dog-ear), pas un demi-carre plein.
+   Releve au vecteur sur la maquette v4 (cartes bleues p.1, cartes chiffres
+   p.1, etc., toutes identiques) : le rabat est le triangle dont l'hypotenuse
+   est la diagonale du pli et dont le TROISIEME sommet est ramene a 62 % du
+   cote perpendiculaire — d'ou l'aspect « corne pliee » et non « coin coupe a
+   plat ». Le site remplissait tout le demi-carre : c'est ce qui faisait dire
+   que le pli n'etait pas comme la maquette. */
 /* coin bas-droit (defaut) */
 .paper.fold-br::before {
   clip-path: polygon(
@@ -315,7 +322,7 @@ body {
 .paper.fold-br::after {
   right: 0;
   bottom: 0;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
+  clip-path: polygon(100% 0, 0 100%, 38% 0);
 }
 
 /* coin haut-droit */
@@ -325,7 +332,7 @@ body {
 .paper.fold-tr::after {
   right: 0;
   top: 0;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  clip-path: polygon(100% 100%, 0 0, 38% 100%);
 }
 
 /* coin haut-gauche */
@@ -335,7 +342,7 @@ body {
 .paper.fold-tl::after {
   left: 0;
   top: 0;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 100%, 100% 0, 62% 100%);
 }
 
 /* coin bas-gauche */
@@ -345,7 +352,7 @@ body {
 .paper.fold-bl::after {
   left: 0;
   bottom: 0;
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  clip-path: polygon(0 0, 100% 100%, 62% 0);
 }
 
 /* Variante « contour » : la bulle a filet des heros.
@@ -570,7 +577,8 @@ body {
   width: var(--f);
   height: var(--f);
   background: var(--fold-color);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
+  /* coin corne, comme les cartes */
+  clip-path: polygon(100% 0, 0 100%, 38% 0);
 }
 .cta:hover {
   transform: translateY(-2px);
