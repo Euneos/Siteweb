@@ -199,11 +199,19 @@ const faq = [
     </div>
   </section>
 
-  <!-- BANDEAU ERASMUS+ — ajoute dans la maquette v2 -->
-  <section class="erasmus">
-    <div class="page erasmus__in">
-      <p class="erasmus__l1">Un Programme européen Erasmus+ (2025-2027)</p>
-      <p class="erasmus__l2">100 % financé par le fond de dotation Nouveau Monde</p>
+  <!-- BLOC ERASMUS+ — maquette v4 p.2 : une photo a gauche (30 % de large)
+       et une CARTE bleue a droite (70 %), pli aplati bleu clair en haut a
+       droite, grand texte blanc au corps des titres puis un paragraphe. Le
+       site l'affichait en texte nu, sans carte ni photo (retour de Charly).
+       Les deux lignes sont celles du site ; la v4 porte un texte plus long
+       (« Le Programme europeen porte par Euneos... ») a fournir par Pauline. -->
+  <section class="section">
+    <div class="page erasmus">
+      <div class="erasmus__media"><Photo ratio="2/3" label="photo — formation" /></div>
+      <Paper surface="bleu" fold="tr" class="erasmus__card">
+        <p class="erasmus__l1">Un Programme européen Erasmus+ (2025-2027)</p>
+        <p class="erasmus__l2">100 % financé par le fond de dotation Nouveau Monde</p>
+      </Paper>
     </div>
   </section>
 
@@ -347,23 +355,53 @@ const faq = [
 </Base>
 
 <style is:global>
-  /* BANDEAU ERASMUS — mesure au vecteur (maquette v2 p.2) :
-     ligne 1 = 1,98 x le corps de texte, ligne 2 = exactement le corps
-     (bbox identique a celle d'un mot de paragraphe : 13,08 pt). Vert #00382d. */
+  /* BLOC ERASMUS — releve v4 p.2 a 1440 px : photo 381 x 568 de 88 a 469,
+     carte bleue 890 x 568 de 469 a 1359, pli aplati 168 x 105 en bleu clair,
+     texte blanc a 71 px du bord gauche et 39 px du haut. */
   .erasmus {
-    padding-block: clamp(2rem, 5vw, 3.5rem) 0;
+    display: grid;
+    grid-template-columns: 30% 70%;
+    align-items: stretch;
   }
-  .erasmus__in {
-    text-align: center;
-    color: var(--vert);
+  .erasmus__media {
+    min-width: 0;
+  }
+  .erasmus__media > * {
+    height: 100%;
+    aspect-ratio: auto !important;
+  }
+  /* .s-bleu en plus : meme specificite que la surface, sinon l'encre verte
+     de .s-bleu reprend le dessus sur le blanc */
+  .erasmus__card.s-bleu {
+    --fx: clamp(4rem, 11.7vw, 10.5rem);
+    --fy: clamp(2.5rem, 7.3vw, 6.6rem);
+    --fold-color: var(--bleu-clair);
+    /* texte blanc sur le bleu, comme les cartes bleues de l'accueil */
+    --on-surface: var(--blanc);
+    min-height: clamp(12rem, 24vw, 22rem);
+    padding: var(--s-int) clamp(2rem, 5vw, 4.5rem);
+    padding-right: max(clamp(2rem, 5vw, 4.5rem), calc(var(--fx) + 0.5rem));
+    display: grid;
+    align-content: center;
+    gap: 1rem;
   }
   .erasmus__l1 {
     font-size: var(--t-titre);
     font-weight: 600;
     line-height: var(--lh-titre);
   }
-  .erasmus__l2 {
-    margin-top: 0.35rem;
+  @media (max-width: 860px) {
+    .erasmus {
+      grid-template-columns: 1fr;
+    }
+    .erasmus__media > * {
+      height: auto;
+      aspect-ratio: 3 / 2 !important;
+    }
+    .erasmus__card {
+      min-height: 0;
+      padding-top: max(var(--s-int), calc(var(--fy) + 0.5rem));
+    }
   }
 
   /* LE RESULTAT (v2) */
