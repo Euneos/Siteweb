@@ -69,13 +69,13 @@ const profils = [
 
             <p class="nl__row">
               <label for="nlp-nom">Nom/Prénom</label>
-              <span class="nl__field paper fold-br">
+              <span class="champ">
                 <input id="nlp-nom" name="nom" type="text" autocomplete="name" maxlength="160" required />
               </span>
             </p>
             <p class="nl__row">
               <label for="nlp-mail">Email</label>
-              <span class="nl__field paper fold-br">
+              <span class="champ">
                 <input id="nlp-mail" name="email" type="email" autocomplete="email" maxlength="254" required />
               </span>
             </p>
@@ -101,7 +101,7 @@ const profils = [
       {
         !succes && (
           <div class="nl__submit">
-            <button type="submit" form="nl-form" class="cta s-papier">Envoyer</button>
+            <button type="submit" form="nl-form" class="cta s-vert-clair">Envoyer</button>
           </div>
         )
       }
@@ -111,6 +111,7 @@ const profils = [
 
 <style is:global>
   .nl {
+    width: 100%;
     padding-top: clamp(1rem, 3vw, 2.5rem);
     padding-bottom: clamp(3rem, 8vw, 6rem);
   }
@@ -145,40 +146,19 @@ const profils = [
   }
   .nl__form {
     display: grid;
-    gap: 1.1rem;
+    gap: clamp(1.25rem, 2.8vw, 2.5rem);
     max-width: 32rem;
     margin-inline: auto;
   }
   .nl__row {
     display: grid;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
   .nl__row label,
   .nl__radios legend {
     font-weight: 600;
   }
-  /* chaque champ est une petite feuille a coin coupe, comme sur Nous contacter */
-  .nl__field.paper {
-    --surface: transparent;
-    --fold-color: transparent;
-    --f: 14px;
-    border: 1.5px solid currentColor;
-    display: block;
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
-  }
-  .nl__field.paper::after,
-  .nl__field.paper::before {
-    display: none;
-  }
-  .nl__field input {
-    width: 100%;
-    background: transparent;
-    border: 0;
-    color: inherit;
-    padding: 0.65rem 0.85rem;
-    display: block;
-  }
-  .nl__field input:focus-visible,
+  /* les champs sont des .champ (global.css), comme sur Nous contacter */
   .nl__radios input:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
@@ -216,7 +196,7 @@ const profils = [
     position: absolute;
     left: 50%;
     bottom: 0;
-    transform: translate(-50%, 50%);
+    transform: translate(-50%, 75%);
     z-index: 4;
   }
   @media (max-width: 480px) {

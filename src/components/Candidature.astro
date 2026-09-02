@@ -138,14 +138,7 @@ const pleineLargeur = (c: Champ) =>
                   {c.label}
                   {c.requis && <abbr title="obligatoire">&nbsp;*</abbr>}
                 </label>
-                <span
-                  class:list={[
-                    'cand__field',
-                    'paper',
-                    'fold-br',
-                    c.type === 'textarea' && 'cand__field--area',
-                  ]}
-                >
+                <span class="champ">
                   {c.type === 'textarea' ? (
                     <textarea id={c.id} name={c.id} rows="5" maxlength="5000" required={c.requis} />
                   ) : c.type === 'select' ? (

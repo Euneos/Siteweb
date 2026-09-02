@@ -750,6 +750,43 @@ body {
   margin: 0.5rem auto var(--s-titre);
 }
 
+/* ============================================================
+   CHAMP DE FORMULAIRE — une petite feuille au filet, coin coupe en bas a
+   droite. Releve maquette v4 p.4 : 715 x 65 px pour un corps de 24, coin
+   de 24 px, texte a 25 px du bord. Partage par Nous contacter, /newsletter
+   et le portail de candidature : une seule geometrie.
+   ============================================================ */
+.champ {
+  --coin: clamp(0.85rem, 1.65vw, 1.5rem);
+  display: block;
+  border: 1.5px solid currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--coin)), calc(100% - var(--coin)) 100%, 0 100%);
+}
+.champ > input,
+.champ > select,
+.champ > textarea {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  line-height: 1.15;
+  padding: 0.7em 1em;
+  display: block;
+  resize: vertical;
+}
+.champ > select {
+  appearance: none;
+  cursor: pointer;
+}
+/* le contour du focus se dessine DANS le champ : dehors, le coin coupe le rognerait */
+.champ > input:focus-visible,
+.champ > select:focus-visible,
+.champ > textarea:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}
+
 /* Accessibilite */
 .sr-only {
   position: absolute;
@@ -1107,42 +1144,8 @@ body {
   text-decoration: none;
   color: var(--orange);
 }
-/* Petit coin coupe en bas a droite (releve maquette p.4), bordure comprise.
-   Meme traitement que le formulaire de contact. */
-.cand__field.paper {
-  --surface: transparent;
-  --fold-color: transparent;
-  --f: 14px;
-  border: 1.5px solid currentColor;
-  display: block;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
-}
-.cand__field.paper::after,
-.cand__field.paper::before {
-  display: none;
-}
-.cand__field input,
-.cand__field select,
-.cand__field textarea {
-  width: 100%;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  padding: 0.65rem 0.85rem;
-  display: block;
-  resize: vertical;
-}
-.cand__field select {
-  appearance: none;
-  cursor: pointer;
-}
-.cand__field input:focus-visible,
-.cand__field select:focus-visible,
-.cand__field textarea:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
+/* Les champs sont des .champ (voir plus haut) : meme feuille a coin coupe
+   que Nous contacter et /newsletter. */
 
 /* Blocs du formulaire de candidature — les Google Forms d'origine sont
    decoupes en 6 ou 7 blocs titres, on reprend ce decoupage. */
