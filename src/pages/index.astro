@@ -528,7 +528,10 @@ const parcours = [
     z-index: 1;
     width: var(--pf-w);
     height: var(--pf-h);
-    background: var(--bleu);
+    /* le dessous de la feuille = la couleur « + » (bleu fonce), comme le rabat
+       des cartes qui se replient bien — le bleu moyen etait trop proche du fond
+       et le pli ne se lisait pas */
+    background: var(--bleu-fold);
     clip-path: polygon(0 0, 100% 0, 0 100%);
   }
   .prog__t {
