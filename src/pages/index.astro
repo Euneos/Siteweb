@@ -182,12 +182,13 @@ const parcours = [
        detachent, grand pli en haut-gauche, CTA a cheval sur le bord bas.
 
        Chaque carte est un <details> : la partie visible (<summary>) porte le
-       picto, le titre, la phrase d'introduction et la fleche ; les points de
-       detail sont en dehors du summary, donc caches tant que la carte est
-       repliee. La fleche a ainsi TOUJOURS quelque chose a derouler. Avant,
-       tout le texte etait dans le summary et seule la hauteur de la carte le
-       coupait : sur un grand ecran tout tenait, et la fleche ne faisait rien
-       (retour de Pauline, maquette v4). -->
+       picto, le titre, l'introduction et le premier point — ce que la maquette
+       montre carte repliee (le texte s'y arrete a « attention, regulation »,
+       suivi d'une fleche vers le bas) ; les autres points sont en dehors du
+       summary, donc caches tant que la carte est repliee. La fleche a ainsi
+       TOUJOURS quelque chose a derouler. Avant, tout le texte etait dans le
+       summary et seule la hauteur de la carte le coupait : sur un grand ecran
+       tout tenait, et la fleche ne faisait rien (retour de Pauline). -->
   <section class="s-bleu-clair prog">
     <div class="prog__fold" aria-hidden="true"></div>
     <div class="page prog__in">
@@ -205,6 +206,8 @@ const parcours = [
                     <span class="prog__titre">{c.titre}</span>
                   </span>
                   <span class="prog__p">{c.intro}</span>
+                  <span class="prog__p">{c.points[0]}</span>
+                  <span class="prog__voile" aria-hidden="true" />
                   <span class="prog__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor">
                       <path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" />
@@ -212,7 +215,7 @@ const parcours = [
                   </span>
                 </summary>
                 <div class="prog__texte">
-                  {c.points.map((pt) => (
+                  {c.points.slice(1).map((pt) => (
                     <p class="prog__p">{pt}</p>
                   ))}
                 </div>
@@ -512,26 +515,40 @@ const parcours = [
     text-align: center;
     margin-bottom: var(--s-titre);
   }
-  /* releve au vecteur : cartes de 125,6 x 166,7 pt (ratio 0,753) separees par
-     des gouttieres de 71 pt, soit 13,7 % de la largeur du groupe */
+  /* releve v4 (p.1 a 1440 px) : trois cartes de 304 x 404 (ratio 0,753) de
+     189 a 1264 px, gouttieres de 82 px. Le rang fait donc 1075 px, soit
+     91,1 % de la zone de contenu (1180 px), et la gouttiere 7,6 % du rang. La v2 avait des
+     gouttieres de 172 px : les cartes etaient trop etroites et le texte s'y
+     coupait une ligne plus tot que dans la maquette. */
   .prog__cards {
     list-style: none;
     padding: 0;
     margin: 0 auto;
-    /* 3c + 2g = largeur, avec g = 0,565 c (71 / 125,6 pt) -> gap = 13,68 % */
+    width: 91.1%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 13.68%;
+    gap: 7.6%;
+    /* une carte qui s'ouvre grandit seule : ses voisines ne bougent pas */
+    align-items: start;
   }
-  /* releve v4 : texte a 39 px du bord d'une carte de 304 px (12,8 %) */
+  /* releve v4 : texte a 39 px du bord d'une carte de 304 px (12,8 %).
+     PAS de height: 100 % ici : avec un aspect-ratio, une hauteur imposee par
+     la rangee faisait recalculer la LARGEUR des cartes fermees quand une
+     voisine s'ouvrait — elles s'elargissaient et sortaient de la grille
+     (« ca fait n'importe quoi », retour de Charly). */
   .prog__card.s-bleu {
     --prog-pad: 12.8%;
-    height: 100%;
+    /* la reserve du bas loge la fleche, sous la derniere ligne */
+    --prog-reserve: calc(var(--prog-pad) * 0.7 + 2.6rem);
     min-height: 0;
     aspect-ratio: 125.6 / 166.7;
     padding: var(--prog-pad);
-    padding-bottom: calc(var(--prog-pad) + 1.5rem);
+    padding-bottom: var(--prog-reserve);
     display: grid;
+    /* minmax(0, 1fr) et non auto : une piste auto s'elargit sur la largeur
+       min-content de son contenu (ici l'en-tete picto + titre) et faisait
+       deborder le texte a droite de la carte, hors de la zone de texte */
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
     align-content: start;
     position: relative;
@@ -544,17 +561,43 @@ const parcours = [
   .prog__card[open] {
     aspect-ratio: auto;
   }
-  /* La carte est un <details> : repliee elle montre le titre et la phrase
-     d'introduction, depliee elle ajoute les points. Aucun JavaScript. */
+  /* Repliee, la carte garde la hauteur de la maquette : le resume remplit
+     la place disponible (une rangee 1fr) et ce qui depasse est coupe par le
+     bord de la zone de texte, comme dans la maquette ou la phrase s'arrete
+     en plein milieu. La fleche vit dans la reserve du bas, jamais sur le
+     texte. Depliee, la carte grandit et laisse tout voir. */
+  .prog__card:not([open]) {
+    grid-template-rows: minmax(0, 1fr);
+  }
   .prog__resume {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
     cursor: pointer;
     list-style: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .prog__card[open] .prog__resume {
+    overflow: visible;
+  }
+  /* voile sur la derniere ligne coupee ; positionne par rapport a la carte,
+     il echappe a l'overflow du resume */
+  .prog__voile {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--prog-reserve);
+    height: 1.6rem;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--surface));
+  }
+  .prog__card[open] .prog__voile {
+    display: none;
   }
   .prog__resume:focus-visible {
     outline: 3px solid var(--blanc);
-    outline-offset: 4px;
+    outline-offset: -3px;
   }
   .prog__resume::-webkit-details-marker {
     display: none;
@@ -570,9 +613,11 @@ const parcours = [
     font-weight: 600;
     font-size: var(--t-carte);
     line-height: var(--lh-titre);
+    min-width: 0;
   }
   .prog__texte {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
     align-content: start;
     margin-top: 0.8rem;
@@ -581,11 +626,12 @@ const parcours = [
     line-height: var(--lh-corps);
   }
 
-  /* ancree en bas a droite de la carte, comme dans la maquette (24 x 32 px) */
+  /* ancree en bas a droite de la carte, dans la reserve du bas, comme dans
+     la maquette (24 x 32 px a 28 px du bord) */
   .prog__fleche {
     position: absolute;
     right: var(--prog-pad);
-    bottom: 8%;
+    bottom: calc(var(--prog-pad) * 0.7);
     display: block;
     width: clamp(0.9rem, 1.65vw, 1.5rem);
     transition: transform 0.2s ease;
@@ -627,15 +673,19 @@ const parcours = [
   }
   @media (max-width: 860px) {
     .prog__cards {
+      width: 100%;
       grid-template-columns: 1fr;
       gap: 1.5rem;
     }
     .prog__card.s-bleu {
       --prog-pad: clamp(1.25rem, 5vw, 2rem);
-      height: auto;
       aspect-ratio: auto;
       padding: var(--prog-pad);
-      padding-bottom: calc(var(--prog-pad) + 1.5rem);
+      padding-bottom: var(--prog-reserve);
+    }
+    /* en une colonne la carte prend la hauteur de son texte : rien n'est coupe */
+    .prog__voile {
+      display: none;
     }
   }
 
