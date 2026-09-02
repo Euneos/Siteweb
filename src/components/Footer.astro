@@ -82,8 +82,10 @@ import Brand from './Brand.astro'
   const params = new URLSearchParams(window.location.search)
   const state = params.get('nl')
   const status = document.querySelector<HTMLElement>('#newsletter-status')
+  // sur /newsletter, c'est la page qui affiche le resultat, pas le pied de page
+  const pageDediee = document.querySelector('[data-newsletter-page]')
 
-  if (state && status) {
+  if (state && status && !pageDediee) {
     const messages: Record<string, string> = {
       ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
       confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
