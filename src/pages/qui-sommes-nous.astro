@@ -87,12 +87,16 @@ const niveaux: {
 /* Fonctions corrigees le 20/08 (maquette v2 p.3). NB : la page 1 signe la
    citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
    maquette elle-meme, a trancher avec elle. */
-/* Les 3 membres du conseil d'administration sont encore « ??? » dans la
-   maquette : Candice n'a pas livre les noms.
-   On NE PUBLIE PAS des cartes « ??? » sur un site public. Le bloc de texte,
-   lui, est vrai et se suffit a lui-meme. Des que les noms arrivent, remplir
-   ce tableau et les cartes reapparaissent toutes seules. */
-const ca: { nom: string; champ: string }[] = []
+/* Les membres du conseil d'administration : la maquette v4 p.3 montre trois
+   cartes (photo + nom + champ), noms encore « ??? ». Charly veut le bloc
+   present (retour du 2/09). On rend donc trois cartes avec le CHAMP reel (les
+   domaines cites juste au-dessus) et un nom en attente — a remplacer des que
+   Candice livre les noms et portraits. */
+const ca: { nom: string; champ: string }[] = [
+  { nom: 'À venir', champ: 'Éducation & politiques éducatives' },
+  { nom: 'À venir', champ: 'Santé mentale des jeunes, numérique & attention' },
+  { nom: 'À venir', champ: 'Innovation sociale, santé publique & prévention' },
+]
 
 const equipe = [
   { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale' },
@@ -171,7 +175,7 @@ const equipe = [
         <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="md" /></div>
         <Paper surface="rose" fold="tl" class="mission__badge">
           <span class="mission__badge-mark"><Brand name="wordmark" /></span>
-          <span class="mission__badge-txt">Association Loi 1901<br />fondée en avril 2026</span>
+          <span class="mission__badge-txt">Association d’intérêt général<br />Loi 1901 fondée en avril 2026</span>
         </Paper>
       </div>
 
@@ -551,11 +555,14 @@ const equipe = [
     width: 78%;
     margin-left: 12%;
   }
+  /* releve v4 p.3 : la photo du membre est quasi carree (302 x 330 px), pas un
+     3/4 portrait — le 3/4 rendait les cartes trop hautes et deformait la mise
+     en page (retour de Charly). */
   .membre__ph--symbol {
     display: grid;
     place-items: center;
-    aspect-ratio: 3 / 4;
-    padding: 18%;
+    aspect-ratio: 302 / 330;
+    padding: 16%;
     background: var(--vert-clair);
     color: var(--vert);
   }
