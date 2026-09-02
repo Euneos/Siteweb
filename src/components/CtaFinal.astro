@@ -32,7 +32,7 @@ const {
   <div class="page">
     <div class="final s-bleu">
       <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
-      <div class="final__fig" aria-hidden="true"><Brand name="fig3" height="100%" /></div>
+      <div class="final__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
       <div class="final__in">
         <h2>{titre}</h2>
         <Cta href={href} surface="blanc" class="final__cta">{libelle}</Cta>
@@ -63,11 +63,16 @@ const {
     height: 100%;
     display: block;
   }
+  /* Releve v4 (p.1 et p.2, identique) : c'est la silhouette fig2 (bras leve
+     a droite, l'autre a l'horizontale — celle du constat de l'accueil), pas
+     fig3. Elle est plus grande que le bloc : 115 % de sa hauteur, posee a
+     28 % du haut et debordant de 15,6 % a gauche ; le bloc la rogne en bas
+     et a gauche. Avant : fig3, entiere, a 84 %. */
   .final__fig {
     position: absolute;
-    left: -2%;
-    top: 8%;
-    height: 84%;
+    left: -15.6%;
+    top: 28%;
+    height: 115%;
     color: var(--bleu-clair);
     z-index: 1;
   }
