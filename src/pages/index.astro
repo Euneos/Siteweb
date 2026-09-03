@@ -205,10 +205,12 @@ const parcours = [
                     </span>
                     <span class="prog__titre">{c.titre}</span>
                   </span>
-                  <span class="prog__p">{c.intro}</span>
-                  <span class="prog__point-preview">
-                    <span class="prog__p">{c.points[0]}</span>
-                    <span class="prog__voile" aria-hidden="true" />
+                  <span class="prog__body">
+                    <span class="prog__p">{c.intro}</span>
+                    <span class="prog__point-preview">
+                      <span class="prog__p">{c.points[0]}</span>
+                      <span class="prog__voile" aria-hidden="true" />
+                    </span>
                   </span>
                   <span class="prog__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor">
@@ -627,7 +629,7 @@ const parcours = [
   .prog__resume {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.8rem;
+    gap: 1.6rem;
     cursor: pointer;
     list-style: none;
     min-height: 0;
@@ -636,19 +638,29 @@ const parcours = [
   .prog__card[open] .prog__resume {
     overflow: visible;
   }
-  /* Le fondu commence apres le saut de ligne de l'introduction, au debut du
-     premier point. L'ouverture retire le voile et revele la suite. */
+  .prog__body {
+    display: grid;
+    gap: 0;
+  }
+  /* L'introduction reste lisible. Seule la premiere ligne du paragraphe
+     suivant est fondue tant que la carte est repliee. */
   .prog__point-preview {
     position: relative;
+    max-height: 1.3em;
+    overflow: hidden;
   }
   .prog__voile {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(to bottom, transparent 8%, var(--surface) 92%);
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
   }
   .prog__card[open] .prog__voile {
     display: none;
+  }
+  .prog__card[open] .prog__point-preview {
+    max-height: none;
+    overflow: visible;
   }
   .prog__resume:focus-visible {
     outline: 3px solid var(--blanc);
@@ -659,7 +671,7 @@ const parcours = [
   }
   .prog__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.7rem;
     padding-right: max(0px, calc(var(--f) + 0.75rem - var(--prog-pad)));
   }
@@ -673,9 +685,9 @@ const parcours = [
   .prog__texte {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.8rem;
+    gap: 0;
     align-content: start;
-    margin-top: 0.8rem;
+    margin-top: 0;
   }
   .prog__p {
     line-height: var(--lh-corps);
@@ -733,14 +745,16 @@ const parcours = [
       gap: 1.5rem;
     }
     .prog__card.s-bleu {
-      --prog-pad: clamp(1.25rem, 5vw, 2rem);
-      aspect-ratio: auto;
+      --prog-pad: 9%;
+      aspect-ratio: 1.57 / 1;
       padding: var(--prog-pad);
       padding-bottom: var(--prog-reserve);
     }
-    /* en une colonne la carte prend la hauteur de son texte : rien n'est coupe */
-    .prog__voile {
-      display: none;
+    .prog__card.s-bleu[open] {
+      aspect-ratio: auto;
+    }
+    .prog__titre {
+      font-size: clamp(1.5rem, 5vw, 2.25rem);
     }
   }
 
@@ -1020,7 +1034,10 @@ const parcours = [
   }
   main:has(.constat) > .prog {
     margin-bottom: 0;
-    padding-bottom: calc(var(--t-bouton) * 0.9);
+    padding-bottom: 0;
+  }
+  main:has(.constat) > .impact-sec {
+    padding-block: 2rem;
   }
   main:has(.constat) > section:has(.bloc-image) {
     padding-bottom: calc(var(--pbox-lg) * 0.34);
@@ -1029,6 +1046,9 @@ const parcours = [
     /* Le CTA reste a cheval sur le bloc, comme dans la maquette mobile. */
     main:has(.constat) > .approche-sec {
       padding-bottom: calc(var(--t-bouton) * 0.9);
+    }
+    main:has(.constat) > .impact-sec {
+      padding-block: 1.5rem;
     }
   }
 </style>

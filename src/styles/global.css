@@ -535,7 +535,7 @@ body {
 @media (max-width: 860px) {
   :root {
     --s-bloc: 3rem; /* 48 px : entre deux sections mobile */
-    --t-bouton: clamp(1.25rem, 5vw, 1.625rem); /* 20 a 26 px */
+    --t-bouton: clamp(1.125rem, 5vw, 1.5rem); /* 18 a 24 px */
   }
   .g16 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
