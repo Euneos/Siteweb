@@ -757,6 +757,15 @@ const parcours = [
     .prog__card.s-bleu[open] {
       aspect-ratio: auto;
     }
+    .prog__resume {
+      gap: 0.75rem;
+    }
+    .prog__body > .prog__p {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
     .prog__titre {
       font-size: clamp(1.5rem, 5vw, 2.25rem);
     }
@@ -764,6 +773,7 @@ const parcours = [
       width: clamp(1.5rem, 7vw, 2.25rem);
     }
     .prog__point-preview {
+      display: block;
       max-height: calc(1.3em + 2px);
     }
     .prog__cta {
@@ -910,7 +920,7 @@ const parcours = [
   .citation__ph {
     grid-column: 1 / 2;
     grid-row: 2;
-    width: 87%;
+    width: 100%;
     position: relative;
     z-index: 2;
   }
@@ -942,7 +952,8 @@ const parcours = [
     grid-row: 3;
     display: flex;
     justify-content: center;
-    margin-top: -1.125rem;
+    margin-top: 0;
+    transform: translateY(-50%);
     z-index: 2;
   }
   @media (max-width: 860px) {
@@ -969,8 +980,7 @@ const parcours = [
       grid-row: auto;
     }
     .citation__cta {
-      margin-top: 1.5rem;
-      justify-content: flex-start;
+      justify-content: center;
     }
   }
 
