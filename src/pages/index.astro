@@ -278,10 +278,10 @@ const parcours = [
           apprendre aux jeunes à se réguler grâce à des éducateurs formés et outillés. »
         </blockquote>
         <p class="citation__role">Fondatrice et Directrice Générale EUNEOS</p>
+        <div class="citation__cta">
+          <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
+        </div>
       </Paper>
-      <div class="citation__cta">
-        <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
-      </div>
     </div>
   </section>
 
@@ -939,6 +939,7 @@ const parcours = [
     align-self: start;
     display: grid;
     gap: 1.1em;
+    position: relative;
   }
   .citation__card blockquote {
     margin: 0;
@@ -948,13 +949,10 @@ const parcours = [
     font-style: italic;
   }
   .citation__cta {
-    grid-column: 2 / 3;
-    grid-row: 2;
-    align-self: end;
-    display: flex;
-    justify-content: center;
-    margin-top: 0;
-    transform: translateY(50%);
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 50%);
     z-index: 2;
   }
   @media (max-width: 860px) {
@@ -963,8 +961,7 @@ const parcours = [
     }
     .citation__name,
     .citation__ph,
-    .citation__card,
-    .citation__cta {
+    .citation__card {
       grid-column: 1 / -1;
       margin-left: 0;
     }
@@ -976,12 +973,8 @@ const parcours = [
       justify-self: start;
     }
     .citation__ph,
-    .citation__card,
-    .citation__cta {
+    .citation__card {
       grid-row: auto;
-    }
-    .citation__cta {
-      justify-content: center;
     }
   }
 
