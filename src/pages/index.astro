@@ -464,7 +464,7 @@ const parcours = [
     .approche__media .ph {
       aspect-ratio: 1.82 !important;
     }
-    .approche__picto {
+    .approche .approche__picto {
       left: calc(var(--pbox-sm) * -1) !important;
       top: 0;
     }
@@ -673,7 +673,8 @@ const parcours = [
     grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
     align-content: start;
-    margin-top: 0.8rem;
+    /* Les points reveles reprennent apres une ligne blanche. */
+    margin-top: 1.3em;
   }
   .prog__p {
     line-height: var(--lh-corps);

@@ -1122,6 +1122,8 @@ body {
     width: 100%;
     order: initial !important;
     margin: 0;
+    /* Triple l'ecart visuel avec le haut de la bulle. */
+    transform: translateY(1.5rem);
   }
   .hz:not(.hz--mirror) .hz__bubble {
     /* Reserve la place de la part du CTA qui remonte dans l'encart, afin de
