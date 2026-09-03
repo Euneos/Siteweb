@@ -646,7 +646,8 @@ const parcours = [
   .prog__point-preview {
     position: relative;
     display: inline-block;
-    max-height: 1.3em;
+    /* La marge evite de rogner les descendantes sur la ligne estompee. */
+    max-height: calc(1.3em + 2px);
     overflow: hidden;
   }
   .prog__voile {
@@ -761,7 +762,10 @@ const parcours = [
       width: clamp(1.5rem, 7vw, 2.25rem);
     }
     .prog__point-preview {
-      transform: translateY(-0.25em);
+      max-height: calc(1.3em + 2px);
+    }
+    .prog__cta {
+      margin-top: var(--s-int);
     }
   }
 
@@ -808,6 +812,18 @@ const parcours = [
   @media (max-width: 860px) {
     .impact__cards {
       grid-template-columns: 1fr;
+    }
+    .impact__card {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 1rem;
+      row-gap: 0;
+    }
+    .impact__card .chiffre {
+      font-size: clamp(3.75rem, 18vw, 5rem);
+    }
+    .impact__card p {
+      max-width: none;
     }
   }
 
