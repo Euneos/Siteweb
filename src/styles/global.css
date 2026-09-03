@@ -131,7 +131,7 @@
      maquette laisse 103 a 166 px (mediane ~125) ; entre un titre et son
      contenu 74 a 96 px ; a l'interieur d'une carte 38 a 47 px.
      ------------------------------------------------------------------ */
-  --s-bloc: clamp(3.5rem, 8.5vw, 7.75rem); /* 122 px : entre deux blocs */
+  --s-bloc: 5rem; /* 80 px : entre deux sections desktop */
   --s-titre: clamp(1.75rem, 5.5vw, 5rem); /* 79 px : titre -> contenu */
   --s-int: clamp(1.25rem, 2.9vw, 2.6rem); /* 42 px : marge interne d'une carte */
 
@@ -533,6 +533,10 @@ body {
   gap: var(--gutter);
 }
 @media (max-width: 860px) {
+  :root {
+    --s-bloc: 3rem; /* 48 px : entre deux sections mobile */
+    --t-bouton: clamp(1.25rem, 5vw, 1.625rem); /* 20 a 26 px */
+  }
   .g16 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -901,6 +905,17 @@ body {
 .hero-zone.paper[class*='fold-']::after {
   z-index: 2;
 }
+/* Le contenu du hero suit aussi le coin coupe du fond. Sans ce decoupage, la
+   photo mobile pouvait rester visible dans la zone retiree par le grand pli. */
+.hero-zone.paper.fold-br {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--fy, var(--f))),
+    calc(100% - var(--fx, var(--f))) 100%,
+    0 100%
+  );
+}
 /* Pages sans banniere : la bande verte se reduit a l'en-tete. */
 .hero-zone--nue {
   min-height: 0;
@@ -1030,6 +1045,13 @@ body {
   --on-surface: var(--blanc);
   --fold-color: var(--vert);
 }
+/* Accueil : le CTA se centre toujours par rapport a la bulle, quelle que soit
+   la largeur de l'ecran. */
+.hz:not(.hz--mirror) .hz__cta {
+  left: 0;
+  right: 0;
+  justify-content: center;
+}
 /* sur la page Programme, le CTA du hero est dans la famille bleue */
 .hz--mirror .hz__cta > .cta {
   --surface: var(--bleu-fold);
@@ -1046,12 +1068,14 @@ body {
 
 @media (max-width: 860px) {
   .hz {
-    /* Le contenu mobile s'arrete avant toute la boite du pli de section. */
-    padding-bottom: calc(var(--fold-xl) + 0.75rem);
+    /* Meme marge basse que le hero desktop. */
+    padding-bottom: clamp(1.5rem, 4vw, 3rem);
   }
   .hz__grid {
     grid-template-columns: 1fr !important;
     padding-inline: calc(var(--unit) * 1.5);
+    /* La photo ne peut jamais depasser du hero par le bord droit. */
+    overflow-x: clip;
   }
   .hz__media {
     order: -1;
@@ -1106,9 +1130,13 @@ body {
   }
   .hz:not(.hz--mirror) .hz__media {
     order: initial;
+    max-width: 100%;
+    overflow: hidden;
   }
   .hz:not(.hz--mirror) .hz__cta {
     position: absolute;
+    left: 0;
+    right: 0;
     transform: translateY(29%);
     margin-top: 0;
     justify-content: center;

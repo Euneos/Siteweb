@@ -382,7 +382,8 @@ const parcours = [
     margin-right: 34.8%;
     margin-bottom: -4.7rem;
     position: relative;
-    z-index: 3;
+    /* Le rectangle orange passe derriere la photo, comme dans la maquette. */
+    z-index: 0;
     padding: clamp(1rem, 2.4vw, 1.75rem) clamp(1rem, 2.4vw, 1.75rem);
     /* c'est un H2 : il herite du corps des titres (47 px), comme les autres */
     text-align: center;
@@ -397,8 +398,9 @@ const parcours = [
   }
   .approche__picto {
     position: absolute;
-    left: -7%;
-    top: 8%;
+    /* Son bord droit rejoint la photo, sans jamais passer dessus. */
+    left: calc(4.8% - var(--pbox-sm));
+    top: 0;
     z-index: 3;
   }
 
@@ -409,7 +411,7 @@ const parcours = [
     align-self: start;
     /* le bloc vert commence 80 px sous le haut de la photo, et deborde de 2 %
        a droite pour atteindre le bord de la maquette */
-    margin-top: 17.2%;
+    margin-top: calc(17.2% - 0.25rem);
     margin-left: -1.1%;
     margin-right: -11.7%;
     z-index: 2;
@@ -433,6 +435,10 @@ const parcours = [
     transform: translateY(65%);
     z-index: 3;
   }
+  .approche__cta .cta {
+    --on-surface: var(--blanc);
+    --fold-color: var(--vert);
+  }
   @media (min-width: 861px) and (max-width: 1300px) {
     .approche__col {
       margin-right: 0;
@@ -441,12 +447,26 @@ const parcours = [
   @media (max-width: 860px) {
     .approche {
       grid-template-columns: 1fr;
+      position: relative;
     }
     .approche__tag {
-      width: auto;
-      margin-right: 0;
-      margin-bottom: -2rem;
+      width: 63.1%;
+      min-height: 8.7rem;
+      margin: 0 0 0 14.3%;
+      padding-inline: 1rem;
       justify-self: start;
+    }
+    .approche__media {
+      width: 82%;
+      padding-left: 0;
+      margin-left: 14.3%;
+    }
+    .approche__media .ph {
+      aspect-ratio: 1.82 !important;
+    }
+    .approche__picto {
+      left: calc(var(--pbox-sm) * -1) !important;
+      top: 0;
     }
     .approche__media,
     .approche__col {
@@ -454,15 +474,20 @@ const parcours = [
       grid-row: auto;
     }
     .approche__col {
-      margin: 1.5rem 0 0;
+      width: 82%;
+      margin: -1.5rem 0 0 14.3%;
+      z-index: 2;
     }
     .approche__txt {
-      padding-left: clamp(1.5rem, 3vw, 2.25rem);
+      min-height: 12.6rem;
+      padding: 2rem;
     }
     .approche__cta {
-      position: static;
-      transform: none;
-      margin-top: 1rem;
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 50%);
+      margin: 0;
     }
   }
 
@@ -973,6 +998,35 @@ const parcours = [
   @media (max-width: 860px) {
     .parcours__cards {
       grid-template-columns: 1fr;
+    }
+  }
+
+  /* Rythme de l'accueil : chaque ensemble presente dans la maquette est une
+     section. On supprime les demi-marges propres a chaque bloc et on pose un
+     seul intervalle entre leurs limites visuelles. */
+  main:has(.constat) > section {
+    padding-block: 0;
+  }
+  main:has(.constat) > .constat,
+  main:has(.constat) > section + section {
+    margin-top: var(--s-bloc);
+  }
+  /* Les CTA de l'approche et du Programme debordent de leur composition : la
+     section absorbe ce debord avant que l'intervalle commun ne commence. */
+  main:has(.constat) > .approche-sec {
+    padding-bottom: calc(var(--t-bouton) * 1.15);
+  }
+  main:has(.constat) > .prog {
+    margin-bottom: 0;
+    padding-bottom: calc(var(--t-bouton) * 0.9);
+  }
+  main:has(.constat) > section:has(.bloc-image) {
+    padding-bottom: calc(var(--pbox-lg) * 0.34);
+  }
+  @media (max-width: 860px) {
+    /* Le CTA reste a cheval sur le bloc, comme dans la maquette mobile. */
+    main:has(.constat) > .approche-sec {
+      padding-bottom: calc(var(--t-bouton) * 0.9);
     }
   }
 </style>
