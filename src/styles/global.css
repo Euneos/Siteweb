@@ -113,6 +113,7 @@
   --t-corps: clamp(1.0625rem, 1.667vw, 1.5rem); /* 24 px */
   --t-carte: clamp(1.125rem, 1.875vw, 1.6875rem); /* 27 px */
   --t-cta: clamp(1.25rem, 2.5vw, 2.25rem); /* 36 px */
+  --t-bouton: clamp(1.125rem, 2.15vw, 1.875rem); /* 30 px */
   --t-h3: clamp(1.375rem, 2.71vw, 2.4375rem); /* 39 px */
   --t-titre: clamp(1.75rem, 3.264vw, 2.9375rem); /* 47 px */
   --t-chiffre: clamp(2.5rem, 4.3vw, 3.875rem); /* 62 px */
@@ -547,12 +548,13 @@ body {
 .cta {
   display: inline-block;
   position: relative;
-  /* Releve maquette v4 : libelle 36 px, bouton 65 px de haut, 21 px de
+  /* Les libelles sont ramenes a 30 px maximum, pour alleger les boutons,
+     tout en gardant leurs proportions et leur hauteur genereuse. 21 px de
      marge de chaque cote du texte (« En savoir + » = 215 x 65 px a 1440).
      Tout est en em : la hauteur et les marges suivent le corps du libelle,
      un CTA a donc toujours les memes proportions, quel que soit son texte.
      Avant : libelle 19 px dans un bouton de 64 px — le texte flottait. */
-  font-size: var(--t-cta);
+  font-size: var(--t-bouton);
   line-height: 1.1;
   padding: 0.35em 0.6em;
   /* a droite, le pli d'etiquette (31 px) remplace la marge : le libelle
@@ -580,6 +582,9 @@ body {
   /* coin corne, comme les cartes */
   clip-path: polygon(100% 0, 0 100%, 38% 0);
 }
+.cta--cut::before {
+  display: none;
+}
 .cta:hover {
   transform: translateY(-2px);
   filter: brightness(1.06);
@@ -599,7 +604,7 @@ body {
 /* Petit CTA : celui des cartes « niveaux d'intervention » (p.3) — 23 px de
    libelle, 41 px de haut, memes proportions. */
 .cta--sm {
-  font-size: var(--t-corps);
+  font-size: var(--t-bouton);
   padding-inline: 0.9em max(0.9em, var(--f));
 }
 
@@ -915,8 +920,8 @@ body {
    Les pages 2 et 3 (hz--mirror) gardent leur geometrie : verifiee inchangee
    sur la page 3, bord droit de la bulle identique en v7 et v2. */
 .hz:not(.hz--mirror) .hz__grid {
-  grid-template-columns: 54.82% 44.67%;
-  gap: 0.51%;
+  grid-template-columns: 54.82% 45.18%;
+  gap: 0;
 }
 .hz:not(.hz--mirror) .hz__side {
   grid-template-columns: 20.45% 79.55%;
@@ -926,8 +931,8 @@ body {
      8,3 % a gauche et 6,2 % a droite. Le titre a 47 px a besoin de toute
      cette largeur (« a prevenir les difficultes » fait 482 px). La marge
      haute vaut au moins le pli : aucune ligne ne passe sous le rabat. */
-  padding: max(8%, var(--f)) 6% 10% 8%;
-  align-items: start;
+  padding: 8% 6% 8% 8%;
+  align-items: center;
 }
 .hz--mirror .hz__media {
   order: -1;
@@ -1070,12 +1075,11 @@ body {
   .hz__bubble,
   .hz:not(.hz--mirror) .hz__bubble {
     aspect-ratio: auto;
-    padding: clamp(1.5rem, 5vw, 2rem);
-    padding-right: clamp(3rem, 12vw, 4.5rem);
+    padding: 1.5rem 3rem 1.5rem 1.5rem;
   }
   /* pli en haut a droite (pages 1 et 3) : la premiere ligne passe dessous */
   .hz__bubble.fold-tr {
-    padding-top: max(clamp(1.5rem, 5vw, 2rem), var(--f));
+    padding-top: 1.5rem;
   }
   .hz__cta {
     position: static;

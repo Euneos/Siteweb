@@ -9,12 +9,14 @@ interface Props {
   href?: string
   surface?: Surface
   outline?: boolean
+  /** Conserve le coin coupe sans dessiner le rabat. */
+  fold?: boolean
   type?: 'button' | 'submit'
   class?: string
 }
 
-const { href, surface = 'vert', outline = false, type, class: cls = '' } = Astro.props
-const classes = ['cta', `s-${surface}`, outline ? 'cta-outline' : '', cls].filter(Boolean).join(' ')
+const { href, surface = 'vert', outline = false, fold = true, type, class: cls = '' } = Astro.props
+const classes = ['cta', `s-${surface}`, outline ? 'cta-outline' : '', !fold ? 'cta--cut' : '', cls].filter(Boolean).join(' ')
 const Tag = href ? 'a' : 'button'
 ---
 

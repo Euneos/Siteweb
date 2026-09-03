@@ -92,7 +92,7 @@ const parcours = [
             mentale et à accompagner les jeunes à l’ère du numérique
           </h1>
           </Paper>
-          <div class="hz__cta"><Cta href="/programme" surface="vert-clair">En savoir +</Cta></div>
+          <div class="hz__cta"><Cta href="/programme" surface="vert-clair" fold={false}>En savoir +</Cta></div>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ const parcours = [
   <section class="section constat has-silo">
     <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
     <div class="page g16 constat__in">
-      <h2 style="grid-column: 5 / 9">Soutenons des climats de classe sereins et des éducateurs en santé</h2>
-      <div style="grid-column: 10 / 17" class="constat__txt">
+      <h2 style="grid-column: 4 / 9">Soutenons des climats de classe sereins et des éducateurs en santé</h2>
+      <div style="grid-column: 9 / 16" class="constat__txt">
         <p>
           Aujourd’hui, + de 50 % des élèves de collèges et lycées présentent des plaintes
           psychologiques ou somatiques hebdomadaires, amplifiées par la saturation
@@ -334,7 +334,7 @@ const parcours = [
        negatif herite de .silo--left la faisait sortir de l'ecran. */
     height: clamp(19rem, 41vw, 36rem);
     max-width: 26%;
-    transform: translate(0, -50%);
+    transform: translate(-12%, -50%);
   }
   .constat__in {
     position: relative;
@@ -953,7 +953,7 @@ const parcours = [
     display: flex;
     align-items: center;
     gap: 0.5em;
-    font-size: var(--t-cta);
+    font-size: var(--t-bouton);
     font-weight: 600;
     line-height: 1.15;
     --f: var(--fold-sm);
