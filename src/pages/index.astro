@@ -596,7 +596,7 @@ const parcours = [
   .prog__card.s-bleu {
     --prog-pad: 12.8%;
     /* la reserve du bas loge la fleche, sous la derniere ligne */
-    --prog-reserve: calc(var(--prog-pad) * 0.7 + 2.6rem);
+    --prog-reserve: calc(var(--prog-pad) * 0.7 + 1.8rem);
     min-height: 0;
     aspect-ratio: 125.6 / 166.7;
     padding: var(--prog-pad);
@@ -639,13 +639,13 @@ const parcours = [
     overflow: visible;
   }
   .prog__body {
-    display: grid;
-    gap: 0;
+    display: block;
   }
   /* L'introduction reste lisible. Seule la premiere ligne du paragraphe
      suivant est fondue tant que la carte est repliee. */
   .prog__point-preview {
     position: relative;
+    display: inline-block;
     max-height: 1.3em;
     overflow: hidden;
   }
@@ -746,6 +746,7 @@ const parcours = [
     }
     .prog__card.s-bleu {
       --prog-pad: 9%;
+      --prog-reserve: calc(var(--prog-pad) * 0.7 + 1.5rem);
       aspect-ratio: 1.57 / 1;
       padding: var(--prog-pad);
       padding-bottom: var(--prog-reserve);
@@ -755,6 +756,12 @@ const parcours = [
     }
     .prog__titre {
       font-size: clamp(1.5rem, 5vw, 2.25rem);
+    }
+    .prog__fleche {
+      width: clamp(1.5rem, 7vw, 2.25rem);
+    }
+    .prog__point-preview {
+      transform: translateY(-0.25em);
     }
   }
 
