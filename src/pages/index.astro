@@ -247,8 +247,10 @@ const parcours = [
           impact.map((s) => (
             <li>
               <Paper surface="vert" fold="tr" class="impact__card">
-                <span class="chiffre">{s.valeur}</span>
-                <p>{s.legende}</p>
+                <div class="impact__content">
+                  <span class="chiffre">{s.valeur}</span>
+                  <p>{s.legende}</p>
+                </div>
               </Paper>
             </li>
           ))
@@ -809,23 +811,29 @@ const parcours = [
   .impact__card p {
     max-width: 30ch;
   }
+  .impact__content {
+    display: contents;
+  }
   @media (max-width: 860px) {
     .impact__cards {
       grid-template-columns: 1fr;
     }
     .impact__card {
-      grid-template-columns: auto minmax(0, 12ch);
-      align-items: center;
       align-content: center;
+    }
+    .impact__content {
+      display: flex;
+      align-items: center;
       justify-content: center;
-      column-gap: 1rem;
-      row-gap: 0;
+      gap: 1rem;
+      width: 100%;
     }
     .impact__card .chiffre {
       font-size: clamp(3.75rem, 18vw, 5rem);
     }
     .impact__card p {
-      max-width: none;
+      flex: 0 1 12ch;
+      max-width: 12ch;
       text-align: center;
     }
   }
