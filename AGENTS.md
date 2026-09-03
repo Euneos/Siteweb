@@ -193,7 +193,7 @@ Les vectoriels de `src/assets/brand/` ont été extraits de `charte_graphique.pd
 
 - `POST /api/contact` — page Nous contacter
 - `POST /api/newsletter` — pied de page, avec la **segmentation en 3**
-  (établissement / partenaire / curieux) portée par le design lui-même
+  (établissement / formateur-ice / partenaire) portée par le design lui-même
 - `POST /api/candidature-etablissement` et `/api/candidature-formateur` —
   écriture dans NocoDB et accusé Brevo lorsque le transport est configuré
 
@@ -207,8 +207,8 @@ Variables Cloudflare nécessaires (voir `.dev.vars.example`) :
 
 - `NOCODB_TOKEN` pour les candidatures ;
 - `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` et `EQUIPE_EMAIL` pour les e-mails ;
-- `BREVO_LIST_ETABLISSEMENT`, `BREVO_LIST_PARTENAIRE` et
-  `BREVO_LIST_CURIEUX` pour la segmentation de la newsletter ;
+- `BREVO_LIST_ETABLISSEMENT`, `BREVO_LIST_FORMATEUR` et
+  `BREVO_LIST_PARTENAIRE` pour la segmentation de la newsletter ;
 - `BREVO_DOI_TEMPLATE_ID` pour l'e-mail de double confirmation de la newsletter ;
 - `HOOK_SECRET` pour authentifier le webhook NocoDB.
 
@@ -337,4 +337,3 @@ Programme trop espaces, URL de newsletter. Tout est traite a la racine
   de retour. Rendue a la demande pour afficher `?nl=` sans JavaScript.
 - Titres verts par defaut (`--ink-titre`), blancs sur les surfaces foncees.
 - La page privee « facon Notion » n'est PAS faite : decision produit a cadrer.
-

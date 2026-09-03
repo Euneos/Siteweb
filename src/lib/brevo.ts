@@ -5,7 +5,7 @@ export interface BrevoEnv {
   EQUIPE_EMAIL?: string
   BREVO_LIST_ETABLISSEMENT?: string
   BREVO_LIST_PARTENAIRE?: string
-  BREVO_LIST_CURIEUX?: string
+  BREVO_LIST_FORMATEUR?: string
   BREVO_DOI_TEMPLATE_ID?: string
 }
 
@@ -68,7 +68,7 @@ export async function inscrireNewsletter(
   const listes: Record<string, string | undefined> = {
     etablissement: env.BREVO_LIST_ETABLISSEMENT,
     partenaire: env.BREVO_LIST_PARTENAIRE,
-    curieux: env.BREVO_LIST_CURIEUX,
+    formateur: env.BREVO_LIST_FORMATEUR,
   }
   const listId = Number(listes[profil])
   const templateId = Number(env.BREVO_DOI_TEMPLATE_ID)

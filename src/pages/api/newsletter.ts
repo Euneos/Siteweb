@@ -5,7 +5,7 @@ import { aucunTexteTropLong, champsDansLesLimites, emailValide, modeApercu, orig
 export const prerender = false
 
 /** Segmentation portee par le design lui-meme (3 boutons radio du footer). */
-const PROFILS = new Set(['etablissement', 'partenaire', 'curieux'])
+const PROFILS = new Set(['etablissement', 'formateur', 'partenaire'])
 
 /** Deux formulaires envoient ici : le pied de page (toutes les pages) et la
     page dediee `/newsletter`. Le champ cache `retour` dit ou renvoyer la
