@@ -278,10 +278,13 @@ const parcours = [
           apprendre aux jeunes à se réguler grâce à des éducateurs formés et outillés. »
         </blockquote>
         <p class="citation__role">Fondatrice et Directrice Générale EUNEOS</p>
-        <div class="citation__cta">
+        <div class="citation__cta citation__cta--desktop">
           <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
         </div>
       </Paper>
+      <div class="citation__cta citation__cta--mobile">
+        <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
+      </div>
     </div>
   </section>
 
@@ -955,13 +958,17 @@ const parcours = [
     transform: translate(-50%, 50%);
     z-index: 2;
   }
+  .citation__cta--mobile {
+    display: none;
+  }
   @media (max-width: 860px) {
     .citation {
       grid-template-columns: 1fr;
     }
     .citation__name,
     .citation__ph,
-    .citation__card {
+    .citation__card,
+    .citation__cta--mobile {
       grid-column: 1 / -1;
       margin-left: 0;
     }
@@ -973,8 +980,21 @@ const parcours = [
       justify-self: start;
     }
     .citation__ph,
-    .citation__card {
+    .citation__card,
+    .citation__cta--mobile {
       grid-row: auto;
+    }
+    .citation__cta--desktop {
+      display: none;
+    }
+    .citation__cta--mobile {
+      position: relative;
+      left: auto;
+      bottom: auto;
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+      transform: none;
     }
   }
 
