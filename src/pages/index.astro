@@ -206,8 +206,10 @@ const parcours = [
                     <span class="prog__titre">{c.titre}</span>
                   </span>
                   <span class="prog__p">{c.intro}</span>
-                  <span class="prog__p">{c.points[0]}</span>
-                  <span class="prog__voile" aria-hidden="true" />
+                  <span class="prog__point-preview">
+                    <span class="prog__p">{c.points[0]}</span>
+                    <span class="prog__voile" aria-hidden="true" />
+                  </span>
                   <span class="prog__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor">
                       <path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" />
@@ -634,16 +636,16 @@ const parcours = [
   .prog__card[open] .prog__resume {
     overflow: visible;
   }
-  /* voile sur la derniere ligne coupee ; positionne par rapport a la carte,
-     il echappe a l'overflow du resume */
+  /* Le fondu commence apres le saut de ligne de l'introduction, au debut du
+     premier point. L'ouverture retire le voile et revele la suite. */
+  .prog__point-preview {
+    position: relative;
+  }
   .prog__voile {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: var(--prog-reserve);
-    height: 1.6rem;
+    inset: 0;
     pointer-events: none;
-    background: linear-gradient(to bottom, transparent, var(--surface));
+    background: linear-gradient(to bottom, transparent 8%, var(--surface) 92%);
   }
   .prog__card[open] .prog__voile {
     display: none;
@@ -673,8 +675,7 @@ const parcours = [
     grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
     align-content: start;
-    /* Les points reveles reprennent apres une ligne blanche. */
-    margin-top: 1.3em;
+    margin-top: 0.8rem;
   }
   .prog__p {
     line-height: var(--lh-corps);

@@ -1116,14 +1116,13 @@ body {
   .hz:not(.hz--mirror) .hz__side {
     grid-template-columns: 20.45% 79.55% !important;
     align-items: end;
-    margin-top: 0;
+    /* Espace entre le logo d'en-tete et le haut de la bulle. */
+    margin-top: 3rem;
   }
   .hz:not(.hz--mirror) .hz__cartouche {
     width: 100%;
     order: initial !important;
     margin: 0;
-    /* Triple l'ecart visuel avec le haut de la bulle. */
-    transform: translateY(1.5rem);
   }
   .hz:not(.hz--mirror) .hz__bubble {
     /* Reserve la place de la part du CTA qui remonte dans l'encart, afin de
