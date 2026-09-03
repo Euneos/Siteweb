@@ -1086,6 +1086,33 @@ body {
     transform: none;
     margin-top: 1.25rem;
   }
+  /* Accueil : la composition reste liee sur mobile. Le cartouche est colle a
+     gauche de la bulle, la photo vient juste dessous et le CTA conserve son
+     chevauchement sur le bord bas de la bulle. */
+  .hz:not(.hz--mirror) .hz__side {
+    grid-template-columns: 20.45% 79.55% !important;
+    align-items: end;
+    margin-top: 0;
+  }
+  .hz:not(.hz--mirror) .hz__cartouche {
+    width: 100%;
+    order: initial !important;
+    margin: 0;
+  }
+  .hz:not(.hz--mirror) .hz__bubble {
+    /* Reserve la place de la part du CTA qui remonte dans l'encart, afin de
+       conserver une respiration entre le titre et le bouton. */
+    padding-bottom: calc(3rem + var(--t-bouton) * 0.71);
+  }
+  .hz:not(.hz--mirror) .hz__media {
+    order: initial;
+  }
+  .hz:not(.hz--mirror) .hz__cta {
+    position: absolute;
+    transform: translateY(29%);
+    margin-top: 0;
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
