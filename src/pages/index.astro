@@ -1062,6 +1062,9 @@ const parcours = [
     color: var(--blanc);
     transition: transform 0.15s ease;
   }
+  .parcours__card span {
+    color: var(--blanc);
+  }
   .parcours__link:hover .paper {
     transform: translateY(-3px);
   }
@@ -1070,8 +1073,13 @@ const parcours = [
     flex: none;
   }
   @media (max-width: 860px) {
+    .parcours {
+      padding-bottom: var(--s-bloc);
+    }
     .parcours__cards {
       grid-template-columns: 1fr;
+      width: min(78vw, 22rem);
+      gap: 1rem;
     }
   }
 
