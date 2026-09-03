@@ -1073,9 +1073,6 @@ const parcours = [
     flex: none;
   }
   @media (max-width: 860px) {
-    .parcours {
-      padding-bottom: var(--s-bloc);
-    }
     .parcours__cards {
       grid-template-columns: 1fr;
       width: min(78vw, 22rem);
@@ -1115,6 +1112,9 @@ const parcours = [
     }
     main:has(.constat) > .impact-sec {
       padding-block: 1.5rem 0;
+    }
+    main:has(.constat) > .parcours {
+      padding-bottom: var(--s-bloc);
     }
   }
 </style>
