@@ -69,14 +69,15 @@ const {
     height: 100%;
     display: block;
   }
-  /* Releve v4 (p.1 et p.2, identique) : silhouette fig2 (bras leve a droite),
-     plus grande que le bloc et qui en SORT — elle deborde du bord gauche et du
-     bas de la carte, « pour montrer ce qu'il peut faire ». */
+  /* Le personnage deborde a gauche, mais reste coupe sur le bord bas de la
+     carte. Les proportions et la position sont relevees sur le modele fourni. */
   .final__fig {
     position: absolute;
-    left: -12%;
-    bottom: 0;
-    height: 128%;
+    left: -17.5%;
+    top: 14.5%;
+    height: 118.5%;
+    /* La silhouette depasse en bas de 33 % de la hauteur de la carte. */
+    clip-path: inset(0 0 27.85% 0);
     color: var(--bleu-clair);
     z-index: 1;
   }
@@ -104,12 +105,15 @@ const {
   @media (max-width: 860px) {
     .final {
       aspect-ratio: auto;
-      /* en une colonne, pas de marge pour accueillir le debord : on rentre */
+      min-height: clamp(18rem, 78vw, 24rem);
+      /* En une colonne, il n'y a plus de marge pour le debord gauche. */
       overflow: hidden;
     }
     .final__fig {
-      left: -8%;
-      height: 108%;
+      left: -22%;
+      top: 15%;
+      height: 115%;
+      clip-path: none;
     }
   }
 </style>
