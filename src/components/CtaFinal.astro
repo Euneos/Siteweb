@@ -106,14 +106,12 @@ const {
     .final {
       aspect-ratio: auto;
       min-height: clamp(18rem, 78vw, 24rem);
-      /* En une colonne, il n'y a plus de marge pour le debord gauche. */
-      overflow: hidden;
     }
     .final__fig {
       left: -22%;
       top: 15%;
       height: 115%;
-      clip-path: none;
+      clip-path: inset(0 0 27.85% 0);
     }
   }
 </style>
