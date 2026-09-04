@@ -16,7 +16,7 @@ interface Props {
 
 const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
-const withFooterTopSpace = !['/', '/contact/'].includes(Astro.url.pathname)
+const withFooterTopSpace = !['/', '/contact', '/contact/'].includes(Astro.url.pathname)
 ---
 
 <!doctype html>

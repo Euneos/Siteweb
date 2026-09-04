@@ -761,9 +761,20 @@ body {
   margin-top: 2.25rem;
   margin-bottom: 0.6rem;
 }
+.legal h3 {
+  color: var(--vert);
+  font-size: var(--t-corps);
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+}
 .legal p,
 .legal li {
   margin-bottom: 0.85rem;
+}
+.legal .chapo {
+  max-width: 58ch;
+  margin-bottom: 2rem;
+  font-weight: 600;
 }
 .legal ul {
   padding-left: 1.2rem;
