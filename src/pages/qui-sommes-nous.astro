@@ -392,7 +392,7 @@ const equipe = [
   .mission {
     display: grid;
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
-    align-items: center;
+    align-items: stretch;
   }
   .mission__media {
     position: relative;
@@ -403,7 +403,7 @@ const equipe = [
      texte. Le bloc vert mord de 6 % sur la colonne photo : on s'arrete avant. */
   .mission__picto {
     position: absolute;
-    right: 9.3%;
+    right: 0;
     top: -8%;
     z-index: 3;
   }
@@ -420,16 +420,16 @@ const equipe = [
       right: 0;
     }
   }
-  /* maquette : le badge est large, a cheval sur le bord gauche de la photo, avec
-     le wordmark en grand et un coin plie */
+  /* Le cartouche se pose au bas de la photo et rejoint le bloc de texte. */
   .mission__badge {
     position: absolute;
-    left: -26%;
-    bottom: 22%;
-    width: 104%;
+    left: 16%;
+    bottom: 0;
+    width: 105%;
     padding: clamp(1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.4vw, 1.75rem);
     z-index: 4;
     --f: clamp(1.25rem, 2.4vw, 2rem);
+    color: #fff;
   }
   .mission__badge-mark {
     display: block;
@@ -447,7 +447,7 @@ const equipe = [
        du bord gauche et 38 px du haut */
     --fx: clamp(3rem, 12.9vw, 11.6rem);
     --fy: clamp(1.5rem, 6.5vw, 5.8rem);
-    margin-left: -6%;
+    margin-left: 0;
     padding: var(--s-int);
     padding-left: clamp(2rem, 4.4vw, 4rem);
     padding-bottom: max(var(--s-int), calc(var(--fy) + 0.5rem));
