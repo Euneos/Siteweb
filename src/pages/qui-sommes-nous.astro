@@ -801,29 +801,32 @@ const equipe = [
     --on-surface: var(--blanc);
   }
   .equipe--ca .membre__card {
+    position: relative;
     padding: calc(var(--s-int) * 0.3) calc(var(--s-int) * 0.25);
   }
   .equipe--ca .membre__card > p,
   .equipe--ca .ca__bio > p {
     font-size: calc(var(--t-corps) * 0.5);
   }
+  .equipe--ca .membre__card > p {
+    padding-right: 2em;
+  }
   .ca__bio {
     margin-top: 0;
-    display: flex;
-    flex-direction: column;
   }
   .ca__bio summary {
-    order: 2;
+    position: absolute;
+    top: calc(var(--s-int) * 0.15);
+    right: calc(var(--s-int) * 0.2);
     display: grid;
     place-items: center;
-    width: 1.5em;
+    width: 1em;
     aspect-ratio: 1;
     list-style: none;
     cursor: pointer;
-    font-size: var(--t-cta);
+    font-size: var(--t-corps);
     font-weight: 600;
     line-height: 1;
-    margin-left: auto;
   }
   .ca__bio summary::-webkit-details-marker {
     display: none;
@@ -835,7 +838,6 @@ const equipe = [
     content: '−';
   }
   .ca__bio > p {
-    order: 1;
     margin-top: 0.75rem;
     font-size: var(--t-corps);
   }
