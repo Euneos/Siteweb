@@ -343,6 +343,7 @@ const equipe = [
     let dragStartScroll = 0
     let dragging = false
     track.addEventListener('pointerdown', (event) => {
+      if ((event.target as Element).closest('summary, a, button, input, textarea, select')) return
       dragging = true
       dragStartX = event.clientX
       dragStartScroll = track.scrollLeft
@@ -809,7 +810,7 @@ const equipe = [
   }
   .ca__bio > p {
     margin-top: 0.75rem;
-    font-size: var(--t-note);
+    font-size: var(--t-corps);
   }
   .membre__card a {
     font-weight: 600;
