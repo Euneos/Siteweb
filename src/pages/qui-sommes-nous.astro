@@ -373,7 +373,7 @@ const equipe = [
     position: relative;
     display: flex;
     justify-content: center;
-    margin-top: var(--s-titre);
+    margin-top: var(--s-int);
   }
   @media (max-width: 860px) {
     .fond__fig {
@@ -406,6 +406,9 @@ const equipe = [
     right: 9.3%;
     top: -8%;
     z-index: 3;
+  }
+  .mission__picto svg {
+    transform: scaleX(-1);
   }
 
   /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
@@ -452,11 +455,11 @@ const equipe = [
     gap: 0;
     z-index: 1;
   }
-  /* maquette : ce bloc est compose au corps des TITRES (47 px), en Regular,
-     et la derniere phrase en SemiBold */
+  /* Le texte de mission reprend le corps courant, la derniere phrase restant
+     mise en valeur. */
   .mission__card > p {
-    font-size: var(--t-titre);
-    line-height: var(--lh-titre);
+    font-size: var(--t-corps);
+    line-height: var(--lh-corps);
     font-weight: 400;
   }
   .mission__strong {
