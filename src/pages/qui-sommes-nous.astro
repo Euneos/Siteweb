@@ -320,8 +320,7 @@ const equipe = [
     gap: 1rem;
   }
   .fond__details {
-    display: grid;
-    gap: 1rem;
+    display: block;
   }
   .fond__details summary {
     cursor: pointer;
@@ -335,9 +334,9 @@ const equipe = [
     content: '+';
     margin-left: 0.35em;
     color: var(--vert);
-    font-size: var(--t-h3);
+    font-size: 1em;
     font-weight: 600;
-    line-height: 1;
+    line-height: inherit;
     display: inline-block;
   }
   .fond__details[open] summary::after {
