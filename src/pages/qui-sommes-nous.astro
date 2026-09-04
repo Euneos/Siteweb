@@ -305,6 +305,28 @@ const equipe = [
       if (track.scrollLeft > width * 1.75) track.scrollLeft -= width
     })
 
+    track.addEventListener('wheel', (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      event.preventDefault()
+      track.scrollLeft += event.deltaY
+    }, { passive: false })
+
+    let dragStartX = 0
+    let dragStartScroll = 0
+    let dragging = false
+    track.addEventListener('pointerdown', (event) => {
+      dragging = true
+      dragStartX = event.clientX
+      dragStartScroll = track.scrollLeft
+      track.setPointerCapture(event.pointerId)
+    })
+    track.addEventListener('pointermove', (event) => {
+      if (!dragging) return
+      track.scrollLeft = dragStartScroll - (event.clientX - dragStartX)
+    })
+    track.addEventListener('pointerup', () => dragging = false)
+    track.addEventListener('pointercancel', () => dragging = false)
+
     carousel.querySelectorAll<HTMLButtonElement>('[data-direction]').forEach((button) => {
       button.addEventListener('click', () => {
         const direction = button.dataset.direction === 'next' ? 1 : -1
@@ -620,6 +642,12 @@ const equipe = [
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+    touch-action: pan-y;
+  }
+  .equipe.equipe--ca:active {
+    cursor: grabbing;
   }
   .equipe--ca::-webkit-scrollbar {
     display: none;
