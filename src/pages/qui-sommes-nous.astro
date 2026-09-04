@@ -135,11 +135,11 @@ const equipe = [
   <section id="fondements" class="section fond has-silo">
     <div class="silo silo--left fond__fig" aria-hidden="true"><Brand name="fig1" height="100%" /></div>
     <div class="page g16 fond__in">
-      <h2 style="grid-column: 4 / 9" class="fond__t">
+      <h2 style="grid-column: 3 / 8" class="fond__t">
         Ne laissons pas les jeunes grandir seuls face aux défis du numérique, et ne laissons
         pas les éducateurs sans ressources pour les accompagner.
       </h2>
-      <div style="grid-column: 11 / 17" class="fond__txt">
+      <div style="grid-column: 10 / 16" class="fond__txt">
         <p>
           L’adolescence est une étape décisive du développement humain, marquée par des
           transitions physiques, émotionnelles et sociales majeures.<sup>*</sup>
@@ -153,13 +153,16 @@ const equipe = [
           comme premiers leviers pour prendre soin de la santé globale et de la réussite des
           jeunes :
         </p>
-        <ul class="fond__jalons">
-          {jalons.map((j) => <li>{j}</li>)}
-        </ul>
-        <p class="source">
-          * OMS, 2024, <em>“Securing adolescent health and well-being today is vital for
-          the health of future generations”</em>.
-        </p>
+        <details class="fond__details">
+          <summary aria-label="Afficher les jalons et la source"></summary>
+          <ul class="fond__jalons">
+            {jalons.map((j) => <li>{j}</li>)}
+          </ul>
+          <p class="source">
+            * OMS, 2024, <em>“Securing adolescent health and well-being today is vital for
+            the health of future generations”</em>.
+          </p>
+        </details>
       </div>
     </div>
     <div class="page fond__cta">
@@ -319,6 +322,27 @@ const equipe = [
   }
   .fond__jalons-intro {
     margin-bottom: 0.75rem;
+  }
+  .fond__details {
+    display: grid;
+    gap: 1rem;
+  }
+  .fond__details summary {
+    cursor: pointer;
+    color: var(--vert);
+    font-size: var(--t-h3);
+    font-weight: 600;
+    line-height: 1;
+    list-style: none;
+  }
+  .fond__details summary::-webkit-details-marker {
+    display: none;
+  }
+  .fond__details summary::before {
+    content: '+';
+  }
+  .fond__details[open] summary::before {
+    content: '−';
   }
   @media (min-width: 861px) {
     .fond__t {
