@@ -767,6 +767,12 @@ body {
   margin-top: 1.5rem;
   margin-bottom: 0.4rem;
 }
+.legal .legal__heading {
+  color: var(--vert);
+  font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+  margin-top: 2.25rem;
+  margin-bottom: 0.6rem;
+}
 .legal p,
 .legal li {
   margin-bottom: 0.85rem;
