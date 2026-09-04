@@ -191,11 +191,11 @@ const faq = [
   <section class="section why has-silo">
     <div class="silo silo--right why__fig" aria-hidden="true"><Brand name="fig4" height="100%" /></div>
     <div class="page g16 why__in">
-      <h2 style="grid-column: 2 / 7">
+      <h2 style="grid-column: 2 / 8">
         Nous formons les équipes éducatives à la prévention de la santé mentale et au
         stress numérique
       </h2>
-      <div style="grid-column: 8 / 15" class="why__txt">
+      <div style="grid-column: 9 / 16" class="why__txt">
         <p>
           Les jeunes d’aujourd’hui grandissent dans un monde saturé d’écrans que le milieu
           éducatif n’a pas encore été outillé pour accompagner. Au collège et au lycée, cela
@@ -520,9 +520,10 @@ const faq = [
     .erasmus__card {
       min-height: 0;
       padding-top: max(var(--s-int), calc(var(--fy) + 0.5rem));
+      padding-bottom: calc(var(--s-int) + 2.5rem);
       position: relative;
       z-index: 1;
-      margin-top: -2rem;
+      margin-top: -3.5rem;
     }
   }
 
@@ -599,6 +600,9 @@ const faq = [
   .why__in {
     align-items: start;
   }
+  .why {
+    margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  }
   .why__in h2 {
     margin-top: -0.12em;
   }
@@ -645,6 +649,7 @@ const faq = [
     font-size: var(--t-titre);
     font-weight: 600;
     line-height: var(--lh-titre);
+    color: var(--vert);
   }
   .methodo__summary {
     position: relative;
@@ -674,18 +679,16 @@ const faq = [
     display: block;
     max-height: calc(1.3em + 2px);
     overflow: hidden;
+    color: color-mix(in srgb, var(--noir) 48%, var(--papier));
   }
   .methodo__voile {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(90deg, transparent 45%, var(--papier));
+    display: none;
   }
   .methodo__fleche {
     position: absolute;
-    left: 0;
+    right: 0;
     bottom: 0;
-    width: 1.35rem;
+    width: clamp(0.9rem, 1.65vw, 1.5rem);
     transition: transform 0.2s ease;
   }
   .methodo__card[open] .methodo__fleche {
@@ -697,6 +700,7 @@ const faq = [
   .methodo__card[open] .methodo__point-preview {
     max-height: none;
     overflow: visible;
+    color: inherit;
   }
   .methodo__body .methodo__point:first-child {
     margin-top: 0;
@@ -708,6 +712,9 @@ const faq = [
     .methodo__intro,
     .methodo__point {
       max-width: none;
+    }
+    .methodo__fleche {
+      width: clamp(1.5rem, 7vw, 2.25rem);
     }
   }
 
