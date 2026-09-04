@@ -135,7 +135,7 @@ const equipe = [
   <section id="fondements" class="section fond has-silo">
     <div class="silo silo--left fond__fig" aria-hidden="true"><Brand name="fig1" height="100%" /></div>
     <div class="page g16 fond__in">
-      <h2 style="grid-column: 5 / 11">
+      <h2 style="grid-column: 4 / 9" class="fond__t">
         Ne laissons pas les jeunes grandir seuls face aux défis du numérique, et ne laissons
         pas les éducateurs sans ressources pour les accompagner.
       </h2>
@@ -148,7 +148,7 @@ const equipe = [
             l’équilibre global des jeunes qui peut être d’autant plus fragilisé.
           </strong>
         </p>
-        <p>
+        <p class="fond__jalons-intro">
           Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
           comme premiers leviers pour prendre soin de la santé globale et de la réussite des
           jeunes :
@@ -316,6 +316,14 @@ const equipe = [
   .fond__txt {
     display: grid;
     gap: 1rem;
+  }
+  .fond__jalons-intro {
+    margin-bottom: 0.75rem;
+  }
+  @media (min-width: 861px) {
+    .fond__t {
+      font-size: var(--t-h3);
+    }
   }
   .fond__jalons {
     list-style: none;
