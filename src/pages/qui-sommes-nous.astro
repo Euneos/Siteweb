@@ -90,7 +90,34 @@ const niveaux: {
 /* Fonctions corrigees le 20/08 (maquette v2 p.3). NB : la page 1 signe la
    citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
    maquette elle-meme, a trancher avec elle. */
-const ca = Array.from({ length: 9 }, () => ({ nom: 'À venir', fonction: 'À venir' }))
+const ca: { nom: string; fonction: string; bio?: string }[] = [
+  {
+    nom: 'Sophie Lavault',
+    fonction: 'Docteure en neurosciences et psychologue clinicienne',
+    bio: "Docteure en neurosciences et psychologue clinicienne, Sophie Lavault travaille sur les liens entre cerveau, corps et émotions, et sur la façon dont nos environnements (dont le numérique) influencent les comportements. Engagée dans la vulgarisation scientifique et la question de la santé globale, elle intervient auprès de publics variés pour aider à mieux comprendre la manière dont l'être humain habite le monde. Elle est l’autrice de l’essai Revenir à soi – Comment le numérique nous déconnecte de nous-mêmes (Albin Michel, 2023), qui éclaire les mécanismes de l’hyperconnectivité et propose des pistes pour retrouver un lien plus sain à soi et aux autres.",
+  },
+  {
+    nom: 'Charlotte Térouanne',
+    fonction: 'Coordinatrice du programme clé EUNEOS (WISE-UP)',
+    bio: "Coordinatrice du programme clé d’Euneos (Wise Up), Charlotte pilote son déploiement auprès des établissements scolaires. Après treize ans d'expérience en développement commercial à l'international, elle met aujourd'hui ses compétences de pilotage au service de la santé mentale des jeunes.",
+  },
+  {
+    nom: 'Guilain Praseuth',
+    fonction: 'Spécialiste de l’innovation pédagogique',
+    bio: "Spécialiste de l’innovation pédagogique dans l’enseignement supérieur, Guilain accompagne les enseignants, formateurs et organisations dans la conception d’expériences d’apprentissage et d’environnements pédagogiques engageants, en s’appuyant sur l’intelligence collective. Co-auteur de l’ouvrage « Apprendre à apprendre » (Dunod, 2023), ses interventions portent principalement sur les stratégies d’apprentissage efficaces et l’usage raisonné des outils d’intelligence artificielle en contexte éducatif.",
+  },
+  {
+    nom: 'Francoise Sarrazin',
+    fonction: 'Médecin spécialiste du handicap moteur',
+    bio: "Médecin spécialiste du handicap moteur depuis 1986, Françoise a exercé dans plusieurs centres de rééducation en France et notamment pendant 20 ans auprès des jeunes et de leurs familles au lycée/SESSAD Toulouse-Lautrec à Vaucresson (92). En 2016, elle obtient un diplôme universitaire de Médecine, Méditation et Neurosciences, et met en place des ateliers de concentration dans les classes, en lien avec les enseignants. Retraitée depuis le 1er septembre 2026, elle anime désormais le Programme clé d'Euneos (Wise Up) à Paris et en Bretagne.",
+  },
+  {
+    nom: 'Solange Eon',
+    fonction: 'Accompagnement du mieux-être des enfants et des jeunes',
+    bio: "Solange a débuté son engagement pour l'aide aux autres dès son jeune âge en tant qu'infirmière. Par la suite, elle s'est formée au yoga et à la méditation à travers divers enseignements. Aujourd'hui, elle se consacre à l’accompagnement des personnes en difficulté, ainsi qu’à l’aide au mieux-être des enfants et des jeunes.",
+  },
+  ...Array.from({ length: 4 }, () => ({ nom: 'À venir', fonction: 'À venir' })),
+]
 const caLoop = [...ca, ...ca, ...ca]
 
 const equipe = [
@@ -257,6 +284,12 @@ const equipe = [
               <Photo ratio="2/3" class="membre__ph" />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
+                {m.bio && (
+                  <details class="ca__bio">
+                    <summary><span class="sr-only">Afficher la biographie de {m.nom}</span></summary>
+                    <p>{m.bio}</p>
+                  </details>
+                )}
               </Paper>
             </li>
           ))}
@@ -639,6 +672,7 @@ const equipe = [
   }
   .equipe.equipe--ca {
     display: flex;
+    align-items: flex-start;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -754,6 +788,33 @@ const equipe = [
   .equipe--ca .membre__name {
     --surface: #809b96;
     --on-surface: var(--blanc);
+  }
+  .ca__bio {
+    margin-top: 0.65rem;
+  }
+  .ca__bio summary {
+    display: grid;
+    place-items: center;
+    width: 1.5em;
+    aspect-ratio: 1;
+    list-style: none;
+    cursor: pointer;
+    font-size: var(--t-cta);
+    font-weight: 600;
+    line-height: 1;
+  }
+  .ca__bio summary::-webkit-details-marker {
+    display: none;
+  }
+  .ca__bio summary::before {
+    content: '+';
+  }
+  .ca__bio[open] summary::before {
+    content: '−';
+  }
+  .ca__bio > p {
+    margin-top: 0.75rem;
+    font-size: var(--t-note);
   }
   .membre__card a {
     font-weight: 600;
