@@ -372,7 +372,7 @@ const faq = [
   <!-- TEMOIGNAGES -->
   <section class="section">
     <div class="page">
-      <h2 class="c-t">Ils ont vécu l’expérience</h2>
+      <h2 class="c-t temoins__t">Ils ont vécu l’expérience</h2>
       <ul class="temoins">
         {
           temoins.map((t) => (
@@ -389,8 +389,8 @@ const faq = [
           ))
         }
       </ul>
-      <div class="c-cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour les prochaines éditions</Cta>
+      <div class="c-cta temoins__cta">
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour les prochaines&nbsp;éditions</Cta>
       </div>
     </div>
   </section>
@@ -546,7 +546,7 @@ const faq = [
     padding-bottom: 0;
   }
   .section.impact2-sec {
-    padding-top: calc(2 * 1.3em);
+    padding-top: calc(1.5 * 1.3em);
   }
 
   /* intro « Comment se deroule » */
@@ -969,6 +969,14 @@ const faq = [
   .temoin__role {
     font-style: italic;
   }
+  @media (min-width: 861px) {
+    .c-t.temoins__t {
+      margin-bottom: calc(var(--s-titre) * 0.55);
+    }
+    .c-cta.temoins__cta {
+      margin-top: var(--s-int);
+    }
+  }
   @media (max-width: 860px) {
     .temoins {
       grid-template-columns: 1fr;
@@ -983,6 +991,12 @@ const faq = [
       grid-row: auto;
       margin-left: 0;
     }
+    .temoin__ph {
+      width: 32.2265625%;
+    }
+    .c-cta.temoins__cta {
+      margin-bottom: calc(3 * 1.3em);
+    }
   }
 
   /* FAQ */
@@ -993,7 +1007,7 @@ const faq = [
     align-items: start;
   }
   .section.faq-sec {
-    padding-top: calc(var(--s-bloc) * 1.5);
+    padding-top: calc(var(--s-bloc) * 1.25);
   }
   .faq__t {
     text-align: left;
