@@ -91,7 +91,7 @@ const champs = [
       {
         !ok && (
           <div class="ct__submit">
-            <button type="submit" form="ct-form" class="cta s-vert-clair ct__submit-btn">Envoyer</button>
+            <button type="submit" form="ct-form" class="cta s-jaune cta--sm ct__submit-btn">Envoyer</button>
           </div>
         )
       }
@@ -222,6 +222,10 @@ const champs = [
     bottom: 0;
     transform: translate(-50%, 75%);
     z-index: 4;
+  }
+  .ct__submit-btn {
+    font-size: calc(var(--t-bouton) / 2);
+    --f: calc(var(--fold-sm) / 2);
   }
   /* pas dans la maquette : l'adresse reste, discrete, sous le panneau */
   .ct__adr {
