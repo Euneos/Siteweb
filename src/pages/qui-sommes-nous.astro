@@ -603,6 +603,7 @@ const equipe = [
   }
   .ca-carousel {
     position: relative;
+    padding-bottom: 3.5rem;
   }
   .equipe--ca {
     grid-template-columns: none;
@@ -620,7 +621,7 @@ const equipe = [
   }
   .ca-carousel__arrow {
     position: absolute;
-    top: 50%;
+    bottom: 0;
     z-index: 3;
     width: 2.5rem;
     aspect-ratio: 1;
@@ -633,10 +634,10 @@ const equipe = [
     cursor: pointer;
   }
   .ca-carousel__arrow[data-direction='previous'] {
-    left: -1.25rem;
+    left: calc(50% - 3rem);
   }
   .ca-carousel__arrow[data-direction='next'] {
-    right: -1.25rem;
+    right: calc(50% - 3rem);
   }
 
   /* EQUIPE */
@@ -729,12 +730,6 @@ const equipe = [
     .equipe--ca {
       grid-template-columns: none;
       grid-auto-columns: minmax(14rem, 80vw);
-    }
-    .ca-carousel__arrow[data-direction='previous'] {
-      left: -0.5rem;
-    }
-    .ca-carousel__arrow[data-direction='next'] {
-      right: -0.5rem;
     }
   }
 
