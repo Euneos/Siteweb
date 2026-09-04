@@ -355,7 +355,7 @@ const faq = [
           ))
         }
       </ol>
-      <div class="c-cta">
+      <div class="c-cta etapes__cta">
         <Cta href="/candidater/etablissement" surface="bleu-fonce">Téléchargez la brochure complète</Cta>
       </div>
     </div>
@@ -390,7 +390,7 @@ const faq = [
   </section>
 
   <!-- FAQ -->
-  <section class="section">
+  <section class="section faq-sec">
     <div class="page faq">
       <div class="faq__col">
         <h2 class="faq__t">Questions fréquentes</h2>
@@ -540,13 +540,13 @@ const faq = [
     padding-bottom: 0;
   }
   .section.impact2-sec {
-    padding-top: 0;
+    padding-top: calc(2 * 1.3em);
   }
 
   /* intro « Comment se deroule » */
   .deroule__lead {
     max-width: 74ch;
-    margin: 0 auto var(--s-titre);
+    margin: 0 auto clamp(1rem, 1.25vw, 1.25rem);
     text-align: center;
   }
   .c-t.deroule__t {
@@ -801,12 +801,7 @@ const faq = [
   }
   .etapes__card {
     --f: var(--fold-md);
-    height: 100%;
-    /* la maquette fait 409 px avec ses textes longs ; les textes actuels
-       sont plus courts, on garde une hauteur mini un peu sous la maquette
-       (22 vw = 317 px) pour ne pas laisser de vide — la carte grandit avec
-       le texte */
-    min-height: clamp(12rem, 22vw, 20rem);
+    min-height: 0;
     padding: var(--s-int);
     padding-right: max(var(--s-int), calc(var(--f) + 0.5rem));
     display: grid;
@@ -831,6 +826,9 @@ const faq = [
   }
   .etapes__txt {
     margin-top: 0.5rem;
+  }
+  .c-cta.etapes__cta {
+    margin-top: var(--s-int);
   }
   @media (max-width: 860px) {
     .etapes {
@@ -947,7 +945,7 @@ const faq = [
     --fy: clamp(1.25rem, 5.3vw, 5rem);
     grid-column: 2;
     grid-row: 2;
-    align-self: center;
+    align-self: start;
     margin-left: -10%;
     padding: var(--s-int);
     padding-left: clamp(2rem, 5vw, 4.6rem);
@@ -985,6 +983,9 @@ const faq = [
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: clamp(2rem, 5vw, 4rem);
     align-items: start;
+  }
+  .section.faq-sec {
+    padding-top: calc(var(--s-bloc) * 1.5);
   }
   .faq__t {
     text-align: left;
