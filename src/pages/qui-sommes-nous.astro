@@ -298,7 +298,14 @@ const equipe = [
     carousel.querySelectorAll<HTMLButtonElement>('[data-direction]').forEach((button) => {
       button.addEventListener('click', () => {
         const direction = button.dataset.direction === 'next' ? 1 : -1
-        track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: 'smooth' })
+        const atStart = track.scrollLeft <= 1
+        const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1
+        const left = direction === 1 && atEnd
+          ? 0
+          : direction === -1 && atStart
+            ? track.scrollWidth
+            : track.scrollLeft + direction * track.clientWidth * 0.8
+        track.scrollTo({ left, behavior: 'smooth' })
       })
     })
   })
@@ -605,7 +612,7 @@ const equipe = [
     position: relative;
     padding-bottom: 3.5rem;
   }
-  .equipe--ca {
+  .equipe.equipe--ca {
     display: flex;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -726,7 +733,7 @@ const equipe = [
     .equipe {
       grid-template-columns: 1fr;
     }
-    .equipe--ca {
+    .equipe.equipe--ca {
       display: flex;
     }
     .equipe--ca .membre {
