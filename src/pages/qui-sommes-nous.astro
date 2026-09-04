@@ -497,7 +497,7 @@ const equipe = [
   .action {
     --action-gap: clamp(0.6rem, 1.8vw, 1.5rem);
     display: grid;
-    grid-template-columns: minmax(0, 0.54fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
     gap: var(--action-gap);
     align-items: start;
     padding-block: var(--action-gap);
@@ -509,7 +509,7 @@ const equipe = [
     content: '';
     grid-column: 1 / -1;
     justify-self: center;
-    width: 32%;
+    width: 70%;
     height: 1px;
     background: color-mix(in srgb, var(--noir) 12%, transparent);
   }
@@ -528,7 +528,7 @@ const equipe = [
   }
   @media (min-width: 861px) {
     .action > p {
-      max-width: 50%;
+      max-width: 100%;
     }
   }
   @media (max-width: 860px) {
