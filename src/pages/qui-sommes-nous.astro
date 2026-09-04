@@ -340,21 +340,36 @@ const equipe = [
     }, { passive: false })
 
     let dragStartX = 0
+    let dragStartY = 0
     let dragStartScroll = 0
     let dragging = false
+    let dragAxis: 'horizontal' | 'vertical' | null = null
     track.addEventListener('pointerdown', (event) => {
       if ((event.target as Element).closest('summary, a, button, input, textarea, select')) return
       dragging = true
+      dragAxis = null
       dragStartX = event.clientX
+      dragStartY = event.clientY
       dragStartScroll = track.scrollLeft
-      track.setPointerCapture(event.pointerId)
     })
     track.addEventListener('pointermove', (event) => {
       if (!dragging) return
+      if (!dragAxis) {
+        const deltaX = event.clientX - dragStartX
+        const deltaY = event.clientY - dragStartY
+        if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 6) return
+        dragAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical'
+        if (dragAxis === 'horizontal') track.setPointerCapture(event.pointerId)
+      }
+      if (dragAxis !== 'horizontal') return
       track.scrollLeft = dragStartScroll - (event.clientX - dragStartX)
     })
-    track.addEventListener('pointerup', () => dragging = false)
-    track.addEventListener('pointercancel', () => dragging = false)
+    const stopDragging = () => {
+      dragging = false
+      dragAxis = null
+    }
+    window.addEventListener('pointerup', stopDragging)
+    track.addEventListener('pointercancel', stopDragging)
 
     carousel.querySelectorAll<HTMLButtonElement>('[data-direction]').forEach((button) => {
       button.addEventListener('click', () => {
