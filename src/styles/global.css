@@ -746,6 +746,41 @@ body {
   justify-content: center;
   margin-top: var(--s-titre);
 }
+
+/* Pages juridiques */
+.legal {
+  max-width: 70ch;
+}
+.legal h1 {
+  margin-bottom: 1.5rem;
+  color: var(--vert);
+}
+.legal h2 {
+  color: var(--vert);
+  font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+  margin-top: 2.25rem;
+  margin-bottom: 0.6rem;
+}
+.legal p,
+.legal li {
+  margin-bottom: 0.85rem;
+}
+.legal ul {
+  padding-left: 1.2rem;
+  margin-bottom: 1rem;
+}
+.legal a {
+  color: inherit;
+}
+.legal code {
+  font-size: 0.92em;
+}
+.legal .acompleter {
+  border: 1.5px solid var(--jaune);
+  padding: 0.7rem 0.9rem;
+  background: color-mix(in srgb, var(--jaune) 12%, transparent);
+  font-size: 0.92rem;
+}
 /* Note de source bas de bloc (Ofcom p.1, OMS p.3) — utilisee sur 2 pages.
    17 px dans la maquette, en italique. */
 .source {
