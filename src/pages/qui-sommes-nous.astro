@@ -120,7 +120,7 @@ const equipe = [
           <Paper outline fold="tr" class="hz__bubble">
             <h1>Inscrivons dans les parcours pédagogiques une culture durable du prendre soin.</h1>
           </Paper>
-          <div class="hz__cta"><Cta href="#fondements" surface="vert-clair">En savoir +</Cta></div>
+          <div class="hz__cta"><Cta href="#fondements" surface="vert-clair" fold={false}>En savoir +</Cta></div>
         </div>
       </div>
 
@@ -306,6 +306,8 @@ const equipe = [
   /* FONDEMENTS */
   .fond__fig {
     color: var(--vert);
+    top: 0;
+    transform: translate(-38%, 0);
   }
   .fond__txt {
     display: grid;
@@ -341,6 +343,13 @@ const equipe = [
   @media (max-width: 860px) {
     .fond__fig {
       display: none;
+    }
+  }
+
+  @media (min-width: 861px) {
+    .hz--mirror .hz__cartouche {
+      top: auto;
+      bottom: 0;
     }
   }
 
