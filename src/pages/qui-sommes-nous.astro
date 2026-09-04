@@ -606,9 +606,7 @@ const equipe = [
     padding-bottom: 3.5rem;
   }
   .equipe--ca {
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(14rem, 28%);
+    display: flex;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -617,6 +615,7 @@ const equipe = [
     display: none;
   }
   .equipe--ca .membre {
+    flex: 0 0 28%;
     scroll-snap-align: start;
   }
   .ca-carousel__arrow {
@@ -728,8 +727,10 @@ const equipe = [
       grid-template-columns: 1fr;
     }
     .equipe--ca {
-      grid-template-columns: none;
-      grid-auto-columns: minmax(14rem, 80vw);
+      display: flex;
+    }
+    .equipe--ca .membre {
+      flex-basis: 80vw;
     }
   }
 
