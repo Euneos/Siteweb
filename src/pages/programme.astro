@@ -859,7 +859,7 @@ const faq = [
     .etapes {
       display: flex;
       flex-direction: column;
-      gap: clamp(1.25rem, 2.85vw, 2.6rem);
+      gap: calc(clamp(1.25rem, 2.85vw, 2.6rem) / 2);
     }
     .etapes__col {
       display: contents;
@@ -1096,6 +1096,9 @@ const faq = [
      TOUTE la page sur le cote. On rentre le debordement au point de
      bascule ; sur ordinateur rien ne change. */
   @media (max-width: 860px) {
+    .section.faq-sec {
+      padding-top: calc(var(--s-bloc) * 0.625);
+    }
     .faq__media {
       margin-top: calc(2 * 1.3em);
     }
