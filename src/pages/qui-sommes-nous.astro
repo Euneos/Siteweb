@@ -91,6 +91,7 @@ const niveaux: {
    citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
    maquette elle-meme, a trancher avec elle. */
 const ca = Array.from({ length: 9 }, () => ({ nom: 'À venir', fonction: 'À venir' }))
+const caLoop = [...ca, ...ca, ...ca]
 
 const equipe = [
   { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale', email: 'gouvernance@euneos.fr' },
@@ -250,7 +251,7 @@ const equipe = [
           <span aria-hidden="true">←</span>
         </button>
         <ul class="equipe equipe--ca" data-carousel-track>
-          {ca.map((m) => (
+          {caLoop.map((m) => (
             <li class="membre membre--ca">
               <Paper surface="vert-clair" fold="none" class="etiquette membre__name">{m.nom}</Paper>
               <Photo ratio="2/3" class="membre__ph" />
@@ -295,17 +296,19 @@ const equipe = [
     const track = carousel.querySelector<HTMLElement>('[data-carousel-track]')
     if (!track) return
 
+    const cycleWidth = () => track.scrollWidth / 3
+    requestAnimationFrame(() => track.scrollLeft = cycleWidth())
+
+    track.addEventListener('scroll', () => {
+      const width = cycleWidth()
+      if (track.scrollLeft < width * 0.25) track.scrollLeft += width
+      if (track.scrollLeft > width * 1.75) track.scrollLeft -= width
+    })
+
     carousel.querySelectorAll<HTMLButtonElement>('[data-direction]').forEach((button) => {
       button.addEventListener('click', () => {
         const direction = button.dataset.direction === 'next' ? 1 : -1
-        const atStart = track.scrollLeft <= 1
-        const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1
-        const left = direction === 1 && atEnd
-          ? 0
-          : direction === -1 && atStart
-            ? track.scrollWidth
-            : track.scrollLeft + direction * track.clientWidth * 0.8
-        track.scrollTo({ left, behavior: 'smooth' })
+        track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: 'smooth' })
       })
     })
   })
