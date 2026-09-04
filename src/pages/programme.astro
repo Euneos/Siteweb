@@ -669,7 +669,7 @@ const faq = [
   .methodo__intro,
   .methodo__point {
     display: block;
-    max-width: 34ch;
+    max-width: none;
   }
   .methodo__point {
     margin-top: 0.5rem;
@@ -679,6 +679,7 @@ const faq = [
     display: block;
     max-height: calc(1.3em + 2px);
     overflow: hidden;
+    padding-right: 2.5rem;
     color: color-mix(in srgb, var(--noir) 48%, var(--papier));
   }
   .methodo__voile {
@@ -712,6 +713,18 @@ const faq = [
     .methodo__intro,
     .methodo__point {
       max-width: none;
+    }
+    .methodo__head {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .methodo__intro {
+      text-align: left;
+    }
+    .methodo__point-preview {
+      padding-right: 3rem;
     }
     .methodo__fleche {
       width: clamp(1.5rem, 7vw, 2.25rem);
