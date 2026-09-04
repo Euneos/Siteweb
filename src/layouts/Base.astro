@@ -7,7 +7,7 @@ interface Props {
   title: string
   description: string
   /** teinte du hero, dont le header herite la couleur de texte */
-  heroSurface?: 'vert' | 'bleu'
+  heroSurface?: 'vert' | 'bleu' | 'papier'
   /** grand coin plie de la section hero (maquette : bas-droit sur p.1 et p.3) */
   heroFold?: 'br' | 'bl' | 'none'
   /** page de travail : hors moteurs de recherche et hors sitemap */
@@ -99,6 +99,9 @@ const withFooterTopSpace = !['/', '/contact', '/contact/'].includes(Astro.url.pa
         background: var(--surface);
         color: var(--on-surface);
         --f: var(--fold-xl);
+      }
+      .hero-zone.s-papier {
+        color: var(--vert);
       }
     </style>
   </body>
