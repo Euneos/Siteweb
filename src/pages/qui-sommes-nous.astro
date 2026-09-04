@@ -102,9 +102,9 @@ const ca: { nom: string; champ: string }[] = [
 ]
 
 const equipe = [
-  { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale' },
-  { nom: 'Charlotte', ligne2: 'Térouanne', fonction: 'Coordination & Développement' },
-  { nom: 'Pauline', ligne2: 'Miqueu-Petit', fonction: 'Responsable communication' },
+  { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale', email: 'gouvernance@euneos.fr' },
+  { nom: 'Charlotte', ligne2: 'Térouanne', fonction: 'Coordination & Développement', email: 'charlotte@euneos.fr' },
+  { nom: 'Pauline', ligne2: 'Miqueu-Petit', fonction: 'Responsable communication', email: 'pauline@euneos.fr' },
 ]
 ---
 
@@ -294,7 +294,7 @@ const equipe = [
               <Photo ratio="2/3" class="membre__ph" />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
-                <a href="/contact">Contacter</a>
+                <a href={`mailto:${m.email}`}>Contacter</a>
               </Paper>
             </li>
           ))
