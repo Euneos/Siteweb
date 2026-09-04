@@ -350,10 +350,12 @@ const faq = [
               {colonne.map((e) => (
                 <li class:list={['etapes__item', `etapes__item--${e.n}`]} style={`--etape:${e.n}`}>
                   <Paper surface={e.surface} fold="tr" class="etapes__card">
-                    <p class="etapes__n">
-                      <span>{e.n}</span> {e.titre}
-                    </p>
-                    <p class="etapes__txt">{e.texte}</p>
+                    <details class="etapes__details">
+                      <summary class="etapes__n">
+                        <span>{e.n}</span> {e.titre}
+                      </summary>
+                      <p class="etapes__txt">{e.texte}</p>
+                    </details>
                   </Paper>
                 </li>
               ))}
@@ -813,6 +815,9 @@ const faq = [
     /* les titres des etapes sont verts sur toutes les teintes, orange compris */
     --ink-titre: var(--vert);
   }
+  .etapes__details {
+    height: 100%;
+  }
   .etapes__n {
     font-size: var(--t-h3);
     font-weight: 600;
@@ -821,6 +826,20 @@ const faq = [
     display: flex;
     gap: 0.3em;
     align-items: flex-start;
+    cursor: pointer;
+    list-style: none;
+  }
+  .etapes__n::-webkit-details-marker {
+    display: none;
+  }
+  .etapes__n::after {
+    content: '+';
+    margin-left: auto;
+    font-size: 1.1em;
+    line-height: 1;
+  }
+  .etapes__details[open] .etapes__n::after {
+    content: '−';
   }
   .etapes__n span {
     font-size: var(--t-chiffre-xl);
@@ -995,7 +1014,7 @@ const faq = [
       width: 32.2265625%;
     }
     .c-cta.temoins__cta {
-      margin-bottom: calc(1.4 * 1.3em);
+      margin-bottom: calc(0.56 * 1.3em);
     }
     .temoins__cta .cta {
       max-width: 18rem;
