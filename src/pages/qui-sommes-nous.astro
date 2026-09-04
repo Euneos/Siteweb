@@ -103,8 +103,8 @@ const ca: { nom: string; champ: string }[] = [
 
 const equipe = [
   { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale' },
-  { nom: 'Charlotte Térouanne', fonction: 'Coordination & Développement' },
-  { nom: 'Pauline Miqueu-Petit', fonction: 'Responsable communication' },
+  { nom: 'Charlotte', ligne2: 'Térouanne', fonction: 'Coordination & Développement' },
+  { nom: 'Pauline', ligne2: 'Miqueu-Petit', fonction: 'Responsable communication' },
 ]
 ---
 
@@ -283,17 +283,15 @@ const equipe = [
   </section>
 
   <!-- EQUIPE -->
-  <section class="section">
+  <section class="section equipe-sec">
     <div class="page">
       <h2 class="c-t">Notre équipe opérationnelle</h2>
-      <ul class="equipe">
+      <ul class="equipe equipe--oper">
         {
           equipe.map((m) => (
-            <li class="membre">
-              <Paper surface="ocre" fold="br" class="etiquette membre__name">{m.nom}</Paper>
-              <div class="membre__ph membre__ph--symbol" aria-hidden="true">
-                <Brand name="fig2" />
-              </div>
+            <li class="membre membre--oper">
+              <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
+              <Photo ratio="2/3" class="membre__ph" />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
                 <a href="/contact">Contacter</a>
@@ -615,6 +613,9 @@ const equipe = [
   }
 
   /* EQUIPE */
+  .equipe-sec .c-t {
+    margin-bottom: clamp(2rem, 3vw, 2.5rem);
+  }
   .equipe {
     list-style: none;
     padding: 0;
@@ -634,8 +635,8 @@ const equipe = [
     width: 88%;
     position: relative;
     z-index: 2;
-    margin-bottom: -0.6rem;
     margin-left: 0;
+    margin-bottom: -0.6rem;
   }
   .membre__ph {
     position: relative;
@@ -643,9 +644,6 @@ const equipe = [
     width: 78%;
     margin-left: 12%;
   }
-  /* releve v4 p.3 : la photo du membre est quasi carree (302 x 330 px), pas un
-     3/4 portrait — le 3/4 rendait les cartes trop hautes et deformait la mise
-     en page (retour de Charly). */
   .membre__ph--symbol {
     display: grid;
     place-items: center;
@@ -664,6 +662,24 @@ const equipe = [
     --fy: clamp(0.5rem, 1vw, 0.95rem);
     width: 78%;
     margin-left: 12%;
+  }
+  .equipe--oper .membre__name {
+    justify-self: start;
+    width: 83%;
+    min-height: 2.9em;
+    padding: 0.3em 0.8em;
+    margin-bottom: -2.2em;
+    display: grid;
+    place-items: center;
+    text-align: center;
+  }
+  .equipe--oper .membre__ph {
+    width: 54%;
+    margin-left: 38%;
+  }
+  .equipe--oper .membre__card {
+    width: 80%;
+    margin-left: 10%;
   }
   .membre__card a {
     font-weight: 600;
