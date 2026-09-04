@@ -495,14 +495,18 @@ const equipe = [
   }
   .action {
     display: grid;
-    grid-template-columns: minmax(0, 0.54fr) minmax(0, 2fr);
+    grid-template-columns: 1fr;
+    justify-items: center;
     gap: clamp(0.6rem, 1.8vw, 1.5rem);
     align-items: start;
     padding-block: clamp(1.25rem, 3vw, 2rem);
-    border-bottom: 1px solid color-mix(in srgb, var(--noir) 12%, transparent);
+    text-align: center;
   }
-  .action:last-child {
-    border-bottom: 0;
+  .action:not(:last-child)::after {
+    content: '';
+    width: 32%;
+    height: 1px;
+    background: color-mix(in srgb, var(--noir) 12%, transparent);
   }
   .action__head {
     display: flex;
