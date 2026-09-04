@@ -14,9 +14,8 @@ import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
 /* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
-   un cartouche. La v4 n'a plus de fleche sous les colonnes : le texte est
-   complet ici, il n'y a rien a derouler (les fleches de la v2 etaient
-   decoratives et ne faisaient rien — retour de Pauline). */
+   un cartouche. Les principes reprennent le comportement des cartes de
+   l'accueil : un apercu estompe, puis une fleche qui deroule le texte restant. */
 const methodo = [
   {
     picto: 'main',
@@ -192,11 +191,11 @@ const faq = [
   <section class="section why has-silo">
     <div class="silo silo--right why__fig" aria-hidden="true"><Brand name="fig4" height="100%" /></div>
     <div class="page g16 why__in">
-      <h2 style="grid-column: 3 / 8">
+      <h2 style="grid-column: 2 / 7">
         Nous formons les équipes éducatives à la prévention de la santé mentale et au
         stress numérique
       </h2>
-      <div style="grid-column: 9 / 14" class="why__txt">
+      <div style="grid-column: 8 / 15" class="why__txt">
         <p>
           Les jeunes d’aujourd’hui grandissent dans un monde saturé d’écrans que le milieu
           éducatif n’a pas encore été outillé pour accompagner. Au collège et au lycée, cela
@@ -242,16 +241,29 @@ const faq = [
         {
           methodo.map((m) => (
             <li>
-              <div class="methodo__head">
-                <div class="methodo__picto" style={`color:${m.couleur}`}>
-                  <Brand name={m.picto} />
+              <details class="methodo__card">
+                <summary class="methodo__summary">
+                  <span class="methodo__head">
+                    <span class="methodo__picto" style={`color:${m.couleur}`}>
+                      <Brand name={m.picto} />
+                    </span>
+                    <span class="methodo__title">{m.titre}</span>
+                  </span>
+                  <span class="methodo__intro">{m.intro}</span>
+                  <span class="methodo__point-preview">
+                    <span class="methodo__point">{m.points[0]}</span>
+                    <span class="methodo__voile" aria-hidden="true" />
+                  </span>
+                  <span class="methodo__fleche" aria-hidden="true">
+                    <svg viewBox="0 0 24 32" fill="currentColor"><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" /></svg>
+                  </span>
+                </summary>
+                <div class="methodo__body">
+                  {m.points.slice(1).map((pt) => (
+                    <p class="methodo__point">{pt}</p>
+                  ))}
                 </div>
-                <h3>{m.titre}</h3>
-              </div>
-              <p class="methodo__intro">{m.intro}</p>
-              {m.points.map((pt) => (
-                <p class="methodo__point">{pt}</p>
-              ))}
+              </details>
             </li>
           ))
         }
@@ -413,6 +425,51 @@ const faq = [
 </Base>
 
 <style is:global>
+  /* HERO PROGRAMME : l'en-tete reste blanc sur le bleu, seul le lien courant
+     passe en bleu fonce. Le cartouche rose s'aligne sur le haut de la photo. */
+  .hero-zone.s-bleu .hdr {
+    color: var(--blanc);
+  }
+  .hero-zone.s-bleu .hdr__link.is-active {
+    color: #3e63cb;
+  }
+  .s-bleu .hz--mirror .hz__cartouche {
+    top: 0;
+  }
+
+  @media (max-width: 860px) {
+    /* La page Programme reprend la composition liee de l'accueil : cartouche
+       contre la bulle, photo bornee, puis CTA a cheval. */
+    .s-bleu .hz--mirror .hz__side {
+      grid-template-columns: 20.45% 79.55% !important;
+      align-items: end;
+      margin-top: 3rem;
+    }
+    .s-bleu .hz--mirror .hz__cartouche {
+      position: static;
+      width: 100%;
+      order: initial !important;
+      margin: 0;
+    }
+    .s-bleu .hz--mirror .hz__media {
+      order: initial;
+      max-width: 100%;
+      overflow: hidden;
+      padding-left: 0;
+    }
+    .s-bleu .hz--mirror .hz__bubble {
+      padding-bottom: calc(3rem + var(--t-bouton) * 0.71);
+    }
+    .s-bleu .hz--mirror .hz__cta {
+      position: absolute;
+      left: 0;
+      right: 0;
+      transform: translateY(29%);
+      margin-top: 0;
+      justify-content: center;
+    }
+  }
+
   /* BLOC ERASMUS — releve v4 p.2 a 1440 px : photo 381 x 568 de 88 a 469,
      carte bleue 890 x 568 de 469 a 1359, pli aplati 168 x 105 en bleu clair,
      texte blanc a 71 px du bord gauche et 39 px du haut. */
@@ -463,6 +520,9 @@ const faq = [
     .erasmus__card {
       min-height: 0;
       padding-top: max(var(--s-int), calc(var(--fy) + 0.5rem));
+      position: relative;
+      z-index: 1;
+      margin-top: -2rem;
     }
   }
 
@@ -554,6 +614,10 @@ const faq = [
     .why__fig {
       display: none;
     }
+    .why__in h2,
+    .why__txt {
+      grid-column: 1 / -1 !important;
+    }
   }
 
 
@@ -577,21 +641,73 @@ const faq = [
     width: var(--picto-md);
     flex: none;
   }
-  .methodo__head h3 {
+  .methodo__title {
     font-size: var(--t-titre);
+    font-weight: 600;
+    line-height: var(--lh-titre);
   }
-  .methodo li p {
-    max-width: 34ch;
+  .methodo__summary {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    padding-bottom: 2.5rem;
+    cursor: pointer;
+    list-style: none;
   }
-  /* La maquette n'utilise pas de puces : les points s'enchainent en
-     paragraphes. */
+  .methodo__summary::-webkit-details-marker {
+    display: none;
+  }
+  .methodo__summary:focus-visible {
+    outline: 3px solid var(--bleu);
+    outline-offset: 3px;
+  }
+  .methodo__intro,
   .methodo__point {
+    display: block;
     max-width: 34ch;
+  }
+  .methodo__point {
     margin-top: 0.5rem;
+  }
+  .methodo__point-preview {
+    position: relative;
+    display: block;
+    max-height: calc(1.3em + 2px);
+    overflow: hidden;
+  }
+  .methodo__voile {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 45%, var(--papier));
+  }
+  .methodo__fleche {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1.35rem;
+    transition: transform 0.2s ease;
+  }
+  .methodo__card[open] .methodo__fleche {
+    transform: rotate(180deg);
+  }
+  .methodo__card[open] .methodo__voile {
+    display: none;
+  }
+  .methodo__card[open] .methodo__point-preview {
+    max-height: none;
+    overflow: visible;
+  }
+  .methodo__body .methodo__point:first-child {
+    margin-top: 0;
   }
   @media (max-width: 860px) {
     .methodo {
       grid-template-columns: 1fr;
+    }
+    .methodo__intro,
+    .methodo__point {
+      max-width: none;
     }
   }
 

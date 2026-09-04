@@ -916,6 +916,15 @@ body {
     0 100%
   );
 }
+.hero-zone.paper.fold-bl {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 100%,
+    var(--fx, var(--f)) 100%,
+    0 calc(100% - var(--fy, var(--f)))
+  );
+}
 /* Pages sans banniere : la bande verte se reduit a l'en-tete. */
 .hero-zone--nue {
   min-height: 0;
