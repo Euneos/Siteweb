@@ -74,7 +74,7 @@ const etapes = [
   },
   {
     n: 2,
-    titre: 'Formation des équipes (16 h)',
+    titre: 'Formation des équipes (16h)',
     surface: 'bleu-clair',
     texte:
       'Format présentiel ou hybride. Les éducateurs s’approprient d’abord les outils, puis les transmettent aux élèves. Session supplémentaire pour animer la série d’ateliers plus longs.',
@@ -101,6 +101,8 @@ const etapes = [
       'Questionnaires avant/après élèves, collaboration avec la recherche européenne. Questionnaires pré et post formation et suivi à + 45 jours pour les équipes. Objectif : contribuer à une amélioration continue, et inscrire l’établissement dans un réseau européen engagé.',
   },
 ] as const
+
+const etapesParColonne = [etapes.filter((_, i) => i % 2 === 0), etapes.filter((_, i) => i % 2 === 1)]
 
 const impact = [
   { valeur: '16', legende: 'établissements pilotes engagés en 2025/2026 dans 6 pays européens' },
@@ -341,20 +343,24 @@ const faq = [
         déploie par étapes concrètes, pensées pour ancrer durablement les pratiques dans le
         quotidien scolaire.
       </p>
-      <ol class="etapes">
+      <div class="etapes">
         {
-          etapes.map((e, i) => (
-            <li class:list={['etapes__item', i % 2 === 1 && 'is-right']}>
-              <Paper surface={e.surface} fold="tr" class="etapes__card">
-                <p class="etapes__n">
-                  <span>{e.n}</span> {e.titre}
-                </p>
-                <p class="etapes__txt">{e.texte}</p>
-              </Paper>
-            </li>
+          etapesParColonne.map((colonne, i) => (
+            <ol class:list={['etapes__col', i === 1 && 'is-right']}>
+              {colonne.map((e) => (
+                <li class:list={['etapes__item', `etapes__item--${e.n}`]} style={`--etape:${e.n}`}>
+                  <Paper surface={e.surface} fold="tr" class="etapes__card">
+                    <p class="etapes__n">
+                      <span>{e.n}</span> {e.titre}
+                    </p>
+                    <p class="etapes__txt">{e.texte}</p>
+                  </Paper>
+                </li>
+              ))}
+            </ol>
           ))
         }
-      </ol>
+      </div>
       <div class="c-cta etapes__cta">
         <Cta href="/candidater/etablissement" surface="bleu-fonce">Téléchargez la brochure complète</Cta>
       </div>
@@ -777,27 +783,24 @@ const faq = [
      droite. Avant : une carte par ligne, chacune sur la moitie de la
      largeur — la moitie de chaque ligne restait vide (« trop d'espace »). */
   .etapes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.9%;
+  }
+  .etapes__col {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 2.9%;
-    row-gap: clamp(1.25rem, 2.85vw, 2.6rem);
+    align-content: start;
+    gap: clamp(1.25rem, 2.85vw, 2.6rem);
   }
   .etapes__item {
     min-width: 0;
   }
-  /* quinconce : la colonne de droite descend d'un quart de carte. Le
-     decalage est un transform, il ne modifie pas la grille : les cartes de
-     gauche gardent leur espacement de 41 px. */
-  .etapes__item.is-right {
-    transform: translateY(25%);
-  }
-  /* si le nombre d'etapes est pair, la derniere carte (a droite) deborde du
-     bas de la grille de ce quart : on le lui rend */
-  .etapes__item.is-right:last-child {
-    margin-bottom: 17%;
+  /* Quinconce : le decalage de colonne preserve la gouttiere entre ses cartes. */
+  .etapes__col.is-right {
+    margin-top: 25%;
   }
   .etapes__card {
     --f: var(--fold-md);
@@ -827,18 +830,23 @@ const faq = [
   .etapes__txt {
     margin-top: 0.5rem;
   }
+  .etapes__item--4 .etapes__txt {
+    color: var(--vert);
+  }
   .c-cta.etapes__cta {
     margin-top: var(--s-int);
   }
   @media (max-width: 860px) {
     .etapes {
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(1.25rem, 2.85vw, 2.6rem);
     }
-    .etapes__item.is-right {
-      transform: none;
+    .etapes__col {
+      display: contents;
     }
-    .etapes__item.is-right:last-child {
-      margin-bottom: 0;
+    .etapes__item {
+      order: var(--etape);
     }
     .etapes__card {
       min-height: 0;
