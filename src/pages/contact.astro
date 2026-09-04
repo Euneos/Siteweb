@@ -179,7 +179,7 @@ const champs = [
     position: relative;
     z-index: 3;
     width: min(100%, 69.1%);
-    margin: 0.3rem auto 0;
+    margin: 0 auto;
     padding: clamp(2rem, 4.9vw, 4.4rem) clamp(1.5rem, 5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
   }
   .ct__panel h1 {
@@ -210,6 +210,9 @@ const champs = [
   }
   .ct__row label {
     font-weight: 600;
+  }
+  .ct .champ {
+    clip-path: none;
   }
   /* les champs sont des .champ (global.css) : la geometrie de la maquette,
      partagee avec /newsletter et le portail de candidature */
@@ -246,7 +249,7 @@ const champs = [
     }
     .ct__panel {
       width: 100%;
-      margin-top: 1rem;
+      margin-top: 0;
     }
   }
   @media (max-width: 480px) {
