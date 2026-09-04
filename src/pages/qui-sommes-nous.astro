@@ -334,7 +334,7 @@ const equipe = [
     })
 
     track.addEventListener('wheel', (event) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      if (!event.shiftKey) return
       event.preventDefault()
       track.scrollLeft += event.deltaY
     }, { passive: false })
