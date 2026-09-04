@@ -49,6 +49,7 @@ const niveaux: {
   surtitre?: string
   titre: string
   texte: string
+  ligne2?: string
   cta: string
   ctaSurface: 'jaune' | 'bleu-fonce' | 'rose' | 'ocre'
   href: string
@@ -63,14 +64,16 @@ const niveaux: {
   {
     surtitre: 'Formation longue durée',
     titre: 'Le Programme',
-    texte: '16 h pour le personnel en poste qui anime ensuite les ateliers auprès des jeunes.',
+    texte: '16 h pour le personnel en poste qui anime',
+    ligne2: 'ensuite les ateliers auprès des jeunes.',
     cta: 'Découvrir notre programme clé',
     ctaSurface: 'bleu-fonce',
     href: '/programme',
   },
   {
     titre: 'Accompagnement au quotidien',
-    texte: 'Suivi post-formation, analyse de pratiques, réseau de pairs entre référents.',
+    texte: 'Suivi post-formation, analyse de pratiques,',
+    ligne2: 'réseau de pairs entre référents.',
     cta: 'Contactez-nous',
     ctaSurface: 'rose',
     href: '/contact',
@@ -234,7 +237,7 @@ const equipe = [
               <Paper surface="vert" fold="tl" class="niveau">
                 {n.surtitre && <p class="niveau__sur">{n.surtitre}</p>}
                 <h3>{n.titre}</h3>
-                <p class="niveau__txt">{n.texte}</p>
+                <p class="niveau__txt">{n.texte}{n.ligne2 && <><br />{n.ligne2}</>}</p>
                 <Cta href={n.href} surface={n.ctaSurface} class="cta--sm niveau__cta">
                   {n.cta}
                 </Cta>
@@ -599,7 +602,7 @@ const equipe = [
     margin-top: calc(var(--s-bloc) * 0.75);
   }
   .ca__t {
-    margin-bottom: calc(var(--t-corps) * 2.6);
+    margin-bottom: calc(var(--t-corps) * 1.56);
   }
   .ca__lead,
   .ca__p {
