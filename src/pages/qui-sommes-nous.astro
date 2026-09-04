@@ -139,7 +139,7 @@ const equipe = [
         Ne laissons pas les jeunes grandir seuls face aux défis du numérique, et ne laissons
         pas les éducateurs sans ressources pour les accompagner.
       </h2>
-      <div style="grid-column: 10 / 16" class="fond__txt">
+      <div style="grid-column: 8 / 14" class="fond__txt">
         <p>
           L’adolescence est une étape décisive du développement humain, marquée par des
           transitions physiques, émotionnelles et sociales majeures.<sup>*</sup>
@@ -148,13 +148,12 @@ const equipe = [
             l’équilibre global des jeunes qui peut être d’autant plus fragilisé.
           </strong>
         </p>
-        <p class="fond__jalons-intro">
-          Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
-          comme premiers leviers pour prendre soin de la santé globale et de la réussite des
-          jeunes :
-        </p>
         <details class="fond__details">
-          <summary aria-label="Afficher les jalons et la source"></summary>
+          <summary>
+            Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
+            comme premiers leviers pour prendre soin de la santé globale et de la réussite des
+            jeunes :
+          </summary>
           <ul class="fond__jalons">
             {jalons.map((j) => <li>{j}</li>)}
           </ul>
@@ -320,28 +319,33 @@ const equipe = [
     display: grid;
     gap: 1rem;
   }
-  .fond__jalons-intro {
-    margin-bottom: 0.75rem;
-  }
   .fond__details {
     display: grid;
     gap: 1rem;
   }
   .fond__details summary {
     cursor: pointer;
-    color: var(--vert);
-    font-size: var(--t-h3);
-    font-weight: 600;
-    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    color: inherit;
+    font-size: inherit;
+    font-weight: 400;
+    line-height: var(--lh-corps);
     list-style: none;
   }
   .fond__details summary::-webkit-details-marker {
     display: none;
   }
-  .fond__details summary::before {
+  .fond__details summary::after {
     content: '+';
+    margin-left: 0.35em;
+    color: var(--vert);
+    font-size: var(--t-h3);
+    font-weight: 600;
+    line-height: 1;
+    flex: none;
   }
-  .fond__details[open] summary::before {
+  .fond__details[open] summary::after {
     content: '−';
   }
   @media (min-width: 861px) {
