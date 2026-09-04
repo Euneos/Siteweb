@@ -23,8 +23,8 @@ const methodo = [
     titre: '2 pôles de compétences',
     intro: 'Une formation conçue pour transmettre de manière complémentaire :',
     points: [
-      'Des compétences psychosociales : attention, régulation émotionnelle, coopération, empathie.',
-      'Des pratiques équilibrées et régulées du numérique : clarifier les habitudes, comprendre les usages.',
+      { gras: 'Des compétences psychosociales :', suite: ' attention, régulation émotionnelle, coopération, empathie.' },
+      { gras: 'Des pratiques équilibrées et régulées du numérique :', suite: ' clarifier les habitudes, comprendre les usages.' },
     ],
   },
   {
@@ -33,8 +33,8 @@ const methodo = [
     titre: 'Personnel formés',
     intro: 'Un accompagnement qui renforce la coopération, l’attention et soutient le climat éducatif :',
     points: [
-      'Avec une pratique de l’attention intégrée au quotidien professionnel ;',
-      'et des outils concrets pour réguler le stress numérique et la surcharge informationnelle.',
+      { gras: 'Avec une pratique de l’attention', suite: ' intégrée au quotidien professionnel ;' },
+      { gras: 'et des outils concrets', suite: ' pour réguler le stress numérique et la surcharge informationnelle.' },
     ],
   },
   {
@@ -43,9 +43,9 @@ const methodo = [
     titre: 'Jeunes régulés',
     intro: 'Des jeunes qui développent des compétences fondamentales :',
     points: [
-      'Concentration et stabilisation de leur attention.',
-      'Régulation émotionnelle et une estime de soi plus solide.',
-      'Des usages numériques plus conscients.',
+      { gras: 'Concentration', suite: ' et stabilisation de leur attention.' },
+      { gras: 'Régulation émotionnelle', suite: ' et une estime de soi plus solide.' },
+      { gras: 'Des usages numériques plus conscients.', suite: '' },
     ],
   },
 ] as const
@@ -106,7 +106,7 @@ const impact = [
   { valeur: '16', legende: 'établissements pilotes engagés en 2025/2026 dans 6 pays européens' },
   { valeur: '+145', legende: 'enseignants en formation et + de 800 élèves sensibilisés et évalués' },
   { valeur: '12', legende: 'organisations partenaires' },
-  { valeur: '100 %', legende: 'des frais pris en charge' },
+  { valeur: '100\u00a0%', legende: 'des frais pris en charge' },
 ]
 
 /* Les prenoms ne sont pas publies tant qu'ils ne sont pas confirmes. */
@@ -251,7 +251,7 @@ const faq = [
                   </span>
                   <span class="methodo__intro">{m.intro}</span>
                   <span class="methodo__point-preview">
-                    <span class="methodo__point">{m.points[0]}</span>
+                    <span class="methodo__point"><strong>{m.points[0].gras}</strong>{m.points[0].suite}</span>
                     <span class="methodo__voile" aria-hidden="true" />
                   </span>
                   <span class="methodo__fleche" aria-hidden="true">
@@ -260,7 +260,7 @@ const faq = [
                 </summary>
                 <div class="methodo__body">
                   {m.points.slice(1).map((pt) => (
-                    <p class="methodo__point">{pt}</p>
+                    <p class="methodo__point"><strong>{pt.gras}</strong>{pt.suite}</p>
                   ))}
                 </div>
               </details>
@@ -534,13 +534,13 @@ const faq = [
     text-align: center;
   }
   .resultat .resultat__t {
-    margin-bottom: 0;
+    margin-bottom: calc(2 * 1.3em);
   }
   .resultat {
     padding-bottom: 0;
   }
   .impact2-sec {
-    padding-top: 0.75rem;
+    padding-top: 0;
   }
 
   /* intro « Comment se deroule » */
@@ -662,6 +662,14 @@ const faq = [
     font-weight: 600;
     line-height: var(--lh-titre);
     color: var(--vert);
+  }
+  .methodo__point strong {
+    font-weight: 600;
+  }
+  @media (min-width: 861px) {
+    .methodo__title {
+      font-size: var(--t-cta);
+    }
   }
   .methodo__summary {
     position: relative;
