@@ -7,9 +7,15 @@
  * contact, puis le mot « euneos » en geant et les liens legaux.
  */
 import Brand from './Brand.astro'
+
+interface Props {
+  withTopSpace?: boolean
+}
+
+const { withTopSpace = true } = Astro.props
 ---
 
-<footer class="ftr s-vert">
+<footer class:list={['ftr', 's-vert', withTopSpace && 'ftr--spaced']}>
   <div class="filigrane" aria-hidden="true">
     <div class="filigrane__fig"><Brand name="fig3" height="100%" /></div>
   </div>
@@ -107,11 +113,13 @@ import Brand from './Brand.astro'
   .ftr {
     position: relative;
     overflow: hidden;
-    margin-top: var(--s-bloc);
     background: var(--surface);
     color: var(--on-surface);
     padding-top: clamp(2.5rem, 6vw, 4.5rem);
     padding-bottom: 1.5rem;
+  }
+  .ftr--spaced {
+    margin-top: var(--s-bloc);
   }
   .filigrane__fig {
     left: 34%;

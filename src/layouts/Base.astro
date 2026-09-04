@@ -16,6 +16,7 @@ interface Props {
 
 const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
+const withFooterTopSpace = Astro.url.pathname !== '/'
 ---
 
 <!doctype html>
@@ -91,7 +92,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       <slot />
     </main>
 
-    <Footer />
+    <Footer withTopSpace={withFooterTopSpace} />
 
     <style>
       .hero-zone {
