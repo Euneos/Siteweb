@@ -325,7 +325,7 @@ const faq = [
           ))
         }
       </ol>
-      <div class="c-cta">
+      <div class="c-cta modules__cta">
         <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
       </div>
     </div>
@@ -334,7 +334,7 @@ const faq = [
   <!-- DEROULEMENT : 5 etapes en quinconce, une couleur par etape -->
   <section class="section">
     <div class="page">
-      <h2 class="c-t">Comment se déroule notre programme ?</h2>
+      <h2 class="c-t deroule__t">Comment se déroule notre programme ?</h2>
       <p class="deroule__lead">
         De la candidature de l’établissement à l’implémentation des activités auprès des jeunes
         (en passant par l’évaluation et la formation des équipes éducatives), notre programme se
@@ -536,10 +536,10 @@ const faq = [
   .resultat .resultat__t {
     margin-bottom: 0.75rem;
   }
-  .resultat {
+  .section.resultat {
     padding-bottom: 0;
   }
-  .impact2-sec {
+  .section.impact2-sec {
     padding-top: 0;
   }
 
@@ -548,6 +548,9 @@ const faq = [
     max-width: 74ch;
     margin: 0 auto var(--s-titre);
     text-align: center;
+  }
+  .c-t.deroule__t {
+    margin-bottom: 0.75rem;
   }
 
   /* 16H / 8 MODULES — deux colonnes, numero + titre (maquette v4 p.2) */
@@ -558,6 +561,9 @@ const faq = [
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(1.5rem, 3.5vw, 3rem) clamp(2rem, 6vw, 5rem);
+  }
+  .c-cta.modules__cta {
+    margin-top: var(--s-int);
   }
   .module {
     display: grid;
