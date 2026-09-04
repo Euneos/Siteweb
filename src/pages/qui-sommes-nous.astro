@@ -495,11 +495,15 @@ const equipe = [
     margin-top: calc(var(--s-titre) / -2);
   }
   .action {
+    --action-gap: clamp(0.6rem, 1.8vw, 1.5rem);
     display: grid;
     grid-template-columns: minmax(0, 0.54fr) minmax(0, 2fr);
-    gap: clamp(0.6rem, 1.8vw, 1.5rem);
+    gap: var(--action-gap);
     align-items: start;
-    padding-block: clamp(1.25rem, 3vw, 2rem);
+    padding-block: var(--action-gap);
+  }
+  .action:not(:last-child) {
+    padding-bottom: 0;
   }
   .action:not(:last-child)::after {
     content: '';
@@ -532,6 +536,7 @@ const equipe = [
       width: 100%;
     }
     .action {
+      --action-gap: 1rem;
       grid-template-columns: 1fr;
       gap: 1rem;
     }
