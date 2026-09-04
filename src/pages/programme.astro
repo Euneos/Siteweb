@@ -236,7 +236,7 @@ const faq = [
   <!-- LES 3 PRINCIPES DU PROGRAMME -->
   <section class="section">
     <div class="page">
-      <h2 class="c-t">Les 3 principes du Programme Euneos</h2>
+      <h2 class="c-t methodo__t">Les 3 principes du Programme Euneos</h2>
       <ul class="methodo">
         {
           methodo.map((m) => (
@@ -268,7 +268,7 @@ const faq = [
           ))
         }
       </ul>
-      <div class="c-cta">
+      <div class="c-cta methodo__cta">
         <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
       </div>
     </div>
@@ -277,7 +277,7 @@ const faq = [
   <!-- NOTRE IMPACT — bloc de texte (maquette v4 p.2), juste avant les chiffres -->
   <section class="section resultat">
     <div class="page">
-      <h2 class="c-t">Notre impact</h2>
+      <h2 class="c-t resultat__t">Notre impact</h2>
       <p class="resultat__p">
         Des professionnels de l’éducation reconnus, formés et outillés ; des établissements où
         ces apprentissages se transmettent et s’évaluent dans la durée ; et des jeunes qui
@@ -288,7 +288,7 @@ const faq = [
   </section>
 
   <!-- IMPACT CHIFFRE — bloc encadre bleu, pli aplati haut-droit. -->
-  <section class="section">
+  <section class="section impact2-sec">
     <div class="page">
       <Paper surface="bleu" fold="tr" class="impact2">
         <div class="filigrane" aria-hidden="true">
@@ -533,6 +533,15 @@ const faq = [
     margin: 0 auto;
     text-align: center;
   }
+  .resultat__t {
+    margin-bottom: 0.75rem;
+  }
+  .resultat {
+    padding-bottom: 0;
+  }
+  .impact2-sec {
+    padding-top: 0.75rem;
+  }
 
   /* intro « Comment se deroule » */
   .deroule__lead {
@@ -634,6 +643,9 @@ const faq = [
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: clamp(1.5rem, 4vw, 3.5rem);
   }
+  .methodo__t {
+    margin-bottom: calc(var(--s-titre) * 0.55);
+  }
   .methodo__head {
     display: flex;
     align-items: center;
@@ -654,7 +666,7 @@ const faq = [
   .methodo__summary {
     position: relative;
     display: grid;
-    gap: 0.5rem;
+    gap: 0;
     padding-bottom: 2.5rem;
     cursor: pointer;
     list-style: none;
@@ -672,7 +684,8 @@ const faq = [
     max-width: none;
   }
   .methodo__point {
-    margin-top: 0.5rem;
+    margin-top: 0;
+    line-height: var(--lh-corps);
   }
   .methodo__point-preview {
     position: relative;
@@ -709,6 +722,7 @@ const faq = [
   @media (max-width: 860px) {
     .methodo {
       grid-template-columns: 1fr;
+      gap: 1rem;
     }
     .methodo__intro,
     .methodo__point {
@@ -725,10 +739,15 @@ const faq = [
     }
     .methodo__point-preview {
       padding-right: 3rem;
+      max-height: none;
+      overflow: visible;
     }
     .methodo__fleche {
       width: clamp(1.5rem, 7vw, 2.25rem);
     }
+  }
+  .methodo__cta {
+    margin-top: calc(var(--s-titre) * 0.55);
   }
 
   /* reponse de FAQ encore a valider par le client */
