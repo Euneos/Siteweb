@@ -148,18 +148,20 @@ const equipe = [
             l’équilibre global des jeunes qui peut être d’autant plus fragilisé.
           </strong>
         </p>
-        <p class="fond__jalons-intro">
-          Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
-          comme premiers leviers pour prendre soin de la santé globale et de la réussite des
-          jeunes :
-        </p>
-        <ul class="fond__jalons">
-          {jalons.map((j) => <li>{j}</li>)}
-        </ul>
-        <p class="source">
-          * OMS, 2024, <em>“Securing adolescent health and well-being today is vital for
-          the health of future generations”</em>.
-        </p>
+        <details class="fond__details">
+          <summary>
+            Les pouvoirs publics ont successivement reconnu et priorisé les milieux éducatifs
+            comme premiers leviers pour prendre soin de la santé globale et de la réussite des
+            jeunes :
+          </summary>
+          <ul class="fond__jalons">
+            {jalons.map((j) => <li>{j}</li>)}
+          </ul>
+          <p class="source">
+            * OMS, 2024, <em>“Securing adolescent health and well-being today is vital for
+            the health of future generations”</em>.
+          </p>
+        </details>
       </div>
     </div>
     <div class="page fond__cta">
@@ -316,6 +318,32 @@ const equipe = [
   .fond__txt {
     display: grid;
     gap: 1rem;
+  }
+  .fond__details {
+    display: grid;
+    gap: 1rem;
+  }
+  .fond__details summary {
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    line-height: var(--lh-corps);
+    list-style: none;
+  }
+  .fond__details summary::-webkit-details-marker {
+    display: none;
+  }
+  .fond__details summary::after {
+    content: '+';
+    margin-left: 0.35em;
+    color: var(--vert);
+    font-size: var(--t-h3);
+    font-weight: 600;
+    line-height: 1;
+    flex: none;
+  }
+  .fond__details[open] summary::after {
+    content: '−';
   }
   @media (min-width: 861px) {
     .fond__t {
