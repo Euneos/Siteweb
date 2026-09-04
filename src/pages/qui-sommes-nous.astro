@@ -576,7 +576,8 @@ const equipe = [
     font-size: var(--t-cta);
   }
   .niveau__txt {
-    max-width: 34ch;
+    max-width: 52ch;
+    font-size: calc(var(--t-corps) * 0.75);
   }
   .niveau__cta {
     margin-top: 0.75rem;
@@ -584,6 +585,10 @@ const equipe = [
   @media (max-width: 860px) {
     .niveaux {
       grid-template-columns: 1fr;
+    }
+    .niveau__txt {
+      max-width: 34ch;
+      font-size: var(--t-corps);
     }
   }
 
