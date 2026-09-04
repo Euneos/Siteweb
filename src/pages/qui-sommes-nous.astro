@@ -808,7 +808,7 @@ const equipe = [
   .equipe--ca .membre__card > p,
   .equipe--ca .ca__bio > p {
     font-size: calc(var(--t-corps) * 0.6);
-    line-height: 0.8;
+    line-height: calc(var(--t-corps) * 0.48) !important;
   }
   .equipe--ca .membre__card > p {
     display: inline;
@@ -820,7 +820,7 @@ const equipe = [
   }
   .ca__bio summary {
     position: absolute;
-    top: calc(var(--s-int) * 0.15);
+    bottom: calc(var(--s-int) * 0.15);
     right: calc(var(--s-int) * 0.2);
     display: grid;
     place-items: center;
