@@ -562,8 +562,8 @@ const equipe = [
      petit pli aplati en haut a gauche (42 x 18), petit CTA (23 px) */
   .niveau {
     height: 100%;
-    min-height: clamp(12rem, 22vw, 19.75rem);
-    padding: var(--s-int);
+    min-height: clamp(10rem, 14vw, 12rem);
+    padding: calc(var(--s-int) * 0.65);
     display: grid;
     gap: 0.5rem;
     justify-items: center;
@@ -581,6 +581,8 @@ const equipe = [
   }
   .niveau__cta {
     margin-top: 0.75rem;
+    font-size: calc(var(--t-bouton) / 2);
+    --f: calc(var(--fold-sm) / 2);
   }
   @media (max-width: 860px) {
     .niveaux {
