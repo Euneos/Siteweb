@@ -8,3 +8,8 @@ compatibility_flags = ["nodejs_compat"]
 # La limitation des POST est geree par la regle de securite Cloudflare
 # « Limiter les formulaires publics EUNEOS » (5 requetes / 10 s / IP).
 # Cloudflare Pages ne prend pas en charge les bindings ratelimits.
+
+# Identifiant public de la liste Brevo ; versionné pour que chaque déploiement
+# conserve le routage formateurs. Les clés API restent des secrets Cloudflare.
+[vars]
+BREVO_LIST_FORMATEUR = "6"

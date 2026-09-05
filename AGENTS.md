@@ -389,7 +389,9 @@ propre avant une intervention et préserver les textes et changements récents d
 6. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
 
 Newsletter : la liste Brevo « EUNEOS — Newsletter — Formateurs » porte l'ID **6**,
-configuré dans `BREVO_LIST_FORMATEUR` sur Cloudflare Pages (production). Le modèle de
+configuré dans `BREVO_LIST_FORMATEUR` via `[vars]` de `wrangler.toml`. Une variable
+non secrète ajoutée seulement dans le tableau Cloudflare est supprimée par un déploiement
+Wrangler si elle manque dans ce fichier : toujours versionner les IDs publics ici. Le modèle de
 confirmation est également **6** : les listes et modèles ont des espaces d'identifiants
 séparés. Les autres profils gardent leurs listes 3 et 4 ; la liste historique Curieux
 n'est ni supprimée ni réaffectée. Les previews ne déclenchent aucun envoi réel.
