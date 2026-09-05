@@ -58,8 +58,23 @@ jobs:
       - name: Installer les dependances
         run: bun install --frozen-lockfile
 
+      - name: Vérifier les profils newsletter
+        run: bun run test
+
       - name: Construire le site
         run: bun run build
+
+      - name: Vérifier le rendu responsive compilé
+        run: |
+          bunx playwright install --with-deps chromium
+          bunx wrangler pages dev dist --port 4321 --ip 127.0.0.1 > /tmp/euneos-layout.log 2>&1 &
+          layout_server_pid=$!
+          trap 'kill "$layout_server_pid" 2>/dev/null || true' EXIT
+          for essai in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/qui-sommes-nous > /dev/null; then break; fi
+            sleep 1
+          done
+          bun run test:layout
 
       - name: Mettre en production sur Cloudflare Pages
         if: github.event_name != 'pull_request'

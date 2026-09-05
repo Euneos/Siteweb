@@ -337,3 +337,59 @@ Programme trop espaces, URL de newsletter. Tout est traite a la racine
   de retour. Rendue a la demande pour afficher `?nl=` sans JavaScript.
 - Titres verts par defaut (`--ink-titre`), blancs sur les surfaces foncees.
 - La page privee « facon Notion » n'est PAS faite : decision produit a cadrer.
+
+## Corrections Pauline — 5 septembre 2026 (règles actuelles)
+
+Ces règles complètent les relevés historiques ci-dessus. Partir du dernier `origin/main`
+propre avant une intervention et préserver les textes et changements récents de Pauline.
+
+### Images : l'agent réalise l'intégration
+
+- Les originaux vectoriels disponibles sont déjà dans `src/assets/brand/` : les réutiliser
+  via `Brand`, `PictoBox`, `Cartouche`, sans recréer les dessins ni demander un hébergement.
+- Les photos disponibles vivent dans `src/assets/photos/`. Une nouvelle photo fournie
+  est copiée dans ce dossier, importée et passée à `Photo` avec un `alt` adapté. L'agent
+  fait ces opérations ; Pauline n'a pas à téléverser un fichier dans Cloudflare.
+- Une capture de maquette sert à comparer, pas à fabriquer une fausse photo originale.
+  Les portraits nominatifs et les logos partenaires absents restent à fournir ; ne pas
+  prétendre qu'une photo générique est le portrait réel d'un membre.
+- Définir le cadrage ordinateur ET mobile. La mission utilise 3/4 puis 4/3. Son cartouche
+  reste dans le flux sous la photo ; seul le pictogramme décoratif est positionné en absolu.
+
+### Espaces, textes et interactions
+
+- Réutiliser `--s-bloc`, `--s-titre`, `--s-int` et les rôles `--t-*`. Pour un en-tête avec
+  introduction : petit espace titre → paragraphe, espace supérieur paragraphe → cartes.
+- Sur une grille contenant du texte dépliant, `align-items: start` et, si nécessaire,
+  `align-content: start`. Aucun étirement automatique de l'espace entre deux paragraphes.
+- Un accordéon grandit avec son contenu ; ses espaces internes ne changent pas entre
+  fermé et ouvert. Ne pas figer sa hauteur, ne pas cacher le débordement du texte.
+- Une biographie est du texte en bloc. Poser la taille ET l'interligne sans unité sur son
+  conteneur pour éviter la ligne de base héritée d'un parent plus grand. `--t-bio` garde
+  au moins 16 px, avec `--lh-corps`, sans `!important` ni interligne inférieur au corps.
+- Les « + » ont une cible de 44 × 44 px, une place réservée hors du texte et du pli,
+  un libellé accessible et une ouverture/fermeture au clavier.
+- Le carrousel utilise une seule liste de membres et le défilement tactile natif. Ne pas
+  tripler les biographies dans le DOM ni déplacer le scroll pendant que l'utilisateur lit.
+- Les décors mobiles occupent une zone distincte du titre et du bouton. Le clipping est
+  limité au décor ; il ne doit pas masquer une mauvaise largeur de contenu.
+- Dans `<style is:global>`, écrire des sélecteurs CSS ordinaires, sans `:global(...)`.
+
+### Vérification obligatoire avant publication
+
+1. `bun run test` : vérifie les trois profils de newsletter avec Brevo simulé, sans email.
+2. `bun run build` : vérification Astro et compilation.
+3. Démarrer le site compilé : `bunx wrangler pages dev dist --port 4321`.
+4. `bun run test:layout` : contrôle à 320, 390, 768, 860, 861, 1024 et 1440 px,
+   ouverts/fermés, touches Entrée, flèches de carrousel, débordements et chevauchements.
+   Installer Chromium au besoin : `bunx playwright install chromium`.
+5. Inspecter aussi les captures ordinateur et téléphone :
+   `CHECK_SCREENSHOTS=/tmp/euneos-layout bun run test:layout`.
+   `CHECK_BASE_URL` permet de refaire le contrôle sur la preview ou la production.
+6. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
+
+Newsletter : la liste Brevo « EUNEOS — Newsletter — Formateurs » porte l'ID **6**,
+configuré dans `BREVO_LIST_FORMATEUR` sur Cloudflare Pages (production). Le modèle de
+confirmation est également **6** : les listes et modèles ont des espaces d'identifiants
+séparés. Les autres profils gardent leurs listes 3 et 4 ; la liste historique Curieux
+n'est ni supprimée ni réaffectée. Les previews ne déclenchent aucun envoi réel.

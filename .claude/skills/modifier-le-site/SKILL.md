@@ -17,9 +17,16 @@ Les pages sont dans `src/pages/` :
 ## Vérifier avant de publier
 
 ```
+bun run test       # newsletter, sans email réel
 bun run build      # doit finir sans erreur
-bun run dev        # puis regarder la page dans le navigateur
+bunx wrangler pages dev dist --port 4321  # site compilé
+# Dans un autre terminal :
+CHECK_SCREENSHOTS=/tmp/euneos-layout bun run test:layout
 ```
+
+**Suivre les règles « Corrections Pauline — 5 septembre 2026 » de `AGENTS.md`.**
+Les images et graphismes déjà présents sont intégrés par l’agent, sans demander à Pauline
+un hébergement externe. Examiner les captures générées, en plus des assertions.
 
 **Toujours vérifier en petite largeur.** Le site a un seul point de bascule, à 860 px : une
 modification qui rend bien sur ordinateur peut se casser sur téléphone.

@@ -7,7 +7,9 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "format": "prettier --write '**/*' --ignore-unknown"
+    "format": "prettier --write '**/*' --ignore-unknown",
+    "test": "bun test tests",
+    "test:layout": "bun scripts/check-layout.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
+    "@playwright/test": "^1.63.0",
     "prettier": "^3.5.3",
     "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-tailwindcss": "^0.6.14",

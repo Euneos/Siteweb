@@ -31,7 +31,7 @@ const {
 <section id={id} class="section">
   <div class="page">
     <div class="final s-bleu">
-      <div class="final__eclat" aria-hidden="true"><Brand name="eclat" /></div>
+      <div class="final__eclat" aria-hidden="true"><Brand name="eclat" height="100%" width="100%" /></div>
       <div class="final__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
       <div class="final__in">
         <h2>{titre}</h2>
@@ -64,7 +64,7 @@ const {
     inset: 0;
     color: var(--bleu-fold);
   }
-  .final__eclat :global(svg) {
+  .final__eclat .brand > svg {
     width: 100%;
     height: 100%;
     display: block;
@@ -108,12 +108,27 @@ const {
       min-height: clamp(18rem, 78vw, 24rem);
       /* En une colonne, il n'y a plus de marge pour le debord gauche. */
       overflow: hidden;
+      background: var(--bleu-fold);
+    }
+    .final__eclat {
+      /* Le motif couvre le bandeau, quelle que soit sa hauteur. */
+      inset: -15% -55%;
+      opacity: 0.35;
+      color: var(--bleu);
     }
     .final__fig {
-      left: -22%;
-      top: 15%;
-      height: 115%;
+      left: -3.5rem;
+      top: auto;
+      bottom: -2rem;
+      height: 10rem;
       clip-path: none;
+    }
+    .final__in {
+      width: 100%;
+      padding: 2rem 1.25rem 9rem;
+    }
+    .final__in h2 {
+      max-width: 22ch;
     }
   }
 </style>

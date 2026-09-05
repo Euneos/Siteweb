@@ -108,6 +108,7 @@
      un plancher lisible sur telephone. Pour changer l'echelle de tout le
      site, on touche ICI et nulle part ailleurs.
      ------------------------------------------------------------------ */
+  --t-bio: clamp(1rem, 1.18vw, 1.0625rem); /* biographies : lisibles aussi sur mobile */
   --t-note: clamp(0.8125rem, 1.18vw, 1.0625rem); /* 17 px */
   --t-nav: clamp(0.9375rem, 1.46vw, 1.3125rem); /* 21 px */
   --t-corps: clamp(1.0625rem, 1.667vw, 1.5rem); /* 24 px */
