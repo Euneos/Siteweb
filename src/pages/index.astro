@@ -5,12 +5,14 @@
  * Le copy est celui de la maquette v7 (et non du docx de structure, en retard).
  */
 import Brand from '../components/Brand.astro'
-import Cartouche from '../components/Cartouche.astro'
+import { Image } from 'astro:assets'
+import cartoucheOcre from '../assets/brand/cartouche-ocre.png'
 import Cta from '../components/Cta.astro'
 import CtaFinal from '../components/CtaFinal.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import accueilAtelier from '../assets/photos/accueil-atelier-timur-shakerzianov.jpg'
+import accueilFormatrice from '../assets/photos/accueil-formatrice.png'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
@@ -83,7 +85,18 @@ const parcours = [
   <section slot="hero" class="hz">
     <div class="hz__grid">
       <div class="hz__side">
-        <div class="hz__cartouche"><Cartouche surface="ocre" fig="fig2" /></div>
+        <div class="hz__cartouche">
+          <Image
+            src={cartoucheOcre}
+            alt="Euneos"
+            width={300}
+            widths={[150, 300, 450]}
+            sizes="(max-width: 860px) 20vw, 11vw"
+            format="png"
+            loading="eager"
+            class="accueil__cartouche-image"
+          />
+        </div>
 
         <div class="hz__bubblewrap">
           <Paper outline fold="tr" class="hz__bubble">
@@ -141,9 +154,17 @@ const parcours = [
       <Paper surface="orange" fold="none" class="approche__tag" as="h2">Notre approche</Paper>
 
       <div class="approche__media">
-        <Photo ratio="3/2" label="photo — équipe éducative" />
+        <Photo
+          src={accueilFormatrice}
+          ratio="3/2"
+          alt="Une formatrice souriante échange avec une participante devant un tableau blanc"
+          width={1141}
+          widths={[480, 800, 1141]}
+          quality={75}
+          sizes="(max-width: 860px) 100vw, 50vw"
+        />
         <div class="approche__picto">
-          <PictoBox picto="asterisque" surface="jaune" size="sm" />
+          <PictoBox picto="etoile" surface="jaune" size="sm" />
         </div>
       </div>
 
@@ -333,6 +354,11 @@ const parcours = [
 </Base>
 
 <style is:global>
+  .accueil__cartouche-image {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
   /* La section garde le rythme commun (--s-bloc) ; elle est juste assez
      haute pour la silhouette, et le texte se centre dessus. Avant, elle
