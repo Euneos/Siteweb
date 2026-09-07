@@ -39,9 +39,8 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
             <div class="hdr__programme">
               <div class="hdr__programme-row">
                 <a href={item.href} class:list={["hdr__link", active && "is-active"]} aria-current={active ? "page" : undefined}>{item.label}</a>
-                <button class="hdr__submenu-toggle" type="button" aria-label="Sous-menu Notre Programme" aria-expanded="false" aria-controls="menu-programme">⌄</button>
               </div>
-              <div class="hdr__submenu" id="menu-programme" hidden>
+              <div class="hdr__submenu" id="menu-programme">
                 <a href="/faq" class:list={["hdr__link", path === "/faq" && "is-active"]} aria-current={path === "/faq" ? "page" : undefined}>FAQ</a>
               </div>
             </div>
@@ -60,30 +59,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   const button = document.querySelector<HTMLButtonElement>('.hdr__burger')
   const menu = document.querySelector<HTMLElement>('#menu-principal')
 
-  const submenuButton = document.querySelector<HTMLButtonElement>('.hdr__submenu-toggle')
-  const submenu = document.querySelector<HTMLElement>('#menu-programme')
-  const closeSubmenu = () => {
-    submenuButton?.setAttribute('aria-expanded', 'false')
-    if (submenu) submenu.hidden = true
-  }
-  submenuButton?.addEventListener('click', () => {
-    if (!submenu) return
-    submenu.hidden = !submenu.hidden
-    submenuButton.setAttribute('aria-expanded', String(!submenu.hidden))
-  })
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element) || !event.target.closest('.hdr__programme')) closeSubmenu()
-  })
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && submenu && !submenu.hidden) {
-      closeSubmenu()
-      submenuButton?.focus()
-      event.stopImmediatePropagation()
-    }
-  })
-
   const fermer = () => {
-    closeSubmenu()
     if (!button || !menu) return
     button.setAttribute('aria-expanded', 'false')
     button.querySelector('.sr-only')!.textContent = 'Ouvrir le menu'
@@ -148,11 +124,12 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
     color: currentColor;
   }
   .hdr__programme { position: relative; }
+  .hdr__programme:hover .hdr__submenu,
+  .hdr__programme:focus-within .hdr__submenu { display: block; }
   .hdr__programme-row { display: flex; align-items: center; }
-  .hdr__submenu-toggle { color: inherit; background: transparent; border: 0; padding: .25rem .4rem; cursor: pointer; font: inherit; }
-  .hdr__submenu { position: absolute; top: 100%; left: 0; min-width: 100%; background: var(--surface); padding: .5rem 1rem; box-shadow: 0 4px 12px #0002; }
+  .hdr__submenu { display: none; position: absolute; top: 100%; left: 0; min-width: 100%; background: var(--vert-clair); color: var(--blanc); padding: .5rem 1rem; box-shadow: 0 4px 12px #0002; }
   .hdr__submenu .hdr__link { display: block; }
-  .hdr__submenu-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  :global(.hero-zone.s-bleu) .hdr__submenu { background: var(--bleu-fold); }
   .hdr__burger {
     display: none;
     color: inherit;
@@ -167,7 +144,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   @media (max-width: 860px) {
     .hdr__programme { width: 100%; }
     .hdr__programme-row { justify-content: space-between; padding-right: 1rem; }
-    .hdr__submenu { position: static; box-shadow: none; padding: 0 0 0 1.5rem; }
+    .hdr__submenu { display: block; position: static; box-shadow: none; padding: 0 0 0 1.5rem; }
     .hdr__burger {
       display: grid;
       gap: 5px;
