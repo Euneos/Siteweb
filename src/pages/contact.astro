@@ -10,6 +10,7 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
+import photoContact from '../assets/photos/contact-thisisengineering.jpg'
 
 export const prerender = false
 
@@ -43,7 +44,7 @@ const champs = [
       <!-- releve v4 p.4 : cartouche orange paysage de 148 x 105, contre le
            bord gauche de la photo -->
       <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="clamp(5rem, 10.3vw, 9.25rem)" paysage /></div>
-      <div class="ct__ph"><Photo ratio="3/2" label="photo — équipe" /></div>
+      <div class="ct__ph"><Photo src={photoContact} ratio="3/2" alt="Deux personnes échangent devant un tableau blanc" width={1600} widths={[480, 800, 1200, 1600]} quality={75} loading="eager" fetchpriority="high" /></div>
       <div class="ct__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
     </div>
 
@@ -91,7 +92,7 @@ const champs = [
       {
         !ok && (
           <div class="ct__submit">
-            <button type="submit" form="ct-form" class="cta s-vert-clair cta--cut ct__submit-btn">Envoyer</button>
+            <button type="submit" form="ct-form" class="cta s-blanc cta--cut ct__submit-btn">Envoyer</button>
           </div>
         )
       }
@@ -224,10 +225,10 @@ const champs = [
     z-index: 4;
   }
   .ct__submit-btn {
-    --surface: #809b96;
-    --on-surface: var(--blanc);
+    --surface: var(--blanc);
+    --on-surface: var(--vert);
     --fold-color: var(--vert);
-    color: var(--blanc);
+    color: var(--vert);
   }
   /* pas dans la maquette : l'adresse reste, discrete, sous le panneau */
   .ct__adr {
