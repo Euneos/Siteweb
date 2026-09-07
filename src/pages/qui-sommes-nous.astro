@@ -13,6 +13,7 @@ import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 import atelierEquipe from '../assets/photos/atelier-equipe.jpg'
+import candice from '../assets/photos/candice.png'
 
 const jalons = [
   'L’instruction interministérielle de 2022 inscrit les compétences psychosociales dans les objectifs éducatifs.',
@@ -116,7 +117,7 @@ const ca: { nom: string; fonction: string; bio?: string }[] = [
 ]
 
 const equipe = [
-  { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale', email: 'gouvernance@euneos.fr' },
+  { nom: 'Candice Marro', fonction: 'Fondatrice & Directrice Générale', email: 'gouvernance@euneos.fr', photo: candice },
   { nom: 'Charlotte', ligne2: 'Térouanne', fonction: 'Coordination & Développement', email: 'charlotte@euneos.fr' },
   { nom: 'Pauline', ligne2: 'Miqueu-Petit', fonction: 'Responsable communication', email: 'pauline@euneos.fr' },
 ]
@@ -319,7 +320,7 @@ const equipe = [
           equipe.map((m) => (
             <li class="membre membre--oper">
               <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
-              <Photo ratio="2/3" class="membre__ph" />
+              <Photo src={m.photo} alt={m.photo ? 'Candice Marro, fondatrice et directrice générale d’EUNEOS' : undefined} ratio="2/3" class="membre__ph" width={m.photo ? 391 : undefined} widths={m.photo ? [240, 391] : undefined} quality={m.photo ? 85 : undefined} />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
                 <a href={`mailto:${m.email}`}>Contacter</a>

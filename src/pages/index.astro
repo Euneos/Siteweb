@@ -13,6 +13,10 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import accueilAtelier from '../assets/photos/accueil-atelier-timur-shakerzianov.jpg'
 import accueilFormatrice from '../assets/photos/accueil-formatrice.png'
+import unionEuropeenne from '../assets/logos/cofinance-union-europeenne.png'
+import nouveauMonde from '../assets/logos/nouveau-monde.png'
+import candice from '../assets/photos/candice.png'
+import pratiqueMeditative from '../assets/photos/pratique-meditative-exterieur.jpg'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
@@ -51,9 +55,10 @@ const programme = [
 ] as const
 
 /* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
-/* Logos des partenaires — a fournir par EUNEOS (12 organisations partenaires
-   d'apres la maquette). Tant que le tableau est vide, la rangee ne s'affiche pas. */
-const logos: { src: string; alt: string }[] = []
+const logos = [
+  { src: unionEuropeenne, alt: 'Cofinancé par l’Union européenne' },
+  { src: nouveauMonde, alt: 'Nouveau Monde — Fonds de dotation' },
+]
 
 const impact = [
   { valeur: '92 %', legende: 'recommanderaient le Programme sans hésiter' },
@@ -186,21 +191,14 @@ const parcours = [
   <!-- 4. PREUVE -->
   <section class="section confiance">
     <div class="page">
-      <h2 class="confiance__t">Merci pour leur confiance</h2>
-      {
-        /* Les logos des partenaires ne sont pas fournis. On n'affiche PAS six
-           rectangles vides sur un site public : des que les fichiers arrivent,
-           remplir ce tableau et la rangee reapparait. */
-        logos.length > 0 && (
-          <ul class="confiance__logos">
-            {logos.map((l) => (
-              <li>
-                <img src={l.src} alt={l.alt} loading="lazy" />
-              </li>
-            ))}
-          </ul>
-        )
-      }
+      <h2 class="confiance__t">Merci pour leur soutien</h2>
+      <ul class="confiance__logos">
+        {logos.map((logo) => (
+          <li>
+            <Image src={logo.src} alt={logo.alt} width={640} widths={[320, 640]} sizes="(max-width: 700px) 43vw, 300px" format="png" loading="lazy" />
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 
@@ -296,7 +294,7 @@ const parcours = [
   <section class="section">
     <div class="page citation">
       <Paper surface="ocre" fold="none" class="etiquette citation__name">Candice Marro</Paper>
-      <div class="citation__ph"><Photo ratio="3/4" label="portrait" /></div>
+      <div class="citation__ph"><Photo src={candice} alt="Candice Marro, fondatrice et directrice générale d’EUNEOS" ratio="3/4" width={391} widths={[240, 391]} quality={85} /></div>
       <Paper surface="papier" fold="br" class="citation__card">
         <blockquote>
           « EUNEOS s’inscrit à l’intersection entre les enjeux éducatifs, numériques et de
@@ -318,7 +316,9 @@ const parcours = [
   <!-- 8. BLOC IMAGE -->
   <section class="section">
     <div class="page bloc-image">
-      <div class="bloc-image__ph"><Photo ratio="16/10" label="photo — jeunes en situation réelle" /></div>
+      <div class="bloc-image__ph">
+        <Photo src={pratiqueMeditative} alt="Des élèves participent à une pratique méditative guidée en extérieur" ratio="16/10" width={1512} widths={[480, 800, 1200, 1512]} quality={75} sizes="(max-width: 860px) 100vw, 80vw" />
+      </div>
       <div class="bloc-image__picto">
         <PictoBox picto="asterisque" surface="orange" size="lg" paysage />
       </div>
@@ -539,20 +539,23 @@ const parcours = [
   .confiance__logos {
     list-style: none;
     padding: 0;
-    margin: var(--s-titre) 0 0;
+    margin: var(--s-int) auto 0;
+    max-width: 42rem;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 5.75%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(1rem, 4vw, 4.5rem);
   }
   .confiance__logos li {
-    aspect-ratio: 60.5 / 42.8;
-    background: var(--vert-clair);
-    opacity: 0.85;
+    min-width: 0;
+    max-width: 300px;
+    width: 100%;
+    justify-self: center;
   }
-  @media (max-width: 860px) {
-    .confiance__logos {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+  .confiance__logos img {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   /* --- PROGRAMME (famille bleue) --- */
@@ -894,6 +897,9 @@ const parcours = [
     width: min(100%, 54rem);
     margin-inline: auto;
   }
+  .bloc-image__ph img {
+    object-position: 50% 55%;
+  }
   .bloc-image__picto,
   .bloc-image__picto2 {
     position: absolute;
@@ -913,6 +919,38 @@ const parcours = [
     right: 0;
     top: 0;
     transform: translate(58%, 8%);
+  }
+  @media (min-width: 901px) {
+    .bloc-image {
+      width: min(calc(100% - var(--pbox-lg) * 2), 54rem);
+    }
+    .bloc-image__picto {
+      left: calc(var(--unit) * 1.5);
+      transform: translateX(-100%);
+    }
+    .bloc-image__picto .pbox {
+      width: calc(var(--pbox-lg) * 0.84);
+      height: calc(var(--pbox-lg) * 0.84 * 41.8 / 59.1);
+      padding: calc(var(--pbox-lg) * 0.12);
+    }
+    .bloc-image__picto .pbox__in {
+      width: calc(var(--pbox-lg) * 0.35);
+      height: auto;
+      min-height: 0;
+      justify-self: center;
+    }
+    .bloc-image__picto2 {
+      right: calc(var(--unit) * 1.5);
+      transform: translateX(100%);
+    }
+    .bloc-image .bloc-image__picto2 .bloc-image__rose::before {
+      clip-path: polygon(0 0, calc(100% - var(--fx)) 0, 100% var(--fy), 100% 100%, 0 100%);
+    }
+    .bloc-image .bloc-image__picto2 .bloc-image__rose::after {
+      top: 0;
+      bottom: auto;
+      clip-path: polygon(100% 100%, 0 0, 38% 100%);
+    }
   }
 
   /* Sur petit ecran, les deux pictos debordaient hors de l'ecran : le rose
