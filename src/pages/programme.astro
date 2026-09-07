@@ -5,6 +5,8 @@
  * au Programme cle (« Le bleu est reserve pour le Programme cle d'Euneos »).
  */
 import Brand from '../components/Brand.astro'
+import FaqList from '../components/FaqList.astro'
+import faqData from '../data/faq.json'
 import Cta from '../components/Cta.astro'
 import CtaFinal from '../components/CtaFinal.astro'
 import Paper from '../components/Paper.astro'
@@ -139,36 +141,9 @@ const temoins = [
   },
 ] as const
 
-const faq = [
-  /* Les 5 questions sont celles de la maquette v4 p.2. Seule la derniere y a
-     une reponse : les autres attendent le texte de Candice. On affiche les
-     5 questions (comme la maquette), en signalant celles sans reponse. */
-  {
-    q: 'À partir de combien de personnes pouvons-nous envisager de rejoindre le Programme EUNEOS ?',
-    r: 'Réponse à venir.',
-    brouillon: true,
-  },
-  {
-    q: 'Quel est le format de la formation ?',
-    r: 'Réponse à venir.',
-    brouillon: true,
-  },
-  {
-    q: 'Quels élèves et combien peuvent participer aux ateliers et éventuels questionnaires d’évaluation ?',
-    r: 'Réponse à venir.',
-    brouillon: true,
-  },
-  {
-    q: 'Quelles sont les personnes clés du projet ?',
-    r: 'Réponse à venir.',
-    brouillon: true,
-  },
-  {
-    q: 'À partir de quel moment peut-on appliquer les activités du Programme ?',
-    r: 'Tout personnel formé peut commencer à mettre en place des activités issues du Programme avec des élèves, que ces derniers participent ou non aux ateliers. La mise en place peut être progressive et les activités assez libres pour autant qu’elles soient issues du programme et des ressources mises à disposition. On peut aussi appliquer les activités en dehors de la classe, dans des contextes de suivi individuel.',
-    brouillon: false,
-  },
-]
+const toutesQuestions = faqData.etablissements.flatMap((groupe) => groupe.questions)
+const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id === `etablissements-${numero}`)!)
+
 ---
 
 <Base
@@ -414,16 +389,8 @@ const faq = [
     <div class="page faq">
       <div class="faq__col">
         <h2 class="faq__t">Questions fréquentes</h2>
-        <dl class="faq__list">
-          {
-            faq.map((item) => (
-              <details class="faq__item">
-                <summary>{item.q}</summary>
-                <p class:list={[item.brouillon && 'is-brouillon']}>{item.r}</p>
-              </details>
-            ))
-          }
-        </dl>
+        <FaqList questions={faq} />
+        <div class="faq__all"><Cta href="/faq" surface="bleu-fonce">Voir toute la FAQ</Cta></div>
       </div>
       <div class="faq__media">
         <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="lg" paysage /></div>
@@ -1074,6 +1041,8 @@ const faq = [
       max-width: 18rem;
     }
   }
+
+  .faq__all { margin-top: var(--s-int); }
 
   /* FAQ */
   .faq {

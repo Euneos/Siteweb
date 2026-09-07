@@ -1,0 +1,318 @@
+{
+  "formateurs": [
+    {
+      "titre": "Devenir formateur référencé",
+      "questions": [
+        {
+          "id": "formateurs-1",
+          "q": "Qui peut devenir formateur ou formatrice du Programme Euneos (Wise Up) référencé par Euneos ?",
+          "paragraphes": [
+            "Le formateur peut être externe, recruté via le réseau d'Euneos ou son propre réseau, ou interne à l'établissement, lorsqu'un membre du personnel formé prend également ce rôle en plus de celui de référent. Les profils sont sélectionnés par Euneos."
+          ]
+        },
+        {
+          "id": "formateurs-2",
+          "q": "Comment candidater pour rejoindre le réseau des formateurs référencés ?",
+          "paragraphes": [
+            "En remplissant le Formulaire Candidature Formateur. En cas de sélection, vous recevez un email de confirmation, une invitation à une réunion d’infos puis le guide pratique du formateur qui récapitule toutes les infos pratiques. Vous devrez aussi signer le formulaire « Accord formateur - Conditions d'engagement », par lequel vous vous engagez à respecter la méthodologie de notre programme (Wise Up), la charte éthique et les exigences du projet Erasmus+. Une fois engagé·e, vous avez accès à l'Espace Formateurs-Trices du Programme Euneos (Wise Up) (Drive) et au Guide Formateurs complet."
+          ]
+        },
+        {
+          "id": "formateurs-3",
+          "q": "Que contient l'Espace Formateurs-Trices (Drive) ?",
+          "paragraphes": [
+            "Présentations pour établissements 2026-27 - supports pour présenter le programme aux équipes éducatives",
+            "Manuel du formateur - guide pédagogique complet pour animer les 8 sessions",
+            "Manuel du stagiaire (éducateur) - carnet de bord remis aux participants (accès une fois que vous êtes validé.e)",
+            "Guide théorique du formateur : modules 1 à 8 - supports de présentation, activités et pratiques pour chaque session",
+            "Ateliers avec élèves - déroulé des ateliers et ressources pédagogiques pour les élèves (une fois que vous êtes validé.e et que vous allez intervenir dans un établissement)",
+            "Guide pratique du formateur",
+            "Accès à un padlet de ressources"
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Votre rôle, et celui du référent établissement",
+      "questions": [
+        {
+          "id": "formateurs-4",
+          "q": "Quelle est la différence entre le formateur et le référent établissement ?",
+          "paragraphes": [
+            "Le programme s'appuie sur deux rôles clés, qui peuvent être cumulés ou séparés selon les contextes :",
+            "Le formateur : anime la formation de 16h auprès des personnels éducatifs, peut aussi animer 1 série d’ateliers de 4H avec la classe participant à l'évaluation scientifique (le cas échéant), et remplit le Questionnaire Bilan Formateur à l'issue.",
+            "Le référent établissement : est le point de contact interne de l'établissement : il coordonne la logistique (salle, planning, présences), relaie les informations vers la direction et les familles, et remplit le Questionnaire Bilan Établissement avec la direction."
+          ]
+        },
+        {
+          "id": "formateurs-5",
+          "q": "Comment un formateur est-il mis en relation avec un établissement candidat ?",
+          "paragraphes": [
+            "Deux cas de figure : soit vous identifiez et approchez vous-même un établissement via votre réseau personnel, soit Euneos vous met en relation avec un établissement candidat. Dans les deux cas, une présentation du programme est organisée auprès de l'équipe éducative (en ligne ou sur site), puis l'établissement dépose sa candidature avec votre accompagnement si besoin."
+          ]
+        },
+        {
+          "id": "formateurs-6",
+          "q": "Le formateur anime-t-il les ateliers élèves sur toute l'année ?",
+          "paragraphes": [
+            "Non. Le formateur peut animer un premier atelier avec la classe participant à l'évaluation scientifique, si celle-ci est prévue. Au-delà, ce sont les personnels formés de l'établissement qui prennent en charge les ateliers supplémentaires - 4 à 8 ateliers de 45 minutes à 1h, répartis sur l'année scolaire."
+          ]
+        },
+        {
+          "id": "formateurs-7",
+          "q": "La formation est-elle payante?",
+          "paragraphes": [
+            "La formation est exceptionnellement, grâce à du mécénat, proposée gratuitement aux candidats confirmés. Le.a formateur.trice est ensuite rémunéré pour les 16h. Conditions précisées dans la candidature."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Déroulement d'une intervention",
+      "questions": [
+        {
+          "id": "formateurs-8",
+          "q": "Quel est le format de la formation à délivrer ?",
+          "paragraphes": [
+            "100% présentiel (16h sur site), ou hybride (8h sur site et 8h en visioconférence). La formation entièrement à distance n'est pas possible dans le cadre du projet Erasmus+ : ce critère est non négociable."
+          ]
+        },
+        {
+          "id": "formateurs-9",
+          "q": "Combien de sessions comporte la formation, et sur quoi portent-elles ?",
+          "paragraphes": [
+            "8 sessions d'environ 2h chacune, couvrant progressivement : santé mentale et bien-être numérique, présence et attention, régulation attentionnelle, sortie du biais négatif, compréhension et gestion du stress, communication et régulation collective, émotions et comportements, puis applications concrètes et soutien à la mise en œuvre. Le détail complet de chaque session est dans l’Espace Formateurs)."
+          ]
+        },
+        {
+          "id": "formateurs-10",
+          "q": "Quels documents dois-je faire remplir aux participants pendant la formation ?",
+          "paragraphes": [
+            "La feuille de présence, à faire signer à chaque session (obligatoire pour la validation)",
+            "Le Questionnaire pré-formation (A), individuel, à remplir par chaque participant·e avant la première session",
+            "Le Questionnaire post-formation (B), à remplir juste après la dernière session",
+            "Le carnet de bord en option, à compléter en séance ou entre les sessions",
+            "Prendre des photos des activités pour le projet Erasmus"
+          ]
+        },
+        {
+          "id": "formateurs-11",
+          "q": "Comment se déroule la formation complémentaire aux ateliers élèves (2h) ?",
+          "paragraphes": [
+            "Pour les personnels formés souhaitant animer des ateliers avec leurs élèves, Euneos organise une formation complémentaire de 2h en ligne, gratuite, avec des formateurs du Programme Euneos (Wise Up) seniors. Elle transmet le déroulé détaillé des ateliers ; les supports sont dans le dossier « Ateliers avec élèves » de l'Espace Formateurs. Un formateur expérimenté peut aussi demander à l’organisation de transmettre la formation aux ateliers dans l’établissement en 4H."
+          ]
+        },
+        {
+          "id": "formateurs-12",
+          "q": "Le consentement des familles est-il nécessaire pour les ateliers élèves ?",
+          "paragraphes": [
+            "Oui, pour la participation des élèves aux ateliers (pas pour la formation des personnels). Avant le démarrage des ateliers, l'établissement informe les parents ou tuteurs via une lettre type fournie par le programme, qui présente les objectifs, la nature des activités (ateliers, questionnaires anonymes) et le caractère gratuit et cadré de la démarche."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Rémunération et aspects contractuels",
+      "questions": [
+        {
+          "id": "formateurs-13",
+          "q": "Le formateur référencé est-il rémunéré ?",
+          "paragraphes": [
+            "Oui. Une convention est établie avant chaque intervention ; elle précise le périmètre, les dates et les modalités de rémunération. La facturation s'effectue après la fin de la formation et la transmission du compte-rendu."
+          ]
+        },
+        {
+          "id": "formateurs-14",
+          "q": "Comment se passe la facturation ?",
+          "paragraphes": [
+            "Voir le guide du formateur."
+          ]
+        },
+        {
+          "id": "formateurs-15",
+          "q": "Qui prend en charge l'impression des supports (manuel, journal de bord) ?",
+          "paragraphes": [
+            "Les supports sont envoyés aux participants en version numérique ; l'organisation ne peut pas prendre en charge le coût d'impression des manuels pour les stagiaires. Il est recommandé de négocier directement avec l'établissement une prise en charge éventuelle de l'impression."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Après la formation : obligations et suivi",
+      "questions": [
+        {
+          "id": "formateurs-16",
+          "q": "Quelles sont mes obligations une fois la formation terminée ?",
+          "paragraphes": [
+            "Transmettre les feuilles de présence complètes à Euneos",
+            "Remplir le Compte-Rendu de Formation (dossier dédié dans l'Espace Formateurs)",
+            "Remplir le Questionnaire Bilan Formateur : déroulement, difficultés rencontrées, engagement des participants, suggestions",
+            "Émettre votre facture selon les modalités de la convention signée avant l'intervention"
+          ]
+        },
+        {
+          "id": "formateurs-17",
+          "q": "Comment se déroule le suivi à J+45 ?",
+          "paragraphes": [
+            "Six semaines après la fin de la formation, Euneos envoie directement aux participants le Questionnaire de suivi J+45, qui mesure l'appropriation effective des outils dans leur pratique professionnelle. Le formateur n'a aucune démarche à effectuer pour cette étape."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Contacts et ressources",
+      "questions": [
+        {
+          "id": "formateurs-18",
+          "q": "Qui contacter en cas de question ?",
+          "paragraphes": [
+            "Candice Marro - wiseup@euneos.fr : responsable générale du projet, référente pour la formation des équipes éducatives et la formation des formateurs.",
+            "Charlotte Terouanne - charlotte@euneos.fr : chargée opérationnelle, pour le suivi général des établissements et les étapes de mise en place du projet (ateliers élèves, logistique en établissement, questionnaires…)."
+          ]
+        },
+        {
+          "id": "formateurs-19",
+          "q": "Où trouver le détail complet du parcours formateur (étapes 1 à 10, tous les formulaires) ?",
+          "paragraphes": [
+            "Dans le Guide Formateurs du Programme Euneos (Wise Up), transmis par Euneos une fois la candidature confirmée et l'engagement en formation signé. Il détaille chaque étape, du formulaire de candidature jusqu'au suivi J+45, avec l'ensemble des documents à remplir."
+          ]
+        }
+      ]
+    }
+  ],
+  "etablissements": [
+    {
+      "titre": "Candidature et éligibilité",
+      "questions": [
+        {
+          "id": "etablissements-1",
+          "q": "À partir de combien de personnes un établissement peut-il candidater au Programme Euneos (Wise Up) ?",
+          "paragraphes": [
+            "Un minimum de 5 personnes inscrites, qui s'engagent à suivre l'intégralité de la formation et à animer les activités de la formation avec les élèves, est nécessaire pour que l'établissement bénéficie du Programme Euneos (Wise Up).",
+            "Ce personnel éducatif peut être varié : enseignants, professeurs, AESH, infirmiers et infirmières scolaires, CPE, personnel de vie scolaire, etc. L'essentiel est l'engagement à suivre la formation jusqu'au bout et à la mettre en pratique."
+          ]
+        },
+        {
+          "id": "etablissements-2",
+          "q": "Comment candidater pour rejoindre le programme ?",
+          "paragraphes": [
+            "La candidature se fait directement sur le site d'Euneos (euneos.fr), via le formulaire dédié aux établissements. Une fois la candidature reçue, l'équipe de coordination Euneos revient vers l'établissement pour confirmer, répondre aux questions et caler ensemble la suite. Un guide pour les établissements avec toutes les étapes et liens utiles est également fourni."
+          ]
+        },
+        {
+          "id": "etablissements-3",
+          "q": "Quelle est la date limite pour candidater ?",
+          "paragraphes": [
+            "Pour intégrer une nouvelle promotion en cours d'année scolaire, la candidature doit être déposée avant fin décembre, pour un démarrage de la formation au plus tard courant janvier. Passé ce délai, l'établissement peut tout de même candidater : son intégration sera alors proposée pour la session de formation suivante."
+          ]
+        },
+        {
+          "id": "etablissements-4",
+          "q": "Le programme est-il gratuit pour l'établissement ?",
+          "paragraphes": [
+            "Oui. Le Programme Euneos (Wise Up) est financé pour l’année scolaire 2026-2027 par le fonds de dotation Nouveau Monde : la formation, l'accompagnement par Euneos et les ressources pédagogiques mises à disposition sont gratuits pour les établissements participants. (ne comprend pas d'éventuels frais annexes propres à l'établissement, comme le temps de remplacement des personnels formés qui ne relèvent pas du financement du projet.)"
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Organisation et déroulé de la formation",
+      "questions": [
+        {
+          "id": "etablissements-5",
+          "q": "Quel est le format de la formation ?",
+          "paragraphes": [
+            "La formation (16h) peut se faire en totalité en présentiel, ou en format hybride (8h sur site et 8h à distance). Une formation entièrement à distance n'est en revanche pas possible : ce point est strictement non négociable, car il ne rentre pas dans les critères du projet validé avec l'Union européenne."
+          ]
+        },
+        {
+          "id": "etablissements-6",
+          "q": "Comment se déroulent les réunions d'information et de lancement ?",
+          "paragraphes": [
+            "Des réunions de lancement, coordonnées par l'association, sont proposées selon un calendrier communiqué en amont. L'établissement peut également demander une présentation dédiée du projet à ses équipes, en ligne ou sur site, à programmer avec les personnes référentes du projet. Les périodes proposées varient dans l'année : la présentation aux établissements fournit un aperçu d'un calendrier type."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Rôles et personnes clés",
+      "questions": [
+        {
+          "id": "etablissements-7",
+          "q": "Quelles sont les personnes clés du projet ?",
+          "paragraphes": [
+            "Le ou la référent(e) établissement : point de contact interne qui coordonne le projet au sein de l'établissement : calendrier, communication auprès des équipes, suivi des engagements pris.",
+            "Le ou la formateur/trice du Programme Euneos (Wise Up) : personnel formé par l'association, peut être aussi une personne en poste au sein de l’établissement candidat et cumuler le rôle de formateur et référent si c’est le cas. Sinon, le.a formateur.trice est alloué.e par l’organisation dès que l’établissement confirme sa participation.",
+            "L'équipe de coordination Euneos : pilote le déploiement du programme, forme les formateurs de l'établissement et forme aux ateliers avec les élèves."
+          ]
+        },
+        {
+          "id": "etablissements-8",
+          "q": "Le ou la référent(e) et le ou la formateur/trice sont-ils la même personne ?",
+          "paragraphes": [
+            "Le plus souvent, oui, surtout si la formatrice est interne à l’établissement : la personne qui suit la formation et devient formateur ou formatrice du Programme Euneos (Wise Up) est aussi le point de contact naturel de l'établissement. Rien n'empêche cependant de répartir les rôles entre deux personnes différentes, par exemple une personne référente qui coordonne le projet en interne, et une ou plusieurs autres qui animent la formation en tant que formateurs formés. C'est à l'établissement de choisir l'organisation la plus adaptée à son fonctionnement."
+          ]
+        },
+        {
+          "id": "etablissements-9",
+          "q": "Qui anime les ateliers avec les élèves ?",
+          "paragraphes": [
+            "Le formateur peut co-animer une premiere série d’ateliers de 4H avec une classe si celle ci participe l’évaluation. Au-delà de cette première intervention, c'est au personnel formé de l'établissement de prendre le relais et de proposer les ateliers. Il n'y a pas d'autre intervention d'intervenants extérieurs."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Les ateliers avec les élèves",
+      "questions": [
+        {
+          "id": "etablissements-10",
+          "q": "Quels élèves, et combien, peuvent participer aux ateliers et aux éventuels questionnaires d'évaluation ?",
+          "paragraphes": [
+            "Ce sont des élèves du secondaire faisant partie d'un groupe classe (et non des volontaires isolés). Il faut au moins une classe participante aux ateliers et une classe contrôle, mais davantage de classes ou de groupes peuvent également recevoir les ateliers une fois que les équipes volontaires ont suivi la formation. Les niveaux concernés sont au choix de l'établissement, de la 6e à la terminale. Les ateliers se déroulent pendant le temps scolaire ou extrascolaire, au sein de l'établissement : il n'y a pas d'activité en ligne, en dehors des questionnaires."
+          ]
+        },
+        {
+          "id": "etablissements-11",
+          "q": "Quelle est la différence entre les « ateliers » élèves et les « activités » du programme ?",
+          "paragraphes": [
+            "Les ateliers désignent la série structurée de min 4 à max 8 h (en 4x1h ou 2x2h) transmise post-formation, animée avec une classe entière et associée aux éventuels questionnaires d'évaluation. Les activités sont les pratiques plus courtes issues du programme et des ressources mises à disposition : tout personnel formé peut les mobiliser librement en classe, en dehors du format atelier, y compris dans des contextes de suivi individuel."
+          ]
+        },
+        {
+          "id": "etablissements-12",
+          "q": "Comment se déroule la formation aux ateliers pour les encadrants ?",
+          "paragraphes": [
+            "Le déroulé des ateliers (4h) est transmis lors d'une formation en ligne de 2h, gratuite, donnée par l'un des formateurs du Programme Euneos (Wise Up) référents. Cette formation aux ateliers peut aussi être proposée directement dans l'établissement par le formateur sur confirmation de l’association."
+          ]
+        }
+      ]
+    },
+    {
+      "titre": "Mise en œuvre, évaluation et suivi",
+      "questions": [
+        {
+          "id": "etablissements-13",
+          "q": "À partir de quel moment peut-on appliquer les activités du Programme ?",
+          "paragraphes": [
+            "Tout personnel formé peut commencer à mettre en place des activités issues du Programme Euneos (Wise Up) avec des élèves, que ces derniers participent ou non aux ateliers. La mise en place peut être progressive, et les activités choisies assez librement, pour autant qu'elles soient issues du programme et des ressources mises à disposition. Elles peuvent aussi être appliquées en dehors de la classe, dans des contextes de suivi individuel."
+          ]
+        },
+        {
+          "id": "etablissements-14",
+          "q": "Comment se déroule l'évaluation du programme ?",
+          "paragraphes": [
+            "Elle prend la forme de questionnaires proposés aux élèves participant aux ateliers et à un groupe contrôle, en amont et en aval, afin de mesurer l'évolution de certaines compétences visées par le programme. Cette évaluation s'inscrit dans le cadre du suivi requis par le projet Erasmus+. (Le détail précis des outils et du calendrier d'évaluation est à confirmer avec l'équipe de coordination Euneos.)"
+          ]
+        },
+        {
+          "id": "etablissements-15",
+          "q": "Le programme peut-il se poursuivre les années suivantes ?",
+          "paragraphes": [
+            "Oui : l'objectif est que les pratiques s'ancrent dans la durée. Une fois les équipes formées, l'établissement peut continuer à appliquer les activités et à proposer des ateliers à de nouvelles classes les années suivantes, sans nécessiter une nouvelle formation, tant que du personnel formé reste présent dans l'établissement. L’établissement peut aussi demander un nouveau financement pour former un groupe supplémentaire de personnel candidat."
+          ]
+        }
+      ]
+    }
+  ]
+}
