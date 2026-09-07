@@ -74,6 +74,10 @@ try {
     }
     for (const path of ['/', '/programme']) {
       await page.goto(`${base}${path}`)
+      await page.evaluate(() => document.fonts.ready)
+      if (path === '/' && width > 860) {
+        assert(Math.abs(bottom(await box('.citation__ph')) - bottom(await box('.citation__card'))) < 1, `Portrait de Candice aligné au bas de la citation à ${width}px`)
+      }
       const panel = await box('.final')
       for (const selector of ['.final h2', '.final__cta']) {
         const b = await box(selector)
