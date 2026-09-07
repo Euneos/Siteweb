@@ -275,6 +275,7 @@ const CHAMPS: readonly Champ[] = [
   heroFold="none"
   noindex={false}
 >
+  <div class="candidature-formateur s-vert">
   <Candidature
     titre="Je souhaite devenir formateur·rice"
     chapo="Merci de votre intérêt pour le programme WISE-UP.<br />Ce formulaire nous permet de mieux connaître votre parcours, votre expérience d&#x27;animation, votre lien éventuel avec un établissement, ainsi que vos disponibilités pour rejoindre une prochaine cohorte de formateur·rices WISE-UP.<br />Les informations recueillies serviront à étudier votre candidature et, si besoin, à organiser un échange complémentaire.<br />Durée estimée : 8 à 10 minutes."
@@ -285,4 +286,34 @@ const CHAMPS: readonly Champ[] = [
     erreur={url.get('erreur')}
     manquants={url.get('manquants')}
   />
+  </div>
 </Base>
+
+
+<style is:global>
+  .candidature-formateur {
+    background: var(--vert);
+    color: var(--blanc);
+  }
+  .candidature-formateur .cand__panel {
+    --filet: var(--blanc);
+    --ink-titre: var(--blanc);
+    color: var(--blanc);
+  }
+  .candidature-formateur .cand__panel h1,
+  .candidature-formateur .cand__section h2 {
+    color: var(--blanc);
+  }
+  .candidature-formateur select option {
+    background: var(--vert);
+    color: var(--blanc);
+  }
+  .candidature-formateur .cand__submit .cta {
+    --surface: var(--vert-clair);
+    --on-surface: var(--blanc);
+    --fold-color: var(--vert);
+  }
+  .candidature-formateur .cand__ok {
+    border-color: var(--blanc);
+  }
+</style>
