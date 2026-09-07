@@ -5,7 +5,8 @@
  * cartouche jaune et picto orange, puis un grand panneau a filet et coin plie
  * dont CHAQUE champ est lui-meme une boite a coin plie.
  */
-import Cartouche from '../components/Cartouche.astro'
+import { Image } from 'astro:assets'
+import cartoucheOcre from '../assets/brand/cartouche-ocre.png'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
@@ -45,7 +46,7 @@ const champs = [
            bord gauche de la photo -->
       <div class="ct__picto"><PictoBox picto="arche" surface="orange" size="clamp(5rem, 10.3vw, 9.25rem)" paysage /></div>
       <div class="ct__ph"><Photo src={photoContact} ratio="3/2" alt="Deux personnes échangent devant un tableau blanc" width={1600} widths={[480, 800, 1200, 1600]} quality={75} loading="eager" fetchpriority="high" /></div>
-      <div class="ct__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
+      <div class="ct__cartouche"><Image src={cartoucheOcre} alt="Euneos" width={300} widths={[150, 300, 450]} sizes="15vw" format="png" class="ct__cartouche-image" /></div>
     </div>
 
     <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="ct__panel">
@@ -134,6 +135,7 @@ const champs = [
 </script>
 
 <style is:global>
+  .ct__cartouche-image { display: block; width: 100%; height: auto; }
   /* Composition relevee v4 p.4 a 1440 px :
        photo 635 x 426 CENTREE (x 397 -> 1032), ratio 3/2 ;
        cartouche jaune 148 x 206 CONTRE le bord droit de la photo, aligne en
