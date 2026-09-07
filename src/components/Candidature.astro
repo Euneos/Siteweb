@@ -31,6 +31,8 @@ export interface Champ {
 }
 
 interface Props {
+  rectangular?: boolean
+
   titre: string
   chapo: string
   action: string
@@ -41,7 +43,7 @@ interface Props {
   manquants?: string | null
 }
 
-const { titre, chapo, action, champs, ok, emailEnvoye, erreur, manquants } = Astro.props
+const { rectangular = false, titre, chapo, action, champs, ok, emailEnvoye, erreur, manquants } = Astro.props
 const absents = (manquants ?? '').split(',').filter(Boolean)
 const libelles = Object.fromEntries(champs.map((c) => [c.id, c.label]))
 
@@ -67,7 +69,7 @@ const pleineLargeur = (c: Champ) =>
 
 <section class="section cand" data-form-action={action}>
   <div class="page">
-    <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="cand__panel">
+    <Paper outline fold={rectangular ? "none" : "tr"} foldSize="clamp(3rem, 7vw, 7rem)" class="cand__panel">
       <h1>{titre}</h1>
       <p class="cand__chapo" set:html={chapo} />
 
@@ -174,7 +176,7 @@ const pleineLargeur = (c: Champ) =>
       {
         !ok && (
           <div class="cand__submit">
-            <button type="submit" form="cand-form" class="cta s-papier">Envoyer ma candidature</button>
+            <button type="submit" form="cand-form" class:list={["cta", rectangular ? "s-blanc cta--cut" : "s-papier"]}>Envoyer ma candidature</button>
           </div>
         )
       }
