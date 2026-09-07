@@ -12,6 +12,9 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
+import photoProgramme from '../assets/photos/programme-javier-trueba.jpg'
+import cartoucheProgramme from '../assets/brand/cartouche-programme-violet.svg'
+import photoFormation from '../assets/photos/programme-formation-parabol.jpg'
 
 /* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
    un cartouche. Les principes reprennent le comportement des cartes de
@@ -169,7 +172,7 @@ const faq = [
   <section slot="hero" class="hz hz--mirror">
     <div class="hz__grid">
       <div class="hz__side">
-        <div class="hz__cartouche"><Cartouche surface="rose" fig="fig3" /></div>
+        <div class="hz__cartouche"><img src={cartoucheProgramme.src} alt="Euneos" width="354" height="500" class="programme__cartouche-image" /></div>
 
         <div class="hz__bubblewrap">
           <Paper outline fold="br" class="hz__bubble">
@@ -183,7 +186,7 @@ const faq = [
       </div>
 
       <div class="hz__media">
-        <Photo ratio="5/4" label="photo — atelier en situation" />
+        <Photo src={photoProgramme} ratio="5/4" alt="Des étudiants en classe, dont une jeune femme debout avec ses cahiers" width={1600} widths={[480, 800, 1200, 1600]} quality={75} sizes="(max-width: 860px) 100vw, 50vw" loading="eager" fetchpriority="high" />
       </div>
 
     </div>
@@ -218,7 +221,7 @@ const faq = [
        titres puis un paragraphe. Texte complet de la maquette. -->
   <section class="section">
     <div class="page erasmus">
-      <div class="erasmus__media"><Photo ratio="2/3" label="photo — formation" /></div>
+      <div class="erasmus__media"><Photo src={photoFormation} ratio="2/3" alt="Une animatrice échange avec des participantes pendant un atelier de formation" width={1920} widths={[640, 960, 1440, 1920]} quality={75} sizes="(max-width: 860px) 100vw, 85vw" /></div>
       <Paper surface="bleu" fold="tr" class="erasmus__card">
         <p class="erasmus__l1">
           Le Programme européen porté par Euneos a été développé et financé dans le cadre des
@@ -433,6 +436,11 @@ const faq = [
 </Base>
 
 <style is:global>
+  .programme__cartouche-image {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
   /* HERO PROGRAMME : l'en-tete reste blanc sur le bleu, seul le lien courant
      passe en bleu fonce. Le cartouche rose s'aligne sur le haut de la photo. */
   .hero-zone.s-bleu .hdr {
@@ -488,6 +496,9 @@ const faq = [
   }
   .erasmus__media {
     min-width: 0;
+  }
+  .erasmus__media img {
+    object-position: 60% center;
   }
   .erasmus__media > * {
     height: 100%;
