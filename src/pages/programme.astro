@@ -5,7 +5,6 @@
  * au Programme cle (« Le bleu est reserve pour le Programme cle d'Euneos »).
  */
 import Brand from '../components/Brand.astro'
-import Cartouche from '../components/Cartouche.astro'
 import Cta from '../components/Cta.astro'
 import CtaFinal from '../components/CtaFinal.astro'
 import Paper from '../components/Paper.astro'
@@ -15,6 +14,12 @@ import Base from '../layouts/Base.astro'
 import photoProgramme from '../assets/photos/programme-javier-trueba.jpg'
 import cartoucheProgramme from '../assets/brand/cartouche-programme-violet.svg'
 import photoFormation from '../assets/photos/programme-formation-parabol.jpg'
+import { Image } from 'astro:assets'
+import lyceeOrmesson from '../assets/photos/lycee-jean-dormesson.jpeg'
+import collegeFleming from '../assets/photos/college-alexander-fleming.jpeg'
+import photoFaq from '../assets/photos/programme-faq-formation.jpeg'
+import cartoucheFaq from '../assets/brand/cartouche-programme-jaune.svg'
+import mainFormateur from '../assets/brand/main-formateur.svg'
 
 /* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
    un cartouche. Les principes reprennent le comportement des cartes de
@@ -121,12 +126,16 @@ const temoins = [
     citation:
       '« L’importance de s’arrêter et prendre conscience de soi et de ce que l’on ressent, accepter et accueillir nos émotions pour pouvoir guider les élèves. »',
     role: 'Enseignant·e, Collège Alexander Fleming (Orsay)',
+    photo: collegeFleming,
+    photoAlt: 'Bâtiment du collège Alexander Fleming à Orsay',
   },
   {
     nom: 'Témoignage',
     citation:
       '« Formation essentielle pour que notre posture puisse accueillir le mal-être des élèves — ouvrir le débat, libérer la parole dans un emploi du temps très chargé. »',
     role: 'Enseignant·e, Lycée Jean d’Ormesson (Châteaurenard)',
+    photo: lyceeOrmesson,
+    photoAlt: 'Bâtiment du lycée Jean d’Ormesson à Châteaurenard',
   },
 ] as const
 
@@ -383,8 +392,8 @@ const faq = [
           temoins.map((t) => (
             <li class="temoin">
               <Paper surface="ocre" fold="none" class="etiquette temoin__name">{t.nom}</Paper>
-              <div class="temoin__ph temoin__ph--symbol" aria-hidden="true">
-                <Brand name="fig2" />
+              <div class="temoin__ph temoin__ph--photo">
+                <Image src={t.photo} alt={t.photoAlt} width={t.photo.width} widths={[240, t.photo.width]} sizes="(max-width: 860px) 30vw, 15vw" format="webp" quality={80} loading="lazy" />
               </div>
               <Paper surface="papier" fold="br" class="temoin__card">
                 <blockquote>{t.citation}</blockquote>
@@ -418,8 +427,8 @@ const faq = [
       </div>
       <div class="faq__media">
         <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="lg" paysage /></div>
-        <Photo ratio="4/3" label="photo — équipe" />
-        <div class="faq__cartouche"><Cartouche surface="jaune" fig="fig1" /></div>
+        <Photo src={photoFaq} ratio="4/3" alt="Des participantes et participants échangent pendant une formation sur l’attention consciente" width={1600} widths={[480, 800, 1200, 1600]} quality={75} sizes="(max-width: 860px) 100vw, 50vw" />
+        <div class="faq__cartouche"><img src={cartoucheFaq.src} alt="Euneos" width="354" height="500" class="programme__cartouche-image" loading="lazy" /></div>
       </div>
     </div>
   </section>
@@ -427,9 +436,12 @@ const faq = [
   <!-- BLOC FORMATEUR — grand bloc jaune (maquette v4 p.2, bas de page) -->
   <section class="section">
     <div class="page">
-      <div class="formateur s-jaune">
+      <div class="formateur s-jaune-clair">
+        <img class="formateur__main" src={mainFormateur.src} alt="" aria-hidden="true" />
+        <div class="formateur__in">
         <h2>Vous souhaitez devenir formateur·rice ?</h2>
-        <Cta href="/candidater/formateur" surface="bleu-fonce" class="formateur__cta">En savoir plus</Cta>
+        <Cta href="/candidater/formateur" surface="blanc" fold={false} class="formateur__cta">En savoir plus</Cta>
+        </div>
       </div>
     </div>
   </section>
@@ -612,18 +624,41 @@ const faq = [
     }
   }
 
-  /* BLOC FORMATEUR — grand bloc jaune, titre vert, CTA (maquette v4 p.2) */
+  /* Main agrandie et recadree selon la reference fournie. */
   .formateur {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 519.6 / 257;
     background: var(--surface);
-    color: var(--on-surface);
+    display: grid;
+    place-items: center;
+  }
+  .formateur__main {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .formateur__in {
+    position: relative;
     display: grid;
     justify-items: center;
-    gap: clamp(1.5rem, 4vw, 2.5rem);
+    gap: clamp(1.25rem, 3.5vw, 2.25rem);
     text-align: center;
-    padding: clamp(3rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+    padding: clamp(1.5rem, 4vw, 3rem);
   }
   .formateur h2 {
-    max-width: 20ch;
+    max-width: 24ch;
+    color: var(--blanc);
+  }
+  .formateur .formateur__cta {
+    --on-surface: var(--jaune);
+  }
+  @media (max-width: 860px) {
+    .formateur {
+      aspect-ratio: auto;
+      min-height: clamp(18rem, 78vw, 24rem);
+    }
   }
 
   /* WHY */
@@ -969,13 +1004,21 @@ const faq = [
     z-index: 2;
     position: relative;
   }
-  .temoin__ph--symbol {
+  .temoin__ph--photo {
     display: grid;
     place-items: center;
     aspect-ratio: 3 / 4;
     padding: 18%;
     background: var(--rose-clair);
     color: var(--vert);
+  }
+  .temoin__ph--photo img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
   .temoin__card {
     /* releve v4 : pli aplati 147 x 77 px sur une carte de 499 x 361 */
