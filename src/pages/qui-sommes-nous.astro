@@ -12,6 +12,7 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
+import atelierEquipe from '../assets/photos/atelier-equipe.jpg'
 
 const jalons = [
   'L’instruction interministérielle de 2022 inscrit les compétences psychosociales dans les objectifs éducatifs.',
@@ -189,7 +190,15 @@ const equipe = [
   <section class="section">
     <div class="page mission">
       <div class="mission__media">
-        <Photo ratio="var(--mission-photo-ratio, 3/4)" label="photo — jeunes" />
+        <Photo
+          src={atelierEquipe}
+          ratio="3/4"
+          alt="Des participantes échangent autour d’une table lors d’un atelier"
+          format="avif"
+          quality={65}
+          widths={[640, 960, 1280, 1600]}
+          sizes="(max-width: 860px) 125vw, (max-width: 1440px) 82vw, 1180px"
+        />
         <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="md" /></div>
         <Paper surface="rose" fold="tl" class="mission__badge">
           <span class="mission__badge-mark"><Brand name="wordmark" /></span>
@@ -470,99 +479,104 @@ const equipe = [
     }
   }
 
-  /* MISSION */
+  /* MISSION — composition de la reference : photo en retrait, cartouche
+     aligne au bas du panneau et texte a la taille du corps courant. */
   .mission {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
-    align-items: start;
+    grid-template-columns: minmax(0, 0.56fr) minmax(0, 1fr);
+    align-items: stretch;
+    padding-top: calc(var(--pbox-md) * 0.48);
   }
   .mission__media {
     position: relative;
+    aspect-ratio: 0.56;
     z-index: 2;
   }
-    /* releve v4 : le cartouche orange est pose sur le coin haut-droit de la
-     PHOTO, son bord droit contre le bord gauche du bloc vert — jamais sur le
-     texte. Le bloc vert mord de 6 % sur la colonne photo : on s'arrete avant. */
+  .mission__media > .ph {
+    position: absolute;
+    inset: 8% 0 10%;
+    height: 82%;
+    aspect-ratio: auto !important;
+  }
+  /* Cadrage de la reference : partie droite de l'atelier, sans le plafond.
+     L'original reste intact ; le cadre masque le haut de la photo. */
+  .mission__media > .ph img {
+    height: 125%;
+    object-position: right bottom;
+    transform: translateY(-20%);
+  }
   .mission__picto {
     position: absolute;
     right: 0;
-    top: calc(var(--pbox-md) * -0.42);
+    top: calc(var(--pbox-md) * -0.48);
     z-index: 3;
   }
   .mission__picto svg {
     transform: scaleX(-1);
   }
-
-  /* Sur petit ecran le conteneur touche le bord de l'ecran : le decalage
-     negatif ci-dessus poussait l'element hors cadre et faisait scroller
-     TOUTE la page sur le cote. On rentre le debordement au point de
-     bascule ; sur ordinateur rien ne change. */
-  @media (max-width: 860px) {
-    .mission__picto {
-      right: 0;
-    }
-  }
-  /* Le cartouche se pose au bas de la photo et rejoint le bloc de texte. */
   .mission__badge {
-    position: relative;
-    margin-left: 16%;
-    width: 105%;
-    padding: clamp(1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.4vw, 1.75rem);
+    position: absolute;
+    left: 16%;
+    bottom: 0;
+    width: 84%;
+    padding: var(--s-int) clamp(1rem, 2.2vw, 2rem);
     z-index: 4;
-    --f: clamp(1.25rem, 2.4vw, 2rem);
-    color: var(--vert);
+    --fx: var(--fold-md);
+    --fy: calc(var(--fold-md) * 0.55);
+    --on-surface: var(--blanc);
+    color: var(--blanc);
   }
   .mission__badge-mark {
     display: block;
-    width: 72%;
-    margin-bottom: 0.5rem;
+    width: 86%;
+    margin: 0 auto 1rem;
   }
   .mission__badge-txt {
     font-size: var(--t-nav);
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.2;
     display: block;
   }
   .mission__card {
-    /* releve v4 : bloc de 708 x 711 px, pli aplati 186 x 93, texte a 64 px
-       du bord gauche et 38 px du haut */
-    --fx: clamp(3rem, 12.9vw, 11.6rem);
-    --fy: clamp(1.5rem, 6.5vw, 5.8rem);
-    margin-left: 0;
-    margin-top: clamp(4rem, 8.75vw, 7.875rem);
-    min-height: clamp(24rem, 40vw, 34rem);
+    --fx: clamp(3rem, 16.3vw, 13rem);
+    --fy: calc(var(--fx) * 0.5);
     padding: var(--s-int);
-    padding-left: clamp(2rem, 4.4vw, 4rem);
-    padding-bottom: max(var(--s-int), calc(var(--fy) + 0.5rem));
-    display: grid;
-    gap: 0;
+    padding-left: clamp(2rem, 5.5vw, 4.4rem);
+    padding-bottom: max(var(--s-int), var(--fy));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1em;
     z-index: 1;
   }
-  /* Le texte de mission reprend le corps courant, la derniere phrase restant
-     mise en valeur. */
   .mission__card > p {
+    margin: 0;
     font-size: var(--t-corps);
     line-height: var(--lh-corps);
     font-weight: 400;
   }
-  .mission__strong {
+  .mission__card > .mission__strong {
     font-weight: 600;
   }
   @media (max-width: 860px) {
     .mission {
-      --mission-photo-ratio: 4/3;
       grid-template-columns: 1fr;
       gap: 0;
     }
+    .mission__media > .ph {
+      position: static;
+      height: auto;
+      aspect-ratio: 4 / 3 !important;
+    }
+    .mission__media {
+      aspect-ratio: auto;
+    }
     .mission__card {
-      margin: 0;
-      min-height: 0;
-      gap: var(--s-int);
-      padding-left: clamp(1.5rem, 3vw, 2.5rem);
+      padding-left: var(--s-int);
     }
     .mission__badge {
-      margin-left: 0;
-      width: 85%;
+      left: 0;
+      width: min(84%, 22rem);
     }
   }
 

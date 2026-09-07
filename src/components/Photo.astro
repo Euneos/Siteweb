@@ -24,6 +24,10 @@ interface Props {
   label?: string
   /** true = cadre vide (aucune photo) */
   empty?: boolean
+  format?: 'webp' | 'avif'
+  quality?: number
+  widths?: number[]
+  sizes?: string
 }
 
 const {
@@ -33,6 +37,10 @@ const {
   class: cls = '',
   label = 'photo',
   empty = false,
+  format = 'webp',
+  quality,
+  widths = [480, 816],
+  sizes = '(max-width: 860px) 100vw, 50vw',
 } = Astro.props
 
 const image = src ?? jeunes
@@ -50,7 +58,7 @@ const image = src ?? jeunes
     </div>
   ) : (
     <div class:list={['ph', cls]} style={`aspect-ratio:${ratio}`}>
-      <Image src={image} alt={alt} widths={[480, 816]} sizes="(max-width: 860px) 100vw, 50vw" loading="lazy" decoding="async" />
+      <Image src={image} alt={alt} format={format} quality={quality} widths={widths} sizes={sizes} loading="lazy" decoding="async" />
     </div>
   )
 }
