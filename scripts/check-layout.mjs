@@ -34,7 +34,8 @@ try {
     const photo = await box('.mission__media .ph')
     const badge = await box('.mission__badge')
     const card = await box('.mission__card')
-    assert(Math.abs(badge.y - bottom(photo)) < 1, `Cartouche sous la photo à ${width}px`)
+    assert(badge.y < bottom(photo) && badge.x >= photo.x - 1 && badge.x + badge.width <= photo.x + photo.width + 1, `Cartouche superposé dans la largeur de la photo à ${width}px`)
+    if (width > 860) assert(Math.abs(bottom(badge) - bottom(card)) < 1, `Cartouche aligné au panneau à ${width}px`)
     if (width <= 860) assert(card.y >= bottom(badge) - 1, 'Le texte ne chevauche pas le cartouche')
     for (const paragraph of await page.locator('.mission__card > p').all()) {
       const p = await paragraph.boundingBox()

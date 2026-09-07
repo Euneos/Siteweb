@@ -353,8 +353,11 @@ propre avant une intervention et préserver les textes et changements récents d
 - Une capture de maquette sert à comparer, pas à fabriquer une fausse photo originale.
   Les portraits nominatifs et les logos partenaires absents restent à fournir ; ne pas
   prétendre qu'une photo générique est le portrait réel d'un membre.
-- Définir le cadrage ordinateur ET mobile. La mission utilise 3/4 puis 4/3. Son cartouche
-  reste dans le flux sous la photo ; seul le pictogramme décoratif est positionné en absolu.
+- Définir le cadrage ordinateur ET mobile. Depuis le retour de Pauline du 7 septembre,
+  la mission cadre la photo d'atelier sur la droite, sans plafond, puis passe en 4/3
+  sur mobile. Le cartouche rose à logo blanc se superpose au bas de la photo, reste
+  dans sa largeur et s'aligne au bas du panneau vert sur ordinateur (screen 2 fourni).
+  Le texte du panneau utilise le corps courant ; la dernière phrase reste en gras.
 
 ### Espaces, textes et interactions
 
