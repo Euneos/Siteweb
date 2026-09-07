@@ -294,7 +294,7 @@ const parcours = [
   <section class="section">
     <div class="page citation">
       <Paper surface="ocre" fold="none" class="etiquette citation__name">Candice Marro</Paper>
-      <div class="citation__ph"><Photo src={candice} alt="Candice Marro, fondatrice et directrice générale d’EUNEOS" ratio="3/4" width={391} widths={[240, 391]} quality={85} /></div>
+      <div class="citation__ph"><Photo src={candice} alt="Candice Marro, fondatrice et directrice générale d’EUNEOS" ratio="391/562" class="portrait-candice" width={391} widths={[240, 391]} quality={85} /></div>
       <Paper surface="papier" fold="br" class="citation__card">
         <blockquote>
           « EUNEOS s’inscrit à l’intersection entre les enjeux éducatifs, numériques et de
@@ -331,7 +331,7 @@ const parcours = [
   <!-- 9. PARCOURS -->
   <section class="section parcours has-silo">
     <div class="silo silo--right parcours__fig" aria-hidden="true">
-      <Brand name="fig4" height="100%" />
+      <Brand name="fig5" height="100%" />
     </div>
     <div class="page parcours__in">
       <h2 class="parcours__t">Vous souhaitez prendre part au projet ?</h2>
@@ -996,6 +996,8 @@ const parcours = [
     grid-column: 1 / 2;
     grid-row: 2;
     width: 100%;
+    max-width: 15rem;
+    justify-self: end;
     position: relative;
     z-index: 2;
   }
@@ -1046,6 +1048,7 @@ const parcours = [
     }
     .citation__ph {
       width: 32.2265625%;
+      justify-self: start;
     }
     .citation__name {
       grid-row: auto;
@@ -1087,6 +1090,9 @@ const parcours = [
     max-width: 40vw;
     transform: translate(38%, -50%) scale(1.08);
     transform-origin: right center;
+  }
+  .parcours__fig > .brand {
+    transform: scaleX(-1);
   }
   .parcours__in {
     position: relative;

@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+.portrait-candice img {
+  object-position: center top;
+}
+
 *,
 *::before,
 *::after {

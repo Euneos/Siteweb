@@ -320,7 +320,7 @@ const equipe = [
           equipe.map((m) => (
             <li class="membre membre--oper">
               <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
-              <Photo src={m.photo} alt={m.photo ? 'Candice Marro, fondatrice et directrice générale d’EUNEOS' : undefined} ratio="2/3" class="membre__ph" width={m.photo ? 391 : undefined} widths={m.photo ? [240, 391] : undefined} quality={m.photo ? 85 : undefined} />
+              <Photo src={m.photo} alt={m.photo ? 'Candice Marro, fondatrice et directrice générale d’EUNEOS' : undefined} ratio={m.photo ? '391/562' : '2/3'} class={m.photo ? 'membre__ph portrait-candice' : 'membre__ph'} width={m.photo ? 391 : undefined} widths={m.photo ? [240, 391] : undefined} quality={m.photo ? 85 : undefined} />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p>{m.fonction}</p>
                 <a href={`mailto:${m.email}`}>Contacter</a>
@@ -816,6 +816,10 @@ const equipe = [
   .equipe--ca .membre__ph {
     width: 54%;
     margin-left: 38%;
+  }
+  .equipe--oper .membre__ph.portrait-candice {
+    width: 44%;
+    max-width: 11.25rem;
   }
   .equipe--oper .membre__card,
   .equipe--ca .membre__card {
