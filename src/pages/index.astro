@@ -10,7 +10,7 @@ import Cta from '../components/Cta.astro'
 import CtaFinal from '../components/CtaFinal.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
-import classe from '../assets/photos/classe.jpg'
+import accueilAtelier from '../assets/photos/accueil-atelier-timur-shakerzianov.jpg'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
@@ -98,9 +98,15 @@ const parcours = [
 
       <div class="hz__media">
         <Photo
-          src={classe}
+          src={accueilAtelier}
           ratio="260/177.3"
-          alt="Des collégiens assis en groupe, attentifs, pendant un atelier"
+          alt="Des jeunes prennent des notes dans leurs carnets pendant un atelier"
+          quality={75}
+          width={1600}
+          widths={[480, 800, 1200, 1600]}
+          sizes="(max-width: 860px) 100vw, 45vw"
+          loading="eager"
+          fetchpriority="high"
         />
       </div>
 
