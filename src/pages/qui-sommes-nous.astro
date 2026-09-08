@@ -23,6 +23,7 @@ import francoise from '../assets/photos/francoise-sarrazin.jpg'
 import guilain from '../assets/photos/guilain-praseuth.jpg'
 import solange from '../assets/photos/solange-eon.png'
 import jeanFrancois from '../assets/photos/jean-francois-mamet.jpg'
+import gilles from '../assets/photos/gilles-vernet-youri-zakovitch.jpg'
 
 const jalons = [
   'L’instruction interministérielle de 2022 inscrit les compétences psychosociales dans les objectifs éducatifs.',
@@ -129,7 +130,13 @@ const ca: { nom: string; fonction: string; bio?: string; photo?: ImageMetadata }
     fonction: 'Ingénieur technico-commercial dans les services aux entreprises,',
     bio: ' bientôt retraité d’un constructeur informatique, Jean-François a aussi une longue expérience du monde associatif et des contacts avec les jeunes. Il a monté des projets sportifs dans les écoles primaires et supervisé des professionnels engagés auprès des jeunes. Il amène son expérience des chiffres et sa rigueur dans sa fonction de trésorier.',
   },
-  ...Array.from({ length: 3 }, () => ({ nom: 'À venir', fonction: 'À venir' })),
+  {
+    nom: 'Gilles Vernet',
+    photo: gilles,
+    fonction: 'Ancien trader devenu instituteur, Gilles Vernet est également auteur, réalisateur et conférencier.',
+    bio: ' Il interroge dans ses films, ses livres et ses conférences notre rapport au temps face à l’accélération technologique et la pression financière. Il met en question la déshumanisation liée à la démultiplication des machines et plaide pour une plus grande place donnée au langage, à l’art et aux liens réels dans une société absorbée par le virtuel.',
+  },
+  ...Array.from({ length: 2 }, () => ({ nom: 'À venir', fonction: 'À venir' })),
 ]
 
 const equipe = [
