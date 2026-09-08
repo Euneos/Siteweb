@@ -21,6 +21,20 @@ try {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto(`${base}/qui-sommes-nous`)
     await page.evaluate(() => document.fonts.ready)
+    await page.waitForFunction(() => {
+      const cards = [...document.querySelectorAll('.equipe--ca .membre__card')]
+      const heights = cards.map((card) => card.getBoundingClientRect().height)
+      return Math.max(...heights) - Math.min(...heights) < 1
+    })
+    if (width <= 860) {
+      for (const member of await page.locator('.membre').all()) {
+        const frame = await member.boundingBox()
+        for (const part of await member.locator(':scope > .membre__name, :scope > .membre__ph, :scope > .membre__card').all()) {
+          const b = await part.boundingBox()
+          assert(Math.abs(b.x + b.width / 2 - (frame.x + frame.width / 2)) < 1, `Carte centrée sur mobile à ${width}px`)
+        }
+      }
+    }
     const gap = async () => (await box('.fond__details summary')).y - bottom(await box('.fond__txt > p'))
     const closedGap = await gap()
     await page.locator('.fond__details summary').click()

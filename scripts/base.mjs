@@ -26,9 +26,10 @@ const T = {
 
 const STATUTS_ETAB = ['Candidature recue', 'Accuse reception', 'Invite', 'En discussion',
                       'Retenu', 'Engage', 'Refuse', 'Abandonne']
-const STATUTS_FORM = ['Candidature recue', 'Accuse reception', 'Invite reunion info',
-                      'En attente confirmation', 'Confirme pour formation', 'En formation',
-                      'Habilite', 'Refuse', 'Abandonne']
+const STATUTS_FORM = ['Candidature recue', 'Accuse reception', 'Candidature validée',
+                      "Liste d'attente", 'Refuse', 'En attente confirmation formation',
+                      'En cours de formation', 'Formateur en cours de validation',
+                      'Formateur validé', 'Abandonne']
 
 const token = process.env.NOCODB_TOKEN
 if (!token) {
@@ -46,7 +47,20 @@ async function api(chemin, options = {}) {
   return r.json()
 }
 
-const lire = (table, q = '') => api(`/tables/${T[table]}/records?limit=200${q}`).then((d) => d.list || [])
+export async function lire(table, q = '') {
+  const rows = []
+  let offset = 0
+  // NocoDB Cloud can return fewer rows than requested without ending the list.
+  for (;;) {
+    const page = await api(`/tables/${T[table]}/records?limit=100&offset=${offset}${q}`)
+    const batch = page.list ?? []
+    rows.push(...batch)
+    if (page.pageInfo?.isLastPage === true || batch.length === 0) return rows
+    offset += batch.length
+    if (page.pageInfo?.totalRows != null && offset >= page.pageInfo.totalRows) return rows
+    if (offset > 100000) throw new Error('Pagination anormale : lecture interrompue.')
+  }
+}
 
 function tableau(lignes, colonnes) {
   if (!lignes.length) return console.log('  (aucun resultat)')
@@ -58,7 +72,7 @@ function tableau(lignes, colonnes) {
 
 const commandes = {
   async candidatures() {
-    const p = await lire('participations', '&where=' + encodeURIComponent('(statut,neq,Engage)') +
+    const p = await lire('participations', '&where=' + encodeURIComponent('(statut,neq,Engage)~and(statut,neq,Refuse)~and(statut,neq,Abandonne)') +
       '&fields=Id,code,statut,date_candidature,etablissement')
     console.log(`\nCandidatures etablissements en cours — ${p.length}\n`)
     tableau(p.map((x) => ({
@@ -71,9 +85,9 @@ const commandes = {
 
   async formateurs() {
     const e = await lire('engagements', '&fields=Id,code,statut,priorite,date_candidature,formateur')
-    const enCours = e.filter((x) => !['Habilite', 'Refuse', 'Abandonne'].includes(x.statut))
+    const enCours = e.filter((x) => !['Habilite', 'Formateur validé', 'Refuse', 'Abandonne'].includes(x.statut))
     console.log(`\nCandidatures formateurs en cours — ${enCours.length} (sur ${e.length})\n`)
-    tableau(enCours.slice(0, 60).map((x) => ({
+    tableau(enCours.map((x) => ({
       id: x.Id, personne: [x.formateur?.prenom, x.formateur?.nom].filter(Boolean).join(' ') || '?',
       statut: x.statut ?? '', priorite: x.priorite ?? '',
     })), ['id', 'personne', 'statut', 'priorite'])
@@ -97,10 +111,9 @@ const commandes = {
     for (const [s, n] of Object.entries(parStatut(pc)).sort((a, b) => b[1] - a[1])) {
       console.log(`    ${String(n).padStart(4)}  ${s}`)
     }
-    // Les formateurs ne sont pas rattaches a une cohorte : leur champ d'origine
-    // contenait une SESSION ("Avril 2026", "Septembre 2026"), pas une cohorte.
-    // On montre donc tout le vivier.
-    console.log('\n  Pipeline formateurs (tout le vivier) :')
+    // Un parcours n'est pas une personne : une candidature et une formation
+    // peuvent appartenir au meme formateur. Ne pas appeler ce total un vivier.
+    console.log('\n  Parcours formateurs (candidatures et formations, toutes promotions) :')
     for (const [s, n] of Object.entries(parStatut(eng)).sort((a, b) => b[1] - a[1])) {
       console.log(`    ${String(n).padStart(4)}  ${s}`)
     }
@@ -176,7 +189,7 @@ const commandes = {
       }))
       .filter((x) => x.depuis_jours >= seuil)
       .sort((a, b) => b.depuis_jours - a.depuis_jours)
-    console.log(`\nDossiers sans mouvement depuis ${seuil} jours ou plus — ${bloques.length}\n`)
+    console.log(`\nCandidatures âgées de ${seuil} jours ou plus (dernier échange à vérifier) — ${bloques.length}\n`)
     tableau(bloques, ['id', 'etablissement', 'statut', 'depuis_jours'])
     if (bloques.length) {
       console.log("\n  Aucun mail ne part tout seul : ces relances sont a envoyer a la main.")
@@ -225,6 +238,7 @@ const commandes = {
   },
 }
 
+if (import.meta.main) {
 const [cmd, ...args] = process.argv.slice(2)
 if (!cmd || !commandes[cmd]) {
   console.log(`
@@ -244,3 +258,5 @@ Base EUNEOS — commandes disponibles
   process.exit(cmd ? 1 : 0)
 }
 commandes[cmd](...args).catch((e) => { console.error('\n  ' + e.message + '\n'); process.exit(1) })
+
+}

@@ -376,6 +376,26 @@ const equipe = [
     const track = carousel.querySelector<HTMLElement>('[data-carousel-track]')
     if (!track) return
 
+    // Equal closed cards, while each biography can still grow independently.
+    // Measuring only the introductions avoids changing the baseline on toggle.
+    const cards = [...track.querySelectorAll<HTMLElement>('.membre__card')]
+    const alignClosedCards = () => {
+      const height = Math.ceil(Math.max(0, ...cards.map((card) => {
+        const intro = card.querySelector<HTMLElement>(':scope > p')
+        const style = getComputedStyle(card)
+        return (intro?.getBoundingClientRect().height ?? 0)
+          + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+      })))
+      track.style.setProperty('--ca-card-min-height', `${height}px`)
+    }
+    const resize = new ResizeObserver(alignClosedCards)
+    for (const card of cards) {
+      const intro = card.querySelector<HTMLElement>(':scope > p')
+      if (intro) resize.observe(intro)
+    }
+    void document.fonts.ready.then(alignClosedCards)
+    alignClosedCards()
+
     track.addEventListener('wheel', (event) => {
       if (!event.shiftKey) return
       event.preventDefault()
@@ -872,6 +892,7 @@ const equipe = [
   .equipe--ca .membre__card {
     position: relative;
     display: block;
+    min-height: var(--ca-card-min-height, 0);
     font-size: var(--t-bio);
     line-height: var(--lh-corps);
     padding: 1rem 1rem calc(2.75rem + var(--fy) + 0.25rem);
@@ -924,6 +945,19 @@ const equipe = [
     }
     .equipe--ca .membre {
       flex-basis: 100%;
+    }
+    .equipe--oper .membre__name,
+    .equipe--ca .membre__name,
+    .equipe--oper .membre__ph,
+    .equipe--ca .membre__ph,
+    .equipe--oper .membre__card,
+    .equipe--ca .membre__card {
+      margin-inline: auto;
+      justify-self: center;
+    }
+    .equipe--oper .membre__name,
+    .equipe--ca .membre__name {
+      text-align: center;
     }
   }
 
