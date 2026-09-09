@@ -1436,26 +1436,11 @@ body {
   }
 }
 
-  /* --- PARCOURS ---
-     Maquette : grande silhouette vert-gris a droite, PLEINE (elle passe derriere
-     les etiquettes, qui sont opaques), et trois etiquettes d'un quart de largeur
-     alignees a gauche. */
-  /* meme mecanique que le constat : rythme commun, hauteur mini pour la
-     silhouette, contenu centre dessus */
+  /* Trois liens pour prendre part au projet. */
   .parcours {
     display: grid;
     align-content: start;
     min-height: 0;
-  }
-  .parcours .parcours__fig {
-    color: var(--vert-clair);
-    height: clamp(16rem, 30vw, 30rem);
-    max-width: 26vw;
-    transform: translate(38%, -20%);
-    transform-origin: right center;
-  }
-  .parcours__fig > .brand {
-    transform: scaleX(-1);
   }
   .parcours__in {
     position: relative;
