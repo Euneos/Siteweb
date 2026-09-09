@@ -153,7 +153,7 @@ const CHAMPS: readonly Champ[] = [
   },
   {
     id: "motivation",
-    label: "Pourquoi souhaitez-vous devenir formateur·rice WISE-UP ?",
+    label: "Pourquoi souhaitez-vous devenir formateur·rice du Programme Euneos (WISE UP) ?",
     type: "textarea",
     requis: true,
     large: true
@@ -271,15 +271,15 @@ const CHAMPS: readonly Champ[] = [
 
 <Base
   title="Candidater — Devenir formateur·rice | EUNEOS"
-  description="Rejoignez une prochaine cohorte de formateur·rices WISE-UP : parcours, expérience d’animation et disponibilités."
+  description="Rejoignez une prochaine cohorte de formateur·rices du Programme Euneos (WISE UP) : parcours, expérience d’animation et disponibilités."
   heroFold="none"
   noindex={false}
 >
-  <div class="candidature-formateur s-vert">
+  <div class="candidature-page s-vert">
   <Candidature
     rectangular
     titre="Je souhaite devenir formateur·rice"
-    chapo="Merci de votre intérêt pour le programme WISE-UP.<br />Ce formulaire nous permet de mieux connaître votre parcours, votre expérience d&#x27;animation, votre lien éventuel avec un établissement, ainsi que vos disponibilités pour rejoindre une prochaine cohorte de formateur·rices WISE-UP.<br />Les informations recueillies serviront à étudier votre candidature et, si besoin, à organiser un échange complémentaire.<br />Durée estimée : 8 à 10 minutes."
+    chapo="Merci de votre intérêt pour le Programme Euneos (WISE UP).<br />Ce formulaire nous permet de mieux connaître votre parcours, votre expérience d&#x27;animation, votre lien éventuel avec un établissement, ainsi que vos disponibilités pour rejoindre une prochaine cohorte de formateur·rices du Programme Euneos (WISE UP).<br />Les informations recueillies serviront à étudier votre candidature et, si besoin, à organiser un échange complémentaire.<br />Durée estimée : 8 à 10 minutes."
     action="/api/candidature-formateur"
     champs={CHAMPS}
     ok={url.get('ok')}
@@ -289,35 +289,3 @@ const CHAMPS: readonly Champ[] = [
   />
   </div>
 </Base>
-
-
-<style is:global>
-  body:has(.candidature-formateur) { background: var(--vert); }
-  .candidature-formateur .champ { clip-path: none; }
-  .candidature-formateur {
-    background: var(--vert);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__panel {
-    --filet: var(--blanc);
-    --ink-titre: var(--blanc);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__panel h1,
-  .candidature-formateur .cand__section h2 {
-    color: var(--blanc);
-  }
-  .candidature-formateur select option {
-    background: var(--vert);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__submit .cta {
-    --surface: var(--blanc);
-    --on-surface: var(--vert);
-    color: var(--vert);
-    --fold-color: var(--vert);
-  }
-  .candidature-formateur .cand__ok {
-    border-color: var(--blanc);
-  }
-</style>

@@ -147,7 +147,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
 ---
 
 <Base
-  title="Notre Programme — WISE-UP | EUNEOS"
+  title="Notre Programme Euneos (WISE UP) | EUNEOS"
   description="Le Programme EUNEOS : 16 h de formation pour les équipes éducatives, 4 à 8 ateliers jeunes, une évaluation scientifique. Aucun frais pour l’établissement. Candidatez pour la rentrée 2026."
   heroSurface="bleu"
   heroFold="bl"
@@ -165,7 +165,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
               <span class="hz__soft">Des éducateurs outillés. Des jeunes soutenus.</span>
             </h1>
           </Paper>
-          <div class="hz__cta"><Cta href="#candidater" surface="bleu-fonce">En savoir +</Cta></div>
+          <div class="hz__cta"><Cta href="#principes" surface="bleu-fonce">En savoir +</Cta></div>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- LES 3 PRINCIPES DU PROGRAMME -->
-  <section class="section">
+  <section class="section" id="principes">
     <div class="page">
       <h2 class="c-t methodo__t">Les 3 principes du Programme Euneos</h2>
       <ul class="methodo">
@@ -257,7 +257,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         }
       </ul>
       <div class="c-cta methodo__cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidater pour la rentrée 2026-2027</Cta>
       </div>
     </div>
   </section>
@@ -314,7 +314,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         }
       </ol>
       <div class="c-cta modules__cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour la rentrée 2026-2027</Cta>
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidater pour la rentrée 2026-2027</Cta>
       </div>
     </div>
   </section>
@@ -350,7 +350,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         }
       </div>
       <div class="c-cta etapes__cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Téléchargez la brochure complète</Cta>
+        <Cta href="/documents/brochure-programme-euneos.pdf" surface="bleu-fonce" download="Brochure Programme Euneos.pdf">Télécharger la brochure complète</Cta>
       </div>
     </div>
   </section>
@@ -378,7 +378,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         }
       </ul>
       <div class="c-cta temoins__cta">
-        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidatez pour les prochaines&nbsp;éditions</Cta>
+        <Cta href="/candidater/etablissement" surface="bleu-fonce">Candidater pour les prochaines&nbsp;éditions</Cta>
       </div>
     </div>
   </section>
@@ -392,7 +392,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         <div class="faq__all"><Cta href="/faq" surface="bleu-fonce">Voir toute la FAQ</Cta></div>
       </div>
       <div class="faq__media">
-        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="lg" paysage /></div>
+        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="md" paysage /></div>
         <Photo src={photoFaq} ratio="4/3" alt="Des participantes et participants échangent pendant une formation sur l’attention consciente" width={1600} widths={[480, 800, 1200, 1600]} quality={75} sizes="(max-width: 860px) 100vw, 50vw" />
         <div class="faq__cartouche"><img src={cartoucheFaq.src} alt="Euneos" width="354" height="500" class="programme__cartouche-image" loading="lazy" /></div>
       </div>
@@ -1055,7 +1055,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .faq__t {
     text-align: left;
-    margin-bottom: var(--s-titre);
+    margin-bottom: calc(var(--s-int) * 0.25);
   }
   .faq__list {
     margin: 0;
@@ -1093,8 +1093,8 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .faq__picto {
     position: absolute;
-    left: -12%;
-    top: -10%;
+    left: 0;
+    top: 0;
     z-index: 1;
   }
   /* releve v4 : cartouche de 180 px pour une colonne de ~560 */

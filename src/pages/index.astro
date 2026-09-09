@@ -9,6 +9,7 @@ import { Image } from 'astro:assets'
 import cartoucheOcre from '../assets/brand/cartouche-ocre.png'
 import Cta from '../components/Cta.astro'
 import CtaFinal from '../components/CtaFinal.astro'
+import Parcours from '../components/Parcours.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import accueilAtelier from '../assets/photos/accueil-atelier-timur-shakerzianov.jpg'
@@ -69,16 +70,7 @@ const impact = [
   { valeur: '36 %', legende: 'rapportent une amélioration de l’attention des élèves' },
 ]
 
-/* Maquette : le picto n'est pas blanc mais en ton sur ton avec l'etiquette —
-   c'est la regle des paires de la charte (p.12). */
-const parcours = [
-  /* Les deux routes de candidature tranchees par Candice au call du 18/08 :
-     « candidater en tant qu'etablissement et candidater en tant que formateur ».
-     NB : la maquette v2 dit « devenir membre » — libelle a confirmer avec elle. */
-  { surface: 'bleu', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
-  { surface: 'jaune', label: 'Je souhaite devenir formateur·rice', href: '/candidater/formateur', picto: 'var(--jaune-clair)' },
-  { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
-] as const
+
 ---
 
 <Base
@@ -255,7 +247,7 @@ const parcours = [
       </ul>
     </div>
     <div class="prog__cta">
-      <Cta href="/programme">Explorer notre programme</Cta>
+      <Cta href="/documents/brochure-programme-euneos.pdf" surface="bleu-fonce" download="Brochure Programme Euneos.pdf">Télécharger la brochure complète</Cta>
     </div>
   </section>
 
@@ -304,11 +296,11 @@ const parcours = [
         </blockquote>
         <p class="citation__role">Fondatrice et Directrice Générale EUNEOS</p>
         <div class="citation__cta citation__cta--desktop">
-          <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
+          <Cta href="/qui-sommes-nous#conseil-administration">Qui sommes-nous ?</Cta>
         </div>
       </Paper>
       <div class="citation__cta citation__cta--mobile">
-        <Cta href="/qui-sommes-nous">Qui sommes-nous ?</Cta>
+        <Cta href="/qui-sommes-nous#conseil-administration">Qui sommes-nous ?</Cta>
       </div>
     </div>
   </section>
@@ -329,28 +321,7 @@ const parcours = [
   </section>
 
   <!-- 9. PARCOURS -->
-  <section class="section parcours has-silo">
-    <div class="silo silo--right parcours__fig" aria-hidden="true">
-      <Brand name="fig5" height="100%" />
-    </div>
-    <div class="page parcours__in">
-      <h2 class="parcours__t">Vous souhaitez prendre part au projet ?</h2>
-      <ul class="parcours__cards">
-        {
-          parcours.map((p) => (
-            <li>
-              <a href={p.href} class="parcours__link">
-                <Paper surface={p.surface} fold="br" foldSize="sm" class="parcours__card">
-                  <div class="parcours__picto" style={`color:${p.picto}`}><Brand name="main" /></div>
-                  <span>{p.label}</span>
-                </Paper>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </section>
+  <Parcours />
 </Base>
 
 <style is:global>
@@ -1071,96 +1042,6 @@ const parcours = [
       justify-content: center;
       margin-top: 0;
       transform: none;
-    }
-  }
-
-  /* --- PARCOURS ---
-     Maquette : grande silhouette vert-gris a droite, PLEINE (elle passe derriere
-     les etiquettes, qui sont opaques), et trois etiquettes d'un quart de largeur
-     alignees a gauche. */
-  /* meme mecanique que le constat : rythme commun, hauteur mini pour la
-     silhouette, contenu centre dessus */
-  .parcours {
-    display: grid;
-    align-content: start;
-    min-height: clamp(20rem, 42vw, 37rem);
-  }
-  .parcours .parcours__fig {
-    color: var(--vert-clair);
-    height: clamp(16rem, 30vw, 30rem);
-    max-width: 26vw;
-    transform: translate(38%, -20%);
-    transform-origin: right center;
-  }
-  .parcours__fig > .brand {
-    transform: scaleX(-1);
-  }
-  .parcours__in {
-    position: relative;
-    z-index: 1;
-  }
-  .parcours__t {
-    text-align: center;
-    max-width: 22ch;
-    margin: 0 auto var(--s-titre);
-  }
-  /* Releve : les trois cartes vont de 5,2 % a 95,5 % de la page — donc au-dela
-     du padding de .page. Centrees sur la fenetre, pas sur le conteneur. */
-  .parcours__cards {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90.3vw;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* releve v4 : cartes de 368 px separees par 80 px, soit 6,5 % du rang */
-    gap: 6.5%;
-  }
-  .parcours__link {
-    text-decoration: none;
-    display: block;
-    height: 100%;
-  }
-  /* releve v4 : 368 x 196 px, libelle au corps des CTA (36 px), picto de
-     70 px, pli d'etiquette (12,9 pt) et non de carte */
-  .parcours__card {
-    height: 100%;
-    min-height: clamp(7rem, 13.6vw, 12.25rem);
-    padding: var(--s-int);
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-    font-size: var(--t-bouton);
-    font-weight: 600;
-    line-height: 1.15;
-    --f: var(--fold-sm);
-    /* maquette p.1 : le libelle est BLANC sur les trois cartes (bleu, jaune,
-       vert). Contraste faible sur le jaune, assume — demande de Charly. */
-    --on-surface: var(--blanc);
-    color: var(--blanc);
-    transition: transform 0.15s ease;
-  }
-  .parcours__card span {
-    color: var(--blanc);
-  }
-  .parcours__link:hover .paper {
-    transform: translateY(-3px);
-  }
-  .parcours__picto {
-    width: var(--picto-md);
-    flex: none;
-  }
-  @media (max-width: 860px) {
-    .parcours__t {
-      margin-bottom: calc(var(--s-titre) * 0.55);
-    }
-    .parcours__cards {
-      grid-template-columns: 1fr;
-      width: min(78vw, 22rem);
-      gap: 1rem;
     }
   }
 

@@ -16,7 +16,7 @@ interface Props {
 
 const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
-const withFooterTopSpace = !['/', '/contact', '/contact/'].includes(Astro.url.pathname)
+const withFooterTopSpace = !['/', '/contact', '/contact/', '/qui-sommes-nous', '/qui-sommes-nous/'].includes(Astro.url.pathname)
 ---
 
 <!doctype html>
@@ -65,7 +65,7 @@ const withFooterTopSpace = !['/', '/contact', '/contact/'].includes(Astro.url.pa
           addressCountry: 'FR',
         },
         foundingDate: '2026-04',
-        email: 'contact@euneos.fr',
+        email: 'euneosequipe@gmail.com',
       })}
     />
   </head>

@@ -2,6 +2,7 @@ export interface BrevoEnv {
   HOOK_SECRET?: string
   BREVO_API_KEY?: string
   BREVO_SENDER_EMAIL?: string
+  CONTACT_EMAIL?: string
   EQUIPE_EMAIL?: string
   BREVO_LIST_ETABLISSEMENT?: string
   BREVO_LIST_PARTENAIRE?: string
