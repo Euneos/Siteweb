@@ -11,8 +11,8 @@
  *
  * Rendue a la demande (`prerender = false`) pour afficher le resultat de
  * l'envoi (`?nl=...`) sans JavaScript, comme la page Nous contacter.
- * Meme composition que Nous contacter (maquette v4 p.4) : page verte, panneau
- * a filet et coin plie, champs a coin coupe, bouton a cheval sur le bord bas.
+ * Même présentation que les candidatures : fond vert, panneau et champs
+ * rectangulaires à contour blanc, bouton blanc centré sur le bord bas.
  */
 import Paper from '../components/Paper.astro'
 import Base from '../layouts/Base.astro'
@@ -46,16 +46,18 @@ const profils = [
   heroSurface="vert"
   heroFold="none"
 >
-  <section slot="hero" class="page nl" data-newsletter-page>
-    <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="nl__panel">
+  <div class="candidature-page s-vert">
+  <section class="section cand nl" data-newsletter-page>
+    <div class="page">
+    <Paper outline fold="none" foldSize="clamp(3rem, 7vw, 7rem)" class="cand__panel">
       <h1 id="inscription">Notre newsletter</h1>
-      <p class="nl__chapo">
+      <p class="cand__chapo">
         Rejoignez notre newsletter pour recevoir nos ressources et dernières actualités :
       </p>
 
       {
         message && (
-          <p class:list={['nl__status', succes ? 'nl__status--ok' : 'nl__status--err']} role={succes ? 'status' : 'alert'}>
+          <p class:list={['nl__status', succes ? 'cand__ok' : 'cand__err']} role={succes ? 'status' : 'alert'}>
             {message}
           </p>
         )
@@ -63,35 +65,37 @@ const profils = [
 
       {
         !succes && (
-          <form class="nl__form" id="nl-form" method="POST" action="/api/newsletter">
+          <form class="cand__form" id="nl-form" method="POST" action="/api/newsletter">
             <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="retour" value="/newsletter" />
 
-            <p class="nl__row">
+            <p class="cand__row">
               <label for="nlp-nom">Nom/Prénom</label>
               <span class="champ">
                 <input id="nlp-nom" name="nom" type="text" autocomplete="name" maxlength="160" required />
               </span>
             </p>
-            <p class="nl__row">
+            <p class="cand__row">
               <label for="nlp-mail">Email</label>
               <span class="champ">
                 <input id="nlp-mail" name="email" type="email" autocomplete="email" maxlength="254" required />
               </span>
             </p>
 
-            <fieldset class="nl__radios">
+            <fieldset class="cand__row cand__row--large cand__choix">
               <legend>Vous êtes</legend>
+              <ul>
               {
                 profils.map((p, i) => (
-                  <label>
+                  <li><label>
                     <input type="radio" name="profil" value={p.valeur} checked={i === 0} /> <span>{p.label}</span>
-                  </label>
+                  </label></li>
                 ))
               }
+              </ul>
             </fieldset>
 
-            <p class="nl__privacy">
+            <p class="cand__legal">
               En envoyant ce formulaire, vous acceptez de recevoir la newsletter EUNEOS. Vous pourrez
               vous désinscrire à tout moment. <a href="/politique-de-confidentialite">En savoir plus</a>.
             </p>
@@ -100,108 +104,13 @@ const profils = [
       }
       {
         !succes && (
-          <div class="nl__submit">
-            <button type="submit" form="nl-form" class="cta s-vert-clair">Envoyer</button>
+          <div class="cand__submit">
+            <button type="submit" form="nl-form" class="cta s-blanc cta--cut">Envoyer</button>
           </div>
         )
       }
     </Paper>
+    </div>
   </section>
+  </div>
 </Base>
-
-<style is:global>
-  .nl {
-    width: 100%;
-    padding-top: clamp(1rem, 3vw, 2.5rem);
-    padding-bottom: clamp(3rem, 8vw, 6rem);
-  }
-  .nl__panel {
-    position: relative;
-    z-index: 3;
-    width: min(100%, 44rem);
-    margin-inline: auto;
-    padding: var(--s-int);
-    padding-top: max(var(--s-int), calc(var(--f) * 0.5));
-    padding-bottom: calc(var(--s-int) + 1rem);
-  }
-  .nl__panel h1 {
-    text-align: center;
-  }
-  .nl__chapo {
-    text-align: center;
-    max-width: 30ch;
-    margin: 0.75rem auto var(--s-int);
-  }
-  .nl__status {
-    max-width: 32rem;
-    margin: 0 auto 1.5rem;
-    padding: 0.85rem 1rem;
-    border: 1.5px solid currentColor;
-  }
-  .nl__status--ok {
-    background: color-mix(in srgb, var(--vert-clair) 24%, transparent);
-  }
-  .nl__status--err {
-    background: color-mix(in srgb, var(--orange) 18%, transparent);
-  }
-  .nl__form {
-    display: grid;
-    gap: clamp(1.25rem, 2.8vw, 2.5rem);
-    max-width: 32rem;
-    margin-inline: auto;
-  }
-  .nl__row {
-    display: grid;
-    gap: 0.5rem;
-  }
-  .nl__row label,
-  .nl__radios legend {
-    font-weight: 600;
-  }
-  /* les champs sont des .champ (global.css), comme sur Nous contacter */
-  .nl__radios input:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-  }
-  .nl__radios {
-    border: 0;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.4rem;
-  }
-  .nl__radios legend {
-    padding: 0;
-    margin-bottom: 0.35rem;
-  }
-  .nl__radios label {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    cursor: pointer;
-  }
-  .nl__radios input {
-    accent-color: var(--jaune);
-    width: 1rem;
-    height: 1rem;
-  }
-  .nl__privacy {
-    font-size: var(--t-note);
-    opacity: 0.85;
-  }
-  .nl__privacy a {
-    color: inherit;
-  }
-  .nl__submit {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translate(-50%, 75%);
-    z-index: 4;
-  }
-  @media (max-width: 480px) {
-    .nl__panel {
-      padding-top: max(var(--s-int), calc(var(--f) + 1rem));
-    }
-  }
-</style>
