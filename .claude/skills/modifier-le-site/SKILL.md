@@ -33,11 +33,14 @@ modification qui rend bien sur ordinateur peut se casser sur téléphone.
 
 ## Publier
 
-Un commit et un push suffisent : la mise en ligne se fait toute seule en deux à trois
-minutes.
+Présenter la preview des changements à Pauline avant la publication finale demandée. Une PR vers `main` déploie une preview ; seule la fusion dans `main` déclenche la production. Respecter une validation déjà donnée pour le périmètre concerné.
 
 ```
-git add -A && git commit -m "…" && git push
+git diff --check
+git add <fichiers-concernes>
+git commit -m "fix: description du changement"
+git push -u origin <branche>
+gh pr create --base main --draft --title "fix: description du changement" --body-file <description.md>
 ```
 
 Puis **vérifier sur `euneos.fr`**, pas seulement en local. Annoncer le résultat à l'équipe
@@ -53,13 +56,14 @@ La panne a été découverte par hasard, le lendemain.
 Après le push, attendre et confirmer le run :
 
 ```
-gh run list --limit 1 --json status,conclusion --jq '.[0]'
+gh run list --commit <sha-pousse> --json databaseId,status,conclusion,url
+gh run watch <id-du-run-correspondant> --exit-status
 ```
 
 Puis vérifier la page réelle, pas seulement le workflow :
 
 ```
-curl -s https://euneos.fr/<page> | grep "<un mot du nouveau texte>"
+curl -fsS https://euneos.fr/<page> | rg "<un mot du nouveau texte>"
 ```
 
 Tant que les deux ne sont pas verts, la réponse à donner est **« en cours »**, jamais
