@@ -628,7 +628,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     min-height: calc(2em * var(--lh-titre));
     font-size: var(--t-cta);
   }
-  .methodo__picto { width: calc(var(--picto-sm) * 0.55); flex: none; }
+  .methodo__picto { width: var(--picto-md); flex: none; }
   .methodo__title {
     font-size: var(--t-cta);
     font-weight: 600;
@@ -655,7 +655,6 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   @media (max-width: 860px) {
     .methodo { grid-template-columns: 1fr; width: min(100%, 32rem); margin-inline: auto; }
     .methodo__head { min-height: 0; flex-direction: row; align-items: center; gap: calc(var(--s-lie) * 0.5); }
-    .methodo__picto { width: var(--picto-sm); }
     .methodo__title { font-size: var(--t-carte-mobile); white-space: nowrap; }
   }
   @media (max-width: 380px) {

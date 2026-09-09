@@ -561,7 +561,7 @@ const impact = [
     margin: 0;
   }
   .prog__picto {
-    width: calc(var(--picto-sm) * 0.55);
+    width: var(--picto-sm);
     flex: none;
     display: flex;
     align-items: center;
@@ -573,12 +573,13 @@ const impact = [
       grid-template-columns: 1fr;
     }
     .prog__head { flex-direction: row; align-items: center; gap: calc(var(--s-lie) * 0.5); }
-    .prog__picto { width: var(--picto-sm); }
+    .prog__picto { width: calc(var(--picto-md) * 1.2); }
     .prog__titre { font-size: var(--t-carte-mobile); white-space: nowrap; }
     .prog__titre > span { display: inline; }
   }
 
   @media (max-width: 380px) {
+    .prog__cards { width: calc(100% + var(--s-int)); margin-inline: calc(var(--s-int) * -0.5); }
     .prog__card.s-bleu { padding-inline: calc(var(--s-int) * 0.5); }
     .prog__titre { font-size: var(--t-h3); }
   }
