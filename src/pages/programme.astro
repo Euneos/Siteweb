@@ -246,7 +246,10 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
             {
               impact.map((s) => (
                 <li>
-                  <span class="chiffre chiffre--xl">{s.valeur}</span>
+                  <span class="chiffre chiffre--xl" data-impact-count={s.valeur}>
+                    <span class="sr-only">{s.valeur}</span>
+                    <span aria-hidden="true" data-impact-value>{s.valeur}</span>
+                  </span>
                   <p>{s.legende}</p>
                 </li>
               ))
@@ -374,6 +377,40 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     </div>
   </section>
 </Base>
+
+<script>
+  const counterGroup = document.querySelector<HTMLElement>('.impact2__list')
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+  if (counterGroup && !reducedMotion.matches && 'IntersectionObserver' in window) {
+    const counters = Array.from(counterGroup.querySelectorAll<HTMLElement>('[data-impact-count]')).map((element) => {
+      const finalText = element.dataset.impactCount ?? ''
+      return {
+        element: element.querySelector<HTMLElement>('[data-impact-value]')!,
+        finalText,
+        target: Number(finalText.match(/\d+/)?.[0] ?? 0),
+      }
+    })
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      observer.disconnect()
+      const start = performance.now()
+      const duration = 1400
+      const tick = (now: number) => {
+        const progress = reducedMotion.matches ? 1 : Math.min((now - start) / duration, 1)
+        const eased = 1 - Math.pow(1 - progress, 3)
+        for (const counter of counters) {
+          counter.element.textContent = progress === 1
+            ? counter.finalText
+            : counter.finalText.replace(/\d+/, String(Math.floor(counter.target * eased)))
+        }
+        if (progress < 1) requestAnimationFrame(tick)
+      }
+      tick(start)
+    }, { threshold: 0.3 })
+    observer.observe(counterGroup)
+  }
+</script>
 
 <style is:global>
   .programme__cartouche-image {
@@ -806,6 +843,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .impact2__cta { margin-top: var(--s-titre); }
   .impact2__cta .cta { --on-surface: var(--bleu-fold); }
   .impact2__list .chiffre {
+    font-variant-numeric: tabular-nums;
     display: block;
   }
   .impact2__list p {
