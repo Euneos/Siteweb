@@ -12,7 +12,7 @@ import CtaFinal from '../components/CtaFinal.astro'
 import Parcours from '../components/Parcours.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
-import accueilAtelier from '../assets/photos/accueil-atelier-timur-shakerzianov.jpg'
+import accueilEquipe from '../assets/photos/accueil-equipe-mimi-thian.jpg'
 import accueilFormatrice from '../assets/photos/accueil-formatrice.png'
 import unionEuropeenne from '../assets/logos/cofinance-union-europeenne.png'
 import nouveauMonde from '../assets/logos/nouveau-monde.png'
@@ -77,9 +77,10 @@ const impact = [
 
       <div class="hz__media">
         <Photo
-          src={accueilAtelier}
+          src={accueilEquipe}
+          class="accueil-photo"
           ratio="260/177.3"
-          alt="Des jeunes prennent des notes dans leurs carnets pendant un atelier"
+          alt="Une équipe échange autour d’un ordinateur dans un espace de travail lumineux"
           quality={75}
           width={1600}
           widths={[480, 800, 1200, 1600]}
@@ -261,6 +262,7 @@ const impact = [
 </Base>
 
 <style is:global>
+  .accueil-photo img { object-position: 50% 45%; }
   .accueil__cartouche-image {
     display: block;
     width: 100%;
@@ -573,7 +575,7 @@ const impact = [
       grid-template-columns: 1fr;
     }
     .prog__head { flex-direction: row; align-items: center; gap: calc(var(--s-lie) * 0.5); }
-    .prog__picto { width: calc(var(--picto-md) * 1.2); }
+    .prog__picto { width: var(--picto-md); }
     .prog__titre { font-size: var(--t-carte-mobile); white-space: nowrap; }
     .prog__titre > span { display: inline; }
   }
