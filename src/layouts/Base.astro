@@ -16,7 +16,9 @@ interface Props {
 
 const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
-const withFooterTopSpace = !['/', '/contact', '/contact/', '/qui-sommes-nous', '/qui-sommes-nous/'].includes(Astro.url.pathname)
+const hasHero = Astro.slots.has('hero')
+const effectiveHeroFold = hasHero ? heroFold : 'none'
+const withFooterTopSpace = !['/contact', '/contact/'].includes(Astro.url.pathname)
 ---
 
 <!doctype html>
@@ -78,10 +80,10 @@ const withFooterTopSpace = !['/', '/contact', '/contact/', '/qui-sommes-nous', '
         'hero-zone',
         // sans contenu de hero (pages formulaire, pages legales), la zone ne
         // doit pas garder les 800 px reserves a une vraie banniere
-        !Astro.slots.has('hero') && 'hero-zone--nue',
+        !hasHero && 'hero-zone--nue',
         `s-${heroSurface}`,
-        heroFold !== 'none' && 'paper',
-        heroFold !== 'none' && `fold-${heroFold}`,
+        effectiveHeroFold !== 'none' && 'paper',
+        effectiveHeroFold !== 'none' && `fold-${effectiveHeroFold}`,
       ]}
     >
       <Header />

@@ -75,6 +75,7 @@ jobs:
             sleep 1
           done
           bun run test:layout
+          AUDIT_WIDTHS=320,390,599,600,601,768,859,860,861,900,901,1024,1099,1100,1101,1300,1440,1920,2560,3840 bun run test:responsive
 
       - name: Mettre en production sur Cloudflare Pages
         if: github.event_name != 'pull_request'

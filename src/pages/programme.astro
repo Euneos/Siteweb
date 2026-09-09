@@ -531,13 +531,13 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     text-align: center;
   }
   .resultat .resultat__t {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--s-lie);
   }
   .section.resultat {
     padding-bottom: 0;
   }
   .section.impact2-sec {
-    padding-top: calc(1.5 * 1.3em);
+    padding-top: var(--s-titre);
   }
 
   /* intro « Comment se deroule » */
@@ -635,9 +635,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .why__in {
     align-items: start;
   }
-  .why {
-    margin-top: clamp(1.5rem, 3vw, 2.5rem);
-  }
+
   .why__in h2 {
     margin-top: -0.12em;
   }
@@ -667,10 +665,10 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     margin: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1.5rem, 4vw, 3.5rem);
+    gap: var(--s-grille);
   }
   .methodo__t {
-    margin-bottom: calc(var(--s-titre) * 0.55);
+    margin-bottom: var(--s-titre);
   }
   .methodo__head {
     display: flex;
@@ -756,7 +754,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   @media (max-width: 860px) {
     .methodo {
       grid-template-columns: 1fr;
-      gap: 1rem;
+      gap: var(--s-grille);
     }
     .methodo__intro,
     .methodo__point {
@@ -781,7 +779,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     }
   }
   .methodo__cta {
-    margin-top: calc(var(--s-titre) * 0.55);
+    margin-top: var(--s-titre);
   }
 
   /* reponse de FAQ encore a valider par le client */
@@ -807,7 +805,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     margin: 0;
     display: grid;
     align-content: start;
-    gap: clamp(1.25rem, 2.85vw, 2.6rem);
+    gap: var(--s-grille);
   }
   .etapes__item {
     min-width: 0;
@@ -871,7 +869,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     .etapes {
       display: flex;
       flex-direction: column;
-      gap: calc(clamp(1.25rem, 2.85vw, 2.6rem) / 2);
+      gap: var(--s-lie);
     }
     .etapes__col {
       display: contents;
@@ -936,7 +934,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     }
     .impact2__in {
       padding-top: max(clamp(1.5rem, 4vw, 3rem), calc(var(--fy) + 0.75rem));
-      padding-right: max(clamp(1.5rem, 4vw, 3rem), calc(var(--fx) + 0.75rem));
+      padding-inline: var(--s-int);
     }
     .impact2__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -951,7 +949,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     margin: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(1.5rem, 4vw, 3rem);
+    gap: var(--s-grille);
   }
   .temoin {
     display: grid;
@@ -1010,7 +1008,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   @media (min-width: 861px) {
     .c-t.temoins__t {
-      margin-bottom: calc(var(--s-titre) * 0.55);
+      margin-bottom: var(--s-titre);
     }
     .c-cta.temoins__cta {
       margin-top: var(--s-int);
@@ -1034,7 +1032,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
       width: 32.2265625%;
     }
     .c-cta.temoins__cta {
-      margin-bottom: calc(0.56 * 1.3em);
+      margin-bottom: 0;
     }
     .temoins__cta .cta {
       max-width: 18rem;
@@ -1050,12 +1048,10 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     gap: clamp(2rem, 5vw, 4rem);
     align-items: start;
   }
-  .section.faq-sec {
-    padding-top: calc(var(--s-bloc) * 1.25);
-  }
+
   .faq__t {
     text-align: left;
-    margin-bottom: calc(var(--s-int) * 0.25);
+    margin-bottom: var(--s-lie);
   }
   .faq__list {
     margin: 0;
@@ -1118,15 +1114,14 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
      TOUTE la page sur le cote. On rentre le debordement au point de
      bascule ; sur ordinateur rien ne change. */
   @media (max-width: 860px) {
-    .section.faq-sec {
-      padding-top: calc(var(--s-bloc) * 0.625);
-    }
+
     .faq__media {
-      margin-top: calc(2 * 1.3em);
+      margin-top: 0;
+      padding-bottom: 8%;
     }
     .faq__cartouche {
       right: 0;
-      bottom: -8%;
+      bottom: 0;
     }
   }
   @media (max-width: 860px) {

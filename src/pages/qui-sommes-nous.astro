@@ -548,7 +548,7 @@ const equipe = [
     display: flex;
     justify-content: center;
     margin-top: var(--s-int);
-    margin-bottom: calc(var(--s-bloc) * 1.5);
+    margin-bottom: 0;
   }
   @media (max-width: 860px) {
     .fond__fig {
@@ -672,9 +672,8 @@ const equipe = [
     display: grid;
     gap: 0;
   }
-  .a-t + .actions {
-    margin-top: calc(var(--s-titre) * -0.75);
-  }
+  .action:first-child { padding-top: 0; }
+  .action:last-child { padding-bottom: 0; }
   .action {
     --action-gap: clamp(0.6rem, 1.8vw, 1.5rem);
     display: grid;
@@ -726,10 +725,10 @@ const equipe = [
   /* NIVEAUX */
   .niveaux-sec {
     background: var(--papier);
-    margin-top: calc(var(--s-bloc) * 0.3);
+
   }
   .niveaux-sec .a-t {
-    margin-bottom: calc(var(--s-titre) / 2);
+    margin-bottom: var(--s-titre);
   }
   .niveaux {
     list-style: none;
@@ -776,11 +775,9 @@ const equipe = [
   }
 
   /* CONSEIL D'ADMINISTRATION (v2) */
-  .ca-sec {
-    margin-top: calc(var(--s-bloc) * 0.75);
-  }
+
   .ca-sec .ca__t {
-    margin-bottom: var(--s-int);
+    margin-bottom: var(--s-lie);
   }
   .ca__intro {
     max-width: 80ch;
@@ -847,10 +844,10 @@ const equipe = [
 
   /* EQUIPE */
   .equipe-sec .c-t {
-    margin-bottom: clamp(2rem, 3vw, 2.5rem);
+    margin-bottom: var(--s-titre);
   }
   .equipe {
-    --equipe-gap: clamp(1.5rem, 4vw, 3rem);
+    --equipe-gap: var(--s-grille);
     list-style: none;
     padding: 0;
     margin: 0;
@@ -994,4 +991,8 @@ const equipe = [
     }
   }
 
+  /* Tablette : deux cartes lisibles plutôt qu’un portrait plein écran. */
+  @media (min-width: 600px) and (max-width: 1100px) {
+    .equipe[data-carousel-track] .membre { flex-basis: calc((100% - var(--equipe-gap)) / 2); }
+  }
 </style>

@@ -309,6 +309,19 @@ const seule = [
     </ul>
   </section>
 
+  <section class="section page sg">
+    <h2 class="sg__t">Espaces et petits écrans</h2>
+    <p class="sg__p">Les éléments qui vont ensemble restent proches : le titre et son
+      introduction sont séparés par un petit espace, puis un espace plus grand annonce
+      les cartes. Une séparation plus importante marque le passage à un nouveau sujet.</p>
+    <p class="sg__p">Ces espaces s’adaptent progressivement à la largeur de l’écran.
+      Les textes se replient et les blocs s’allongent quand vous ouvrez un « + ».
+      Les portraits s’affichent un par un sur téléphone et deux par deux sur tablette.</p>
+    <p class="sg__p">Après un changement de texte ou d’image, vérifiez la page sur téléphone,
+      tablette et ordinateur, y compris le menu et les textes dépliés. Signalez à l’agent
+      le bloc concerné si un espace paraît trop grand ou si deux éléments se touchent.</p>
+  </section>
+
   <!-- LOGO -->
   <section class="section page sg">
     <h2 class="sg__t">4. Logo</h2>
@@ -557,8 +570,9 @@ const seule = [
 </Base>
 
 <style is:global>
+  .hero-zone:has(.sg-hero) { min-height: 0; }
   .sg-hero {
-    padding-bottom: clamp(2.5rem, 7vw, 5rem);
+    padding-block: var(--s-bloc);
     max-width: 60ch;
   }
   .sg-hero__sur {

@@ -752,9 +752,9 @@ const impact = [
   }
   @media (max-width: 860px) {
     .prog__cards {
-      width: 100%;
+      width: min(100%, 32rem);
       grid-template-columns: 1fr;
-      gap: 1.5rem;
+      gap: var(--s-grille);
     }
     .prog__card.s-bleu {
       --prog-pad: 9%;
@@ -793,14 +793,14 @@ const impact = [
   /* --- IMPACT --- */
   .impact__t {
     text-align: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--s-lie);
   }
   /* surtitre de provenance des chiffres (maquette v2) */
   /* Une seule ligne dans la maquette, de 11,8 % a 87,7 % de la page.
      Le max-width de 62ch la coupait en deux. */
   .impact__sur {
     text-align: center;
-    margin: 0 auto var(--s-int);
+    margin: 0 auto var(--s-titre);
   }
   /* releve : 3 cartes de 172,2 pt = 86,8 % de la page, gouttieres tres fines */
   /* La rangee va de 5,0 % a 94,8 % : elle deborde du padding de .page des
@@ -811,7 +811,7 @@ const impact = [
     position: relative;
     left: 50%;
     transform: translateX(-50%);
-    width: 89.8vw;
+    width: min(89.8vw, 81.25rem);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6%;
@@ -836,7 +836,8 @@ const impact = [
   @media (max-width: 860px) {
     .impact__cards {
       grid-template-columns: 1fr;
-      width: min(78vw, 22rem);
+      width: min(100%, 26rem);
+      gap: var(--s-lie);
     }
     .impact__card {
       align-content: center;
@@ -847,14 +848,15 @@ const impact = [
       justify-content: center;
       gap: 1rem;
       width: 100%;
-      transform: translateX(-0.75rem);
+      flex-wrap: wrap;
     }
     .impact__card .chiffre {
       font-size: clamp(2.5390625rem, 11.71875vw, 3.3203125rem);
     }
     .impact__card p {
-      flex: 0 1 12ch;
-      max-width: 12ch;
+      flex: 1 1 9ch;
+      min-width: 0;
+      max-width: 18ch;
       text-align: left;
     }
   }
@@ -1055,6 +1057,9 @@ const impact = [
   main:has(.constat) > section + section {
     margin-top: var(--s-bloc);
   }
+  main:has(.constat) > section:last-child {
+    padding-bottom: calc(var(--s-bloc) / 2);
+  }
   /* Les CTA de l'approche et du Programme debordent de leur composition : la
      section absorbe ce debord avant que l'intervalle commun ne commence. */
   main:has(.constat) > .approche-sec {
@@ -1079,7 +1084,7 @@ const impact = [
       padding-block: 1.5rem 0;
     }
     main:has(.constat) > .parcours {
-      padding-bottom: var(--s-bloc);
+      padding-bottom: calc(var(--s-bloc) / 2);
     }
   }
 </style>

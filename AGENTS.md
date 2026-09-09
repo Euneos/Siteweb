@@ -109,19 +109,20 @@ Chaque valeur est fluide (`clamp`), exacte a 1440 et reduite en dessous. Interli
 **Aucune page ne pose de `font-size` en dur** : pour changer une taille, on change
 la variable.
 
-Meme logique pour les espaces (`--s-bloc` 122 px entre deux blocs, `--s-titre`
-79 px entre un titre et son contenu, `--s-int` 42 px de marge interne de carte),
+Meme logique pour les espaces (`--s-bloc` 48 à 80 px entre sections, `--s-lie`
+16 à 24 px entre titre et introduction, `--s-titre` 32 à 48 px avant le contenu,
+`--s-grille` 24 à 40 px entre cartes, `--s-int` 20 à 42 px de marge interne),
 les elements graphiques (`--picto-sm/md`, `--pbox-sm/md/lg`, `--logo-h`) et les
 CTA (tout en `em` : un libelle de 36 px donne un bouton de 65 px, `.cta--sm` pour
 les petits CTA des cartes « niveaux »). `.section` porte la moitie de `--s-bloc`
-de chaque cote : deux sections qui se suivent donnent l'espace de la maquette,
-et aucune section ne redefinit son padding.
+de chaque côté : deux sections successives donnent l’intervalle commun. Une
+composition avec un débord réserve celui-ci avant cet intervalle.
 
 ## `/style-guide` — le document de passation à EUNEOS
 
 Page interne (hors sitemap, `noindex`) qui montre la charte **telle qu'elle est
 codée** : les pastilles de couleur affichent les variables CSS du site, pas des
-captures. Sept sections de référence (concept, couleurs avec hex + règle d'usage
+captures. Un passage explique aussi les espaces et les petits écrans. Sept sections de référence (concept, couleurs avec hex + règle d'usage
 + contrastes mesurés, typographie, logo, les 15 pictogrammes, le pli, les
 composants), puis une huitième écrite pour **une équipe non technique** :
 
@@ -374,13 +375,28 @@ propre avant une intervention et préserver les textes et changements récents d
   un libellé accessible et une ouverture/fermeture au clavier.
 - Le carrousel utilise une seule liste de membres et le défilement tactile natif. Ne pas
   tripler les biographies dans le DOM ni déplacer le scroll pendant que l'utilisateur lit.
-- Le conseil et l'équipe opérationnelle utilisent chacun ce carrousel. Sur mobile, une
-  carte occupe la largeur disponible ; sur ordinateur, les trois membres opérationnels
-  restent visibles ensemble. Masquer les flèches quand il n'y a rien à faire défiler,
+- Le conseil et l'équipe opérationnelle utilisent chacun ce carrousel. Sous 600 px, une
+  carte occupe la largeur disponible ; de 600 à 1100 px, deux cartes sont visibles ;
+  au-delà, les trois membres opérationnels restent visibles ensemble. Masquer les flèches quand il n'y a rien à faire défiler,
   désactiver celles des extrémités et conserver les liens de contact accessibles.
 - Les décors mobiles occupent une zone distincte du titre et du bouton. Le clipping est
   limité au décor ; il ne doit pas masquer une mauvaise largeur de contenu.
 - Dans `<style is:global>`, écrire des sélecteurs CSS ordinaires, sans `:global(...)`.
+
+### Rythme commun — revue du 9 septembre 2026
+
+- Chaque intervalle entre sections ne se compte qu’une fois : pas de marge locale
+  ajoutée à la séparation commune. Les compositions qui dépassent (pli, cartouche,
+  bouton à cheval) réservent leur débord avant cet intervalle.
+- Titre + introduction utilisent `--s-lie`, puis `--s-titre` avant les cartes.
+  Sans introduction, le titre est directement suivi de `--s-titre`.
+- Les textes longs se replient dans leur colonne ; ne pas cacher un débordement
+  avec un `overflow: hidden` sur la page. Les carrousels sont les seules listes
+  de contenu prévues pour défiler horizontalement.
+- Sur tablette, limiter la taille des cartes empilées et passer à deux portraits
+  plutôt que d’agrandir une carte jusqu’à la largeur entière de l’écran.
+- Sur les écrans très larges, le hero est plafonné à 1440 px, les bandes de cartes
+  à 1300 px, et le contenu courant conserve sa largeur de lecture.
 
 ### Vérification obligatoire avant publication
 
@@ -393,7 +409,13 @@ propre avant une intervention et préserver les textes et changements récents d
 5. Inspecter aussi les captures ordinateur et téléphone :
    `CHECK_SCREENSHOTS=/tmp/euneos-layout bun run test:layout`.
    `CHECK_BASE_URL` permet de refaire le contrôle sur la preview ou la production.
-6. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
+6. `bun run test:responsive` : toutes les 13 pages, menus et textes ouverts/fermés,
+   balayage 320–2560 px par pas de 16 px, seuils ±1 px, puis 3440 et 3840 px.
+   `AUDIT_WIDTHS` permet une sélection courte en CI ; `AUDIT_OUTPUT` conserve les mesures,
+   `AUDIT_SCREENSHOTS=1` ajoute les captures 390/860/1440. Une erreur fait échouer la commande.
+   Redémarrer Wrangler après chaque compilation pour que les pages dynamiques utilisent
+   les nouveaux fichiers CSS et JavaScript.
+7. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
 
 Newsletter : la liste Brevo « EUNEOS — Newsletter — Formateurs » porte l'ID **6**,
 configuré dans `BREVO_LIST_FORMATEUR` via `[vars]` de `wrangler.toml`. Une variable

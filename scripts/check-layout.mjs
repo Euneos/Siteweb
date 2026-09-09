@@ -41,6 +41,9 @@ try {
     assert(Math.abs(await gap() - closedGap) < 1, `Fondements : espace instable à ${width}px`)
     await page.locator('.fond__details summary').click()
     assert(Math.abs(await gap() - closedGap) < 1)
+    const sectionGap = await page.locator('.section').first().evaluate((el) => parseFloat(getComputedStyle(el).paddingTop) * 2)
+    assert(Math.abs((await box('.mission')).y - bottom(await box('.fond__cta')) - sectionGap) < 1, `Fondements → mission : une seule séparation à ${width}px`)
+    assert(Math.abs((await box('.ca__t')).y - bottom(await box('.niveaux')) - sectionGap) < 1, `Niveaux → conseil : une seule séparation à ${width}px`)
     const title = await box('.ca__t')
     const intro = await box('.ca__intro')
     const carousel = await box('.ca-sec [data-carousel]')
@@ -86,7 +89,7 @@ try {
       const next = group.locator('[data-direction="next"]')
       const previous = group.locator('[data-direction="previous"]')
       const overflowing = await track.evaluate((el) => el.scrollWidth - el.clientWidth > 1)
-      assert.equal(overflowing, section === '.ca-sec' || width <= 860, 'Équipe entière sur ordinateur, une carte par écran mobile')
+      assert.equal(overflowing, section === '.ca-sec' || width <= 1100, 'Équipe entière au-delà de 1100 px, carrousel sur téléphone et tablette')
       if (!overflowing) {
         assert(!(await next.isVisible()) && !(await previous.isVisible()), 'Pas de flèches inutiles sans défilement')
         continue

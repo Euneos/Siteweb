@@ -131,13 +131,15 @@
   --lh-titre: 1.2;
 
   /* ------------------------------------------------------------------
-     ECHELLE D'ESPACEMENT — trois valeurs, pas une par bloc.
-     Relevees sur la page 1 a 1440 px : entre deux blocs successifs la
-     maquette laisse 103 a 166 px (mediane ~125) ; entre un titre et son
-     contenu 74 a 96 px ; a l'interieur d'une carte 38 a 47 px.
+     ECHELLE D'ESPACEMENT — la proximité traduit la hiérarchie.
+     Petits espaces entre éléments liés, moyens avant les contenus,
+     grands entre sections. Les valeurs évoluent sans saut à 860 px.
+     Les réserves des plis et décors sont gérées dans leur composition.
      ------------------------------------------------------------------ */
-  --s-bloc: 5rem; /* 80 px : entre deux sections desktop */
-  --s-titre: clamp(1.75rem, 5.5vw, 5rem); /* 79 px : titre -> contenu */
+  --s-bloc: clamp(3rem, 5.56vw, 5rem); /* 48 → 80 px : séparation des sections */
+  --s-lie: clamp(1rem, 1.67vw, 1.5rem); /* 16 → 24 px : titre et introduction liés */
+  --s-titre: clamp(2rem, 3.34vw, 3rem); /* 32 → 48 px : en-tête vers contenu */
+  --s-grille: clamp(1.5rem, 2.8vw, 2.5rem); /* 24 → 40 px : cartes d’un ensemble */
   --s-int: clamp(1.25rem, 2.9vw, 2.6rem); /* 42 px : marge interne d'une carte */
 
   /* ------------------------------------------------------------------
@@ -524,6 +526,10 @@ body {
   margin-inline: auto;
   padding-inline: calc(var(--unit) * 1.5);
 }
+/* Le texte et les liens longs restent dans leur colonne, même à 320 px. */
+:where(h1, h2, h3, p, a, label, legend, summary) { overflow-wrap: anywhere; }
+:where(.page, .g16, .cand__row, .champ) { min-width: 0; }
+
 /* Rythme vertical : chaque section porte la moitie de l'espace entre blocs,
    deux sections qui se suivent donnent donc exactement --s-bloc. Aucune
    section ne redefinit son padding : c'est ce qui faisait varier les
@@ -539,7 +545,6 @@ body {
 }
 @media (max-width: 860px) {
   :root {
-    --s-bloc: 3rem; /* 48 px : entre deux sections mobile */
     --t-bouton: clamp(1.125rem, 5vw, 1.5rem); /* 18 a 24 px */
   }
   .g16 {
@@ -750,6 +755,8 @@ body {
   display: flex;
   justify-content: center;
   margin-top: var(--s-titre);
+  flex-wrap: wrap;
+  gap: var(--s-lie);
 }
 
 /* Pages juridiques */
@@ -831,6 +838,7 @@ body {
    et le portail de candidature : une seule geometrie.
    ============================================================ */
 .champ {
+  min-width: 0;
   --coin: clamp(0.85rem, 1.65vw, 1.5rem);
   display: block;
   border: 1.5px solid currentColor;
@@ -948,6 +956,9 @@ body {
    `.hz--mirror` inverse le sens (photo a gauche) pour les pages 2 et 3.
    ============================================================ */
 .hz {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
   padding-bottom: clamp(1.5rem, 4vw, 3rem);
 }
 /* releve : la section hero fait 318,7 pt de haut, soit 53,5 % de la largeur de page */
@@ -1261,14 +1272,14 @@ body {
   text-align: center;
 }
 @media (max-width: 480px) {
-  .cand__panel {
+  .cand__panel.fold-tr {
     padding-top: max(2rem, calc(var(--f) + 1rem));
   }
 }
 .cand__chapo {
   text-align: center;
   max-width: 54ch;
-  margin: 0.75rem auto clamp(1.5rem, 4vw, 2.5rem);
+  margin: var(--s-lie) auto var(--s-titre);
 }
 .cand__ok,
 .cand__err {
@@ -1288,7 +1299,7 @@ body {
 .cand__form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.1rem clamp(1rem, 2.5vw, 1.75rem);
+  gap: var(--s-lie) var(--s-grille);
   max-width: 46rem;
   margin-inline: auto;
 }
@@ -1413,7 +1424,7 @@ body {
   .parcours {
     display: grid;
     align-content: start;
-    min-height: clamp(20rem, 42vw, 37rem);
+    min-height: 0;
   }
   .parcours .parcours__fig {
     color: var(--vert-clair);
@@ -1443,7 +1454,7 @@ body {
     position: relative;
     left: 50%;
     transform: translateX(-50%);
-    width: 90.3vw;
+    width: min(90.3vw, 81.25rem);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     /* releve v4 : cartes de 368 px separees par 80 px, soit 6,5 % du rang */
@@ -1485,7 +1496,7 @@ body {
   }
   @media (max-width: 860px) {
     .parcours__t {
-      margin-bottom: calc(var(--s-titre) * 0.55);
+      margin-bottom: var(--s-titre);
     }
     .parcours__cards {
       grid-template-columns: 1fr;

@@ -119,7 +119,7 @@ const { withTopSpace = true } = Astro.props
     padding-bottom: 1.5rem;
   }
   .ftr--spaced {
-    margin-top: var(--s-bloc);
+    margin-top: calc(var(--s-bloc) / 2);
   }
   .filigrane__fig {
     left: 34%;
@@ -130,7 +130,7 @@ const { withTopSpace = true } = Astro.props
     z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(2rem, 5vw, 4rem);
+    gap: var(--s-grille);
   }
   .ftr__lead {
     max-width: 26ch;
@@ -143,6 +143,8 @@ const { withTopSpace = true } = Astro.props
     margin-bottom: 1rem;
   }
   .ftr__fields input {
+    min-width: 0;
+    max-width: 100%;
     flex: 1 1 12rem;
     background: transparent;
     border: 1.5px solid color-mix(in srgb, currentColor 55%, transparent);
