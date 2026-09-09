@@ -9,6 +9,7 @@ import Brand from '../components/Brand.astro'
 import photoCour from '../assets/photos/qui-sommes-nous-cour.jpeg'
 import cartoucheEquipe from '../assets/brand/cartouche-equipe-indigo.svg'
 import Cta from '../components/Cta.astro'
+import Parcours from '../components/Parcours.astro'
 import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
@@ -136,7 +137,7 @@ const ca: { nom: string; fonction: string; bio?: string; photo?: ImageMetadata }
     nom: 'Francoise Sarrazin',
     photo: francoise,
     fonction: 'Médecin spécialiste du handicap moteur depuis 1986,',
-    bio: " Françoise a exercé dans plusieurs centres de rééducation en France et notamment pendant 20 ans auprès des jeunes et de leurs familles au lycée/SESSAD Toulouse-Lautrec à Vaucresson (92). En 2016, elle obtient un diplôme universitaire de Médecine, Méditation et Neurosciences, et met en place des ateliers de concentration dans les classes, en lien avec les enseignants. Retraitée depuis le 1er septembre 2026, elle anime désormais le Programme clé d'Euneos (Wise Up) à Paris et en Bretagne.",
+    bio: " Françoise a exercé dans plusieurs centres de rééducation en France et notamment pendant 20 ans auprès des jeunes et de leurs familles au lycée/SESSAD Toulouse-Lautrec à Vaucresson (92). En 2016, elle obtient un diplôme universitaire de Médecine, Méditation et Neurosciences, et met en place des ateliers de concentration dans les classes, en lien avec les enseignants. Retraitée depuis le 1er septembre 2026, elle anime désormais le Programme Euneos (WISE UP) à Paris et en Bretagne.",
   },
   {
     nom: 'Solange Eon',
@@ -369,6 +370,7 @@ const equipe = [
     </div>
   </section>
 
+  <Parcours />
 </Base>
 
 <script>

@@ -1,0 +1,38 @@
+---
+import Brand from './Brand.astro'
+import Paper from './Paper.astro'
+
+/* Maquette : le picto n'est pas blanc mais en ton sur ton avec l'etiquette —
+   c'est la regle des paires de la charte (p.12). */
+const parcours = [
+  /* Les deux routes de candidature tranchees par Candice au call du 18/08 :
+     « candidater en tant qu'etablissement et candidater en tant que formateur ».
+     NB : la maquette v2 dit « devenir membre » — libelle a confirmer avec elle. */
+  { surface: 'bleu', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
+  { surface: 'jaune', label: 'Je souhaite devenir formateur·rice', href: '/candidater/formateur', picto: 'var(--jaune-clair)' },
+  { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
+] as const
+---
+
+  <section class="section parcours has-silo">
+    <div class="silo silo--right parcours__fig" aria-hidden="true">
+      <Brand name="fig5" height="100%" />
+    </div>
+    <div class="page parcours__in">
+      <h2 class="parcours__t">Vous souhaitez prendre part au projet ?</h2>
+      <ul class="parcours__cards">
+        {
+          parcours.map((p) => (
+            <li>
+              <a href={p.href} class="parcours__link">
+                <Paper surface={p.surface} fold="br" foldSize="sm" class="parcours__card">
+                  <div class="parcours__picto" style={`color:${p.picto}`}><Brand name="main" /></div>
+                  <span>{p.label}</span>
+                </Paper>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
