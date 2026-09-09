@@ -25,31 +25,18 @@ import Base from '../layouts/Base.astro'
 const programme = [
   {
     picto: 'main',
-    titre: '2 pôles de compétences',
+    titre: ['2 pôles de', 'compétences'],
     intro: 'Acquisition et application des compétences psychosociales pour soutenir la santé mentale et sensibilisation au bien-être numérique.',
-    points: [
-      'Des compétences psychosociales : attention, régulation émotionnelle, coopération, empathie.',
-      'Des pratiques équilibrées et régulées du numérique : clarifier les habitudes, comprendre les usages.',
-    ],
   },
   {
     picto: 'asterisque',
-    titre: 'Personnel formé',
+    titre: ['Personnel', 'formé'],
     intro: 'Accompagnement du personnel éducatif pour favoriser une dynamique positive entre collègues, avec les élèves et être mieux outillés pour faire face aux enjeux éducatifs et de santé.',
-    points: [
-      'Avec une pratique de présence attentive intégrée au quotidien professionnel ;',
-      'et des outils concrets pour réguler le stress numérique et la surcharge informationnelle.',
-    ],
   },
   {
     picto: 'oiseau',
-    titre: 'Jeunes régulés',
+    titre: ['Jeunes', 'régulés'],
     intro: 'Des jeunes qui développent',
-    points: [
-      'Concentration et stabilisation de leur attention.',
-      'Régulation émotionnelle et une estime de soi plus solide.',
-      'Des usages numériques plus conscients.',
-    ],
   },
 ] as const
 
@@ -191,18 +178,7 @@ const impact = [
     </div>
   </section>
 
-  <!-- 5. NOTRE PROGRAMME — la famille bleue, reservee au Programme cle.
-       Maquette : fond en bleu CLAIR, cartes en bleu soutenu pour qu'elles s'en
-       detachent, grand pli en haut-gauche, CTA a cheval sur le bord bas.
-
-       Chaque carte est un <details> : la partie visible (<summary>) porte le
-       picto, le titre, l'introduction et le premier point — ce que la maquette
-       montre carte repliee (le texte s'y arrete a « attention, regulation »,
-       suivi d'une fleche vers le bas) ; les autres points sont en dehors du
-       summary, donc caches tant que la carte est repliee. La fleche a ainsi
-       TOUJOURS quelque chose a derouler. Avant, tout le texte etait dans le
-       summary et seule la hauteur de la carte le coupait : sur un grand ecran
-       tout tenait, et la fleche ne faisait rien (retour de Pauline). -->
+  <!-- 5. NOTRE PROGRAMME — textes complets fournis par Pauline. -->
   <section class="s-bleu-clair prog" data-section="programme">
     <div class="prog__fold" aria-hidden="true"></div>
     <div class="page prog__in">
@@ -211,32 +187,12 @@ const impact = [
         {
           programme.map((c) => (
             <li>
-              <Paper surface="bleu" fold="tr" foldSize="md" class="prog__card" as="details">
-                <summary class="prog__resume">
-                  <span class="prog__head">
-                    <span class="prog__picto">
-                      <Brand name={c.picto} />
-                    </span>
-                    <span class="prog__titre">{c.titre}</span>
-                  </span>
-                  <span class="prog__body">
-                    <span class="prog__p">{c.intro}</span>
-                    <span class="prog__point-preview">
-                      <span class="prog__p">{c.points[0]}</span>
-                      <span class="prog__voile" aria-hidden="true" />
-                    </span>
-                  </span>
-                  <span class="prog__fleche" aria-hidden="true">
-                    <svg viewBox="0 0 24 32" fill="currentColor">
-                      <path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" />
-                    </svg>
-                  </span>
-                </summary>
-                <div class="prog__texte">
-                  {c.points.slice(1).map((pt) => (
-                    <p class="prog__p">{pt}</p>
-                  ))}
+              <Paper surface="bleu" fold="tr" foldSize="sm" class="prog__card">
+                <div class="prog__head">
+                  <span class="prog__picto"><Brand name={c.picto} /></span>
+                  <h3 class="prog__titre">{c.titre.map((ligne) => <span>{ligne}</span>)}</h3>
                 </div>
+                <p class="prog__p">{c.intro}</p>
               </Paper>
             </li>
           ))
@@ -559,197 +515,55 @@ const impact = [
     text-align: center;
     margin-bottom: var(--s-titre);
   }
-  /* releve v4 (p.1 a 1440 px) : trois cartes de 304 x 404 (ratio 0,753) de
-     189 a 1264 px, gouttieres de 82 px. Le rang fait donc 1075 px, soit
-     91,1 % de la zone de contenu (1180 px), et la gouttiere 7,6 % du rang. La v2 avait des
-     gouttieres de 172 px : les cartes etaient trop etroites et le texte s'y
-     coupait une ligne plus tot que dans la maquette. */
   .prog__cards {
     list-style: none;
     padding: 0;
     margin: 0 auto;
-    width: 91.1%;
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7.6%;
-    /* une carte qui s'ouvre grandit seule : ses voisines ne bougent pas */
-    align-items: start;
+    gap: var(--s-grille);
+    align-items: stretch;
   }
-  /* releve v4 : texte a 39 px du bord d'une carte de 304 px (12,8 %).
-     PAS de height: 100 % ici : avec un aspect-ratio, une hauteur imposee par
-     la rangee faisait recalculer la LARGEUR des cartes fermees quand une
-     voisine s'ouvrait — elles s'elargissaient et sortaient de la grille
-     (« ca fait n'importe quoi », retour de Charly). */
   .prog__card.s-bleu {
-    --prog-pad: 12.8%;
-    /* la reserve du bas loge la fleche, sous la derniere ligne */
-    --prog-reserve: calc(var(--prog-pad) * 0.7 + 1.8rem);
-    min-height: 0;
-    aspect-ratio: 125.6 / 166.7;
-    padding: var(--prog-pad);
-    padding-bottom: var(--prog-reserve);
-    display: grid;
-    /* minmax(0, 1fr) et non auto : une piste auto s'elargit sur la largeur
-       min-content de son contenu (ici l'en-tete picto + titre) et faisait
-       deborder le texte a droite de la carte, hors de la zone de texte */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.8rem;
-    align-content: start;
-    position: relative;
-    /* releve : sur le bleu du Programme, le texte est BLANC. L'encre par
-       defaut de la surface bleue est le vert — valable pour la navigation
-       du hero, pas pour ces cartes. On surcharge la variable, pas la
-       propriete : sinon la regle de .paper reprend le dessus. */
     --on-surface: var(--blanc);
-  }
-  .prog__card[open] {
-    aspect-ratio: auto;
-  }
-  /* Repliee, la carte garde la hauteur de la maquette : le resume remplit
-     la place disponible (une rangee 1fr) et ce qui depasse est coupe par le
-     bord de la zone de texte, comme dans la maquette ou la phrase s'arrete
-     en plein milieu. La fleche vit dans la reserve du bas, jamais sur le
-     texte. Depliee, la carte grandit et laisse tout voir. */
-  .prog__card:not([open]) {
-    grid-template-rows: minmax(0, 1fr);
-  }
-  .prog__resume {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.6rem;
-    cursor: pointer;
-    list-style: none;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .prog__card[open] .prog__resume {
-    overflow: visible;
-  }
-  .prog__body {
-    display: block;
-  }
-  /* L'introduction reste lisible. Seule la premiere ligne du paragraphe
-     suivant est fondue tant que la carte est repliee. */
-  .prog__point-preview {
-    position: relative;
-    display: inline-block;
-    /* La marge evite de rogner les descendantes sur la ligne estompee. */
-    max-height: calc(1.3em + 2px);
-    overflow: hidden;
-  }
-  .prog__voile {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: color-mix(in srgb, var(--surface) 78%, transparent);
-  }
-  .prog__card[open] .prog__voile {
-    display: none;
-  }
-  .prog__card[open] .prog__point-preview {
-    max-height: none;
-    overflow: visible;
-  }
-  .prog__resume:focus-visible {
-    outline: 3px solid var(--blanc);
-    outline-offset: -3px;
-  }
-  .prog__resume::-webkit-details-marker {
-    display: none;
+    padding: calc(var(--s-int) * 0.75);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-lie);
   }
   .prog__head {
     display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
-    padding-right: max(0px, calc(var(--f) + 0.75rem - var(--prog-pad)));
+    align-items: center;
+    gap: calc(var(--s-lie) * 0.65);
   }
-  /* 27 px dans la maquette : le seul titre de carte plus petit qu'un titre */
   .prog__titre {
+    color: inherit;
     font-weight: 600;
     font-size: var(--t-carte);
     line-height: var(--lh-titre);
-    min-width: 0;
+    margin: 0;
   }
-  .prog__texte {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-    align-content: start;
-    margin-top: 0;
+  .prog__titre > span {
+    display: block;
+    white-space: nowrap;
   }
   .prog__p {
     line-height: var(--lh-corps);
-  }
-
-  /* ancree en bas a droite de la carte, dans la reserve du bas, comme dans
-     la maquette (24 x 32 px a 28 px du bord) */
-  .prog__fleche {
-    position: absolute;
-    right: var(--prog-pad);
-    bottom: calc(var(--prog-pad) * 0.7);
-    display: block;
-    width: clamp(0.9rem, 1.65vw, 1.5rem);
-    transition: transform 0.2s ease;
-  }
-  .prog__card[open] .prog__fleche {
-    transform: rotate(180deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .prog__fleche {
-      transition: none;
-    }
+    margin: 0;
   }
   .prog__picto {
-    /* largeur commune : les trois pictos n'ont pas le meme ratio, et sans
-       cela les titres des trois cartes ne s'alignent pas */
-    width: var(--picto-sm);
+    width: calc(var(--picto-sm) * 0.55);
     flex: none;
     display: flex;
     align-items: center;
     color: var(--blanc);
   }
-  @media (min-width: 861px) and (max-width: 1100px) {
-    .prog__cards {
-      /* Les gouttieres de la maquette desktop deviennent disproportionnees
-         avant le passage en une colonne. */
-      gap: clamp(1rem, 3vw, 2rem);
-    }
-  }
   @media (max-width: 860px) {
     .prog__cards {
       width: min(100%, 32rem);
       grid-template-columns: 1fr;
-      gap: var(--s-grille);
-    }
-    .prog__card.s-bleu {
-      --prog-pad: 9%;
-      --prog-reserve: calc(var(--prog-pad) * 0.7 + 1.5rem);
-      aspect-ratio: 1.57 / 1;
-      padding: var(--prog-pad);
-      padding-bottom: var(--prog-reserve);
-    }
-    .prog__card.s-bleu[open] {
-      aspect-ratio: auto;
-    }
-    .prog__resume {
-      gap: 0.75rem;
-    }
-    .prog__card:not([open]) .prog__body > .prog__p {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      overflow: hidden;
-    }
-    .prog__titre {
-      font-size: clamp(1.5rem, 5vw, 2.25rem);
-    }
-    .prog__fleche {
-      width: clamp(1.5rem, 7vw, 2.25rem);
-    }
-    .prog__point-preview {
-      display: block;
-      max-height: calc(1.3em + 2px);
     }
   }
 
