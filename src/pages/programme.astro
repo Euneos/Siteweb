@@ -392,7 +392,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         <div class="faq__all"><Cta href="/faq" surface="bleu-fonce">Voir toute la FAQ</Cta></div>
       </div>
       <div class="faq__media">
-        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="lg" paysage /></div>
+        <div class="faq__picto"><PictoBox picto="confettis" surface="orange" size="md" paysage /></div>
         <Photo src={photoFaq} ratio="4/3" alt="Des participantes et participants échangent pendant une formation sur l’attention consciente" width={1600} widths={[480, 800, 1200, 1600]} quality={75} sizes="(max-width: 860px) 100vw, 50vw" />
         <div class="faq__cartouche"><img src={cartoucheFaq.src} alt="Euneos" width="354" height="500" class="programme__cartouche-image" loading="lazy" /></div>
       </div>
@@ -1055,7 +1055,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .faq__t {
     text-align: left;
-    margin-bottom: var(--s-titre);
+    margin-bottom: var(--s-int);
   }
   .faq__list {
     margin: 0;
@@ -1093,8 +1093,8 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .faq__picto {
     position: absolute;
-    left: -12%;
-    top: -10%;
+    left: 0;
+    top: 0;
     z-index: 1;
   }
   /* releve v4 : cartouche de 180 px pour une colonne de ~560 */
