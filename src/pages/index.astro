@@ -21,14 +21,12 @@ import pratiqueMeditative from '../assets/photos/pratique-meditative-exterieur.j
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
-/* Textes fournis le 20/08 (« texte home dépliant.docx » + maquette v2).
-   NB : le docx nomme la 2e colonne « Équipes formées », la maquette v2 dit
-   « Enseignants formés » — on suit le docx, qui est le document de texte. */
+/* Présentation du Programme — textes actualisés par Pauline. */
 const programme = [
   {
     picto: 'main',
     titre: '2 pôles de compétences',
-    intro: 'Une formation pensée pour transmettre de manière complémentaire :',
+    intro: 'Acquisition et application des compétences psychosociales pour soutenir la santé mentale et sensibilisation au bien-être numérique.',
     points: [
       'Des compétences psychosociales : attention, régulation émotionnelle, coopération, empathie.',
       'Des pratiques équilibrées et régulées du numérique : clarifier les habitudes, comprendre les usages.',
@@ -36,8 +34,8 @@ const programme = [
   },
   {
     picto: 'asterisque',
-    titre: 'Enseignants formés',
-    intro: 'Un accompagnement qui renforce la coopération, l’attention et apaise les climats de classe :',
+    titre: 'Personnel formé',
+    intro: 'Accompagnement du personnel éducatif pour favoriser une dynamique positive entre collègues, avec les élèves et être mieux outillés pour faire face aux enjeux éducatifs et de santé.',
     points: [
       'Avec une pratique de présence attentive intégrée au quotidien professionnel ;',
       'et des outils concrets pour réguler le stress numérique et la surcharge informationnelle.',
@@ -45,8 +43,8 @@ const programme = [
   },
   {
     picto: 'oiseau',
-    titre: 'Jeunes équilibrés',
-    intro: 'Des jeunes qui développent des compétences fondamentales :',
+    titre: 'Jeunes régulés',
+    intro: 'Des jeunes qui développent',
     points: [
       'Concentration et stabilisation de leur attention.',
       'Régulation émotionnelle et une estime de soi plus solide.',
@@ -737,7 +735,7 @@ const impact = [
     .prog__resume {
       gap: 0.75rem;
     }
-    .prog__body > .prog__p {
+    .prog__card:not([open]) .prog__body > .prog__p {
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
