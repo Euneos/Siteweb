@@ -39,6 +39,7 @@ const formatActualisation = (date: Date) =>
   }).format(date)
 
 const coche = (valeur: boolean) => (valeur ? '✓' : '—')
+const accuseRecu = (statut: string) => statut.toLowerCase().includes('accusé') || statut.toLowerCase().includes('accuse')
 const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-')}`
 ---
 
@@ -92,16 +93,23 @@ const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.to
             <table class="etat__table">
               <caption>Progression des établissements — cohorte 2026–2027</caption>
               <thead>
-                <tr>
-                  <th scope="col">Établissement</th>
-                  <th scope="col">Localisation</th>
-                  <th scope="col">Candidature</th>
-                  <th scope="col">Analyse & décision</th>
-                  <th scope="col">Sélection validée</th>
-                  <th scope="col">Lettre signée</th>
-                  <th scope="col">Fiche contact</th>
-                  <th scope="col">Formation</th>
-                  <th scope="col">Contrôle</th>
+                <tr class="etat__groupes">
+                  <th class="etat__etablissement" scope="col" rowspan="2">Établissement</th>
+                  <th class="etat__etape etat__etape--1" scope="colgroup" colspan="3">ÉTAPE 1 — Candidature</th>
+                  <th class="etat__etape etat__etape--2" scope="colgroup" colspan="4">ÉTAPE 2 — Sélection &amp; confirmation</th>
+                  <th class="etat__etape etat__etape--3" scope="colgroup" colspan="3">ÉTAPES 3 à 9 — Déploiement → Évaluation</th>
+                </tr>
+                <tr class="etat__sous-entetes">
+                  <th scope="col">Candidature<br />reçue</th>
+                  <th scope="col">Accusé de<br />réception</th>
+                  <th scope="col">Analyse &amp;<br />décision</th>
+                  <th scope="col">Sélectionné<br />(validé)</th>
+                  <th scope="col">Lettre<br />signée</th>
+                  <th scope="col">Fiche<br />contact</th>
+                  <th scope="col">Formateur<br />désigné</th>
+                  <th scope="col">Organisation<br />(ét. 3)</th>
+                  <th scope="col">Formations<br />&amp; suivi (5–7)</th>
+                  <th scope="col">Ateliers &amp;<br />éval. (8–9)</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,19 +117,22 @@ const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.to
                   <tr class:list={[ligne.aVerifier && 'is-a-verifier']}>
                     <th scope="row">
                       <span class="etat__nom">{ligne.etablissement}</span>
-                      <span class="etat__meta">{ligne.typeEtablissement ?? 'Type non renseigné'} · {ligne.code}</span>
+                      <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
+                      {ligne.aVerifier && <span class="etat__verification">À vérifier</span>}
                     </th>
-                    <td>{[ligne.ville, ligne.region].filter(Boolean).join(' · ') || '—'}</td>
                     <td><span class="etat__fait">✓</span><small>{formatDate(ligne.dateCandidature)}</small></td>
+                    <td class:list={['etat__centre', accuseRecu(ligne.statut) && 'is-fait']} aria-label={accuseRecu(ligne.statut) ? 'Accusé de réception indiqué par le statut actuel' : 'Accusé de réception non vérifiable dans les données disponibles'}>{coche(accuseRecu(ligne.statut))}</td>
                     <td><span class={classeStatut(ligne.statut)}>{ligne.statut}</span></td>
                     <td>{formatDate(ligne.dateValidation)}</td>
                     <td class:list={['etat__centre', ligne.lettreSignee && 'is-fait']} aria-label={ligne.lettreSignee ? 'Lettre signée' : 'Lettre non signalée comme signée'}>{coche(ligne.lettreSignee)}</td>
                     <td class:list={['etat__centre', ligne.ficheContactRecue && 'is-fait']} aria-label={ligne.ficheContactRecue ? 'Fiche contact reçue' : 'Fiche contact non signalée comme reçue'}>{coche(ligne.ficheContactRecue)}</td>
+                    <td class="etat__centre" aria-label="Formateur désigné non disponible dans les données actuellement reliées">—</td>
+                    <td class="etat__centre" aria-label="Organisation non disponible dans les données actuellement reliées">—</td>
                     <td>
                       <span>{ligne.statutFormation ?? '—'}</span>
                       {(ligne.dateDebutFormation || ligne.dateFinFormation) && <small>{formatDate(ligne.dateDebutFormation)} → {formatDate(ligne.dateFinFormation)}</small>}
                     </td>
-                    <td>{ligne.aVerifier ? <span class="etat__verification">À vérifier</span> : '—'}</td>
+                    <td class="etat__centre" aria-label="Ateliers et évaluation non disponibles dans les données actuellement reliées">—</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,10 +219,10 @@ const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.to
   }
   .etat__table {
     width: 100%;
-    min-width: 1120px;
+    min-width: 1540px;
     border-collapse: collapse;
-    font-size: max(0.9rem, calc(var(--t-note) * 0.94));
-    line-height: 1.35;
+    font-size: max(0.82rem, calc(var(--t-note) * 0.88));
+    line-height: 1.3;
   }
   .etat__table caption {
     text-align: left;
@@ -221,16 +232,43 @@ const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.to
   }
   .etat__table th,
   .etat__table td {
-    padding: 0.8rem;
+    padding: 0.72rem;
     text-align: left;
     vertical-align: top;
-    border-top: 1px solid color-mix(in srgb, var(--vert) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--vert) 18%, var(--blanc));
   }
   .etat__table thead th {
-    background: var(--vert);
+    color: var(--vert);
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+  .etat__table thead .etat__etablissement {
+    min-width: 250px;
+    background: #223f6d;
     color: var(--blanc);
-    border-top: 0;
-    vertical-align: bottom;
+    text-align: left;
+    font-size: 1.15em;
+  }
+  .etat__table thead .etat__etape {
+    color: var(--blanc);
+    font-size: 1.08em;
+    padding-block: 0.8rem;
+  }
+  .etat__table thead .etat__etape--1 {
+    background: #2367b9;
+  }
+  .etat__table thead .etat__etape--2 {
+    background: #347b94;
+  }
+  .etat__table thead .etat__etape--3 {
+    background: #879bb6;
+  }
+  .etat__table thead .etat__sous-entetes th {
+    background: #dce5f1;
+  }
+  .etat__table thead .etat__sous-entetes th:nth-child(n + 8) {
+    background: #e5e1ef;
   }
   .etat__table tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--papier) 72%, var(--blanc));
@@ -270,6 +308,9 @@ const classeStatut = (statut: string) => `etat__statut etat__statut--${statut.to
     color: var(--vert);
     font-weight: 600;
     white-space: nowrap;
+  }
+  .etat__verification {
+    margin-top: 0.5rem;
   }
   .etat__statut--engage,
   .etat__statut--retenu {
