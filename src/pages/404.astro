@@ -15,18 +15,20 @@ import Base from '../layouts/Base.astro'
   heroFold="none"
   noindex
 >
-  <section class="section nf">
+  <section class="section nf s-vert">
     <div class="page">
-      <Paper outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="nf__panel">
+      <Paper surface="vert" outline fold="tr" foldSize="clamp(3rem, 7vw, 7rem)" class="nf__panel">
         <p class="nf__code">404</p>
         <h1>Cette page n’existe pas</h1>
         <p class="nf__txt">
           Le lien est peut-être ancien, ou l’adresse comporte une coquille.
         </p>
         <div class="nf__liens">
-          <Cta href="/">Retour à l’accueil</Cta>
-          <Cta href="/programme" outline>Découvrir le Programme</Cta>
-          <Cta href="/contact" outline>Nous écrire</Cta>
+          <Cta href="/" surface="blanc">Retour au site</Cta>
+          <div class="nf__secondaires">
+            <Cta href="/programme" surface="vert" outline>Découvrir le Programme</Cta>
+            <Cta href="/contact" surface="vert" outline>Nous écrire</Cta>
+          </div>
         </div>
       </Paper>
     </div>
@@ -34,20 +36,23 @@ import Base from '../layouts/Base.astro'
 </Base>
 
 <style is:global>
+  body:has(.nf) {
+    background: var(--vert);
+  }
   .nf__panel {
-    --filet: var(--vert);
+    --filet: var(--blanc);
     padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 4vw, 3rem);
     text-align: center;
   }
   .nf__code {
-    font-size: clamp(3rem, 9vw, 6rem);
+    font-size: var(--t-chiffre-xl);
     font-weight: 700;
     line-height: 1;
     color: var(--vert-clair);
   }
   .nf__panel h1 {
-    color: var(--vert);
-    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    color: var(--blanc);
+    font-size: var(--t-titre);
     margin-top: 0.5rem;
   }
   .nf__txt {
@@ -55,10 +60,15 @@ import Base from '../layouts/Base.astro'
     margin: 0.75rem auto 0;
   }
   .nf__liens {
+    display: grid;
+    justify-items: center;
+    gap: var(--s-int);
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+  .nf__secondaires {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.9rem;
     justify-content: center;
-    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+    gap: 0.9rem;
   }
 </style>
