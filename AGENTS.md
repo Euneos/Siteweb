@@ -406,6 +406,14 @@ contre 53 px après Candice. Toujours mesurer les limites visibles des ensembles
   bouton à cheval) réservent leur débord avant cet intervalle.
 - Titre + introduction utilisent `--s-lie`, puis `--s-titre` avant les cartes.
   Sans introduction, le titre est directement suivi de `--s-titre`.
+- Cette hiérarchie vaut aussi à l'intérieur des sections : le déroulement du
+  Programme gardait 12 puis 18 px sur ordinateur malgré des intervalles extérieurs
+  corrects. Ne pas déduire la cohérence interne d'un contrôle entre sections.
+- Sur téléphone, les introductions `.g16` passent en titre + texte avec `--s-lie`
+  vertical : la gouttière de colonnes ne sert pas de séparation entre deux lignes.
+  Les cartes empilées utilisent `--s-grille` ; après une liste, le bouton d'action
+  utilise `--s-titre`. Les petits espaces dans une carte ou une liste de questions
+  restent distincts des espaces entre ensembles.
 - Les textes longs se replient dans leur colonne ; ne pas cacher un débordement
   avec un `overflow: hidden` sur la page. Les carrousels sont les seules listes
   de contenu prévues pour défiler horizontalement.
@@ -433,6 +441,8 @@ contre 53 px après Candice. Toujours mesurer les limites visibles des ensembles
    les nouveaux fichiers CSS et JavaScript.
 7. `bun run test:rhythm` : mesure les intervalles entre les limites visibles des
    26 sections éditoriales à neuf largeurs, ouvertes et fermées, du hero au footer.
+   Vérifie aussi les relations titre / introduction / contenu / bouton et les
+   cartes empilées, ainsi que les en-têtes des formulaires et de la page 404.
    `RHYTHM_OUTPUT` conserve les mesures ; `RHYTHM_SCREENSHOTS=1` capture les pages.
    Relire les captures : les assertions ne remplacent pas le jugement graphique.
 8. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.

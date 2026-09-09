@@ -16,6 +16,7 @@ const { questions } = Astro.props
 </div>
 <style>
   .faq-list__item { border-bottom: 1px solid var(--faq-rule, color-mix(in srgb, var(--noir) 14%, transparent)); padding: 1rem 0; }
+  .faq-list__item:first-child { padding-top: 0; }
   summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
   summary::-webkit-details-marker { display: none; }
   summary::after { content: '+'; font-size: 1.2em; line-height: 1; color: var(--faq-toggle, var(--vert)); flex: none; }

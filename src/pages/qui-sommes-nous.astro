@@ -490,7 +490,7 @@ const equipe = [
   .fond__txt {
     display: grid;
     align-content: start;
-    gap: 1rem;
+    gap: var(--s-lie);
   }
   .fond__details {
     display: block;
@@ -548,7 +548,7 @@ const equipe = [
     position: relative;
     display: flex;
     justify-content: center;
-    margin-top: var(--s-int);
+    margin-top: var(--s-titre);
     margin-bottom: 0;
   }
   @media (max-width: 860px) {
@@ -768,10 +768,18 @@ const equipe = [
   @media (max-width: 860px) {
     .niveaux {
       grid-template-columns: 1fr;
+      gap: var(--s-grille);
     }
     .niveau__txt {
       max-width: 34ch;
       font-size: var(--t-corps);
+    }
+    .niveau__cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      min-height: 44px;
     }
   }
 

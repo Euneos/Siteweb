@@ -351,13 +351,13 @@ const impact = [
   }
   .constat__txt {
     display: grid;
-    gap: 1.1rem;
+    gap: var(--s-lie);
     /* les paragraphes occupent toute la colonne ; seul le CTA se cale a gauche */
     justify-items: stretch;
   }
   .constat__txt .cta {
     justify-self: start;
-    margin-top: 0.75rem;
+    margin-top: calc(var(--s-titre) - var(--s-lie));
   }
   @media (max-width: 860px) {
     .silo--left.constat__fig {
@@ -493,7 +493,7 @@ const impact = [
   .confiance__logos {
     list-style: none;
     padding: 0;
-    margin: var(--s-int) auto 0;
+    margin: var(--s-titre) auto 0;
     max-width: 42rem;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -804,7 +804,7 @@ const impact = [
     .impact__cards {
       grid-template-columns: 1fr;
       width: min(100%, 26rem);
-      gap: var(--s-lie);
+      gap: var(--s-grille);
     }
     .impact__card {
       align-content: center;

@@ -568,6 +568,11 @@ body {
   .g16 > * {
     grid-column: 1 / -1 !important;
   }
+  /* Les introductions en deux colonnes deviennent titre + texte sur mobile.
+     La gouttière horizontale de la maquette n'est pas un espacement vertical. */
+  .section-flow .g16 {
+    row-gap: var(--s-lie);
+  }
 }
 
 /* ============================================================
@@ -1516,6 +1521,6 @@ body {
     .parcours__cards {
       grid-template-columns: 1fr;
       width: min(78vw, 22rem);
-      gap: 1rem;
+      gap: var(--s-grille);
     }
   }

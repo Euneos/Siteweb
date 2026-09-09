@@ -496,7 +496,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     padding-right: max(clamp(2rem, 5vw, 4.5rem), calc(var(--fx) + 0.5rem));
     display: grid;
     align-content: center;
-    gap: 1rem;
+    gap: var(--s-lie);
   }
   .erasmus__l1 {
     font-size: var(--t-titre);
@@ -539,11 +539,11 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   /* intro « Comment se deroule » */
   .deroule__lead {
     max-width: 74ch;
-    margin: 0 auto clamp(1rem, 1.25vw, 1.25rem);
+    margin: 0 auto var(--s-titre);
     text-align: center;
   }
   .c-t.deroule__t {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--s-lie);
   }
 
   /* 16H / 8 MODULES — deux colonnes, numero + titre (maquette v4 p.2) */
@@ -554,9 +554,6 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(1.5rem, 3.5vw, 3rem) clamp(2rem, 6vw, 5rem);
-  }
-  .c-cta.modules__cta {
-    margin-top: var(--s-int);
   }
   .module {
     display: grid;
@@ -637,11 +634,11 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .why__txt {
     display: grid;
-    gap: 1.1rem;
+    gap: var(--s-lie);
     justify-items: start;
   }
   .why__txt .cta {
-    margin-top: 0.75rem;
+    margin-top: calc(var(--s-titre) - var(--s-lie));
   }
   @media (max-width: 860px) {
     .why__fig {
@@ -858,14 +855,11 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .etapes__item--4 .etapes__txt {
     color: var(--vert);
   }
-  .c-cta.etapes__cta {
-    margin-top: var(--s-int);
-  }
   @media (max-width: 860px) {
     .etapes {
       display: flex;
       flex-direction: column;
-      gap: var(--s-lie);
+      gap: var(--s-grille);
     }
     .etapes__col {
       display: contents;
@@ -905,7 +899,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .impact2__t {
     text-align: center;
     color: var(--blanc);
-    margin-bottom: var(--s-int);
+    margin-bottom: var(--s-titre);
   }
   .impact2__list {
     list-style: none;
@@ -1006,9 +1000,6 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     .c-t.temoins__t {
       margin-bottom: var(--s-titre);
     }
-    .c-cta.temoins__cta {
-      margin-top: var(--s-int);
-    }
   }
   @media (max-width: 860px) {
     .temoins {
@@ -1035,7 +1026,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     }
   }
 
-  .faq__all { margin-top: var(--s-int); }
+  .faq__all { margin-top: var(--s-titre); }
 
   /* FAQ */
   .faq {
@@ -1047,7 +1038,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
 
   .faq__t {
     text-align: left;
-    margin-bottom: var(--s-lie);
+    margin-bottom: var(--s-titre);
   }
   .faq__list {
     margin: 0;
