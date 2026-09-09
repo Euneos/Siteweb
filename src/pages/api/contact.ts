@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!env.BREVO_API_KEY) return redirect('/contact?erreur=indisponible', 303)
 
   try {
-    const destinataire = env.EQUIPE_EMAIL ?? 'contact@euneos.fr'
+    const destinataire = env.EQUIPE_EMAIL ?? 'euneosequipe@gmail.com'
     await envoyerEmail(env, {
       to: destinataire,
       replyTo: email,

@@ -13,3 +13,6 @@ compatibility_flags = ["nodejs_compat"]
 # conserve le routage formateurs. Les clés API restent des secrets Cloudflare.
 [vars]
 BREVO_LIST_FORMATEUR = "6"
+
+# Adresse publique de réception des demandes de contact et notifications équipe.
+EQUIPE_EMAIL = "euneosequipe@gmail.com"
