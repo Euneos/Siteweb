@@ -12,13 +12,15 @@ interface Props {
   heroFold?: 'br' | 'bl' | 'none'
   /** page de travail : hors moteurs de recherche et hors sitemap */
   noindex?: boolean
+  /** Sections visuelles complètes séparées par le rythme commun. */
+  sectionFlow?: boolean
 }
 
-const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false } = Astro.props
+const { title, description, heroSurface = 'vert', heroFold = 'br', noindex = false, sectionFlow = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const hasHero = Astro.slots.has('hero')
 const effectiveHeroFold = hasHero ? heroFold : 'none'
-const withFooterTopSpace = !['/contact', '/contact/'].includes(Astro.url.pathname)
+const withFooterTopSpace = !sectionFlow && !['/contact', '/contact/'].includes(Astro.url.pathname)
 ---
 
 <!doctype html>
@@ -90,7 +92,7 @@ const withFooterTopSpace = !['/contact', '/contact/'].includes(Astro.url.pathnam
       <slot name="hero" />
     </div>
 
-    <main id="main">
+    <main id="main" class:list={[sectionFlow && 'section-flow']}>
       <slot />
     </main>
 

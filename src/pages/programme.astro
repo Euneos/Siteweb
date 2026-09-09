@@ -147,6 +147,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
 ---
 
 <Base
+  sectionFlow
   title="Notre Programme Euneos (WISE UP) | EUNEOS"
   description="Le Programme EUNEOS : 16 h de formation pour les équipes éducatives, 4 à 8 ateliers jeunes, une évaluation scientifique. Aucun frais pour l’établissement. Candidatez pour la rentrée 2026."
   heroSurface="bleu"
@@ -177,7 +178,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- WHY / WHAT -->
-  <section class="section why has-silo">
+  <section class="section why has-silo" data-section="introduction">
     <div class="silo silo--right why__fig" aria-hidden="true"><Brand name="fig4" height="100%" /></div>
     <div class="page g16 why__in">
       <h2 style="grid-column: 2 / 8">
@@ -202,7 +203,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   <!-- BLOC ERASMUS+ — maquette v4 p.2 : photo a gauche (30 %) + carte bleue
        (70 %), pli corne bleu clair en haut a droite, titre blanc au corps des
        titres puis un paragraphe. Texte complet de la maquette. -->
-  <section class="section">
+  <section class="section" data-section="erasmus">
     <div class="page erasmus">
       <div class="erasmus__media"><Photo src={photoFormation} ratio="2/3" alt="Une animatrice échange avec des participantes pendant un atelier de formation" width={1920} widths={[640, 960, 1440, 1920]} quality={75} sizes="(max-width: 860px) 100vw, 85vw" /></div>
       <Paper surface="bleu" fold="tr" class="erasmus__card">
@@ -222,7 +223,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- LES 3 PRINCIPES DU PROGRAMME -->
-  <section class="section" id="principes">
+  <section class="section" id="principes" data-section="principes">
     <div class="page">
       <h2 class="c-t methodo__t">Les 3 principes du Programme Euneos</h2>
       <ul class="methodo">
@@ -263,7 +264,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- NOTRE IMPACT — bloc de texte (maquette v4 p.2), juste avant les chiffres -->
-  <section class="section resultat">
+  <section class="section resultat" data-section="impact">
     <div class="page">
       <h2 class="c-t resultat__t">Notre impact</h2>
       <p class="resultat__p">
@@ -273,10 +274,9 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         équilibre.
       </p>
     </div>
-  </section>
 
-  <!-- IMPACT CHIFFRE — bloc encadre bleu, pli aplati haut-droit. -->
-  <section class="section impact2-sec">
+    <!-- Même section : introduction et chiffres d’impact. -->
+    <div class="impact2-sec">
     <div class="page">
       <Paper surface="bleu" fold="tr" class="impact2">
         <div class="filigrane" aria-hidden="true">
@@ -297,10 +297,11 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         </div>
       </Paper>
     </div>
+    </div>
   </section>
 
   <!-- 16H / 8 MODULES — section ajoutee dans la maquette v4 p.2 -->
-  <section class="section">
+  <section class="section" data-section="modules">
     <div class="page">
       <h2 class="c-t">Une formation pratique en 16h et 8 modules</h2>
       <ol class="modules">
@@ -320,7 +321,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- DEROULEMENT : 5 etapes en quinconce, une couleur par etape -->
-  <section class="section">
+  <section class="section" data-section="etapes">
     <div class="page">
       <h2 class="c-t deroule__t">Comment se déroule notre programme ?</h2>
       <p class="deroule__lead">
@@ -358,7 +359,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   <CtaFinal id="candidater" />
 
   <!-- TEMOIGNAGES -->
-  <section class="section">
+  <section class="section" data-section="temoignages">
     <div class="page">
       <h2 class="c-t temoins__t">Ils ont vécu l’expérience</h2>
       <ul class="temoins">
@@ -384,7 +385,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- FAQ -->
-  <section class="section faq-sec">
+  <section class="section faq-sec" data-section="faq">
     <div class="page faq">
       <div class="faq__col">
         <h2 class="faq__t">Questions fréquentes</h2>
@@ -400,7 +401,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   </section>
 
   <!-- BLOC FORMATEUR — grand bloc jaune (maquette v4 p.2, bas de page) -->
-  <section class="section">
+  <section class="section" data-section="formateurs">
     <div class="page">
       <div class="formateur s-jaune-clair">
         <img class="formateur__main" src={mainFormateur.src} alt="" aria-hidden="true" />
@@ -533,12 +534,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .resultat .resultat__t {
     margin-bottom: var(--s-lie);
   }
-  .section.resultat {
-    padding-bottom: 0;
-  }
-  .section.impact2-sec {
-    padding-top: var(--s-titre);
-  }
+  .impact2-sec { margin-top: var(--s-titre); }
 
   /* intro « Comment se deroule » */
   .deroule__lead {
@@ -1086,6 +1082,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
   .faq__media {
     position: relative;
+    padding-bottom: 10.5%;
   }
   .faq__picto {
     position: absolute;
@@ -1097,7 +1094,7 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   .faq__cartouche {
     position: absolute;
     right: -8%;
-    bottom: -14%;
+    bottom: 0;
     width: 32%;
     min-width: 90px;
     z-index: 1;

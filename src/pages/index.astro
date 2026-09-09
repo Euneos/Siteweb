@@ -74,6 +74,7 @@ const impact = [
 ---
 
 <Base
+  sectionFlow
   title="EUNEOS — Prévention en santé mentale dans les milieux éducatifs"
   description="EUNEOS forme les équipes éducatives à la prévention en santé mentale, à la transmission des compétences psychosociales et à l’accompagnement du rapport au numérique."
   heroSurface="vert"
@@ -124,7 +125,7 @@ const impact = [
   </section>
 
   <!-- 2. CONSTAT -->
-  <section class="section constat has-silo">
+  <section class="section constat has-silo" data-section="constat">
     <div class="silo silo--left constat__fig" aria-hidden="true"><Brand name="fig2" height="100%" /></div>
     <div class="page g16 constat__in">
       <h2 style="grid-column: 4 / 9">Soutenons des climats de classe sereins et des éducateurs en santé</h2>
@@ -146,7 +147,7 @@ const impact = [
   </section>
 
   <!-- 3. NOTRE APPROCHE -->
-  <section class="section approche-sec">
+  <section class="section approche-sec" data-section="approche">
     <div class="page approche">
       <Paper surface="orange" fold="none" class="approche__tag" as="h2">Notre approche</Paper>
 
@@ -181,7 +182,7 @@ const impact = [
   </section>
 
   <!-- 4. PREUVE -->
-  <section class="section confiance">
+  <section class="section confiance" data-section="soutiens">
     <div class="page">
       <h2 class="confiance__t">Merci pour leur soutien</h2>
       <ul class="confiance__logos">
@@ -206,7 +207,7 @@ const impact = [
        TOUJOURS quelque chose a derouler. Avant, tout le texte etait dans le
        summary et seule la hauteur de la carte le coupait : sur un grand ecran
        tout tenait, et la fleche ne faisait rien (retour de Pauline). -->
-  <section class="s-bleu-clair prog">
+  <section class="s-bleu-clair prog" data-section="programme">
     <div class="prog__fold" aria-hidden="true"></div>
     <div class="page prog__in">
       <h2 class="prog__t">Notre Programme</h2>
@@ -252,7 +253,7 @@ const impact = [
   </section>
 
   <!-- 6. NOTRE IMPACT -->
-  <section class="section impact-sec">
+  <section class="section impact-sec" data-section="resultats">
     <div class="page">
       <h2 class="impact__t">Les premiers résultats</h2>
       <p class="impact__sur">
@@ -283,7 +284,7 @@ const impact = [
 
   <!-- 7. CITATION — dans la maquette p.1, la citation de Candice vient AVANT le
        bloc image (l'ordre etait inverse sur le site). -->
-  <section class="section">
+  <section class="section" data-section="candice">
     <div class="page citation">
       <Paper surface="ocre" fold="none" class="etiquette citation__name">Candice Marro</Paper>
       <div class="citation__ph"><Photo src={candice} alt="Candice Marro, fondatrice et directrice générale d’EUNEOS" ratio="391/562" class="portrait-candice" width={391} widths={[240, 391]} quality={85} /></div>
@@ -295,18 +296,15 @@ const impact = [
           apprendre aux jeunes à se réguler grâce à des éducateurs formés et outillés. »
         </blockquote>
         <p class="citation__role">Fondatrice et Directrice Générale EUNEOS</p>
-        <div class="citation__cta citation__cta--desktop">
-          <Cta href="/qui-sommes-nous#conseil-administration">Qui sommes-nous ?</Cta>
-        </div>
       </Paper>
-      <div class="citation__cta citation__cta--mobile">
+      <div class="citation__cta">
         <Cta href="/qui-sommes-nous#conseil-administration">Qui sommes-nous ?</Cta>
       </div>
     </div>
   </section>
 
   <!-- 8. BLOC IMAGE -->
-  <section class="section">
+  <section class="section" data-section="photo">
     <div class="page bloc-image">
       <div class="bloc-image__ph">
         <Photo src={pratiqueMeditative} alt="Des élèves participent à une pratique méditative guidée en extérieur" ratio="16/10" width={1512} widths={[480, 800, 1200, 1512]} quality={75} sizes="(max-width: 860px) 100vw, 80vw" />
@@ -331,20 +329,19 @@ const impact = [
     height: auto;
   }
   /* --- CONSTAT : silhouette qui deborde du bord gauche --- */
-  /* La section garde le rythme commun (--s-bloc) ; elle est juste assez
-     haute pour la silhouette, et le texte se centre dessus. Avant, elle
-     avait son propre padding (jusqu'a 11 rem) : c'est un des espaces qui
-     « variaient d'un bloc a l'autre ». */
+  /* Le contenu définit la hauteur de la section. La silhouette s’y adapte,
+     sans réserver un grand vide au-dessus et au-dessous du texte. */
   .constat {
     display: grid;
     align-content: center;
-    min-height: clamp(20rem, 42vw, 37rem);
+    min-height: 0;
   }
   .silo--left.constat__fig {
     color: var(--vert);
     /* releve : la silhouette occupe 0 → 25,3 % de la page. Le decalage
        negatif herite de .silo--left la faisait sortir de l'ecran. */
-    height: clamp(19rem, 41vw, 36rem);
+    height: 100%;
+    max-height: 36rem;
     max-width: 26%;
     transform: translate(-12%, -50%);
   }
@@ -440,13 +437,6 @@ const impact = [
     padding-bottom: calc(var(--s-int) + 0.75rem);
   }
   /* le CTA est a cheval sur le bord bas du bloc vert : un tiers dedans */
-  .approche__cta {
-    position: absolute;
-    left: 30.4%;
-    bottom: 0;
-    transform: translateY(65%);
-    z-index: 3;
-  }
   .approche__cta .cta {
     --on-surface: var(--blanc);
     --fold-color: var(--vert);
@@ -494,13 +484,6 @@ const impact = [
       min-height: 12.6rem;
       padding: 2rem;
     }
-    .approche__cta {
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      transform: translate(-50%, 50%);
-      margin: 0;
-    }
   }
 
   /* --- CONFIANCE --- */
@@ -537,9 +520,6 @@ const impact = [
     color: var(--on-surface);
     --pf-w: min(15.76vw, 14rem);
     --pf-h: calc(var(--pf-w) / 3.190);
-    /* le CTA deborde du bandeau de la moitie de sa hauteur : la section
-       suivante commence apres lui, a distance normale */
-    margin-bottom: calc(var(--s-bloc) / 2 + var(--t-cta) * 0.9);
   }
   /* Le fond de la bande vit sur ::before pour qu'on puisse ENTAILLER son coin
      haut-gauche. Sans cette entaille, le triangle du pli se posait sur un coin
@@ -733,16 +713,6 @@ const impact = [
     align-items: center;
     color: var(--blanc);
   }
-  /* le CTA est pose a cheval sur le bord bas de la section (releve v4 :
-     132 px entre le bas des cartes et le bas du bandeau) */
-  .prog__cta {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    margin-top: calc(var(--s-bloc) * 0.55);
-    transform: translateY(50%);
-    z-index: 2;
-  }
   @media (min-width: 861px) and (max-width: 1100px) {
     .prog__cards {
       /* Les gouttieres de la maquette desktop deviennent disproportionnees
@@ -784,9 +754,6 @@ const impact = [
     .prog__point-preview {
       display: block;
       max-height: calc(1.3em + 2px);
-    }
-    .prog__cta {
-      margin-top: var(--s-int);
     }
   }
 
@@ -999,92 +966,82 @@ const impact = [
   .citation__role {
     font-style: italic;
   }
+  /* Le bouton chevauche le bord, mais sa partie visible compte dans la
+     hauteur de la composition. Une seule instance sur tous les écrans. */
   .citation__cta {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translate(-50%, 50%);
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: center;
+    display: flex;
+    position: relative;
+    margin-top: calc(var(--t-bouton) * -0.9);
     z-index: 2;
   }
-  .citation__cta--mobile {
-    display: none;
-  }
   @media (max-width: 860px) {
-    .citation {
-      grid-template-columns: 1fr;
-    }
-    .citation__name,
-    .citation__ph,
-    .citation__card,
-    .citation__cta--mobile {
+    .citation { grid-template-columns: 1fr; }
+    .citation__name, .citation__ph, .citation__card, .citation__cta {
       grid-column: 1 / -1;
+      grid-row: auto;
       margin-left: 0;
     }
-    .citation__ph {
-      width: 32.2265625%;
-      justify-self: start;
-    }
-    .citation__name {
-      grid-row: auto;
-      justify-self: start;
-    }
-    .citation__ph,
-    .citation__card,
-    .citation__cta--mobile {
-      grid-row: auto;
-    }
-    .citation__cta--desktop {
-      display: none;
-    }
-    .citation__cta--mobile {
+    .citation__ph { width: 32.2265625%; justify-self: start; }
+    .citation__name { justify-self: start; }
+    .citation__cta { margin-top: 0; }
+  }
+
+  /* Chaque composition occupe sa hauteur visible, boutons compris. */
+  .approche__cta {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    margin-top: calc(var(--t-bouton) * -0.63);
+    z-index: 3;
+  }
+  @media (max-width: 860px) {
+    .approche__cta { margin-top: calc(var(--t-bouton) * -0.9); }
+  }
+
+  /* Les deux dernières pistes partagent la hauteur réelle du bouton.
+     Le fond s’arrête au milieu, la section va jusqu’à son bord inférieur. */
+  .prog {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+  }
+  .prog::before {
+    position: relative;
+    inset: auto;
+    grid-area: 1 / 1 / 3 / 2;
+  }
+  .prog__in {
+    grid-area: 1 / 1;
+    width: 100%;
+    padding-bottom: var(--s-titre);
+  }
+  .prog__cta {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    z-index: 2;
+    grid-area: 2 / 1 / 4 / 2;
+    margin-top: 0;
+    transform: none;
+  }
+
+  @media (max-width: 900px) {
+    /* Le cartouche reste dans le flux : sa hauteur réelle, même si son SVG
+       grandit, est incluse avant la section suivante. */
+    .bloc-image__picto {
       position: relative;
-      left: auto;
+      width: max-content;
       bottom: auto;
-      display: flex;
-      justify-content: center;
-      margin-top: 0;
-      transform: none;
+      margin-top: calc(var(--pbox-lg) * -0.72);
+      margin-left: calc(var(--unit) * -1.5);
+      transform: translateX(-20%);
     }
   }
 
-  /* Rythme de l'accueil : chaque ensemble presente dans la maquette est une
-     section. On supprime les demi-marges propres a chaque bloc et on pose un
-     seul intervalle entre leurs limites visuelles. */
-  main:has(.constat) > section {
-    padding-block: 0;
-  }
-  main:has(.constat) > .constat,
-  main:has(.constat) > section + section {
-    margin-top: var(--s-bloc);
-  }
-  main:has(.constat) > section:last-child {
-    padding-bottom: calc(var(--s-bloc) / 2);
-  }
-  /* Les CTA de l'approche et du Programme debordent de leur composition : la
-     section absorbe ce debord avant que l'intervalle commun ne commence. */
-  main:has(.constat) > .approche-sec {
-    padding-bottom: calc(var(--t-bouton) * 1.15);
-  }
-  main:has(.constat) > .prog {
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-  main:has(.constat) > .impact-sec {
-    padding-block: 2rem 0;
-  }
-  main:has(.constat) > section:has(.bloc-image) {
-    padding-bottom: calc(var(--pbox-lg) * 0.34);
-  }
-  @media (max-width: 860px) {
-    /* Le CTA reste a cheval sur le bloc, comme dans la maquette mobile. */
-    main:has(.constat) > .approche-sec {
-      padding-bottom: calc(var(--t-bouton) * 0.9);
-    }
-    main:has(.constat) > .impact-sec {
-      padding-block: 1.5rem 0;
-    }
-    main:has(.constat) > .parcours {
-      padding-bottom: calc(var(--s-bloc) / 2);
-    }
-  }
 </style>

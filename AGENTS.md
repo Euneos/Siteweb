@@ -109,14 +109,15 @@ Chaque valeur est fluide (`clamp`), exacte a 1440 et reduite en dessous. Interli
 **Aucune page ne pose de `font-size` en dur** : pour changer une taille, on change
 la variable.
 
-Meme logique pour les espaces (`--s-bloc` 48 à 80 px entre sections, `--s-lie`
+Meme logique pour les espaces (`--s-bloc` 64 à 120 px entre sections, `--s-lie`
 16 à 24 px entre titre et introduction, `--s-titre` 32 à 48 px avant le contenu,
 `--s-grille` 24 à 40 px entre cartes, `--s-int` 20 à 42 px de marge interne),
 les elements graphiques (`--picto-sm/md`, `--pbox-sm/md/lg`, `--logo-h`) et les
 CTA (tout en `em` : un libelle de 36 px donne un bouton de 65 px, `.cta--sm` pour
 les petits CTA des cartes « niveaux »). `.section` porte la moitie de `--s-bloc`
-de chaque côté : deux sections successives donnent l’intervalle commun. Une
-composition avec un débord réserve celui-ci avant cet intervalle.
+de chaque côté sur les pages simples. Les trois pages éditoriales utilisent
+`sectionFlow` : un seul `gap` entre ensembles visuels complets, sans padding de
+section ni marge additionnelle. Les compositions incluent leurs boutons en débord.
 
 ## `/style-guide` — le document de passation à EUNEOS
 
@@ -383,7 +384,22 @@ propre avant une intervention et préserver les textes et changements récents d
   limité au décor ; il ne doit pas masquer une mauvaise largeur de contenu.
 - Dans `<style is:global>`, écrire des sélecteurs CSS ordinaires, sans `:global(...)`.
 
-### Rythme commun — revue du 9 septembre 2026
+### Rythme commun — correction après retour visuel de Charly, 9 septembre 2026
+
+Un test sans débordement ne valide pas le rythme graphique. La première passe
+annonçait 80 px uniformes, mais le `min-height` du constat produisait 197 px,
+contre 53 px après Candice. Toujours mesurer les limites visibles des ensembles.
+
+- Une section est un sujet complet : titre + introduction + cartes, bandeau
+  Candidater, ou portrait + citation + bouton. Le titre et les chiffres d’impact
+  du Programme appartiennent à la même section.
+- Sur accueil, Programme et Qui sommes-nous, `Base sectionFlow` applique un
+  intervalle commun de 64 à 120 px. `data-section` nomme explicitement les ensembles.
+- Une surface colorée compte depuis son bord extérieur et garde sa marge
+  intérieure (`data-section-surface`) : le texte ne se colle pas au fond.
+- Les boutons de l’approche, du Programme et de Candice participent au flux.
+  Une hauteur minimale invisible ou une estimation du débord ne doit pas créer
+  un second intervalle. Les silhouettes latérales se bornent à leur section.
 
 - Chaque intervalle entre sections ne se compte qu’une fois : pas de marge locale
   ajoutée à la séparation commune. Les compositions qui dépassent (pli, cartouche,
@@ -415,7 +431,11 @@ propre avant une intervention et préserver les textes et changements récents d
    `AUDIT_SCREENSHOTS=1` ajoute les captures 390/860/1440. Une erreur fait échouer la commande.
    Redémarrer Wrangler après chaque compilation pour que les pages dynamiques utilisent
    les nouveaux fichiers CSS et JavaScript.
-7. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
+7. `bun run test:rhythm` : mesure les intervalles entre les limites visibles des
+   26 sections éditoriales à neuf largeurs, ouvertes et fermées, du hero au footer.
+   `RHYTHM_OUTPUT` conserve les mesures ; `RHYTHM_SCREENSHOTS=1` capture les pages.
+   Relire les captures : les assertions ne remplacent pas le jugement graphique.
+8. Vérifier le déploiement GitHub et le rendu réel avant d'annoncer la mise en ligne.
 
 Newsletter : la liste Brevo « EUNEOS — Newsletter — Formateurs » porte l'ID **6**,
 configuré dans `BREVO_LIST_FORMATEUR` via `[vars]` de `wrangler.toml`. Une variable

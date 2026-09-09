@@ -136,7 +136,7 @@
      grands entre sections. Les valeurs évoluent sans saut à 860 px.
      Les réserves des plis et décors sont gérées dans leur composition.
      ------------------------------------------------------------------ */
-  --s-bloc: clamp(3rem, 5.56vw, 5rem); /* 48 → 80 px : séparation des sections */
+  --s-bloc: clamp(4rem, 8.334vw, 7.5rem); /* 64 → 120 px : séparation des sections visuelles */
   --s-lie: clamp(1rem, 1.67vw, 1.5rem); /* 16 → 24 px : titre et introduction liés */
   --s-titre: clamp(2rem, 3.34vw, 3rem); /* 32 → 48 px : en-tête vers contenu */
   --s-grille: clamp(1.5rem, 2.8vw, 2.5rem); /* 24 → 40 px : cartes d’un ensemble */
@@ -530,12 +530,27 @@ body {
 :where(h1, h2, h3, p, a, label, legend, summary) { overflow-wrap: anywhere; }
 :where(.page, .g16, .cand__row, .champ) { min-width: 0; }
 
-/* Rythme vertical : chaque section porte la moitie de l'espace entre blocs,
-   deux sections qui se suivent donnent donc exactement --s-bloc. Aucune
-   section ne redefinit son padding : c'est ce qui faisait varier les
-   espaces d'un bloc a l'autre. */
+/* Pages simples : deux demi-espaces forment l’intervalle commun.
+   Les pages éditoriales utilisent le flux de sections ci-dessous. */
 .section {
   padding-block: calc(var(--s-bloc) / 2);
+}
+/* Les pages éditoriales alignent des ensembles visuels complets. Le gap
+   sépare leurs bords ; il ne s’ajoute à aucune marge propre à la section. */
+.section-flow {
+  display: grid;
+  gap: var(--s-bloc);
+  padding-block: var(--s-bloc);
+}
+.section-flow > section {
+  margin-block: 0;
+  padding-block: 0;
+  min-width: 0;
+}
+/* Un fond coloré est le bord visible de la section ; son contenu garde
+   une marge intérieure, distincte du gap extérieur. */
+.section-flow > section[data-section-surface] {
+  padding-block: var(--s-titre);
 }
 /* grille 16 colonnes de la charte */
 .g16 {

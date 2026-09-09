@@ -162,6 +162,7 @@ const equipe = [
 ---
 
 <Base
+  sectionFlow
   title="Qui sommes-nous ? — EUNEOS"
   description="EUNEOS, association loi 1901 fondée en avril 2026 : l’une des premières structures françaises à intégrer santé mentale, compétences psychosociales et rapport au numérique dans une approche pédagogique évaluée."
   heroSurface="vert"
@@ -188,7 +189,7 @@ const equipe = [
   </section>
 
   <!-- FONDEMENTS -->
-  <section id="fondements" class="section fond has-silo">
+  <section id="fondements" class="section fond has-silo" data-section="fondements">
     <div class="silo silo--left fond__fig" aria-hidden="true"><Brand name="fig1" height="100%" /></div>
     <div class="page g16 fond__in">
       <h2 style="grid-column: 3 / 8" class="fond__t">
@@ -226,7 +227,7 @@ const equipe = [
   </section>
 
   <!-- MISSION -->
-  <section class="section">
+  <section class="section" data-section="mission">
     <div class="page mission">
       <div class="mission__media">
         <Photo
@@ -260,7 +261,7 @@ const equipe = [
   </section>
 
   <!-- COMMENT AGISSONS-NOUS -->
-  <section class="section">
+  <section class="section" data-section="approche">
     <div class="page">
       <p class="surtitre a-surtitre">Notre approche</p>
       <h2 class="a-t">
@@ -284,7 +285,7 @@ const equipe = [
   </section>
 
   <!-- NIVEAUX D'INTERVENTION -->
-  <section class="section niveaux-sec">
+  <section class="section niveaux-sec" data-section="niveaux" data-section-surface>
     <div class="page">
       <p class="surtitre a-surtitre">Nos niveaux d’intervention</p>
       <h2 class="a-t">
@@ -312,7 +313,7 @@ const equipe = [
 
   <!-- CONSEIL D'ADMINISTRATION — ajoute dans la maquette v2.
         Les 6 membres y sont encore des « ??? » : noms et portraits a fournir. -->
-  <section class="section ca-sec" id="conseil-administration">
+  <section class="section ca-sec" id="conseil-administration" data-section="conseil">
     <div class="page">
       <h2 class="c-t ca__t">Notre conseil d’administration</h2>
       <p class="ca__intro">
@@ -350,7 +351,7 @@ const equipe = [
   </section>
 
   <!-- EQUIPE -->
-  <section class="section equipe-sec">
+  <section class="section equipe-sec" data-section="equipe">
     <div class="page">
       <h2 class="c-t">Notre équipe opérationnelle</h2>
       <div class="equipe-carousel" data-carousel role="region" aria-label="Équipe opérationnelle" aria-roledescription="carrousel">
