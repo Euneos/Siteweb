@@ -572,9 +572,15 @@ const impact = [
       width: min(100%, 32rem);
       grid-template-columns: 1fr;
     }
-    .prog__head { flex-direction: column; align-items: flex-start; }
+    .prog__head { flex-direction: row; align-items: center; gap: calc(var(--s-lie) * 0.5); }
+    .prog__picto { width: var(--picto-sm); }
     .prog__titre { font-size: var(--t-carte-mobile); white-space: nowrap; }
     .prog__titre > span { display: inline; }
+  }
+
+  @media (max-width: 380px) {
+    .prog__card.s-bleu { padding-inline: calc(var(--s-int) * 0.5); }
+    .prog__titre { font-size: var(--t-h3); }
   }
 
   /* --- IMPACT --- */
