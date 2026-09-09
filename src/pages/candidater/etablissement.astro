@@ -287,7 +287,9 @@ const CHAMPS: readonly Champ[] = [
   heroFold="none"
   noindex={false}
 >
+  <div class="candidature-page s-vert">
   <Candidature
+    rectangular
     titre="Je suis un établissement"
     chapo="Merci pour votre intérêt pour le programme WISE-UP.<br />Ce formulaire nous permet de mieux comprendre votre établissement, vos besoins, et les conditions possibles de mise en œuvre.<br />Il sert de base pour étudier votre candidature et organiser un échange si nécessaire.<br />Durée estimée : 5 à 7 minutes."
     action="/api/candidature-etablissement"
@@ -297,4 +299,5 @@ const CHAMPS: readonly Champ[] = [
     erreur={url.get('erreur')}
     manquants={url.get('manquants')}
   />
+  </div>
 </Base>

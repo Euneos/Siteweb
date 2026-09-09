@@ -1222,6 +1222,36 @@ body {
    PORTAIL DE CANDIDATURE
    Deux routes (etablissement / formateur) partagent ce gabarit.
    ══════════════════════════════════════════════════════════════════════ */
+/* Design partagé des deux pages de candidature. */
+  body:has(.candidature-page) { background: var(--vert); }
+  .candidature-page .champ { clip-path: none; }
+  .candidature-page {
+    background: var(--vert);
+    color: var(--blanc);
+  }
+  .candidature-page .cand__panel {
+    --filet: var(--blanc);
+    --ink-titre: var(--blanc);
+    color: var(--blanc);
+  }
+  .candidature-page .cand__panel h1,
+  .candidature-page .cand__section h2 {
+    color: var(--blanc);
+  }
+  .candidature-page select option {
+    background: var(--vert);
+    color: var(--blanc);
+  }
+  .candidature-page .cand__submit .cta {
+    --surface: var(--blanc);
+    --on-surface: var(--vert);
+    color: var(--vert);
+    --fold-color: var(--vert);
+  }
+  .candidature-page .cand__ok {
+    border-color: var(--blanc);
+  }
+
 .cand__panel {
   position: relative;
   padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 3rem) clamp(3rem, 6vw, 4.5rem);

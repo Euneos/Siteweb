@@ -275,7 +275,7 @@ const CHAMPS: readonly Champ[] = [
   heroFold="none"
   noindex={false}
 >
-  <div class="candidature-formateur s-vert">
+  <div class="candidature-page s-vert">
   <Candidature
     rectangular
     titre="Je souhaite devenir formateur·rice"
@@ -289,35 +289,3 @@ const CHAMPS: readonly Champ[] = [
   />
   </div>
 </Base>
-
-
-<style is:global>
-  body:has(.candidature-formateur) { background: var(--vert); }
-  .candidature-formateur .champ { clip-path: none; }
-  .candidature-formateur {
-    background: var(--vert);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__panel {
-    --filet: var(--blanc);
-    --ink-titre: var(--blanc);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__panel h1,
-  .candidature-formateur .cand__section h2 {
-    color: var(--blanc);
-  }
-  .candidature-formateur select option {
-    background: var(--vert);
-    color: var(--blanc);
-  }
-  .candidature-formateur .cand__submit .cta {
-    --surface: var(--blanc);
-    --on-surface: var(--vert);
-    color: var(--vert);
-    --fold-color: var(--vert);
-  }
-  .candidature-formateur .cand__ok {
-    border-color: var(--blanc);
-  }
-</style>
