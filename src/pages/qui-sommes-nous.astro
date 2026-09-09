@@ -321,11 +321,11 @@ const equipe = [
         éducation et politiques éducatives, santé mentale des jeunes, numérique et attention,
         innovation sociale, santé publique et prévention.
       </p>
-      <div class="ca-carousel" data-carousel>
-        <button class="ca-carousel__arrow" type="button" aria-label="Voir les membres précédents" data-direction="previous">
+      <div class="equipe-carousel" data-carousel role="region" aria-label="Membres du conseil d’administration" aria-roledescription="carrousel">
+        <button class="equipe-carousel__arrow" type="button" aria-label="Voir les membres précédents du conseil" aria-controls="conseil-membres" data-direction="previous">
           <span aria-hidden="true">←</span>
         </button>
-        <ul class="equipe equipe--ca" data-carousel-track>
+        <ul class="equipe equipe--ca" id="conseil-membres" data-carousel-track tabindex="0" aria-label="Membres du conseil d’administration">
           {ca.map((m) => (
             <li class="membre membre--ca">
               <Paper surface="vert-clair" fold="none" class="etiquette membre__name">{m.nom}</Paper>
@@ -342,7 +342,7 @@ const equipe = [
             </li>
           ))}
         </ul>
-        <button class="ca-carousel__arrow" type="button" aria-label="Voir les membres suivants" data-direction="next">
+        <button class="equipe-carousel__arrow" type="button" aria-label="Voir les membres suivants du conseil" aria-controls="conseil-membres" data-direction="next">
           <span aria-hidden="true">→</span>
         </button>
       </div>
@@ -353,20 +353,28 @@ const equipe = [
   <section class="section equipe-sec">
     <div class="page">
       <h2 class="c-t">Notre équipe opérationnelle</h2>
-      <ul class="equipe equipe--oper">
-        {
-          equipe.map((m) => (
-            <li class="membre membre--oper">
-              <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
-              <Photo src={m.photo} alt={m.photo ? `${m.nom} ${m.ligne2 ?? ''}, ${m.fonction}` : undefined} ratio="2/3" class={m.photo === candice ? 'membre__ph portrait-candice' : 'membre__ph'} width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [240, Math.min(m.photo.width, 800)] : undefined} quality={m.photo ? 85 : undefined} />
-              <Paper surface="papier" fold="br" class="membre__card">
-                <p>{m.fonction}</p>
-                <a href={`mailto:${m.email}`}>Contacter</a>
-              </Paper>
-            </li>
-          ))
-        }
-      </ul>
+      <div class="equipe-carousel" data-carousel role="region" aria-label="Équipe opérationnelle" aria-roledescription="carrousel">
+        <button class="equipe-carousel__arrow" type="button" aria-label="Voir les membres précédents de l’équipe" aria-controls="equipe-membres" data-direction="previous">
+          <span aria-hidden="true">←</span>
+        </button>
+        <ul class="equipe equipe--oper" id="equipe-membres" data-carousel-track tabindex="0" aria-label="Membres de l’équipe opérationnelle">
+          {
+            equipe.map((m) => (
+              <li class="membre membre--oper">
+                <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
+                <Photo src={m.photo} alt={m.photo ? `${m.nom} ${m.ligne2 ?? ''}, ${m.fonction}` : undefined} ratio="2/3" class={m.photo === candice ? 'membre__ph portrait-candice' : 'membre__ph'} width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [240, Math.min(m.photo.width, 800)] : undefined} quality={m.photo ? 85 : undefined} />
+                <Paper surface="papier" fold="br" class="membre__card">
+                  <p>{m.fonction}</p>
+                  <a href={`mailto:${m.email}`}>Contacter</a>
+                </Paper>
+              </li>
+            ))
+          }
+        </ul>
+        <button class="equipe-carousel__arrow" type="button" aria-label="Voir les membres suivants de l’équipe" aria-controls="equipe-membres" data-direction="next">
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -377,24 +385,35 @@ const equipe = [
   document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((carousel) => {
     const track = carousel.querySelector<HTMLElement>('[data-carousel-track]')
     if (!track) return
+    const previous = carousel.querySelector<HTMLButtonElement>('[data-direction="previous"]')
+    const next = carousel.querySelector<HTMLButtonElement>('[data-direction="next"]')
+    const updateNavigation = () => {
+      const end = track.scrollWidth - track.clientWidth
+      carousel.dataset.overflow = String(end > 1)
+      if (previous) previous.disabled = track.scrollLeft <= 1
+      if (next) next.disabled = track.scrollLeft >= end - 1
+    }
+    track.addEventListener('scroll', updateNavigation, { passive: true })
 
     // Equal closed cards, while each biography can still grow independently.
     // Measuring only the introductions avoids changing the baseline on toggle.
     const cards = [...track.querySelectorAll<HTMLElement>('.membre__card')]
     const alignClosedCards = () => {
       const height = Math.ceil(Math.max(0, ...cards.map((card) => {
-        const intro = card.querySelector<HTMLElement>(':scope > p')
+        const intro = [...card.querySelectorAll<HTMLElement>(':scope > p, :scope > a')]
         const style = getComputedStyle(card)
-        return (intro?.getBoundingClientRect().height ?? 0)
+        return intro.reduce((total, element) => total + element.getBoundingClientRect().height, 0)
+          + Math.max(0, intro.length - 1) * (parseFloat(style.rowGap) || 0)
           + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
       })))
-      track.style.setProperty('--ca-card-min-height', `${height}px`)
+      track.style.setProperty('--member-card-min-height', `${height}px`)
+      updateNavigation()
     }
     const resize = new ResizeObserver(alignClosedCards)
     for (const card of cards) {
-      const intro = card.querySelector<HTMLElement>(':scope > p')
-      if (intro) resize.observe(intro)
+      for (const intro of card.querySelectorAll<HTMLElement>(':scope > p, :scope > a')) resize.observe(intro)
     }
+    resize.observe(track)
     void document.fonts.ready.then(alignClosedCards)
     alignClosedCards()
 
@@ -768,11 +787,11 @@ const equipe = [
     margin: 0 auto var(--s-titre);
     text-align: center;
   }
-  .ca-carousel {
+  .equipe-carousel {
     position: relative;
     padding-bottom: 3.5rem;
   }
-  .equipe.equipe--ca {
+  .equipe[data-carousel-track] {
     display: flex;
     align-items: flex-start;
     overflow-x: auto;
@@ -782,21 +801,30 @@ const equipe = [
     user-select: none;
     touch-action: auto;
   }
-  .equipe.equipe--ca:active {
+  .equipe[data-carousel-track]:active {
     cursor: grabbing;
   }
-  .equipe--ca::-webkit-scrollbar {
+  .equipe[data-carousel-track]::-webkit-scrollbar {
     display: none;
   }
-  .equipe--ca .membre {
+  .equipe[data-carousel-track] .membre {
     flex: 0 0 28%;
     scroll-snap-align: start;
   }
-  .ca-carousel__arrow {
+  .equipe.equipe--oper .membre {
+    flex-basis: calc((100% - 2 * var(--equipe-gap)) / 3);
+  }
+  .equipe-carousel[data-overflow='false'] {
+    padding-bottom: 0;
+  }
+  .equipe-carousel[data-overflow='false'] .equipe-carousel__arrow {
+    display: none;
+  }
+  .equipe-carousel__arrow {
     position: absolute;
     bottom: 0;
     z-index: 3;
-    width: 2.5rem;
+    width: 2.75rem;
     aspect-ratio: 1;
     border: 0;
     border-radius: 50%;
@@ -806,10 +834,14 @@ const equipe = [
     line-height: 1;
     cursor: pointer;
   }
-  .ca-carousel__arrow[data-direction='previous'] {
+  .equipe-carousel__arrow:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .equipe-carousel__arrow[data-direction='previous'] {
     left: calc(50% - 3rem);
   }
-  .ca-carousel__arrow[data-direction='next'] {
+  .equipe-carousel__arrow[data-direction='next'] {
     right: calc(50% - 3rem);
   }
 
@@ -818,12 +850,13 @@ const equipe = [
     margin-bottom: clamp(2rem, 3vw, 2.5rem);
   }
   .equipe {
+    --equipe-gap: clamp(1.5rem, 4vw, 3rem);
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1.5rem, 4vw, 3rem);
+    gap: var(--equipe-gap);
   }
   .membre {
     display: grid;
@@ -854,6 +887,8 @@ const equipe = [
     color: var(--vert);
   }
   .membre__card {
+    min-height: var(--member-card-min-height, 0);
+    align-content: start;
     padding: var(--s-int);
     padding-bottom: max(var(--s-int), calc(var(--fy) + 0.75rem));
     display: grid;
@@ -894,7 +929,6 @@ const equipe = [
   .equipe--ca .membre__card {
     position: relative;
     display: block;
-    min-height: var(--ca-card-min-height, 0);
     font-size: var(--t-bio);
     line-height: var(--lh-corps);
     padding: 1rem 1rem calc(2.75rem + var(--fy) + 0.25rem);
@@ -942,10 +976,7 @@ const equipe = [
     .equipe {
       grid-template-columns: 1fr;
     }
-    .equipe.equipe--ca {
-      display: flex;
-    }
-    .equipe--ca .membre {
+    .equipe[data-carousel-track] .membre {
       flex-basis: 100%;
     }
     .equipe--oper .membre__name,

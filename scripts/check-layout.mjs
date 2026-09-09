@@ -43,7 +43,7 @@ try {
     assert(Math.abs(await gap() - closedGap) < 1)
     const title = await box('.ca__t')
     const intro = await box('.ca__intro')
-    const carousel = await box('.ca-carousel')
+    const carousel = await box('.ca-sec [data-carousel]')
     assert(intro.y - bottom(title) < carousel.y - bottom(intro), `Rythme du conseil à ${width}px`)
     const photo = await box('.mission__media .ph')
     const badge = await box('.mission__badge')
@@ -79,12 +79,40 @@ try {
     if (output && [390, 1440].includes(width)) await page.locator('.ca-sec').screenshot({ path: `${output}/conseil-ouvert-${width}.png` })
     await summary.press('Enter')
     assert(!await bio.evaluate((el) => el.open), 'Fermeture au clavier')
-    await page.locator('[data-direction="next"]').click()
-    await page.waitForFunction(() => document.querySelector('[data-carousel-track]').scrollLeft > 0)
-    await page.locator('[data-direction="previous"]').click()
-    await page.waitForFunction(() => document.querySelector('[data-carousel-track]').scrollLeft < 1)
+    assert.equal(await page.locator('[data-carousel]').count(), 2, 'Les deux équipes ont un carrousel')
+    for (const section of ['.ca-sec', '.equipe-sec']) {
+      const group = page.locator(`${section} [data-carousel]`)
+      const track = group.locator('[data-carousel-track]')
+      const next = group.locator('[data-direction="next"]')
+      const previous = group.locator('[data-direction="previous"]')
+      const overflowing = await track.evaluate((el) => el.scrollWidth - el.clientWidth > 1)
+      assert.equal(overflowing, section === '.ca-sec' || width <= 860, 'Équipe entière sur ordinateur, une carte par écran mobile')
+      if (!overflowing) {
+        assert(!(await next.isVisible()) && !(await previous.isVisible()), 'Pas de flèches inutiles sans défilement')
+        continue
+      }
+      assert(await previous.isDisabled(), 'Début du carrousel signalé')
+      const arrow = await next.boundingBox()
+      assert(arrow.width >= 44 && arrow.height >= 44, 'Flèche tactile de 44 px')
+      await next.focus()
+      await page.keyboard.press('Enter')
+      await page.waitForFunction((selector) => document.querySelector(selector).scrollLeft > 0, `${section} [data-carousel-track]`)
+      await previous.click()
+      await page.waitForFunction((selector) => document.querySelector(selector).scrollLeft < 1, `${section} [data-carousel-track]`)
+      await track.evaluate((el) => { el.scrollLeft = el.scrollWidth })
+      await page.waitForFunction((selector) => document.querySelector(selector).disabled, `${section} [data-direction="next"]`)
+      const last = await track.locator('.membre').last().boundingBox()
+      const frame = await track.boundingBox()
+      assert(last.x >= frame.x - 1 && last.x + last.width <= frame.x + frame.width + 1, 'Dernier membre accessible')
+      await track.evaluate((el) => { el.scrollLeft = 0 })
+      await page.waitForFunction((selector) => document.querySelector(selector).disabled, `${section} [data-direction="previous"]`)
+    }
+    assert.deepEqual(await page.locator('.equipe--oper a').evaluateAll((links) => links.map((link) => link.getAttribute('href'))), [
+      'mailto:gouvernance@euneos.fr', 'mailto:charlotte@euneos.fr', 'mailto:pauline@euneos.fr',
+    ], 'Contacts conservés dans le carrousel')
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'La page ne déborde pas horizontalement')
     if (output && [390, 1440].includes(width)) {
-      for (const selector of ['.fond', '.mission', '.ca-sec']) await page.locator(selector).screenshot({ path: `${output}/${selector.slice(1)}-${width}.png` })
+      for (const selector of ['.fond', '.mission', '.ca-sec', '.equipe-sec']) await page.locator(selector).screenshot({ path: `${output}/${selector.slice(1)}-${width}.png` })
     }
     for (const path of ['/', '/programme']) {
       await page.goto(`${base}${path}`)

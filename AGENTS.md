@@ -374,6 +374,10 @@ propre avant une intervention et préserver les textes et changements récents d
   un libellé accessible et une ouverture/fermeture au clavier.
 - Le carrousel utilise une seule liste de membres et le défilement tactile natif. Ne pas
   tripler les biographies dans le DOM ni déplacer le scroll pendant que l'utilisateur lit.
+- Le conseil et l'équipe opérationnelle utilisent chacun ce carrousel. Sur mobile, une
+  carte occupe la largeur disponible ; sur ordinateur, les trois membres opérationnels
+  restent visibles ensemble. Masquer les flèches quand il n'y a rien à faire défiler,
+  désactiver celles des extrémités et conserver les liens de contact accessibles.
 - Les décors mobiles occupent une zone distincte du titre et du bouton. Le clipping est
   limité au décor ; il ne doit pas masquer une mauvaise largeur de contenu.
 - Dans `<style is:global>`, écrire des sélecteurs CSS ordinaires, sans `:global(...)`.
