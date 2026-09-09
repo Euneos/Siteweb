@@ -23,42 +23,8 @@ import photoFaq from '../assets/photos/programme-faq-formation.jpeg'
 import cartoucheFaq from '../assets/brand/cartouche-programme-jaune.svg'
 import mainFormateur from '../assets/brand/main-formateur.svg'
 
-/* Maquette : les pictos sont NUS, colores, poses sur le fond papier — pas dans
-   un cartouche. Les principes reprennent le comportement des cartes de
-   l'accueil : un apercu estompe, puis une fleche qui deroule le texte restant. */
-const methodo = [
-  {
-    picto: 'main',
-    couleur: 'var(--bleu)',
-    titre: '2 pôles de compétences',
-    intro: 'Une formation conçue pour transmettre de manière complémentaire :',
-    points: [
-      { gras: 'Des compétences psychosociales :', suite: ' attention, régulation émotionnelle, coopération, empathie.' },
-      { gras: 'Des pratiques équilibrées et régulées du numérique :', suite: ' clarifier les habitudes, comprendre les usages.' },
-    ],
-  },
-  {
-    picto: 'asterisque',
-    couleur: 'var(--rose)',
-    titre: 'Personnel formé',
-    intro: 'Un accompagnement qui renforce la coopération, l’attention et soutient le climat éducatif :',
-    points: [
-      { gras: 'Avec une pratique de l’attention', suite: ' intégrée au quotidien professionnel ;' },
-      { gras: 'et des outils concrets', suite: ' pour réguler le stress numérique et la surcharge informationnelle.' },
-    ],
-  },
-  {
-    picto: 'oiseau',
-    couleur: 'var(--orange)',
-    titre: 'Jeunes régulés',
-    intro: 'Des jeunes qui développent des compétences fondamentales :',
-    points: [
-      { gras: 'Concentration', suite: ' et stabilisation de leur attention.' },
-      { gras: 'Régulation émotionnelle', suite: ' et une estime de soi plus solide.' },
-      { gras: 'Des usages numériques plus conscients.', suite: '' },
-    ],
-  },
-] as const
+import { programme as methodo } from '../data/programme'
+const couleursPrincipes = ['var(--bleu)', 'var(--rose)', 'var(--orange)']
 
 /* Les 8 modules de la formation (maquette v4 p.2). */
 const modules = [
@@ -228,30 +194,22 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
       <h2 class="c-t methodo__t">Les 3 principes du Programme Euneos</h2>
       <ul class="methodo">
         {
-          methodo.map((m) => (
+          methodo.map((m, index) => (
             <li>
               <details class="methodo__card">
                 <summary class="methodo__summary">
                   <span class="methodo__head">
-                    <span class="methodo__picto" style={`color:${m.couleur}`}>
+                    <span class="methodo__picto" style={`color:${couleursPrincipes[index]}`}>
                       <Brand name={m.picto} />
                     </span>
-                    <span class="methodo__title">{m.titre}</span>
+                    <span class="methodo__title">{m.titre.join(' ')}</span>
                   </span>
                   <span class="methodo__intro">{m.intro}</span>
-                  <span class="methodo__point-preview">
-                    <span class="methodo__point"><strong>{m.points[0].gras}</strong>{m.points[0].suite}</span>
-                    <span class="methodo__voile" aria-hidden="true" />
-                  </span>
                   <span class="methodo__fleche" aria-hidden="true">
                     <svg viewBox="0 0 24 32" fill="currentColor"><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" /></svg>
                   </span>
                 </summary>
-                <div class="methodo__body">
-                  {m.points.slice(1).map((pt) => (
-                    <p class="methodo__point"><strong>{pt.gras}</strong>{pt.suite}</p>
-                  ))}
-                </div>
+
               </details>
             </li>
           ))
@@ -651,125 +609,53 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
   }
 
 
-  /* METHODOLOGIE */
+  /* Principes : colonnes aérées et lecture dépliante. */
   .methodo {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--s-grille);
+    column-gap: calc(var(--s-grille) * 1.5);
+    row-gap: var(--s-grille);
+    align-items: start;
   }
-  .methodo__t {
-    margin-bottom: var(--s-titre);
-  }
+  .methodo__t { margin-bottom: var(--s-titre); }
   .methodo__head {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: clamp(1rem, 2.2vw, 2rem);
+    gap: var(--s-lie);
+    min-height: calc(2em * var(--lh-titre));
+    font-size: var(--t-cta);
   }
-  /* releve v4 : picto de 70 px, titre au corps des titres (47 px) */
-  .methodo__picto {
-    width: var(--picto-md);
-    flex: none;
-  }
+  .methodo__picto { width: calc(var(--picto-sm) * 0.55); flex: none; }
   .methodo__title {
-    font-size: var(--t-titre);
+    font-size: var(--t-cta);
     font-weight: 600;
     line-height: var(--lh-titre);
     color: var(--vert);
   }
-  .methodo__point strong {
-    font-weight: 600;
-  }
-  @media (min-width: 861px) {
-    .methodo__title {
-      font-size: var(--t-cta);
-    }
-  }
   .methodo__summary {
-    position: relative;
     display: grid;
-    gap: 0;
-    padding-bottom: 0;
+    gap: var(--s-lie);
     cursor: pointer;
     list-style: none;
   }
-  .methodo__summary::-webkit-details-marker {
-    display: none;
-  }
-  .methodo__summary:focus-visible {
-    outline: 3px solid var(--bleu);
-    outline-offset: 3px;
-  }
-  .methodo__intro,
-  .methodo__point {
-    display: block;
-    max-width: none;
-  }
-  .methodo__point {
-    margin-top: 0;
-    line-height: var(--lh-corps);
-  }
-  .methodo__point-preview {
-    position: relative;
-    display: block;
-    max-height: calc(1.3em + 2px);
+  .methodo__summary::-webkit-details-marker { display: none; }
+  .methodo__summary:focus-visible { outline: 3px solid var(--bleu); outline-offset: 3px; }
+  .methodo__intro { display: block; line-height: var(--lh-corps); }
+  .methodo__card:not([open]) .methodo__intro {
+    height: calc(3em * var(--lh-corps));
     overflow: hidden;
-    padding-right: 2.5rem;
-    color: color-mix(in srgb, var(--noir) 48%, var(--papier));
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(2em * var(--lh-corps)), #0005 calc(2em * var(--lh-corps)), #0005 100%);
   }
-  .methodo__voile {
-    display: none;
-  }
-  .methodo__fleche {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: clamp(0.9rem, 1.65vw, 1.5rem);
-    transition: transform 0.2s ease;
-  }
-  .methodo__card[open] .methodo__fleche {
-    transform: rotate(180deg);
-  }
-  .methodo__card[open] .methodo__voile {
-    display: none;
-  }
-  .methodo__card[open] .methodo__point-preview {
-    max-height: none;
-    overflow: visible;
-    color: inherit;
-  }
-  .methodo__body .methodo__point:first-child {
-    margin-top: 0;
-  }
+  .methodo__fleche { justify-self: end; width: 44px; height: 44px; display: grid; place-items: center; }
+  .methodo__fleche svg { width: 24px; height: 32px; }
+  .methodo__card[open] .methodo__fleche { transform: rotate(180deg); }
   @media (max-width: 860px) {
-    .methodo {
-      grid-template-columns: 1fr;
-      gap: var(--s-grille);
-    }
-    .methodo__intro,
-    .methodo__point {
-      max-width: none;
-    }
-    .methodo__head {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      margin-bottom: 0.5rem;
-    }
-    .methodo__intro {
-      text-align: left;
-    }
-    .methodo__point-preview {
-      padding-right: 3rem;
-      max-height: none;
-      overflow: visible;
-    }
-    .methodo__fleche {
-      width: clamp(1.5rem, 7vw, 2.25rem);
-    }
+    .methodo { grid-template-columns: 1fr; width: min(100%, 32rem); margin-inline: auto; }
+    .methodo__head { min-height: 0; flex-direction: column; align-items: flex-start; }
+    .methodo__title { font-size: var(--t-carte-mobile); white-space: nowrap; }
   }
   .methodo__cta {
     margin-top: var(--s-titre);

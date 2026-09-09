@@ -21,24 +21,7 @@ import pratiqueMeditative from '../assets/photos/pratique-meditative-exterieur.j
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
 
-/* Présentation du Programme — textes actualisés par Pauline. */
-const programme = [
-  {
-    picto: 'main',
-    titre: ['2 pôles de', 'compétences'],
-    intro: 'Acquisition et application des compétences psychosociales pour soutenir la santé mentale et sensibilisation au bien-être numérique.',
-  },
-  {
-    picto: 'asterisque',
-    titre: ['Personnel', 'formé'],
-    intro: 'Accompagnement du personnel éducatif pour favoriser une dynamique positive entre collègues, avec les élèves et être mieux outillés pour faire face aux enjeux éducatifs et de santé.',
-  },
-  {
-    picto: 'oiseau',
-    titre: ['Jeunes', 'régulés'],
-    intro: 'Des jeunes qui développent des compétences fondamentales : concentration et stabilisation de leur attention, régulation émotionnelle et une estime de soi plus solide, des usages numériques plus conscients.',
-  },
-] as const
+import { programme } from '../data/programme'
 
 /* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
 const logos = [
@@ -191,7 +174,7 @@ const impact = [
                 <summary class="prog__resume">
                 <div class="prog__head">
                   <span class="prog__picto"><Brand name={c.picto} /></span>
-                  <h3 class="prog__titre">{c.titre.map((ligne) => <span>{ligne}</span>)}</h3>
+                  <h3 class="prog__titre">{c.titre.map((ligne, index) => <><span>{ligne}</span>{index === 0 && ' '}</>)}</h3>
                 </div>
                 <p class="prog__p">{c.intro}</p>
                   <span class="prog__fleche" aria-hidden="true"><svg viewBox="0 0 24 32" fill="currentColor"><path d="M9 0h6v20l6-6 2 2-11 11L1 16l2-2 6 6z" /></svg></span>
@@ -589,6 +572,9 @@ const impact = [
       width: min(100%, 32rem);
       grid-template-columns: 1fr;
     }
+    .prog__head { flex-direction: column; align-items: flex-start; }
+    .prog__titre { font-size: var(--t-carte-mobile); white-space: nowrap; }
+    .prog__titre > span { display: inline; }
   }
 
   /* --- IMPACT --- */
