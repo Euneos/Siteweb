@@ -102,56 +102,64 @@ const niveaux: {
 /* Fonctions corrigees le 20/08 (maquette v2 p.3). NB : la page 1 signe la
    citation de Candice « Fondatrice et Presidente » — l'ecart est dans la
    maquette elle-meme, a trancher avec elle. */
-const ca: { nom: string; fonction: string; bio?: string; photo?: ImageMetadata }[] = [
-  {
-    nom: "Gabriel Pacheco",
-    photo: gabriel,
-    fonction: "Gabriel Pacheco a cofondé il y a plus de quinze ans le réseau immobilier SAFTI, qu'il dirige toujours.",
-    bio: " Convaincu que prendre soin de soi change la façon dont on vit avec les autres, il a créé le fonds de dotation familial Nouveau Monde, qui finance et accompagne des projets d'intérêt général en faveur du bien-être mental en France. Le fonds soutient Euneos depuis sa création.",
-  },
+const ca: { nom: string; mandat: string; fonction: string; bio?: string; photo?: ImageMetadata }[] = [
+
   {
     nom: "Mélissa Martinay",
+    mandat: 'Membre du conseil',
     photo: melissa,
     fonction: "Déléguée générale du fonds de dotation Nouveau Monde, Mélissa Martinay finance et accompagne des projets d'intérêt général en faveur du bien-être mental comme Euneos.",
     bio: " Elle accompagne depuis 15 ans le développement d'organisations à impact social, des circuits courts alimentaires à la démocratie participative.",
   },
   {
     nom: 'Gilles Vernet',
+    mandat: 'Membre du conseil',
     photo: gilles,
     fonction: 'Ancien trader devenu instituteur, Gilles Vernet est également auteur, réalisateur et conférencier.',
     bio: ' Il interroge dans ses films, ses livres et ses conférences notre rapport au temps face à l’accélération technologique et la pression financière. Il met en question la déshumanisation liée à la démultiplication des machines et plaide pour une plus grande place donnée au langage, à l’art et aux liens réels dans une société absorbée par le virtuel.',
   },
   {
     nom: 'Sophie Lavault',
+    mandat: 'Membre du conseil',
     photo: sophie,
     fonction: 'Docteure en neurosciences et psychologue clinicienne,',
     bio: " Sophie Lavault travaille sur les liens entre cerveau, corps et émotions, et sur la façon dont nos environnements (dont le numérique) influencent les comportements. Engagée dans la vulgarisation scientifique et la question de la santé globale, elle intervient auprès de publics variés pour aider à mieux comprendre la manière dont l'être humain habite le monde. Elle est l’autrice de l’essai Revenir à soi – Comment le numérique nous déconnecte de nous-mêmes (Albin Michel, 2023), qui éclaire les mécanismes de l’hyperconnectivité et propose des pistes pour retrouver un lien plus sain à soi et aux autres.",
   },
   {
     nom: 'Guilain Praseuth',
+    mandat: 'Membre du conseil',
     photo: guilain,
     fonction: 'Spécialiste de l’innovation pédagogique dans l’enseignement supérieur,',
     bio: " Guilain accompagne les enseignants, formateurs et organisations dans la conception d’expériences d’apprentissage et d’environnements pédagogiques engageants, en s’appuyant sur l’intelligence collective. Co-auteur de l’ouvrage « Apprendre à apprendre » (Dunod, 2023), ses interventions portent principalement sur les stratégies d’apprentissage efficaces et l’usage raisonné des outils d’intelligence artificielle en contexte éducatif.",
   },
   {
-    nom: 'Francoise Sarrazin',
+    nom: 'Françoise Sarrazin',
+    mandat: 'Présidente Euneos',
     photo: francoise,
     fonction: 'Médecin spécialiste du handicap moteur depuis 1986,',
     bio: " Françoise a exercé dans plusieurs centres de rééducation en France et notamment pendant 20 ans auprès des jeunes et de leurs familles au lycée/SESSAD Toulouse-Lautrec à Vaucresson (92). En 2016, elle obtient un diplôme universitaire de Médecine, Méditation et Neurosciences, et met en place des ateliers de concentration dans les classes, en lien avec les enseignants. Retraitée depuis le 1er septembre 2026, elle anime désormais le Programme Euneos (WISE UP) à Paris et en Bretagne.",
   },
   {
     nom: 'Solange Eon',
+    mandat: 'Membre du conseil',
     photo: solange,
     fonction: "Infirmière de formation, Solange a débuté son engagement pour l'aide aux autres dès son jeune âge.",
     bio: " Par la suite, elle s'est formée au yoga et à la méditation à travers divers enseignements. Aujourd'hui, elle se consacre à l’accompagnement des personnes en difficulté, ainsi qu’à l’aide au mieux-être des enfants et des jeunes.",
   },
   {
     nom: 'Jean-François Mamet',
+    mandat: 'Trésorier Euneos',
     photo: jeanFrancois,
     fonction: 'Ingénieur technico-commercial dans les services aux entreprises,',
     bio: ' bientôt retraité d’un constructeur informatique, Jean-François a aussi une longue expérience du monde associatif et des contacts avec les jeunes. Il a monté des projets sportifs dans les écoles primaires et supervisé des professionnels engagés auprès des jeunes. Il amène son expérience des chiffres et sa rigueur dans sa fonction de trésorier.',
   },
-
+  {
+    nom: "Gabriel Pacheco",
+    mandat: 'Membre du conseil',
+    photo: gabriel,
+    fonction: "Gabriel Pacheco a cofondé il y a plus de quinze ans le réseau immobilier SAFTI, qu'il dirige toujours.",
+    bio: " Convaincu que prendre soin de soi change la façon dont on vit avec les autres, il a créé le fonds de dotation familial Nouveau Monde, qui finance et accompagne des projets d'intérêt général en faveur du bien-être mental en France. Le fonds soutient Euneos depuis sa création.",
+  },
 ]
 
 const equipe = [
@@ -332,6 +340,7 @@ const equipe = [
               <Paper surface="vert-clair" fold="none" class="etiquette membre__name">{m.nom}</Paper>
               <Photo src={m.photo} alt={m.photo ? m.nom : undefined} ratio="2/3" class="membre__ph" width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [Math.min(240, m.photo.width), Math.min(800, m.photo.width)] : undefined} quality={85} />
               <Paper surface="papier" fold="br" class="membre__card">
+                <p class="ca__mandat">{m.mandat}</p>
                 <p>{m.fonction}</p>
                 {m.bio && (
                   <details class="ca__bio">
@@ -943,6 +952,10 @@ const equipe = [
     font-size: inherit;
     line-height: inherit;
     margin: 0;
+  }
+  .ca__mandat {
+    font-weight: 600;
+    margin-bottom: 0.5em;
   }
   .ca__bio {
     display: block;
