@@ -14,5 +14,5 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 BREVO_LIST_FORMATEUR = "6"
 
-# Adresse publique de réception des demandes de contact et notifications équipe.
-EQUIPE_EMAIL = "euneosequipe@gmail.com"
+# Adresse publique de réception des demandes du formulaire de contact.
+CONTACT_EMAIL = "euneosequipe@gmail.com"
