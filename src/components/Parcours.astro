@@ -2,6 +2,11 @@
 import Brand from './Brand.astro'
 import Paper from './Paper.astro'
 
+interface Props {
+  benevolat?: boolean
+}
+const { benevolat = false } = Astro.props
+
 /* Maquette : le picto n'est pas blanc mais en ton sur ton avec l'etiquette —
    c'est la regle des paires de la charte (p.12). */
 const parcours = [
@@ -10,7 +15,7 @@ const parcours = [
      NB : la maquette v2 dit « devenir membre » — libelle a confirmer avec elle. */
   { surface: 'bleu', label: 'Je suis un établissement', href: '/candidater/etablissement', picto: 'var(--bleu-fold)' },
   { surface: 'jaune', label: 'Je souhaite devenir formateur·rice', href: '/candidater/formateur', picto: 'var(--jaune-clair)' },
-  { surface: 'vert', label: 'Je découvre EUNEOS', href: '/qui-sommes-nous', picto: 'var(--vert-clair)' },
+  { surface: 'vert', label: benevolat ? 'Je souhaite être bénévole' : 'Je découvre EUNEOS', href: benevolat ? '/contact' : '/qui-sommes-nous', picto: 'var(--vert-clair)' },
 ] as const
 ---
 
