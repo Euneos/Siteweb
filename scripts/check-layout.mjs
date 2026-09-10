@@ -57,7 +57,15 @@ try {
     const badge = await box('.mission__badge')
     const card = await box('.mission__card')
     assert(badge.y < bottom(photo) && badge.x >= photo.x - 1 && badge.x + badge.width <= photo.x + photo.width + 1, `Cartouche superposé dans la largeur de la photo à ${width}px`)
-    if (width > 860) assert(Math.abs(bottom(badge) - bottom(card)) < 1, `Cartouche aligné au panneau à ${width}px`)
+    if (width > 860) {
+      assert(photo.width > card.width && Math.abs(photo.width / card.width - 396 / 295) < 0.02, `Proportions photo/panneau à ${width}px`)
+      assert(card.y > photo.y && bottom(badge) > bottom(card), `Décalages de la composition à ${width}px`)
+    }
+    const cardStyle = await page.locator('.mission__card').evaluate(el => {
+      const s = getComputedStyle(el)
+      return { left: parseFloat(s.paddingLeft), right: parseFloat(s.paddingRight), top: parseFloat(s.paddingTop) }
+    })
+    assert(cardStyle.left >= 24 && Math.abs(cardStyle.left - cardStyle.right) < 1 && Math.abs(cardStyle.left - cardStyle.top) < 1, `Marges régulières du texte à ${width}px`)
     if (width <= 860) assert(card.y >= bottom(badge) - 1, 'Le texte ne chevauche pas le cartouche')
     for (const paragraph of await page.locator('.mission__card > p').all()) {
       const p = await paragraph.boundingBox()

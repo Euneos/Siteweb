@@ -471,3 +471,14 @@ Les deux formulaires passent par `src/lib/candidature-store.ts` et le registre D
 [docs/form-submissions.md](docs/form-submissions.md). Ne pas réintroduire de
 création directe, de suppression automatique après timeout ou de verrou mémoire.
 La recette ne doit jamais envoyer de candidature fictive sur le domaine public.
+
+### Mission — référence de Pauline du 10 septembre, 17 h 24
+
+La nouvelle capture remplace l'ancien alignement du cartouche au bas du panneau.
+Sur ordinateur, photo/panneau sont dans le rapport 396/295 ; la composition est
+plafonnée à 52 rem hors marges de page. Le panneau commence sous le cartouche
+orange, avec des marges haut/gauche/droite identiques et le pli réservé en bas.
+Sa hauteur suit le texte, sans hauteur figée. Le cartouche rose est à droite de
+la photo et dépasse sous le panneau. Sous 860 px, photo en 4/3 puis panneau en
+pile ; le cartouche réserve sa place avant le texte. Conserver le corps courant
+et la dernière phrase en gras.

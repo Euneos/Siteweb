@@ -245,7 +245,7 @@ const equipe = [
           format="avif"
           quality={65}
           widths={[640, 960, 1280, 1600]}
-          sizes="(max-width: 860px) 125vw, (max-width: 1440px) 82vw, 1180px"
+          sizes="(max-width: 860px) 100vw, 480px"
         />
         <div class="mission__picto"><PictoBox picto="oiseau" surface="orange" size="md" /></div>
         <Paper surface="rose" fold="tl" class="mission__badge">
@@ -577,27 +577,29 @@ const equipe = [
     }
   }
 
-  /* MISSION — composition de la reference : photo en retrait, cartouche
-     aligne au bas du panneau et texte a la taille du corps courant. */
+  /* MISSION — proportions de la capture du 10 septembre. Le panneau garde
+     ses marges ; sa hauteur suit le texte et entraîne celle de la photo. */
   .mission {
+    --mission-inset: calc(var(--s-int) * 1.2);
+    --mission-top: calc(var(--pbox-md) * 1.24);
+    --mission-tail: calc(var(--s-int) * 2);
     display: grid;
-    grid-template-columns: minmax(0, 0.56fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 396fr) minmax(0, 295fr);
     align-items: stretch;
-    padding-top: calc(var(--pbox-md) * 0.48);
+    max-width: calc(52rem + var(--unit) * 3);
+    padding-top: calc(var(--pbox-md) * 0.16);
   }
   .mission__media {
     position: relative;
-    aspect-ratio: 0.56;
+    min-width: 0;
     z-index: 2;
   }
   .mission__media > .ph {
     position: absolute;
-    inset: 8% 0 10%;
-    height: 82%;
+    inset: 0 0 calc(var(--mission-tail) * 0.9);
+    height: auto;
     aspect-ratio: auto !important;
   }
-  /* Cadrage de la reference : partie droite de l'atelier, sans le plafond.
-     L'original reste intact ; le cadre masque le haut de la photo. */
   .mission__media > .ph img {
     height: 125%;
     object-position: right bottom;
@@ -605,31 +607,27 @@ const equipe = [
   }
   .mission__picto {
     position: absolute;
-    right: 0;
-    top: calc(var(--pbox-md) * -0.48);
+    right: calc(var(--pbox-md) * -0.47);
+    top: calc(var(--pbox-md) * -0.16);
     z-index: 3;
   }
-  .mission__picto svg {
-    transform: scaleX(-1);
-  }
+  .mission__picto svg { transform: scaleX(-1); }
   .mission .mission__badge {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 0;
     bottom: 0;
-    width: 76%;
-    max-width: 20rem;
-    padding: calc(var(--s-int) * 0.65) clamp(1rem, 2.2vw, 2rem);
+    width: 47%;
+    padding: calc(var(--s-int) * 0.55) calc(var(--s-int) * 0.4);
     text-align: center;
     z-index: 4;
-    --fx: var(--fold-md);
-    --fy: calc(var(--fold-md) * 0.55);
+    --fx: var(--fold-sm);
+    --fy: calc(var(--fold-sm) * 0.65);
     --on-surface: var(--blanc);
     color: var(--blanc);
   }
   .mission__badge-mark {
     display: block;
-    width: 78%;
+    width: 86%;
     margin: 0 auto 0.65rem;
   }
   .mission__badge-txt {
@@ -639,15 +637,16 @@ const equipe = [
     display: block;
   }
   .mission__card {
-    --fx: clamp(3rem, 16.3vw, 13rem);
-    --fy: calc(var(--fx) * 0.5);
-    padding: var(--s-int);
-    padding-left: clamp(2rem, 5.5vw, 4.4rem);
-    padding-bottom: max(var(--s-int), var(--fy));
+    --fx: calc(var(--fold-md) * 1.5);
+    --fy: calc(var(--fx) * 0.58);
+    margin-top: var(--mission-top);
+    margin-bottom: var(--mission-tail);
+    padding: var(--mission-inset);
+    padding-bottom: max(var(--mission-inset), calc(var(--fy) + 0.5em));
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1em;
+    gap: 0;
     z-index: 1;
   }
   .mission__card > p {
@@ -656,27 +655,29 @@ const equipe = [
     line-height: var(--lh-corps);
     font-weight: 400;
   }
-  .mission__card > .mission__strong {
-    font-weight: 600;
-  }
+  .mission__card > .mission__strong { font-weight: 600; }
   @media (max-width: 860px) {
     .mission {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+      max-width: calc(36rem + var(--unit) * 3);
       gap: 0;
     }
+    .mission__media {
+      padding-bottom: var(--mission-tail);
+    }
     .mission__media > .ph {
-      position: static;
+      position: relative;
+      inset: auto;
       height: auto;
       aspect-ratio: 4 / 3 !important;
     }
-    .mission__media {
-      aspect-ratio: auto;
+    .mission__picto { right: 0; }
+    .mission .mission__badge {
+      width: min(70%, 15rem);
+      bottom: calc(var(--mission-tail) * 0.25);
     }
     .mission__card {
-      padding-left: var(--s-int);
-    }
-    .mission .mission__badge {
-      width: min(76%, 20rem);
+      margin: 0;
     }
   }
 
