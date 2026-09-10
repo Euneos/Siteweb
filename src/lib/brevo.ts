@@ -73,10 +73,27 @@ export async function inscrireNewsletter(
   }
   const listId = Number(listes[profil])
   const templateId = Number(env.BREVO_DOI_TEMPLATE_ID)
-  const autresListes = Object.values(listes)
+  const listesNewsletter = Object.values(listes)
     .map(Number)
-    .filter((id) => Number.isInteger(id) && id > 0 && id !== listId)
-  if (!Number.isInteger(listId) || listId <= 0 || !Number.isInteger(templateId) || templateId <= 0) return false
+  if (!Object.hasOwn(listes, profil) || listesNewsletter.some((id) => !Number.isInteger(id) || id <= 0)
+    || !Number.isInteger(templateId) || templateId <= 0) return false
+
+  // Le formulaire public ne permet pas de changer un profil déjà confirmé.
+  // Ne jamais traiter une panne de lecture comme un contact inexistant.
+  const contact = await fetch(`${API}/contacts/${encodeURIComponent(email)}`, {
+    headers: { 'api-key': env.BREVO_API_KEY },
+    signal: AbortSignal.timeout(12_000),
+  })
+  if (contact.ok) {
+    const details: unknown = await contact.json()
+    if (!details || typeof details !== 'object' || !('listIds' in details)
+      || !Array.isArray(details.listIds) || !details.listIds.every(Number.isInteger)) {
+      throw new Error('Réponse Brevo invalide lors de la vérification des listes')
+    }
+    if (details.listIds.some((id: number) => listesNewsletter.includes(id))) return 'deja-inscrit'
+  } else if (contact.status !== 404) {
+    throw new Error(`Vérification des listes Brevo indisponible (${contact.status})`)
+  }
 
   await appeler(env.BREVO_API_KEY, '/contacts/doubleOptinConfirmation', {
     method: 'POST',
@@ -84,7 +101,6 @@ export async function inscrireNewsletter(
       email,
       attributes: { NOM: nom },
       includeListIds: [listId],
-      excludeListIds: autresListes,
       templateId,
       redirectionUrl,
     }),

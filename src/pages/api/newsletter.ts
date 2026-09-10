@@ -45,6 +45,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
       `${new URL(request.url).origin}${gabarit.replace('%s', 'confirme')}`,
     )
     if (!inscrit) return vers('indisponible')
+    if (inscrit === 'deja-inscrit') return vers('deja-inscrit')
   } catch (error) {
     console.error('[newsletter]', error instanceof Error ? error.message : error)
     return vers('technique')
