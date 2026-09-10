@@ -26,7 +26,7 @@ const parcours = [
         {
           parcours.map((p) => (
             <li>
-              <a href={p.href} class="parcours__link">
+              <a href={p.href} class="parcours__link" target="_blank" rel="noopener noreferrer">
                 <Paper surface={p.surface} fold="br" foldSize="sm" class="parcours__card">
                   <div class="parcours__picto" style={`color:${p.picto}`}><Brand name="main" /></div>
                   <span>{p.label}</span>
