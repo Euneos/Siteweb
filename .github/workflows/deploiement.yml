@@ -58,7 +58,7 @@ jobs:
       - name: Installer les dependances
         run: bun install --frozen-lockfile
 
-      - name: Vérifier les profils newsletter
+      - name: Vérifier les formulaires et les profils newsletter
         run: bun run test
 
       - name: Construire le site

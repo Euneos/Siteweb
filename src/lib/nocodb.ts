@@ -56,17 +56,35 @@ export async function creer(token: string, table: keyof typeof NC.tables, champs
   return Array.isArray(r) ? r[0].Id : r.Id
 }
 
+/** Read the written row before reporting a successful application. */
+export async function lireEnregistrement(token: string, table: keyof typeof NC.tables, id: number): Promise<Record<string, unknown>> {
+  return appel(token, `/tables/${NC.tables[table]}/records/${id}`)
+}
+
 /** Relie un enregistrement a son parent. */
 export async function relier(token: string, lien: keyof typeof NC.liens, table: keyof typeof NC.tables, id: number, cible: number) {
   await appel(token, `/tables/${NC.tables[table]}/links/${NC.liens[lien]}/records/${id}`, [{ Id: cible }])
 }
 
-/** Id de la cohorte marquee active — evite de figer l'annee dans le code. */
-export async function cohorteActive(token: string): Promise<number | null> {
-  const r = (await appel(token, `/tables/${NC.tables.cohortes}/records?limit=50&fields=Id,active`)) as {
-    list: { Id: number; active?: boolean | number }[]
+/** Read every page even when NocoDB clamps the requested limit. */
+export async function lireToutes(token: string, table: keyof typeof NC.tables, fields: string): Promise<(Record<string, unknown> & { Id: number })[]> {
+  const rows: (Record<string, unknown> & { Id: number })[] = []
+  for (;;) {
+    const result = await appel(token, `/tables/${NC.tables[table]}/records?limit=200&offset=${rows.length}&fields=${encodeURIComponent(fields)}`) as {
+      list: (Record<string, unknown> & { Id: number })[]
+      pageInfo?: { isLastPage?: boolean }
+    }
+    rows.push(...result.list)
+    if (result.pageInfo?.isLastPage || !result.list.length) return rows
+    if (rows.length >= 10000) throw new Error('NocoDB pagination safety limit reached')
   }
-  return r.list.find((c) => c.active)?.Id ?? null
+}
+
+/** Never create an unscoped application or guess between two active years. */
+export async function cohorteActive(token: string): Promise<number | null> {
+  const rows = await lireToutes(token, 'cohortes', 'Id,active')
+  const active = rows.filter(c => c.active === true || c.active === 1)
+  return active.length === 1 ? active[0].Id : null
 }
 
 /** Recherche un enregistrement par email (evite les doublons a la source). */

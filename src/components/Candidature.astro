@@ -54,7 +54,9 @@ const MESSAGES: Record<string, string> = {
   indisponible:
     'Le service d’enregistrement est momentanément indisponible. Votre candidature n’a pas été enregistrée — merci de réessayer dans quelques minutes ou de nous écrire à euneosequipe@gmail.com.',
   technique:
-    'Une erreur technique est survenue. Votre candidature n’a pas été enregistrée — merci de réessayer ou de nous écrire à euneosequipe@gmail.com.',
+    'Le service ne peut pas traiter votre demande pour le moment. Merci de réessayer dans quelques minutes ou de nous écrire à euneosequipe@gmail.com.',
+  en_cours: 'Votre précédent envoi est encore en cours de traitement. Patientez quelques instants. Si cette situation persiste, écrivez-nous à euneosequipe@gmail.com.',
+  verification: 'Votre dossier nécessite une vérification par notre équipe. Ne renvoyez pas la candidature ; écrivez-nous à euneosequipe@gmail.com pour compléter ou reprendre votre dossier.',
 }
 
 /** Les listes de choix et les zones de texte prennent toute la largeur. */
@@ -76,10 +78,12 @@ const pleineLargeur = (c: Champ) =>
       {
         ok && (
           <p class="cand__ok" role="status">
-            <strong>Candidature bien reçue.</strong> Notre équipe l’étudie et revient vers vous dans
-            les prochaines semaines. {emailEnvoye
-              ? 'Un accusé de réception vient de vous être envoyé par e-mail.'
-              : 'Une personne de l’équipe vous répondra.'}
+            {ok === 'deja' ? <><strong>Un dossier existe déjà pour cette année.</strong> Pour le compléter ou le reprendre, écrivez-nous à euneosequipe@gmail.com. Cet envoi n’a pas modifié votre dossier.</> : <>
+              <strong>Candidature bien reçue.</strong> Notre équipe l’étudie et revient vers vous dans
+              les prochaines semaines. {emailEnvoye
+                ? 'Un accusé de réception vient de vous être envoyé par e-mail.'
+                : 'Une personne de l’équipe vous répondra.'}
+            </>}
           </p>
         )
       }
