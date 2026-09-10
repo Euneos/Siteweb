@@ -463,3 +463,11 @@ Candidater masque la silhouette et ne réserve aucune hauteur pour elle. Le cart
 rose de la mission est réduit et centré sur la photo. Les biographies du conseil
 contiennent un seul texte, limité visuellement à deux lignes à la fermeture et
 développé sans coupure à l’ouverture. Préserver les portraits et textes de Pauline.
+
+### Protection des candidatures contre les doubles envois
+
+Les deux formulaires passent par `src/lib/candidature-store.ts` et le registre D1
+`FORM_SUBMISSIONS`. La procédure canonique de déploiement et de reprise est
+[docs/form-submissions.md](docs/form-submissions.md). Ne pas réintroduire de
+création directe, de suppression automatique après timeout ou de verrou mémoire.
+La recette ne doit jamais envoyer de candidature fictive sur le domaine public.

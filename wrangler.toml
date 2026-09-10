@@ -16,3 +16,9 @@ BREVO_LIST_FORMATEUR = "6"
 
 # Adresse publique de réception des demandes du formulaire de contact.
 CONTACT_EMAIL = "euneosequipe@gmail.com"
+
+# Registre technique des soumissions : clés hachées et IDs, aucun contenu métier.
+[[d1_databases]]
+binding = "FORM_SUBMISSIONS"
+database_name = "euneos-form-submissions"
+database_id = "cd011a86-8198-4348-b652-aa09ca245d11"

@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../lib/brevo'
 import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte, emailValide, modeApercu, origineAutorisee } from '../../lib/forms'
-import { cohorteActive, creer, jeton, parEmail, relier, supprimer } from '../../lib/nocodb'
+import { jeton } from '../../lib/nocodb'
+import { CandidatureError, enregistrerCandidature, submissionDatabase } from '../../lib/candidature-store'
 
 export const prerender = false
 
@@ -77,21 +78,16 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (modeApercu(request)) return redirect(`${ROUTE}?ok=1&preview=1`, 303)
 
   const token = jeton(locals)
-  if (!token) {
-    console.error('[candidature-formateur] NOCODB_TOKEN absent, candidature NON enregistree', email)
+  const db = submissionDatabase(locals)
+  if (!token || !db) {
+    console.error('[candidature-formateur] Configuration d’enregistrement absente, candidature NON enregistree', email)
     return redirect(`${ROUTE}?erreur=indisponible`, 303)
   }
 
-  let formId: number | null = null
-  let formCree = false
-  let engId: number | null = null
-
   try {
-    // Une personne = une fiche. Si elle recandidate, on ajoute un engagement
-    // a la fiche existante au lieu de creer un doublon.
-    formId = await parEmail(token, 'formateurs', email)
-    if (!formId) {
-      formId = await creer(token, 'formateurs', {
+    const result = await enregistrerCandidature({
+      db, token, kind: 'formateur',
+      identity: {
         nom: d.nom.trim(),
         prenom: d.prenom.trim(),
         email,
@@ -100,36 +96,32 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
         ville: d.ville.trim(),
         region: vider(d.region),
         profession: d.profession.trim(),
-      })
-      formCree = true
-    }
-
-    engId = await creer(token, 'engagements', {
-      statut: 'Candidature recue',
-      date_candidature: new Date().toISOString().slice(0, 10),
-      formation_instructeur: d.formation_instructeur,
-      experience_animation: experience.join(' · '),
-      pratique_personnelle: vider(d.pratique_personnelle),
-      annees_experience: vider(d.annees_experience),
-      interventions_animees: vider(d.interventions_animees),
-      motivation: vider(d.motivation),
-      disponible_2026_27: d.disponible_2026_27,
-      etab_pressenti: d.etab_pressenti,
-      etab_pressenti_nom: vider(d.etab_pressenti_nom),
-      etab_pressenti_adresse: vider(d.etab_pressenti_adresse),
-      etab_pressenti_ville: vider(d.etab_pressenti_ville),
-      etab_pressenti_cp: vider(d.etab_pressenti_cp),
-      etab_pressenti_academie: vider(d.etab_pressenti_academie),
-      etab_pressenti_type: vider(d.etab_pressenti_type),
-      direction_nom: vider(d.direction_nom),
-      direction_email: directionEmail,
-      accord_principe: d.accord_principe,
-      contexte_complement: vider(d.contexte_complement),
-      consentement: true,
+      },
+      application: {
+        statut: 'Candidature recue',
+        date_candidature: new Date().toISOString().slice(0, 10),
+        formation_instructeur: d.formation_instructeur,
+        experience_animation: experience.join(' · '),
+        pratique_personnelle: vider(d.pratique_personnelle),
+        annees_experience: vider(d.annees_experience),
+        interventions_animees: vider(d.interventions_animees),
+        motivation: vider(d.motivation),
+        disponible_2026_27: d.disponible_2026_27,
+        etab_pressenti: d.etab_pressenti,
+        etab_pressenti_nom: vider(d.etab_pressenti_nom),
+        etab_pressenti_adresse: vider(d.etab_pressenti_adresse),
+        etab_pressenti_ville: vider(d.etab_pressenti_ville),
+        etab_pressenti_cp: vider(d.etab_pressenti_cp),
+        etab_pressenti_academie: vider(d.etab_pressenti_academie),
+        etab_pressenti_type: vider(d.etab_pressenti_type),
+        direction_nom: vider(d.direction_nom),
+        direction_email: directionEmail,
+        accord_principe: d.accord_principe,
+        contexte_complement: vider(d.contexte_complement),
+        consentement: true,
+      },
     })
-    await relier(token, 'engagements.formateur', 'engagements', engId, formId)
-    const coh = await cohorteActive(token)
-    if (coh) await relier(token, 'engagements.cohorte', 'engagements', engId, coh)
+    if (result.duplicate) return redirect(`${ROUTE}?ok=deja`, 303)
 
     let emailEnvoye = false
     try {
@@ -143,21 +135,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     }
     return redirect(`${ROUTE}?ok=1${emailEnvoye ? '&email=1' : ''}`, 303)
   } catch (e) {
-    if (engId) {
-      try {
-        await supprimer(token, 'engagements', engId)
-      } catch (rollbackError) {
-        console.error('[candidature-formateur-rollback-engagement]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
-      }
-    }
-    if (formCree && formId) {
-      try {
-        await supprimer(token, 'formateurs', formId)
-      } catch (rollbackError) {
-        console.error('[candidature-formateur-rollback-formateur]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
-      }
-    }
-    console.error('[candidature-formateur]', e instanceof Error ? e.message : e)
-    return redirect(`${ROUTE}?erreur=technique`, 303)
+    console.error('[candidature-formateur]', e instanceof Error ? e.message : 'Unknown error')
+    return redirect(`${ROUTE}?erreur=${e instanceof CandidatureError ? e.code : 'technique'}`, 303)
   }
 }

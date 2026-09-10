@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../lib/brevo'
 import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte, emailValide, modeApercu, origineAutorisee, urlHttpValide } from '../../lib/forms'
-import { cohorteActive, creer, jeton, parEtablissement, relier, supprimer } from '../../lib/nocodb'
+import { jeton } from '../../lib/nocodb'
+import { CandidatureError, enregistrerCandidature, submissionDatabase } from '../../lib/candidature-store'
 
 export const prerender = false
 
@@ -81,21 +82,18 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (modeApercu(request)) return redirect(`${ROUTE}?ok=1&preview=1`, 303)
 
   const token = jeton(locals)
-  if (!token) {
+  const db = submissionDatabase(locals)
+  if (!token || !db) {
     // On refuse plutot que de perdre la candidature en silence — le mode de
     // defaillance qui a coute des mois au systeme precedent.
-    console.error('[candidature-etab] NOCODB_TOKEN absent, candidature NON enregistree', d.nom_etab)
+    console.error('[candidature-etab] Configuration d’enregistrement absente, candidature NON enregistree', d.nom_etab)
     return redirect(`${ROUTE}?erreur=indisponible`, 303)
   }
 
-  let etabId: number | null = null
-  let etabCree = false
-  let partId: number | null = null
-
   try {
-    etabId = await parEtablissement(token, referentEmail, d.nom_etab)
-    if (!etabId) {
-      etabId = await creer(token, 'etablissements', {
+    const result = await enregistrerCandidature({
+      db, token, kind: 'etablissement',
+      identity: {
         nom: d.nom_etab.trim(),
         type_etab: d.type_etab,
         adresse: vider(d.adresse),
@@ -107,29 +105,25 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
         referent_fonction: vider(d.referent_fonction),
         referent_email: referentEmail,
         referent_telephone: vider(d.referent_telephone),
-      })
-      etabCree = true
-    }
-
-    partId = await creer(token, 'participations', {
-      statut: 'Candidature recue',
-      date_candidature: new Date().toISOString().slice(0, 10),
-      enjeux: enjeux.join(','),
-      besoin_partage: d.besoin_partage,
-      nb_professionnels: d.nb_professionnels,
-      faisabilite: d.faisabilite,
-      point_vigilance: vider(d.point_vigilance),
-      accord_direction: d.accord_direction,
-      document_lien: documentLien,
-      demarrage_souhaite: d.demarrage_souhaite,
-      contrainte_calendrier: vider(d.contrainte_calendrier),
-      apporteur_nom: vider(d.apporteur_nom),
-      apporteur_email: apporteurEmail,
-      consentement: true,
+      },
+      application: {
+        statut: 'Candidature recue',
+        date_candidature: new Date().toISOString().slice(0, 10),
+        enjeux: enjeux.join(','),
+        besoin_partage: d.besoin_partage,
+        nb_professionnels: d.nb_professionnels,
+        faisabilite: d.faisabilite,
+        point_vigilance: vider(d.point_vigilance),
+        accord_direction: d.accord_direction,
+        document_lien: documentLien,
+        demarrage_souhaite: d.demarrage_souhaite,
+        contrainte_calendrier: vider(d.contrainte_calendrier),
+        apporteur_nom: vider(d.apporteur_nom),
+        apporteur_email: apporteurEmail,
+        consentement: true,
+      },
     })
-    await relier(token, 'participations.etablissement', 'participations', partId, etabId)
-    const coh = await cohorteActive(token)
-    if (coh) await relier(token, 'participations.cohorte', 'participations', partId, coh)
+    if (result.duplicate) return redirect(`${ROUTE}?ok=deja`, 303)
 
     let emailEnvoye = false
     try {
@@ -143,21 +137,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     }
     return redirect(`${ROUTE}?ok=1${emailEnvoye ? '&email=1' : ''}`, 303)
   } catch (e) {
-    if (partId) {
-      try {
-        await supprimer(token, 'participations', partId)
-      } catch (rollbackError) {
-        console.error('[candidature-etab-rollback-participation]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
-      }
-    }
-    if (etabCree && etabId) {
-      try {
-        await supprimer(token, 'etablissements', etabId)
-      } catch (rollbackError) {
-        console.error('[candidature-etab-rollback-etablissement]', rollbackError instanceof Error ? rollbackError.message : rollbackError)
-      }
-    }
-    console.error('[candidature-etab]', e instanceof Error ? e.message : e)
-    return redirect(`${ROUTE}?erreur=technique`, 303)
+    console.error('[candidature-etablissement]', e instanceof Error ? e.message : 'Unknown error')
+    return redirect(`${ROUTE}?erreur=${e instanceof CandidatureError ? e.code : 'technique'}`, 303)
   }
 }
