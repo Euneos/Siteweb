@@ -56,6 +56,12 @@ try {
     const photo = await box('.mission__media .ph')
     const badge = await box('.mission__badge')
     const card = await box('.mission__card')
+    const badgeText = await page.locator('.mission__badge-txt').evaluate(el => ({
+      height: el.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+      overflows: el.scrollWidth > el.clientWidth,
+    }))
+    assert(Math.abs(badgeText.height - 2 * badgeText.lineHeight) < 1 && !badgeText.overflows, `Deux lignes sous le logo de la mission à ${width}px`)
     assert(badge.y < bottom(photo) && badge.x >= photo.x - 1 && badge.x + badge.width <= photo.x + photo.width + 1, `Cartouche superposé dans la largeur de la photo à ${width}px`)
     if (width > 860) {
       assert(photo.width > card.width && Math.abs(photo.width / card.width - 396 / 295) < 0.02, `Proportions photo/panneau à ${width}px`)

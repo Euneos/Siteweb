@@ -482,3 +482,7 @@ Sa hauteur suit le texte, sans hauteur figée. Le cartouche rose est à droite d
 la photo et dépasse sous le panneau. Sous 860 px, photo en 4/3 puis panneau en
 pile ; le cartouche réserve sa place avant le texte. Conserver le corps courant
 et la dernière phrase en gras.
+Le texte sous le logo du cartouche rose tient sur exactement deux lignes :
+« Association d’intérêt général » puis « Loi 1901 fondée en avril 2026 ».
+Sa largeur dépend du corps de la note et de ses marges ; ne pas revenir à une
+largeur proportionnelle trop étroite. Le logo garde une largeur plafonnée.

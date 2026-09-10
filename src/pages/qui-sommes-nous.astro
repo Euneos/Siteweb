@@ -616,7 +616,9 @@ const equipe = [
     position: absolute;
     right: 0;
     bottom: 0;
-    width: 47%;
+    font-size: var(--t-note);
+    width: max(47%, calc(15em + var(--s-int) * 0.8));
+    max-width: 100%;
     padding: calc(var(--s-int) * 0.55) calc(var(--s-int) * 0.4);
     text-align: center;
     z-index: 4;
@@ -627,7 +629,7 @@ const equipe = [
   }
   .mission__badge-mark {
     display: block;
-    width: 86%;
+    width: min(86%, 12rem);
     margin: 0 auto 0.65rem;
   }
   .mission__badge-txt {
@@ -673,7 +675,6 @@ const equipe = [
     }
     .mission__picto { right: 0; }
     .mission .mission__badge {
-      width: min(70%, 15rem);
       bottom: calc(var(--mission-tail) * 0.25);
     }
     .mission__card {
