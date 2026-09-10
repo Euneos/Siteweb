@@ -7,6 +7,7 @@ import type { Surface } from './Paper.astro'
 
 interface Props {
   href?: string
+  newTab?: boolean
   surface?: Surface
   outline?: boolean
   /** Conserve le coin coupe sans dessiner le rabat. */
@@ -15,11 +16,14 @@ interface Props {
   class?: string
 }
 
-const { href, surface = 'vert', outline = false, fold = true, type, class: cls = '' } = Astro.props
+const { href, newTab, surface = 'vert', outline = false, fold = true, type, class: cls = '' } = Astro.props
 const classes = ['cta', `s-${surface}`, outline ? 'cta-outline' : '', !fold ? 'cta--cut' : '', cls].filter(Boolean).join(' ')
 const Tag = href ? 'a' : 'button'
+const destination = href ? new URL(href, 'https://euneos.fr') : undefined
+const external = destination && ['http:', 'https:'].includes(destination.protocol) &&
+  destination.hostname !== 'euneos.fr' && !destination.hostname.endsWith('.euneos.fr')
 ---
 
-<Tag class={classes} href={href} target={href ? '_blank' : undefined} rel={href ? 'noopener noreferrer' : undefined} type={href ? undefined : (type ?? 'button')}>
+<Tag class={classes} href={href} target={href && (newTab ?? external) ? '_blank' : undefined} rel={href && (newTab ?? external) ? 'noopener noreferrer' : undefined} type={href ? undefined : (type ?? 'button')}>
   <slot />
 </Tag>

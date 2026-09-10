@@ -157,7 +157,7 @@ const impact = [
           const LogoContainer = logo.href ? 'a' : 'div'
           return (
           <li>
-            <LogoContainer href={logo.href} class="confiance__logo">
+            <LogoContainer href={logo.href} class="confiance__logo" target={logo.href ? '_blank' : undefined} rel={logo.href ? 'noopener noreferrer' : undefined}>
             <Image src={logo.src} alt={logo.alt} width={640} widths={[320, 640]} sizes="(max-width: 700px) 43vw, 300px" format="png" loading="lazy" />
             </LogoContainer>
           </li>
@@ -191,7 +191,7 @@ const impact = [
       </ul>
     </div>
     <div class="prog__cta">
-      <Cta href="/documents/brochure-programme-euneos.pdf" surface="bleu-fonce">Télécharger la brochure complète</Cta>
+      <Cta href="/documents/brochure-programme-euneos.pdf?v=20260910" newTab surface="bleu-fonce">Télécharger la brochure complète</Cta>
     </div>
   </section>
 
