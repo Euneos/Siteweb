@@ -25,8 +25,8 @@ import { programme } from '../data/programme'
 
 /* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
 const logos = [
-  { src: unionEuropeenne, alt: 'Cofinancé par l’Union européenne' },
-  { src: nouveauMonde, alt: 'Nouveau Monde — Fonds de dotation' },
+  { src: unionEuropeenne, alt: 'Cofinancé par l’Union européenne', href: undefined },
+  { src: nouveauMonde, alt: 'Nouveau Monde — Fonds de dotation', href: 'https://www.fonds-nouveau-monde.org/' },
 ]
 
 const impact = [
@@ -153,11 +153,15 @@ const impact = [
     <div class="page">
       <h2 class="confiance__t">Merci pour leur soutien</h2>
       <ul class="confiance__logos">
-        {logos.map((logo) => (
+        {logos.map((logo) => {
+          const LogoContainer = logo.href ? 'a' : 'div'
+          return (
           <li>
+            <LogoContainer href={logo.href} class="confiance__logo">
             <Image src={logo.src} alt={logo.alt} width={640} widths={[320, 640]} sizes="(max-width: 700px) 43vw, 300px" format="png" loading="lazy" />
+            </LogoContainer>
           </li>
-        ))}
+        )})}
       </ul>
     </div>
   </section>
@@ -446,6 +450,8 @@ const impact = [
     width: 100%;
     justify-self: center;
   }
+  .confiance__logo { display: block; }
+  a.confiance__logo:focus-visible { outline: 3px solid var(--vert); outline-offset: 6px; }
   .confiance__logos img {
     display: block;
     width: 100%;
