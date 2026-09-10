@@ -19,7 +19,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          timeout 180s bunx wrangler pages deployment tail --project-name euneos-site --environment production --format json --search '[newsletter]' > /tmp/newsletter-tail.json || test "$?" = 124
+          bunx wrangler pages deployment list --project-name euneos-site --environment production --json > /tmp/deployments.json
+          newsletter_deployment=$(python3 -c 'import json; print(json.load(open("/tmp/deployments.json"))[0]["Id"])')
+          timeout 180s bunx wrangler pages deployment tail "$newsletter_deployment" --project-name euneos-site --environment production --format json --search '[newsletter]' > /tmp/newsletter-tail.json || test "$?" = 124
           python3 - <<'PY'
           import json, re
           from pathlib import Path
