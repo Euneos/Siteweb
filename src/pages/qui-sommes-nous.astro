@@ -341,13 +341,15 @@ const equipe = [
               <Photo src={m.photo} alt={m.photo ? m.nom : undefined} ratio="2/3" class="membre__ph" width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [Math.min(240, m.photo.width), Math.min(800, m.photo.width)] : undefined} quality={85} />
               <Paper surface="papier" fold="br" class="membre__card">
                 <p class="ca__mandat">{m.mandat}</p>
-                <p>{m.fonction}</p>
-                {m.bio && (
+                {m.bio ? (
                   <details class="ca__bio">
-                    <summary><span class="sr-only">Afficher la biographie de {m.nom}</span></summary>
-                    <p>{m.bio}</p>
+                    <summary>
+                      <span class="ca__bio-text">{`${m.fonction.trim()} ${m.bio.trim()}`}</span>
+                      <span class="ca__bio-control" aria-hidden="true"></span>
+                      <span class="sr-only">Déplier ou replier la biographie de {m.nom}</span>
+                    </summary>
                   </details>
-                )}
+                ) : <p>{m.fonction}</p>}
               </Paper>
             </li>
           ))}
@@ -412,7 +414,9 @@ const equipe = [
       const height = Math.ceil(Math.max(0, ...cards.map((card) => {
         const intro = [...card.querySelectorAll<HTMLElement>(':scope > p, :scope > a')]
         const style = getComputedStyle(card)
-        return intro.reduce((total, element) => total + element.getBoundingClientRect().height, 0)
+        const biography = card.querySelector<HTMLElement>('.ca__bio-text')
+        const biographyHeight = biography ? parseFloat(getComputedStyle(biography).lineHeight) * 2 + 44 : 0
+        return intro.reduce((total, element) => total + element.getBoundingClientRect().height, 0) + biographyHeight
           + Math.max(0, intro.length - 1) * (parseFloat(style.rowGap) || 0)
           + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
       })))
@@ -610,10 +614,13 @@ const equipe = [
   }
   .mission .mission__badge {
     position: absolute;
-    left: 16%;
+    left: 50%;
+    transform: translateX(-50%);
     bottom: 0;
-    width: 84%;
-    padding: var(--s-int) clamp(1rem, 2.2vw, 2rem);
+    width: 76%;
+    max-width: 20rem;
+    padding: calc(var(--s-int) * 0.65) clamp(1rem, 2.2vw, 2rem);
+    text-align: center;
     z-index: 4;
     --fx: var(--fold-md);
     --fy: calc(var(--fold-md) * 0.55);
@@ -622,11 +629,11 @@ const equipe = [
   }
   .mission__badge-mark {
     display: block;
-    width: 86%;
-    margin: 0 auto 1rem;
+    width: 78%;
+    margin: 0 auto 0.65rem;
   }
   .mission__badge-txt {
-    font-size: var(--t-nav);
+    font-size: var(--t-note);
     font-weight: 600;
     line-height: 1.2;
     display: block;
@@ -669,8 +676,7 @@ const equipe = [
       padding-left: var(--s-int);
     }
     .mission .mission__badge {
-      left: 0;
-      width: min(84%, 22rem);
+      width: min(76%, 20rem);
     }
   }
 
@@ -946,7 +952,7 @@ const equipe = [
     display: block;
     font-size: var(--t-bio);
     line-height: var(--lh-corps);
-    padding: 1rem 1rem calc(2.75rem + var(--fy) + 0.25rem);
+    padding: 1rem 1rem calc(var(--fy) + 0.25rem);
   }
   .equipe--ca .membre__card p {
     font-size: inherit;
@@ -961,30 +967,36 @@ const equipe = [
     display: block;
   }
   .ca__bio summary {
-    position: absolute;
-    bottom: var(--fy);
-    right: 0.4rem;
+    display: block;
+    list-style: none;
+    cursor: pointer;
+    font-size: inherit;
+    font-weight: 400;
+    line-height: inherit;
+  }
+  .ca__bio summary::-webkit-details-marker { display: none; }
+  .ca__bio-control {
     display: grid;
     place-items: center;
     width: 2.75rem;
     height: 2.75rem;
-    list-style: none;
-    cursor: pointer;
+    margin-left: auto;
     font-size: var(--t-corps);
     font-weight: 600;
     line-height: 1;
   }
-  .ca__bio summary::-webkit-details-marker {
-    display: none;
+  .ca__bio-control::before { content: '+'; }
+  .ca__bio[open] .ca__bio-control::before { content: '−'; }
+  .ca__bio-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
-  .ca__bio summary::before {
-    content: '+';
-  }
-  .ca__bio[open] summary::before {
-    content: '−';
-  }
-  .equipe--ca .ca__bio > p {
-    margin-top: 0.65em;
+  .ca__bio[open] .ca__bio-text {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
   }
   .membre__card a {
     font-weight: 600;

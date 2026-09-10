@@ -454,3 +454,12 @@ Wrangler si elle manque dans ce fichier : toujours versionner les IDs publics ic
 confirmation est également **6** : les listes et modèles ont des espaces d'identifiants
 séparés. Les autres profils gardent leurs listes 3 et 4 ; la liste historique Curieux
 n'est ni supprimée ni réaffectée. Les previews ne déclenchent aucun envoi réel.
+
+### Retour Pauline du 9 septembre — livraison du 10 septembre
+
+Sur téléphone, les trois heros partagent la composition liée de `global.css` :
+cartouche contre le titre, photo au contact dessous et bouton à cheval. Le bandeau
+Candidater masque la silhouette et ne réserve aucune hauteur pour elle. Le cartouche
+rose de la mission est réduit et centré sur la photo. Les biographies du conseil
+contiennent un seul texte, limité visuellement à deux lignes à la fermeture et
+développé sans coupure à l’ouverture. Préserver les portraits et textes de Pauline.
