@@ -479,8 +479,9 @@ Sur ordinateur, photo/panneau sont dans le rapport 396/295 ; la composition est
 plafonnée à 52 rem hors marges de page. Le panneau commence sous le cartouche
 orange, avec des marges haut/gauche/droite identiques et le pli réservé en bas.
 Sa hauteur suit le texte, sans hauteur figée. Le cartouche rose est à droite de
-la photo et dépasse sous le panneau. Sous 860 px, photo en 4/3 puis panneau en
-pile ; le cartouche réserve sa place avant le texte. Conserver le corps courant
+la photo et dépasse sous le panneau. Sous 860 px, la capture de 17 h 42 remplace le cadrage en 4/3 : photo
+presque carrée (15/14), pictogramme orange au coin supérieur droit, cartouche
+rose au coin inférieur gauche et panneau vert au contact sous la photo. Conserver le corps courant
 et la dernière phrase en gras.
 Le texte sous le logo du cartouche rose tient sur exactement deux lignes :
 « Association d’intérêt général » puis « Loi 1901 fondée en avril 2026 ».

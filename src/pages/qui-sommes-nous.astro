@@ -662,20 +662,29 @@ const equipe = [
     .mission {
       grid-template-columns: minmax(0, 1fr);
       max-width: calc(36rem + var(--unit) * 3);
+      padding-top: 0;
       gap: 0;
     }
     .mission__media {
-      padding-bottom: var(--mission-tail);
+      padding-bottom: 0;
     }
     .mission__media > .ph {
       position: relative;
       inset: auto;
       height: auto;
-      aspect-ratio: 4 / 3 !important;
+      aspect-ratio: 15 / 14 !important;
     }
-    .mission__picto { right: 0; }
+    .mission__media > .ph img {
+      position: absolute;
+      inset: 0;
+      height: 200%;
+      transform: translateY(-26%);
+    }
+    .mission__picto { top: 0; right: 0; }
     .mission .mission__badge {
-      bottom: calc(var(--mission-tail) * 0.25);
+      left: 0;
+      right: auto;
+      bottom: 0;
     }
     .mission__card {
       margin: 0;

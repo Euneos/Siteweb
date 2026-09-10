@@ -72,7 +72,13 @@ try {
       return { left: parseFloat(s.paddingLeft), right: parseFloat(s.paddingRight), top: parseFloat(s.paddingTop) }
     })
     assert(cardStyle.left >= 24 && Math.abs(cardStyle.left - cardStyle.right) < 1 && Math.abs(cardStyle.left - cardStyle.top) < 1, `Marges régulières du texte à ${width}px`)
-    if (width <= 860) assert(card.y >= bottom(badge) - 1, 'Le texte ne chevauche pas le cartouche')
+    if (width <= 860) {
+      assert(Math.abs(card.y - bottom(photo)) < 1, 'Panneau vert au contact de la photo sur mobile')
+      assert(Math.abs(badge.x - photo.x) < 1 && Math.abs(bottom(badge) - bottom(photo)) < 1, 'Cartouche rose en bas à gauche de la photo')
+      const picto = await box('.mission__picto')
+      assert(Math.abs(picto.y - photo.y) < 1 && Math.abs(picto.x + picto.width - photo.x - photo.width) < 1, 'Pictogramme orange en haut à droite de la photo')
+      assert(card.y >= bottom(badge) - 1, 'Le texte ne chevauche pas le cartouche')
+    }
     for (const paragraph of await page.locator('.mission__card > p').all()) {
       const p = await paragraph.boundingBox()
       assert(!(p.x < badge.x + badge.width && p.x + p.width > badge.x && p.y < bottom(badge) && bottom(p) > badge.y), `Cartouche sur le texte à ${width}px`)
