@@ -48,6 +48,11 @@ try {
     const intro = await box('.ca__intro')
     const carousel = await box('.ca-sec [data-carousel]')
     assert(intro.y - bottom(title) < carousel.y - bottom(intro), `Rythme du conseil à ${width}px`)
+    if (width <= 860) {
+      const side = await box('.hz__side')
+      const media = await box('.hz__media')
+      assert(Math.abs(media.y - bottom(side)) < 1, 'Hero mobile : photo au contact du bloc titre')
+    }
     const photo = await box('.mission__media .ph')
     const badge = await box('.mission__badge')
     const card = await box('.mission__card')
@@ -65,16 +70,20 @@ try {
     const bio = page.locator('.ca__bio').first()
     const summary = bio.locator('summary')
     const closedCard = await box('.equipe--ca .membre__card')
+    const fullText = await bio.locator('.ca__bio-text').textContent()
+    const closedText = await bio.locator('.ca__bio-text').evaluate((el) => ({ height: el.getBoundingClientRect().height, line: parseFloat(getComputedStyle(el).lineHeight) }))
+    assert(Math.abs(closedText.height - 2 * closedText.line) < 1, 'Deux lignes de biographie à la fermeture')
     await summary.focus()
     await page.keyboard.press('Enter')
     assert(await bio.evaluate((el) => el.open), 'Ouverture au clavier')
     const openCard = await box('.equipe--ca .membre__card')
-    const text = await box('.ca__bio > p')
-    const button = await summary.boundingBox()
+    const text = await box('.ca__bio-text')
+    const button = await bio.locator('.ca__bio-control').boundingBox()
     assert(openCard.height > closedCard.height, 'Biographie développée')
+    assert.equal(await bio.locator('.ca__bio-text').textContent(), fullText, 'Le même texte se poursuit sans doublon')
     assert(button.width >= 44 && button.height >= 44, 'Cible tactile du +')
     assert(button.y >= bottom(text), 'Le + ne recouvre pas la biographie')
-    const typography = await bio.locator('p').evaluate((el) => {
+    const typography = await bio.locator('.ca__bio-text').evaluate((el) => {
       const s = getComputedStyle(el)
       return { size: parseFloat(s.fontSize), line: parseFloat(s.lineHeight) }
     })
@@ -129,7 +138,11 @@ try {
         assert(b.x >= panel.x && b.x + b.width <= panel.x + panel.width + 1, `${selector} à ${width}px`)
         assert(b.y >= panel.y && bottom(b) <= bottom(panel), 'Contenu dans le bandeau')
       }
-      if (width <= 860) assert((await box('.final__fig')).y >= bottom(await box('.final__cta')), 'Décor sous le contenu mobile')
+      if (width <= 860) {
+        assert(!(await page.locator('.final__fig').isVisible()), 'Pas de silhouette mobile')
+        const content = await box('.final__in')
+        assert(Math.abs(content.y + content.height / 2 - (panel.y + panel.height / 2)) < 1, 'Contenu centré sans réserve vide')
+      }
       if (output && [390, 1440].includes(width) && path === '/programme') await page.locator('.final').screenshot({ path: `${output}/bandeau-${width}.png` })
     }
     console.log(`✓ ${width}px : espacements, compositions, biographies, carrousel, bandeaux`)
