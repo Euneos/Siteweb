@@ -26,16 +26,17 @@ async function submit(profil, config = env) {
 
 for (const [profil, id] of [['etablissement', 3], ['partenaire', 4], ['formateur', 6]]) {
   test(`newsletter ${profil} : bonne liste et confirmation`, async () => {
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
     const response = await submit(profil)
     expect(response.status).toBe(303)
     expect(response.headers.get('Location')).toBe('/newsletter?nl=confirmation#inscription')
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [url, options] = fetchMock.mock.calls[0]
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const [url, options] = fetchMock.mock.calls[1]
     expect(url).toBe('https://api.brevo.com/v3/contacts/doubleOptinConfirmation')
     const body = JSON.parse(String(options?.body))
     expect(body.includeListIds).toEqual([id])
-    expect(body.excludeListIds).not.toContain(id)
+    expect(body.excludeListIds).toBeUndefined()
     expect(body.templateId).toBe(6)
     expect(body.redirectionUrl).toBe('https://euneos.fr/newsletter?nl=confirme#inscription')
   })
@@ -51,4 +52,41 @@ test('ancien profil curieux : refusé sans requête Brevo', async () => {
   const response = await submit('curieux')
   expect(response.headers.get('Location')).toContain('nl=profil')
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+for (const current of [3, 4, 6]) {
+  for (const requested of ['etablissement', 'formateur', 'partenaire']) {
+    test(`profil confirmé ${current} : inscription ${requested} bloquée sans envoi ni modification`, async () => {
+      fetchMock.mockResolvedValueOnce(Response.json({ listIds: [2, current] }))
+      const response = await submit(requested)
+      expect(response.headers.get('Location')).toContain('nl=deja-inscrit')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0][0]).toBe('https://api.brevo.com/v3/contacts/test%40example.com')
+      expect(fetchMock.mock.calls[0][1]?.body).toBeUndefined()
+    })
+  }
+}
+
+test('contact CRM hors des trois listes : inscription autorisée', async () => {
+  fetchMock.mockResolvedValueOnce(Response.json({ listIds: [2, 5] }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+  const response = await submit('etablissement')
+  expect(response.headers.get('Location')).toContain('nl=confirmation')
+  expect(fetchMock).toHaveBeenCalledTimes(2)
+})
+
+for (const status of [401, 429, 500]) {
+  test(`lecture Brevo ${status} : aucun envoi et aucune modification`, async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status }))
+    const response = await submit('partenaire')
+    expect(response.headers.get('Location')).toContain('nl=technique')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+}
+
+test('réponse contact invalide : aucun envoi', async () => {
+  fetchMock.mockResolvedValueOnce(Response.json({}))
+  const response = await submit('formateur')
+  expect(response.headers.get('Location')).toContain('nl=technique')
+  expect(fetchMock).toHaveBeenCalledTimes(1)
 })
