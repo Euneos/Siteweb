@@ -205,6 +205,15 @@ Contact et newsletter ne renvoient jamais un faux succès : sans configuration
 Brevo, ils affichent une indisponibilité et ne jettent pas les données dans les
 logs.
 
+La newsletter utilise `src/scripts/newsletter.ts` pour soumettre les deux formulaires
+avec `Accept: application/json` et afficher le résultat sur place, sans navigation.
+Les messages sont partagés dans `src/lib/newsletter-feedback.ts`. Conserver le POST
+classique vers `/newsletter` pour afficher aussi le résultat sans JavaScript ;
+le retour du clic DOI conserve sa page de confirmation.
+Le bouton est bloqué pendant l'envoi ; aucune tentative automatique après une panne.
+`bun run test:newsletter` vérifie ces comportements dans le navigateur, uniquement en
+local ou sur une preview, avec des envois simulés.
+
 Variables Cloudflare nécessaires (voir `.dev.vars.example`) :
 
 - `NOCODB_TOKEN` pour les candidatures ;

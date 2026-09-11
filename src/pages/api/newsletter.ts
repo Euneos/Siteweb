@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { NewsletterState } from '../../lib/newsletter-feedback'
 import { brevoEnv, inscrireNewsletter } from '../../lib/brevo'
 import { aucunTexteTropLong, champsDansLesLimites, emailValide, modeApercu, origineAutorisee } from '../../lib/forms'
 
@@ -20,7 +21,18 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
   const form = await request.formData()
   const gabarit = RETOURS[String(form.get('retour') ?? '')] ?? RETOURS['/']
-  const vers = (etat: string) => redirect(gabarit.replace('%s', etat), 303)
+  const wantsJson = request.headers.get('accept')?.includes('application/json')
+  const vers = (etat: NewsletterState, preview = false) => {
+    if (wantsJson) {
+      const status = ['erreur', 'email', 'profil'].includes(etat) ? 400
+        : ['technique', 'indisponible'].includes(etat) ? 503 : 200
+      return Response.json({ state: etat, ...(preview ? { preview: true } : {}) }, {
+        status,
+        headers: { 'Cache-Control': 'no-store' },
+      })
+    }
+    return redirect(gabarit.replace('%s', `${etat}${preview ? '&preview=1' : ''}`), 303)
+  }
 
   if (form.get('website')) return vers('ok')
   if (!aucunTexteTropLong(form) || !champsDansLesLimites(form, { nom: 160, email: 254, profil: 20, retour: 40 })) {
@@ -34,7 +46,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!emailValide(email)) return vers('email')
   if (!PROFILS.has(profil)) return vers('profil')
 
-  if (modeApercu(request)) return vers('confirmation&preview=1')
+  if (modeApercu(request)) return vers('confirmation', true)
 
   try {
     const inscrit = await inscrireNewsletter(
