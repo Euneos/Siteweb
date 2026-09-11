@@ -12,7 +12,9 @@ const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXEC
 let checks = 0
 try {
   for (const width of [390, 1440]) {
-    const context = await browser.newContext({ viewport: { width, height: 900 } })
+    // Éviter que le remplissage automatique concurrence le défilement animé.
+    // Les assertions de navigation restent actives, comme dans les autres recettes du site.
+    const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' })
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
@@ -88,7 +90,7 @@ try {
     await context.close()
   }
   // Le formulaire natif reste utilisable sans JavaScript.
-  const context = await browser.newContext({ javaScriptEnabled: false })
+  const context = await browser.newContext({ javaScriptEnabled: false, reducedMotion: 'reduce' })
   const page = await context.newPage()
   for (const [path, formId] of [['/', 'newsletter'], ['/newsletter', 'nl-form']]) {
     await page.goto(base + path)
