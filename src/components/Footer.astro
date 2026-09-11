@@ -21,7 +21,8 @@ const { withTopSpace = true } = Astro.props
   </div>
 
   <div class="page ftr__in">
-    <form class="ftr__news" id="newsletter" method="POST" action="/api/newsletter">
+    <form class="ftr__news" id="newsletter" data-newsletter-form data-newsletter-status="newsletter-status" method="POST" action="/api/newsletter">
+      <input type="hidden" name="retour" value="/newsletter" />
       <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="ftr__lead">
         Rejoignez notre newsletter pour recevoir nos ressources et dernières actualités :
@@ -46,7 +47,7 @@ const { withTopSpace = true } = Astro.props
         vous désinscrire à tout moment. <a href="/politique-de-confidentialite">En savoir plus</a>.
       </p>
 
-      <p class="ftr__status" id="newsletter-status" aria-live="polite"></p>
+      <p class="ftr__status" id="newsletter-status" aria-live="polite" tabindex="-1"></p>
 
       <button type="submit" class="ftr__submit">Envoyer</button>
     </form>
@@ -85,28 +86,18 @@ const { withTopSpace = true } = Astro.props
 </footer>
 
 <script>
-  const params = new URLSearchParams(window.location.search)
-  const state = params.get('nl')
-  const status = document.querySelector<HTMLElement>('#newsletter-status')
-  // sur /newsletter, c'est la page qui affiche le resultat, pas le pied de page
-  const pageDediee = document.querySelector('[data-newsletter-page]')
+  import '../scripts/newsletter'
+  import { isNewsletterState, newsletterMessages, newsletterSuccess } from '../lib/newsletter-feedback'
 
-  if (state && status && !pageDediee) {
-    const messages: Record<string, string> = {
-      ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
-      confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
-      confirme: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
-      'deja-inscrit': 'Cette adresse e-mail est déjà inscrite à la newsletter.',
-      erreur: 'Renseignez votre nom et votre adresse e-mail.',
-      email: 'L’adresse e-mail ne semble pas valide.',
-      profil: 'Choisissez le profil qui vous correspond.',
-      indisponible: 'L’inscription est momentanément indisponible. Réessayez plus tard.',
-      technique: 'Une erreur technique empêche l’inscription. Réessayez plus tard.',
-    }
-    status.textContent = messages[state] ?? 'Une erreur est survenue.'
-    const success = ['ok', 'confirmation', 'confirme'].includes(state)
+  const state = new URLSearchParams(window.location.search).get('nl')
+  const status = document.querySelector<HTMLElement>('#newsletter-status')
+  // Sur /newsletter, c'est la page qui affiche le retour classique ou le clic DOI.
+  if (state && status && !document.querySelector('[data-newsletter-page]')) {
+    status.textContent = isNewsletterState(state) ? newsletterMessages[state] : 'Une erreur est survenue.'
+    const success = newsletterSuccess(state)
     status.classList.add(success ? 'is-ok' : 'is-error')
-    if (!success) status.setAttribute('role', 'alert')
+    status.setAttribute('role', success ? 'status' : 'alert')
+    status.setAttribute('aria-live', success ? 'polite' : 'assertive')
   }
 </script>
 
@@ -201,6 +192,10 @@ const { withTopSpace = true } = Astro.props
     line-height: 1.1;
     padding: 0.6em 0.6em;
     cursor: pointer;
+  }
+  .ftr__submit:disabled {
+    cursor: wait;
+    opacity: 0.65;
   }
   .ftr__submit:hover {
     background: var(--jaune);

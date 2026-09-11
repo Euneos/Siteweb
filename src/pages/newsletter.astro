@@ -16,23 +16,13 @@
  */
 import Paper from '../components/Paper.astro'
 import Base from '../layouts/Base.astro'
+import { isNewsletterState, newsletterMessages, newsletterSuccess } from '../lib/newsletter-feedback'
 
 export const prerender = false
 
 const etat = Astro.url.searchParams.get('nl')
-const MESSAGES: Record<string, string> = {
-  ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
-  confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
-  confirme: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
-  'deja-inscrit': 'Cette adresse e-mail est déjà inscrite à la newsletter.',
-  erreur: 'Renseignez votre nom et votre adresse e-mail.',
-  email: 'L’adresse e-mail ne semble pas valide.',
-  profil: 'Choisissez le profil qui vous correspond.',
-  indisponible: 'L’inscription est momentanément indisponible. Réessayez plus tard.',
-  technique: 'Une erreur technique empêche l’inscription. Réessayez plus tard.',
-}
-const succes = ['ok', 'confirmation', 'confirme'].includes(etat ?? '')
-const message = etat ? (MESSAGES[etat] ?? 'Une erreur est survenue.') : null
+const succes = newsletterSuccess(etat)
+const message = etat ? (isNewsletterState(etat) ? newsletterMessages[etat] : 'Une erreur est survenue.') : null
 
 const profils = [
   { valeur: 'etablissement', label: 'Je suis un établissement' },
@@ -57,16 +47,8 @@ const profils = [
       </p>
 
       {
-        message && (
-          <p class:list={['nl__status', succes ? 'cand__ok' : 'cand__err']} role={succes ? 'status' : 'alert'}>
-            {message}
-          </p>
-        )
-      }
-
-      {
         !succes && (
-          <form class="cand__form" id="nl-form" method="POST" action="/api/newsletter">
+          <form class="cand__form" id="nl-form" data-newsletter-form data-newsletter-status="nl-page-status" method="POST" action="/api/newsletter">
             <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="retour" value="/newsletter" />
 
@@ -103,6 +85,8 @@ const profils = [
           </form>
         )
       }
+      <p id="nl-page-status" class:list={['nl__status', message && (succes ? 'is-ok' : 'is-error')]}
+        role={message ? (succes ? 'status' : 'alert') : 'status'} aria-live={message && !succes ? 'assertive' : 'polite'} tabindex="-1">{message}</p>
       {
         !succes && (
           <div class="cand__submit">
@@ -115,3 +99,19 @@ const profils = [
   </section>
   </div>
 </Base>
+
+<style>
+  .nl__status:empty { display: none; }
+  .nl__status:not(:empty) {
+    max-width: 46rem;
+    margin: var(--s-lie) auto 0;
+    padding: 0.9rem 1.1rem;
+    border: 1.5px solid currentColor;
+    font-weight: 600;
+  }
+  .nl__status.is-error {
+    border-color: var(--orange);
+    background: color-mix(in srgb, var(--orange) 10%, transparent);
+  }
+  button:disabled { cursor: wait; opacity: 0.65; }
+</style>

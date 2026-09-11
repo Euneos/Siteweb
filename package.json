@@ -9,6 +9,7 @@
     "preview": "astro preview",
     "format": "prettier --write '**/*' --ignore-unknown",
     "test": "bun test tests",
+    "test:newsletter": "bun scripts/check-newsletter.mjs",
     "test:layout": "bun scripts/check-layout.mjs",
     "test:responsive": "bun scripts/audit-responsive.mjs",
     "test:rhythm": "bun scripts/check-section-rhythm.mjs"
