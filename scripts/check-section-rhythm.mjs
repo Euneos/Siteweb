@@ -32,6 +32,7 @@ const pages = {
   '/qui-sommes-nous': {
     fondements: '.fond__in,.fond__cta',
     mission: '.mission__media .ph,.mission__badge,.mission__picto,.mission__card',
+    'notre-mission': '.page',
     approche: '.page',
     niveaux: '.page',
     conseil: '.page',
@@ -77,6 +78,7 @@ const contentSpacing = {
     ['.etapes__item', null, 'grille', 'mobile'],
   ],
   '/qui-sommes-nous': [
+    ['.mission-banner__label', '.mission-banner__title', 'lie'],
     ['.fond__t', '.fond__txt', 'lie', 'mobile'],
     ['.fond__in', '.fond__cta', 'titre'],
     ['[data-section="approche"] .a-t', '.actions', 'titre'],

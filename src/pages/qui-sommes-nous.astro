@@ -268,6 +268,18 @@ const equipe = [
     </div>
   </section>
 
+  <!-- NOTRE MISSION — bandeau de synthèse -->
+  <section class="section mission-banner" data-section="notre-mission" data-section-surface>
+    <div class="page">
+      <p class="surtitre mission-banner__label">Notre mission</p>
+      <h2 class="mission-banner__title">
+        Ancrer dans les milieux éducatifs le soutien à la santé mentale, le développement des
+        compétences émotionnelles et relationnelles essentielles et un rapport sain au numérique
+        comme un ensemble de capacité structurées et transmissibles
+      </h2>
+    </div>
+  </section>
+
   <!-- COMMENT AGISSONS-NOUS -->
   <section class="section" data-section="approche">
     <div class="page">
@@ -689,6 +701,15 @@ const equipe = [
     .mission__card {
       margin: 0;
     }
+  }
+
+  .mission-banner {
+    background: var(--vert-clair);
+    text-align: center;
+  }
+  .mission-banner__title {
+    max-width: 52ch;
+    margin: var(--s-lie) auto 0;
   }
 
   .actions {
