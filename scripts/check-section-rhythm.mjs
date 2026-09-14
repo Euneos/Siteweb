@@ -19,6 +19,7 @@ const pages = {
   '/programme': {
     introduction: '.why__in',
     erasmus: '.erasmus__media,.erasmus__card',
+    soutiens: '.confiance__t,.confiance__logos',
     principes: '.methodo__t,.methodo,.methodo__cta',
     impact: '.resultat__t,.resultat__p,.impact2',
     modules: '.c-t,.modules,.modules__cta',
@@ -56,6 +57,7 @@ const contentSpacing = {
   ],
   '/programme': [
     ['.erasmus__l1', '.erasmus__l2', 'lie'],
+    ['.confiance__t', '.confiance__logos', 'titre'],
     ['.why__in h2', '.why__txt', 'lie', 'mobile'],
     ['.why__txt p:last-of-type', '.why__txt .cta', 'titre'],
     ['.methodo__t', '.methodo', 'titre'],

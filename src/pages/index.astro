@@ -14,8 +14,7 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import accueilEquipe from '../assets/photos/accueil-equipe-mimi-thian.jpg'
 import accueilFormatrice from '../assets/photos/accueil-formatrice.png'
-import unionEuropeenne from '../assets/logos/cofinance-union-europeenne.png'
-import nouveauMonde from '../assets/logos/nouveau-monde.png'
+import Soutiens from '../components/Soutiens.astro'
 import candice from '../assets/photos/candice.png'
 import pratiqueMeditative from '../assets/photos/pratique-meditative-exterieur.jpg'
 import PictoBox from '../components/PictoBox.astro'
@@ -24,11 +23,6 @@ import Base from '../layouts/Base.astro'
 import { programme } from '../data/programme'
 
 /* Resultats de la cohorte 1, fournis le 20/08 (maquette v2). */
-const logos = [
-  { src: unionEuropeenne, alt: 'Cofinancé par l’Union européenne', href: undefined },
-  { src: nouveauMonde, alt: 'Nouveau Monde — Fonds de dotation', href: 'https://www.fonds-nouveau-monde.org/' },
-]
-
 const impact = [
   { valeur: '92 %', legende: 'recommanderaient le Programme sans hésiter' },
   {
@@ -149,22 +143,7 @@ const impact = [
   </section>
 
   <!-- 4. PREUVE -->
-  <section class="section confiance" data-section="soutiens">
-    <div class="page">
-      <h2 class="confiance__t">Merci pour leur soutien</h2>
-      <ul class="confiance__logos">
-        {logos.map((logo) => {
-          const LogoContainer = logo.href ? 'a' : 'div'
-          return (
-          <li>
-            <LogoContainer href={logo.href} class="confiance__logo" target={logo.href ? '_blank' : undefined} rel={logo.href ? 'noopener noreferrer' : undefined}>
-            <Image src={logo.src} alt={logo.alt} width={640} widths={[320, 640]} sizes="(max-width: 700px) 43vw, 300px" format="png" loading="lazy" />
-            </LogoContainer>
-          </li>
-        )})}
-      </ul>
-    </div>
-  </section>
+  <Soutiens />
 
   <!-- 5. NOTRE PROGRAMME — textes complets fournis par Pauline. -->
   <section class="s-bleu-clair prog" data-section="programme">
@@ -428,34 +407,6 @@ const impact = [
       min-height: 12.6rem;
       padding: 2rem;
     }
-  }
-
-  /* --- CONFIANCE --- */
-  .confiance__t {
-    text-align: center;
-  }
-  .confiance__logos {
-    list-style: none;
-    padding: 0;
-    margin: var(--s-titre) auto 0;
-    max-width: 42rem;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: center;
-    gap: clamp(1rem, 4vw, 4.5rem);
-  }
-  .confiance__logos li {
-    min-width: 0;
-    max-width: 300px;
-    width: 100%;
-    justify-self: center;
-  }
-  .confiance__logo { display: block; }
-  a.confiance__logo:focus-visible { outline: 3px solid var(--vert); outline-offset: 6px; }
-  .confiance__logos img {
-    display: block;
-    width: 100%;
-    height: auto;
   }
 
   /* --- PROGRAMME (famille bleue) --- */

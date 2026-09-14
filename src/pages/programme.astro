@@ -5,6 +5,7 @@
  * au Programme cle (« Le bleu est reserve pour le Programme cle d'Euneos »).
  */
 import Brand from '../components/Brand.astro'
+import Soutiens from '../components/Soutiens.astro'
 import FaqList from '../components/FaqList.astro'
 import faqData from '../data/faq.json'
 import Cta from '../components/Cta.astro'
@@ -187,6 +188,8 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
       </Paper>
     </div>
   </section>
+
+  <Soutiens />
 
   <!-- LES 3 PRINCIPES DU PROGRAMME -->
   <section class="section" id="principes" data-section="principes">
