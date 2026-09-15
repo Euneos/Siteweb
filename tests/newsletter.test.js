@@ -6,6 +6,7 @@ const env = {
   BREVO_LIST_ETABLISSEMENT: '3',
   BREVO_LIST_PARTENAIRE: '4',
   BREVO_LIST_FORMATEUR: '6',
+  BREVO_LIST_ENJEUX: '9',
   BREVO_DOI_TEMPLATE_ID: '6',
 }
 const fetchMock = spyOn(globalThis, 'fetch')
@@ -24,7 +25,7 @@ async function submit(profil, config = env, options = {}) {
   })
 }
 
-for (const [profil, id] of [['etablissement', 3], ['partenaire', 4], ['formateur', 6]]) {
+for (const [profil, id] of [['etablissement', 3], ['partenaire', 4], ['formateur', 6], ['enjeux', 9]]) {
   test(`newsletter ${profil} : bonne liste et confirmation`, async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
@@ -54,8 +55,8 @@ test('ancien profil curieux : refusé sans requête Brevo', async () => {
   expect(fetchMock).not.toHaveBeenCalled()
 })
 
-for (const current of [3, 4, 6]) {
-  for (const requested of ['etablissement', 'formateur', 'partenaire']) {
+for (const current of [3, 4, 6, 9]) {
+  for (const requested of ['etablissement', 'formateur', 'partenaire', 'enjeux']) {
     test(`profil confirmé ${current} : inscription ${requested} bloquée sans envoi ni modification`, async () => {
       fetchMock.mockResolvedValueOnce(Response.json({ listIds: [2, current] }))
       const response = await submit(requested)
@@ -67,7 +68,7 @@ for (const current of [3, 4, 6]) {
   }
 }
 
-test('contact CRM hors des trois listes : inscription autorisée', async () => {
+test('contact CRM hors des quatre listes : inscription autorisée', async () => {
   fetchMock.mockResolvedValueOnce(Response.json({ listIds: [2, 5] }))
     .mockResolvedValueOnce(new Response(null, { status: 204 }))
   const response = await submit('etablissement')
@@ -91,7 +92,7 @@ test('réponse contact invalide : aucun envoi', async () => {
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
-for (const [profil, list] of [['etablissement', 3], ['partenaire', 4], ['formateur', 6]]) {
+for (const [profil, list] of [['etablissement', 3], ['partenaire', 4], ['formateur', 6], ['enjeux', 9]]) {
   test(`envoi JSON ${profil} : confirmation sans redirection et liste correcte`, async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
@@ -145,5 +146,11 @@ test('JSON : preview sans aucun envoi Brevo', async () => {
 test('JSON : origine tierce toujours refusée', async () => {
   const response = await submit('partenaire', env, { json: true, origin: 'https://example.com' })
   expect(response.status).toBe(403)
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('liste enjeux manquante : aucun envoi Brevo', async () => {
+  const response = await submit('enjeux', { ...env, BREVO_LIST_ENJEUX: '' })
+  expect(response.headers.get('Location')).toContain('nl=indisponible')
   expect(fetchMock).not.toHaveBeenCalled()
 })

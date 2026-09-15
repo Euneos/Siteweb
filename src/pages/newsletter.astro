@@ -5,7 +5,7 @@
  * Demandee par Pauline (retour sur la maquette v4, 1/09) : une URL a partager
  * telle quelle (LinkedIn, signature de mail, QR code) sans renvoyer vers le
  * pied de page. C'est le MEME formulaire que le pied de page : memes champs,
- * meme segmentation en trois profils, meme traitement (`POST /api/newsletter`
+ * meme segmentation en quatre profils, meme traitement (`POST /api/newsletter`
  * -> `inscrireNewsletter`, double confirmation Brevo). Une seule mecanique a
  * entretenir ; seule la page d'arrivee change, via le champ cache `retour`.
  *
@@ -27,7 +27,8 @@ const message = etat ? (isNewsletterState(etat) ? newsletterMessages[etat] : 'Un
 const profils = [
   { valeur: 'etablissement', label: 'Je suis un établissement' },
   { valeur: 'formateur', label: 'Je souhaite devenir formateur-ice' },
-  { valeur: 'partenaire', label: 'Je souhaite être partenaire' },
+  { valeur: 'partenaire', label: 'Je souhaite devenir membre/partenaire' },
+  { valeur: 'enjeux', label: 'Je m’intéresse à vos enjeux' },
 ]
 ---
 
