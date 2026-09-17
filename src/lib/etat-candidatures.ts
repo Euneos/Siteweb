@@ -4,7 +4,8 @@ const API = 'https://app.nocodb.com/api/v2'
 const COHORTE = { debut: 2026, fin: 2027, label: '2026–2027' } as const
 
 interface Reponse<T> {
-  list?: T[]
+  list: T[]
+  pageInfo?: { isLastPage?: boolean; totalRows?: number }
 }
 
 interface CohorteNoco {
@@ -53,6 +54,22 @@ export interface EtatCandidature {
   ville: string | null
   region: string | null
   aVerifier: boolean
+  progression: Indicateur[]
+}
+
+export interface Indicateur {
+  etat: 'fait' | 'en-cours' | 'inconnu' | 'abandon'
+  texte: string
+}
+
+interface MissionNoco {
+  Id: number
+  participations_id?: number
+  formateurs_id?: number | null
+  statut?: string | null
+  date_debut?: string | null
+  date_fin_reelle?: string | null
+  nb_adultes_formes?: number | null
 }
 
 export interface EtatCohorte {
@@ -79,7 +96,9 @@ async function lister<T>(token: string, table: string, champs: string[], where?:
   const resultat: T[] = []
   const limite = 100
 
-  for (let offset = 0; ; offset += limite) {
+  const ids = new Set<number>()
+  for (;;) {
+    const offset = resultat.length
     const params = new URLSearchParams({
       limit: String(limite),
       offset: String(offset),
@@ -88,9 +107,16 @@ async function lister<T>(token: string, table: string, champs: string[], where?:
     if (where) params.set('where', where)
 
     const page = await lire<Reponse<T>>(token, `/tables/${table}/records?${params}`)
-    const lignes = page.list ?? []
+    if (!Array.isArray(page.list)) throw new Error('Réponse NocoDB incomplète')
+    const lignes = page.list
+    for (const ligne of lignes) {
+      const id = (ligne as { Id?: number }).Id
+      if (typeof id !== 'number' || ids.has(id)) throw new Error('Pagination NocoDB incohérente')
+      ids.add(id)
+    }
     resultat.push(...lignes)
-    if (lignes.length < limite) break
+    if (page.pageInfo?.isLastPage === true || (page.pageInfo?.isLastPage === undefined && lignes.length < limite)) break
+    if (!lignes.length || resultat.length >= 10000) throw new Error('Pagination NocoDB interrompue')
   }
 
   return resultat
@@ -105,6 +131,7 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
     ['Id', 'nom', 'annee_debut', 'annee_fin'],
     `(annee_debut,eq,${COHORTE.debut})~and(annee_fin,eq,${COHORTE.fin})`,
   )
+  if (cohortes.length !== 1) throw new Error(`Cohorte ${COHORTE.label} absente ou ambiguë`)
   const cohorte = cohortes[0]
   if (!cohorte) throw new Error(`Cohorte ${COHORTE.label} introuvable`)
 
@@ -138,6 +165,12 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
     : []
   const etablissementsParId = new Map(etablissements.map((e) => [e.Id, e]))
 
+  const missions = participations.length
+    ? await lister<MissionNoco>(token, 'merrsayuq3xb3uk',
+        ['Id', 'participations_id', 'formateurs_id', 'statut', 'date_debut', 'date_fin_reelle', 'nb_adultes_formes'],
+        `(participations_id,in,${participations.map(p => p.Id).join(',')})`)
+    : []
+
   const occurrences = new Map<number, number>()
   for (const participation of participations) {
     if (typeof participation.etablissements_id === 'number') {
@@ -165,6 +198,7 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
         typeEtablissement: etablissement?.type_etab?.trim() || null,
         ville: etablissement?.ville?.trim() || null,
         region: etablissement?.region?.trim() || null,
+        progression: progression(participation, missions.filter(m => m.participations_id === participation.Id)),
         aVerifier: !etablissement || (etablissementId !== null && (occurrences.get(etablissementId) ?? 0) > 1),
       }
     })
@@ -177,4 +211,36 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
     lignesAVerifier: lignes.filter((ligne) => ligne.aVerifier).length,
     actualiseLe: new Date(),
   }
+}
+
+
+const normaliser = (v: string | null | undefined) => (v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+/** Each cell states its evidence; a later status never proves an earlier email. */
+export function progression(p: ParticipationNoco, missions: MissionNoco[]): Indicateur[] {
+  const statut = normaliser(p.statut)
+  const arret = ['abandonne', 'refuse'].includes(statut)
+  const inconnu = (texte = 'Non renseigné'): Indicateur => ({ etat: 'inconnu', texte })
+  const fait = (texte: string): Indicateur => ({ etat: 'fait', texte })
+  const encours = (texte: string): Indicateur => ({ etat: 'en-cours', texte })
+  const accepte = ['retenu', 'engage', 'candidature acceptee', 'valide'].includes(statut)
+  const missionsActives = missions.filter(m => !['annulee', 'abandonnee', 'refusee'].includes(normaliser(m.statut)))
+  const nombreFormes = missionsActives.reduce((n, m) => n + Math.max(0, m.nb_adultes_formes ?? 0), 0)
+  return [
+    p.date_candidature ? fait(`Reçue le ${dateFr(p.date_candidature)}`) : inconnu('Date non renseignée'),
+    statut === 'accuse reception' ? fait('Statut « Accusé réception »') : inconnu('Envoi non documenté'),
+    arret ? { etat: 'abandon', texte: p.statut ?? 'Arrêté' } : accepte ? fait('Décision enregistrée') : ['en discussion', 'en cours d’analyse', "en cours d'analyse", 'en qualification'].includes(statut) ? encours('En cours d’analyse') : inconnu('Analyse non renseignée'),
+    arret ? { etat: 'abandon', texte: p.statut ?? 'Arrêté' } : p.date_validation ? fait(`Acceptée le ${dateFr(p.date_validation)}`) : accepte ? fait('Acceptée · date non renseignée') : inconnu(),
+    present(p.lettre_interet_signee) ? fait('Signée · selon le suivi') : inconnu('Signature non renseignée'),
+    present(p.fiche_contact_recue) ? fait('Fiche reçue') : inconnu(),
+    missionsActives.some(m => m.formateurs_id) ? fait('Formateur relié à une mission') : inconnu('Aucune affectation renseignée'),
+    missionsActives.length ? encours(`${missionsActives.length} mission(s) · ${[...new Set(missionsActives.map(m => m.statut).filter(Boolean))].join(', ') || 'état non renseigné'}`) : inconnu('Aucune mission renseignée'),
+    nombreFormes > 0 ? encours(`${nombreFormes} adulte(s) déclaré(s) formé(s) · suivi à vérifier`) : p.date_debut_formation ? encours(`Début renseigné : ${dateFr(p.date_debut_formation)}`) : inconnu('Formation non documentée'),
+    inconnu('Ateliers et évaluation non documentés dans cette vue'),
+  ]
+}
+
+function dateFr(date: string): string {
+  const parts = date.slice(0, 10).split('-')
+  return parts.length === 3 ? parts.reverse().join('/') : date
 }
