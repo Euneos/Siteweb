@@ -1,6 +1,6 @@
 # Espace interne EUNEOS — mise en service
 
-Cette PR prépare les calendriers éditorial et équipe, les commentaires et la bibliothèque de ressources. Elle ne remplace pas encore les calendriers Notion. Tant que les accès, la reprise et la recette métier ne sont pas terminés, **Notion reste la source utilisée par l’équipe**.
+Cette PR prépare les calendriers éditorial et équipe, les commentaires, la bibliothèque de ressources et la carte des implantations. Elle ne remplace pas encore les calendriers Notion. Tant que les accès, la reprise et la recette métier ne sont pas terminés, **Notion reste la source utilisée par l’équipe**.
 
 Le [tableau des candidatures](tableau-interne.md) continue à lire NocoDB côté serveur. Les calendriers ont un stockage collaboratif distinct : D1, binding `TEAM_WORKSPACE`. Ne pas utiliser `FORM_SUBMISSIONS`, registre technique des formulaires publics, pour les heures ou les commentaires.
 
@@ -19,6 +19,16 @@ Deux applications Cloudflare Access avec **deux audiences différentes** sont n�
 L’application bibliothèque doit couvrir les deux chemins exacts `/interne/ressources` et `/api/interne/ressources`, et leur variante avec slash final. L’application équipe couvre `/interne`, `/interne/*`, `/api/interne/*`, `/etat-candidatures` et sa variante avec slash final. La règle bibliothèque plus spécifique doit gagner. L’administration du catalogue reste sur un chemin équipe distinct : un JWT bibliothèque, même portant l’adresse d’un responsable, ne permet jamais d’écrire. Répéter ces protections pour les domaines de preview/alias utilisés. Le contrôle serveur refuse aussi les accès directs au déploiement qui ne fournissent pas le bon JWT.
 
 Les liens de ressources ne modifient pas les permissions des fichiers Drive/Canva d’origine. Ce catalogue n’est pas un hébergeur de pièces jointes et n’accorde pas de nouveaux droits sur les fichiers.
+
+## Carte des implantations
+
+`/interne/implantations` et `/api/interne/implantations` utilisent la même identité équipe que les candidatures ; une audience formateur est refusée. La page n’utilise pas D1 : elle lit intégralement les cohortes, participations et établissements de NocoDB côté serveur, avec une projection des seuls champs nécessaires. Aucun nom de contact, email ni adresse de rue n’est lu pour la carte.
+
+Chaque groupe conserve ses dossiers sources, regroupés uniquement lorsque établissement et cohorte sont connus. Les abandons, statuts mixtes, cohortes inconnues et localisations manquantes restent visibles dans la liste et les filtres. Les compteurs distinguent établissements, participations et groupes : ce ne sont pas des unités interchangeables.
+
+Les repères utilisent le **centre de la commune**, sans prétendre localiser l’école. Le nom normalisé et le code postal doivent correspondre exactement à une commune du référentiel public. Aucune approximation silencieuse ni requête vers un géocodeur n’a lieu pendant la consultation. Métropole/Corse et cinq DROM disposent de fonds séparés ; les autres territoires ou données non résolues restent dans la liste, sans point inventé.
+
+Références publiques du 17 septembre 2026 : [API communes](https://geo.api.gouv.fr/decoupage-administratif/communes), [contours régionaux Etalab/IGN 2026](https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson), Licence Ouverte. Le référentiel est complet et ne contient aucun rapprochement EUNEOS. Son actualisation passe par une nouvelle version revue.
 
 ## Configuration à réaliser après revue de la PR
 
@@ -101,4 +111,4 @@ Avant bascule : comparer fiches/commentaires et totaux par personne/mois, vérif
 
 ## Vérification reproductible
 
-`bun run test`, `bun run build`, `bun scripts/check-internal-workspace.mjs` et `bun scripts/check-internal-table.mjs`. Les recettes compilées utilisent exclusivement des identités signées locales et des données fictives ; aucun contournement d’authentification n’est embarqué dans le site. La CI conserve aussi les contrôles newsletter, mise en page, rythme et responsive des pages publiques.
+`bun run test`, `bun run build`, `bun scripts/check-internal-workspace.mjs` `bun scripts/check-internal-table.mjs` et `bun scripts/check-implantations.mjs`. Les recettes compilées utilisent exclusivement des identités signées locales et des données fictives ; aucun contournement d’authentification n’est embarqué dans le site. La CI conserve aussi les contrôles newsletter, mise en page, rythme et responsive des pages publiques.

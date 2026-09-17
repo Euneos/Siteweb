@@ -69,6 +69,7 @@ jobs:
           bunx playwright install --with-deps chromium
           bun scripts/check-internal-table.mjs
           bun scripts/check-internal-workspace.mjs
+          bun scripts/check-implantations.mjs
           bunx wrangler pages dev dist --port 4321 --ip 127.0.0.1 > /tmp/euneos-layout.log 2>&1 &
           layout_server_pid=$!
           trap 'kill "$layout_server_pid" 2>/dev/null || true' EXIT
