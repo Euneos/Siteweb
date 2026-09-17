@@ -1,0 +1,68 @@
+[
+  {
+    "id": "metropole",
+    "label": "Métropole et Corse",
+    "minLon": -5.141,
+    "maxLat": 51.089,
+    "cos": 0.6917966741195299,
+    "scale": 50.3959683225342,
+    "ox": 243.75133993196675,
+    "oy": 80,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  },
+  {
+    "id": "971",
+    "label": "Guadeloupe",
+    "minLon": -61.806,
+    "maxLat": 16.51,
+    "cos": 0.9604153270945032,
+    "scale": 731.3432835820877,
+    "ox": 217.63789383421857,
+    "oy": 80,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  },
+  {
+    "id": "972",
+    "label": "Martinique",
+    "minLon": -61.227,
+    "maxLat": 14.877,
+    "cos": 0.9675439842166396,
+    "scale": 1022.96450939457,
+    "ox": 300.5627238379344,
+    "oy": 80,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  },
+  {
+    "id": "973",
+    "label": "Guyane",
+    "minLon": -54.602,
+    "maxLat": 5.749,
+    "cos": 0.997647332994005,
+    "scale": 134.76347634763476,
+    "ox": 299.94372292833094,
+    "oy": 80.00000000000003,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  },
+  {
+    "id": "974",
+    "label": "La Réunion",
+    "minLon": 55.217,
+    "maxLat": -20.872,
+    "cos": 0.9327617671961056,
+    "scale": 947.7756286266934,
+    "ox": 225.9448502183953,
+    "oy": 80,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  },
+  {
+    "id": "976",
+    "label": "Mayotte",
+    "minLon": 45.042,
+    "maxLat": -12.673,
+    "cos": 0.9750080200424881,
+    "scale": 1498.4709480122326,
+    "ox": 314.4503086017018,
+    "oy": 80,
+    "source": "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson"
+  }
+]

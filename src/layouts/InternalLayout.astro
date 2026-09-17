@@ -4,7 +4,7 @@ import '../styles/global.css'
 
 interface Props {
   title: string
-  current: 'calendrier' | 'ressources' | 'catalogue'
+  current: 'calendrier' | 'ressources' | 'catalogue' | 'implantations'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
 }
@@ -56,6 +56,16 @@ const { title, current, identity, teamAccess = true } = Astro.props
           )
         }
         {teamAccess && <a href="/etat-candidatures">Suivi des établissements</a>}
+        {
+          teamAccess && (
+            <a
+              href="/interne/implantations"
+              aria-current={current === 'implantations' ? 'page' : undefined}
+            >
+              Implantations
+            </a>
+          )
+        }
         <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
           >Ressources formateurs</a
         >

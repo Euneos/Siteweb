@@ -1,0 +1,491 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { readInternalIdentity } from '../../lib/internal-access'
+const env = (Astro.locals as { runtime?: { env?: Record<string, string> } }).runtime?.env ?? {}
+const access = await readInternalIdentity(Astro.request, env)
+if (access instanceof Response) return access
+const identity = {
+  email: access.email,
+  admin: (env.INTERNAL_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((x) => x.trim().toLowerCase())
+    .includes(access.email),
+}
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+---
+
+<InternalLayout
+  title="Implantations des établissements"
+  current="implantations"
+  identity={identity}
+>
+  <div id="im-app">
+    <div class="iw-intro">
+      <div class="iw-intro__text">
+        <p class="iw-eyebrow">Présence sur les territoires</p><h1>
+          Implantations des établissements
+        </h1><p>
+          Une lecture géographique des participations, pour retrouver les établissements et repérer
+          les informations à compléter.
+        </p>
+      </div><a class="iw-button" href="/etat-candidatures"
+        >Ouvrir le tableau de suivi <span aria-hidden="true">↗</span></a
+      >
+    </div>
+    <p class="im-precision">
+      <strong>Localisation à la commune.</strong> Chaque repère correspond au centre d’une commune, jamais
+      à l’adresse exacte d’une école. Métropole et cinq DROM disposent de leur propre cadre.
+    </p>
+    <noscript
+      ><p class="iw-feedback">
+        Activez JavaScript pour charger la carte et sa liste complémentaire. Le <a
+          href="/etat-candidatures">tableau de suivi</a
+        > reste consultable.
+      </p></noscript
+    >
+    <div class="iw-panel im-filters" aria-label="Filtres des implantations">
+      <div class="iw-field">
+        <label for="im-cohort">Cohorte</label><select id="im-cohort" disabled
+          ><option value="">Toutes les cohortes</option></select
+        >
+      </div>
+      <div class="iw-field">
+        <label for="im-status">Statut du dossier</label><select id="im-status" disabled
+          ><option value="">Tous les statuts</option></select
+        >
+      </div>
+      <div class="iw-field">
+        <label for="im-location">Localisation</label><select id="im-location" disabled
+          ><option value="">Toutes les fiches</option><option value="located"
+            >Commune identifiée</option
+          ><option value="unlocated">Localisation à vérifier</option></select
+        >
+      </div>
+      <button id="im-reset" type="button" class="iw-button" disabled>Tout afficher</button>
+    </div>
+    <div class="iw-resultsbar">
+      <p id="im-updated" class="iw-small iw-muted">Lecture de la base en cours…</p><button
+        id="im-refresh"
+        type="button"
+        class="iw-button">Actualiser</button
+      >
+    </div>
+    <div id="im-state" class="iw-state" role="status">
+      <span class="iw-loading" aria-hidden="true"></span><h2>Chargement des implantations</h2><p>
+        Nous récupérons toutes les pages de la base.
+      </p>
+    </div>
+    <div id="im-data" hidden aria-busy="true">
+      <dl class="im-metrics">
+        <div><dt>Établissements distincts</dt><dd id="im-schools">—</dd></div><div>
+          <dt>Dossiers sources</dt><dd id="im-records">—</dd>
+        </div><div><dt>Groupes localisés</dt><dd id="im-located">—</dd></div><div>
+          <dt>Localisations à vérifier</dt><dd id="im-unlocated">—</dd>
+        </div>
+      </dl>
+      <p id="im-summary" class="im-summary" role="status" aria-live="polite"></p>
+      <div class="im-workspace">
+        <section class="iw-panel im-map-panel" aria-labelledby="im-map-title">
+          <div class="im-panel-head">
+            <div>
+              <h2 id="im-map-title">La carte des communes</h2><p class="iw-small iw-muted">
+                Choisissez un territoire, puis un repère.
+              </p>
+            </div><span class="iw-badge">Précision : commune</span>
+          </div>
+          <div
+            id="im-territories"
+            class="im-territories"
+            role="group"
+            aria-label="Territoire affiché"
+          >
+          </div>
+          <p id="im-frame-summary" class="im-frame-summary" role="status"></p>
+          <div class="im-map-controls" role="group" aria-label="Déplacer et agrandir la carte">
+            <button
+              id="im-zoom-in"
+              class="iw-button iw-button--icon"
+              type="button"
+              aria-label="Agrandir la carte">＋</button
+            ><button
+              id="im-zoom-out"
+              class="iw-button iw-button--icon"
+              type="button"
+              aria-label="Réduire la carte">−</button
+            ><button id="im-map-reset" class="iw-button" type="button">Vue entière</button><button
+              type="button"
+              data-pan="left"
+              class="iw-button iw-button--icon"
+              aria-label="Déplacer le cadre vers l’ouest">←</button
+            ><button
+              type="button"
+              data-pan="right"
+              class="iw-button iw-button--icon"
+              aria-label="Déplacer le cadre vers l’est">→</button
+            ><button
+              type="button"
+              data-pan="up"
+              class="iw-button iw-button--icon"
+              aria-label="Déplacer le cadre vers le nord">↑</button
+            ><button
+              type="button"
+              data-pan="down"
+              class="iw-button iw-button--icon"
+              aria-label="Déplacer le cadre vers le sud">↓</button
+            >
+          </div>
+          <div
+            id="im-map"
+            class="im-map"
+            tabindex="0"
+            role="region"
+            aria-label="Carte interactive des communes"
+            aria-describedby="im-map-help"
+          >
+            <img
+              id="im-map-background"
+              src="/maps/metropole.svg"
+              alt=""
+              width="1000"
+              height="650"
+            /><div id="im-markers"></div>
+          </div>
+          <p id="im-map-help" class="im-map-help">
+            Le nombre indique les groupes établissement–cohorte. Les repères proches sont réunis au
+            centre de la première commune du groupe. Utilisez le zoom pour les séparer, ou la liste
+            ci-dessous. Au clavier : Tab puis Entrée ; flèches sur le cadre pour le déplacer.
+          </p>
+          <div class="im-legend">
+            <span><i class="im-dot" aria-hidden="true"></i> Participation enregistrée</span><span
+              ><i class="im-dot im-dot--stopped" aria-hidden="true"></i> Abandon ou refus uniquement</span
+            ><span><i class="im-dot im-dot--mixed" aria-hidden="true"></i> Statuts mixtes</span>
+          </div>
+        </section>
+        <aside class="iw-panel im-detail" aria-labelledby="im-detail-title">
+          <p class="iw-eyebrow">Dans cette commune</p><h2 id="im-detail-title" tabindex="-1">
+            Explorez un territoire
+          </h2><p id="im-detail-description" class="iw-muted">
+            Sélectionnez un repère pour retrouver les établissements et leurs dossiers sources.
+          </p><div id="im-detail-list"></div>
+        </aside>
+      </div>
+      <section class="iw-panel im-list-panel" aria-labelledby="im-list-title">
+        <div class="im-panel-head">
+          <div>
+            <h2 id="im-list-title">La liste complète les repères</h2><p class="iw-muted">
+              Les données manquantes et les communes non reconnues restent visibles ici.
+            </p>
+          </div><span id="im-list-count" class="iw-badge"></span>
+        </div><div id="im-list"></div>
+      </section>
+      <details class="im-method">
+        <summary>Méthode, sources et limites</summary><p>
+          Les dossiers sont lus dans la base EUNEOS et regroupés uniquement lorsque l’établissement
+          et la cohorte sont identifiés. Aucun dossier n’est supprimé ; les abandons et les statuts
+          divergents sont conservés. Avec un filtre de statut, seuls les dossiers correspondants
+          sont comptés, au sein de leur groupe.
+        </p><p>
+          La commune doit correspondre à la fois à la ville et au code postal. Aucune recherche
+          approximative, aucune adresse d’école déduite. Les collectivités non couvertes par ces
+          fonds et les correspondances incertaines restent dans la liste sans repère.
+        </p><p>
+          Référentiel public des communes relevé le <span id="im-reference-date"></span> via l’<a
+            href="https://geo.api.gouv.fr/decoupage-administratif/communes"
+            target="_blank"
+            rel="noopener noreferrer">API Découpage administratif (nouvel onglet)</a
+          >. Fonds régionaux Etalab / IGN, millésime 2026, simplification à 1 km, Licence Ouverte.
+          Les fonds et le référentiel sont locaux : aucun nom d’établissement, contact ou adresse
+          n’est envoyé à un service cartographique.
+        </p><p id="im-source-count"></p>
+      </details>
+    </div>
+  </div>
+  <script src="../../scripts/implantations-client.ts"></script>
+</InternalLayout>
+<style is:global>
+  .im-precision {
+    padding: 1rem 1.25rem;
+    background: var(--jaune-clair);
+    border-left: 3px solid var(--jaune-fold);
+    margin-bottom: var(--s-lie) !important;
+  }
+  .im-filters {
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+  .im-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+  }
+  .im-metrics > div {
+    background: white;
+    padding: 1.15rem;
+    border: 1px solid var(--iw-line);
+    border-top: 3px solid var(--vert);
+  }
+  .im-metrics > div:last-child {
+    border-top-color: var(--jaune-fold);
+  }
+  .im-metrics dt {
+    font-size: var(--iw-small);
+    color: var(--iw-muted);
+  }
+  .im-metrics dd {
+    font-size: var(--t-h3);
+    font-weight: 600;
+    margin: 0.25rem 0 0;
+  }
+  .im-summary {
+    margin-block: 1.2rem !important;
+  }
+  .im-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: var(--s-lie);
+    align-items: start;
+  }
+  .im-panel-head {
+    padding: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .im-panel-head p {
+    margin-top: 0.4rem;
+  }
+  .im-territories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0 1.25rem 1rem;
+  }
+  .im-territories button {
+    font-size: var(--iw-small);
+    font-weight: 400;
+  }
+  .im-territories button[aria-pressed='true'] {
+    background: var(--vert);
+    color: white;
+    border-color: var(--vert);
+  }
+  .im-territories button[aria-pressed='true']:hover:not(:disabled) {
+    background: var(--vert-fold);
+    color: white;
+  }
+  .im-frame-summary {
+    padding: 0.8rem 1.25rem;
+    background: #f5f7f3;
+    font-size: var(--iw-small);
+  }
+  .im-map-controls {
+    padding: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .im-map {
+    position: relative;
+    aspect-ratio: 1000 / 650;
+    overflow: hidden;
+    background: #fafbf8;
+    border-block: 1px solid var(--iw-line);
+  }
+  .im-map > img {
+    position: absolute;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .im-map:focus-visible {
+    outline: 3px solid var(--vert);
+    outline-offset: 3px;
+  }
+  .im-marker {
+    width: 44px;
+    height: 44px;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    border: 0;
+    padding: 5px;
+    border-radius: 50%;
+    color: white;
+    display: grid;
+    place-items: center;
+  }
+  .im-marker span {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    background: var(--vert);
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 5px #00382d44;
+    font-weight: 600;
+    font-size: var(--iw-small);
+  }
+  .im-marker[data-state='stopped'] span {
+    background: #585c59;
+  }
+  .im-marker[data-state='mixed'] span {
+    background: var(--jaune);
+    color: var(--noir);
+  }
+  .im-marker[aria-pressed='true'] span {
+    outline: 3px solid var(--noir);
+    outline-offset: 2px;
+  }
+  .im-map-help {
+    padding: 1rem 1.25rem;
+    color: var(--iw-muted);
+    font-size: var(--iw-small);
+  }
+  .im-legend {
+    display: flex;
+    gap: 0.5rem 1rem;
+    flex-wrap: wrap;
+    padding: 0 1.25rem 1.25rem;
+    font-size: var(--iw-small);
+  }
+  .im-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .im-dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: var(--vert);
+  }
+  .im-dot--stopped {
+    background: #585c59;
+  }
+  .im-dot--mixed {
+    background: var(--jaune);
+    border: 1px solid var(--jaune-fold);
+  }
+  .im-detail {
+    padding: 1.25rem;
+    min-width: 0;
+  }
+  .im-detail h2,
+  .im-detail p {
+    overflow-wrap: anywhere;
+  }
+  .im-detail > p:last-of-type {
+    margin-top: 1rem;
+  }
+  .im-detail-item {
+    padding-block: 1rem;
+    border-top: 1px solid var(--iw-line);
+    margin-top: 1rem;
+  }
+  .im-detail-item h3 {
+    font-size: var(--iw-text);
+  }
+  .im-detail-item p {
+    margin-top: 0.4rem;
+  }
+  .im-list-panel {
+    margin-top: var(--s-titre);
+  }
+  .im-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .im-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: start;
+    padding: 1.2rem 1.25rem;
+    border-top: 1px solid var(--iw-line);
+  }
+  .im-row > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .im-row h3 {
+    font-size: var(--iw-text);
+  }
+  .im-row p {
+    margin-top: 0.4rem;
+    font-size: var(--iw-small);
+  }
+  .im-row__issue {
+    background: #fff8de;
+    padding: 0.45rem 0.6rem;
+  }
+  .im-row .iw-badge {
+    white-space: normal;
+    margin: 0.2rem 0.3rem 0.2rem 0;
+  }
+  .im-method {
+    margin-top: 1.5rem;
+    color: var(--iw-muted);
+  }
+  .im-method summary {
+    cursor: pointer;
+    min-height: 44px;
+    padding-block: 0.7rem;
+    color: var(--noir);
+    font-weight: 600;
+  }
+  .im-method p {
+    max-width: 70rem;
+    margin-top: 1rem;
+  }
+  .im-empty {
+    padding: 2rem 1.25rem;
+  }
+  @media (max-width: 1100px) {
+    .im-workspace {
+      grid-template-columns: 1fr;
+    }
+    .im-detail {
+      min-height: auto;
+    }
+    .im-filters {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 650px) {
+    .im-metrics {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    .im-filters {
+      grid-template-columns: 1fr;
+    }
+    .im-row {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+    .im-row .iw-button {
+      justify-self: start;
+    }
+    .im-territories {
+      padding-inline: 0.75rem;
+    }
+    .im-panel-head {
+      padding-inline: 1rem;
+    }
+    .im-map-controls {
+      gap: 0.3rem;
+    }
+  }
+</style>
