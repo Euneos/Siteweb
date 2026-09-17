@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir, readdir } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { App } from 'astro/app'
 import { generateKeyPair, exportJWK, SignJWT } from 'jose'
 import { chromium, expect } from '@playwright/test'
@@ -9,7 +11,7 @@ import { cohorts, establishments, participations } from '../tests/fixtures/impla
 
 // Actual compiled SSR and API, locally signed Access JWTs, paginated synthetic Noco data.
 // No production credentials or auth bypass; every network dependency is intercepted here.
-const output = process.env.CHECK_SCREENSHOTS ?? '/private/tmp/euneos-map-qa/screenshots'
+const output = process.env.CHECK_SCREENSHOTS ?? join(tmpdir(), 'euneos-map-qa', 'screenshots')
 await mkdir(output, { recursive: true })
 const { publicKey, privateKey } = await generateKeyPair('RS256')
 const jwk = { ...(await exportJWK(publicKey)), kid: 'map-test', alg: 'RS256', use: 'sig' }
