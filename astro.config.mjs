@@ -4,14 +4,15 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 
 const site = process.env.SITE_URL ?? 'https://euneos.fr'
+const pagesHorsSitemap = ['/style-guide', '/etat-candidatures']
 
 export default defineConfig({
   site,
-  // Les 4 pages sont du contenu pur -> servies statiquement depuis le CDN.
-  // Les endpoints de formulaire sont marques `prerender = false` (rendu a la demande).
+  // Les pages publiques sont servies statiquement depuis le CDN.
+  // Les endpoints et la page de suivi NocoDB sont rendus a la demande.
   output: 'static',
   adapter: cloudflare({ imageService: 'compile' }),
-  integrations: [sitemap({ filter: (page) => !page.includes('/style-guide') })],
+  integrations: [sitemap({ filter: (page) => !pagesHorsSitemap.some((chemin) => page.includes(chemin)) })],
   vite: { plugins: [tailwindcss()] },
   i18n: {
     defaultLocale: 'fr',

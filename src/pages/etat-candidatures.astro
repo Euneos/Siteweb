@@ -1,0 +1,286 @@
+---
+import Base from '../layouts/Base.astro'
+import { jeton } from '../lib/nocodb'
+import { lireEtatCohorte, type EtatCohorte } from '../lib/etat-candidatures'
+
+export const prerender = false
+
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+
+let etat: EtatCohorte | null = null
+let indisponible = false
+const token = jeton(Astro.locals)
+
+if (token) {
+  try {
+    etat = await lireEtatCohorte(token)
+  } catch (erreur) {
+    indisponible = true
+    console.error('[etat-candidatures]', erreur instanceof Error ? erreur.message : erreur)
+  }
+} else {
+  indisponible = true
+  console.error('[etat-candidatures] NOCODB_TOKEN absent')
+}
+
+const formatDate = (date: string | null) => {
+  if (!date) return '—'
+  const [annee, mois, jour] = date.slice(0, 10).split('-').map(Number)
+  if (!annee || !mois || !jour) return date
+  return new Intl.DateTimeFormat('fr-FR').format(new Date(Date.UTC(annee, mois - 1, jour)))
+}
+
+const formatActualisation = (date: Date) =>
+  new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Europe/Paris',
+  }).format(date)
+
+const coche = (valeur: boolean) => (valeur ? '✓' : '—')
+---
+
+<Base
+  title="État des candidatures 2026–2027 — EUNEOS"
+  description="État d’avancement des candidatures des établissements pour la cohorte WISE-UP 2026–2027."
+  heroSurface="bleu"
+  heroFold="bl"
+  noindex
+>
+  <section slot="hero" class="page etat-hero">
+    <p class="etat-hero__sur">Page de suivi · non indexée</p>
+    <h1>État des candidatures<br />Cohorte 2026–2027</h1>
+    <p class="etat-hero__lead">
+      Données lues directement dans la base EUNEOS. Cette page n’effectue aucune modification.
+    </p>
+  </section>
+
+  <section class="section page etat" aria-labelledby="synthese">
+    <div class="etat__entete">
+      <div>
+        <h2 id="synthese">Vue d’ensemble</h2>
+        {etat && <p class="etat__actualisation">Actualisé le {formatActualisation(etat.actualiseLe)}</p>}
+      </div>
+      <p class="etat__confidentialite">
+        Cette adresse n’apparaît ni dans le menu ni dans les moteurs de recherche. Elle reste accessible à toute personne qui possède le lien.
+      </p>
+    </div>
+
+    {
+      indisponible || !etat ? (
+        <div class="etat__alerte" role="alert">
+          <h3>Données momentanément indisponibles</h3>
+          <p>La base EUNEOS n’a pas pu être lue. Actualisez la page dans quelques instants.</p>
+        </div>
+      ) : (
+        <>
+          <ul class="etat__indicateurs" aria-label="Indicateurs de la cohorte 2026–2027">
+            <li><strong>{etat.etablissementsDistincts}</strong><span>établissements distincts</span></li>
+            <li><strong>{etat.lignes.length}</strong><span>lignes de candidature</span></li>
+            <li><strong>{etat.lignesAVerifier}</strong><span>lignes à vérifier</span></li>
+          </ul>
+
+          {etat.lignesAVerifier > 0 && (
+            <p class="etat__note">
+              « À vérifier » signale plusieurs lignes NocoDB reliées au même établissement, ou une liaison manquante. Aucune ligne n’est fusionnée ni corrigée ici.
+            </p>
+          )}
+
+          <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures, défilement horizontal possible">
+            <table class="etat__table">
+              <caption>Progression des établissements — cohorte 2026–2027</caption>
+              <thead>
+                <tr>
+                  <th class="etat__etablissement" scope="col">Établissement</th>
+                  <th scope="col">Candidature reçue</th>
+                  <th scope="col">Candidature acceptée</th>
+                  <th scope="col">Lettre d’intérêt signée</th>
+                  <th scope="col">Fiche contact remplie</th>
+                  <th scope="col">Formateur désigné</th>
+                </tr>
+              </thead>
+              <tbody>
+                {etat.lignes.map((ligne) => (
+                  <tr class:list={[ligne.aVerifier && 'is-a-verifier']}>
+                    <th scope="row">
+                      <span class="etat__nom">{ligne.etablissement}</span>
+                      <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
+                      {ligne.aVerifier && <span class="etat__verification">À vérifier</span>}
+                    </th>
+                    <td><span class="etat__fait">✓</span><small>{formatDate(ligne.dateCandidature)}</small></td>
+                    <td class:list={['etat__centre', ligne.dateValidation && 'is-fait']} aria-label={ligne.dateValidation ? `Candidature acceptée le ${formatDate(ligne.dateValidation)}` : 'Candidature non signalée comme acceptée'}>
+                      {ligne.dateValidation ? <><span class="etat__fait">✓</span><small>{formatDate(ligne.dateValidation)}</small></> : '—'}
+                    </td>
+                    <td class:list={['etat__centre', ligne.lettreSignee && 'is-fait']} aria-label={ligne.lettreSignee ? 'Lettre d’intérêt signée' : 'Lettre d’intérêt non signalée comme signée'}>{coche(ligne.lettreSignee)}</td>
+                    <td class:list={['etat__centre', ligne.ficheContactRecue && 'is-fait']} aria-label={ligne.ficheContactRecue ? 'Fiche contact remplie' : 'Fiche contact non signalée comme remplie'}>{coche(ligne.ficheContactRecue)}</td>
+                    <td class="etat__centre" aria-label="Formateur désigné non disponible dans les données actuellement reliées">—</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )
+    }
+  </section>
+</Base>
+
+<style is:global>
+  .etat-hero {
+    padding-top: clamp(2rem, 5vw, 4rem);
+    padding-bottom: clamp(4rem, 9vw, 7rem);
+    max-width: var(--page-max);
+  }
+  .etat-hero__sur {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: var(--t-note);
+    margin-bottom: 0.75rem;
+  }
+  .etat-hero__lead {
+    max-width: 58ch;
+    margin-top: 1rem;
+  }
+  .etat__entete {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.75fr);
+    gap: var(--s-int);
+    align-items: start;
+    margin-bottom: var(--s-int);
+  }
+  .etat__actualisation {
+    margin-top: 0.5rem;
+    font-size: var(--t-note);
+  }
+  .etat__confidentialite,
+  .etat__note,
+  .etat__alerte {
+    padding: 1rem 1.25rem;
+    background: color-mix(in srgb, var(--jaune) 18%, var(--blanc));
+    border-left: 0.35rem solid var(--jaune);
+    font-size: var(--t-note);
+  }
+  .etat__alerte h3 {
+    font-size: var(--t-carte);
+    margin-bottom: 0.35rem;
+  }
+  .etat__indicateurs {
+    list-style: none;
+    margin: 0 0 var(--s-int);
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .etat__indicateurs li {
+    min-height: 8rem;
+    padding: 1rem;
+    display: grid;
+    align-content: center;
+    background: var(--bleu-clair);
+    color: var(--vert);
+  }
+  .etat__indicateurs strong {
+    font-size: var(--t-chiffre);
+    line-height: 1;
+  }
+  .etat__indicateurs span {
+    font-size: var(--t-note);
+  }
+  .etat__note {
+    margin-bottom: 1rem;
+  }
+  .etat__table-wrap {
+    overflow-x: auto;
+    border: 1px solid color-mix(in srgb, var(--vert) 25%, transparent);
+  }
+  .etat__table-wrap:focus-visible {
+    outline: 3px solid var(--bleu-fold);
+    outline-offset: 3px;
+  }
+  .etat__table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: max(0.82rem, calc(var(--t-note) * 0.88));
+    line-height: 1.3;
+  }
+  .etat__table caption {
+    text-align: left;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--vert);
+  }
+  .etat__table th,
+  .etat__table td {
+    padding: 0.8rem;
+    text-align: left;
+    vertical-align: top;
+    border: 1px solid color-mix(in srgb, var(--vert) 18%, var(--blanc));
+  }
+  .etat__table thead th {
+    background: #2367b9;
+    color: var(--blanc);
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+  .etat__table thead .etat__etablissement {
+    min-width: 250px;
+    background: #223f6d;
+    text-align: left;
+    font-size: 1.08em;
+  }
+  .etat__table tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--papier) 72%, var(--blanc));
+  }
+  .etat__table tbody tr.is-a-verifier {
+    box-shadow: inset 0.3rem 0 var(--orange);
+  }
+  .etat__nom,
+  .etat__meta,
+  .etat__table small {
+    display: block;
+  }
+  .etat__nom {
+    color: var(--vert);
+  }
+  .etat__meta,
+  .etat__table small {
+    margin-top: 0.25rem;
+    font-size: 0.82em;
+    font-weight: 400;
+    opacity: 0.72;
+  }
+  .etat__fait,
+  .etat__centre.is-fait {
+    color: var(--vert);
+    font-weight: 700;
+  }
+  .etat__centre {
+    text-align: center !important;
+  }
+  .etat__verification {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--orange) 18%, var(--blanc));
+    color: var(--vert);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  @media (max-width: 860px) {
+    .etat__entete,
+    .etat__indicateurs {
+      grid-template-columns: 1fr;
+    }
+    .etat__indicateurs li {
+      min-height: 0;
+    }
+    .etat__table-wrap {
+      margin-inline: calc(var(--unit) * -0.5);
+    }
+  }
+</style>
