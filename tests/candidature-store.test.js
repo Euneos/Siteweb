@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import { readFileSync } from "node:fs";
 import { enregistrerCandidature } from "../src/lib/candidature-store";
 import { NC } from "../src/lib/nocodb";
+import { POST as trainerPost } from "../src/pages/api/candidature-formateur";
 const originalFetch = globalThis.fetch;
 let sqlite;
 let db;
@@ -21,7 +22,8 @@ beforeEach(() => {
       const result = sqlite.query(sql).run(...values);
       return { meta: { changes: result.changes } };
     },
-    first: async () => sqlite.query(sql).get(...values)
+    first: async () => sqlite.query(sql).get(...values),
+    all: async () => ({ results: sqlite.query(sql).all(...values) })
   }) }) };
   rows = Object.fromEntries(Object.values(NC.tables).map((id) => [id, []]));
   writes = [];
@@ -88,13 +90,22 @@ test("reuses an existing current-year application without overwriting its status
   expect(writes).toHaveLength(0);
   expect(rows[NC.tables.engagements][0].statut).toBe("Valide");
 });
-test("a later cohort can create a new application while retaining the identity and old history", async () => {
+test("a trainer keeps one public application when the active cohort changes", async () => {
   active = 1;
   await submit();
   active = 2;
-  expect(await submit()).toEqual({ duplicate: false });
+  expect(await submit()).toEqual({ duplicate: true });
   expect(rows[NC.tables.formateurs]).toHaveLength(1);
-  expect(rows[NC.tables.engagements].map((r) => r.cohortes_id)).toEqual([1, 2]);
+  expect(rows[NC.tables.engagements].map((r) => r.cohortes_id)).toEqual([1]);
+});
+test("schools may still apply in a later cohort without replacing their old dossier", async () => {
+  const school = { kind: "etablissement", identity: { nom: "École Test", ville: "Paris", cp: "75001" } };
+  active = 1;
+  await submit(school);
+  active = 2;
+  expect(await submit(school)).toEqual({ duplicate: false });
+  expect(rows[NC.tables.etablissements]).toHaveLength(1);
+  expect(rows[NC.tables.participations].map((r) => r.cohortes_id)).toEqual([1, 2]);
 });
 test("normalises email spacing and case before claiming", async () => {
   await submit();
@@ -132,12 +143,82 @@ test("no active cohort refuses before any receipt or business write", async () =
   expect(writes).toHaveLength(0);
   expect(sqlite.query("SELECT count(*) AS n FROM form_submissions").get()).toEqual({ n: 0 });
 });
-test("ambiguous identities and historical paths without year require team review", async () => {
+test("ambiguous trainer identities or multiple applications require team review", async () => {
   rows[NC.tables.formateurs] = [{ Id: 1, email: "test@example.invalid" }, { Id: 2, email: "test@example.invalid" }];
   await expect(submit()).rejects.toMatchObject({ code: "verification" });
   rows[NC.tables.formateurs].pop();
-  rows[NC.tables.engagements] = [{ Id: 3, formateurs_id: 1, cohortes_id: null }];
+  rows[NC.tables.engagements] = [{ Id: 3, formateurs_id: 1, cohortes_id: null }, { Id: 4, formateurs_id: 1, cohortes_id: 1 }];
   await expect(submit()).rejects.toMatchObject({ code: "verification" });
+  expect(writes).toHaveLength(0);
+});
+
+for (const cohort of [null, 1, 2]) {
+  for (const statut of ["Candidature recue", "En formation", "Valide", "Abandonne", "Formé mais à valider", "Terminé mais veut réassister"]) {
+    test(`existing trainer application (${cohort}, ${statut}) is retained even without an active cohort`, async () => {
+      active = 0;
+      rows[NC.tables.formateurs] = [{ Id: 7, email: "test@example.invalid" }];
+      const original = { Id: 4, formateurs_id: 7, cohortes_id: cohort, statut, date_validation: "2026-06-01", promotion: "Avril" };
+      rows[NC.tables.engagements] = [{ ...original }];
+      expect(await submit()).toEqual({ duplicate: true });
+      expect(writes).toHaveLength(0);
+      expect(rows[NC.tables.engagements]).toEqual([original]);
+    });
+  }
+}
+
+test("a school dossier without cohort still requires review", async () => {
+  rows[NC.tables.etablissements] = [{ Id: 7, nom: "École Test", ville: "Paris", cp: "75001" }];
+  rows[NC.tables.participations] = [{ Id: 4, etablissements_id: 7, cohortes_id: null }];
+  await expect(submit({ kind: "etablissement", identity: rows[NC.tables.etablissements][0] })).rejects.toMatchObject({ code: "verification" });
+  expect(writes).toHaveLength(0);
+});
+
+async function legacyReceipt(state, cohort = 99, email = "test@example.invalid") {
+  const bytes = new TextEncoder().encode(JSON.stringify(["formateur", [email], cohort]));
+  const key = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), b => b.toString(16).padStart(2, "0")).join("");
+  sqlite.query("INSERT INTO form_submissions (submission_key, form_type, cohort_id, state, phase) VALUES (?, 'formateur', ?, ?, 'creating_application')").run(key, cohort, state);
+}
+for (const state of ["processing", "review", "complete"]) {
+  test(`legacy ${state} receipt from a removed cohort is not bypassed by the lifetime key`, async () => {
+    await legacyReceipt(state);
+    if (state === "complete") expect(await submit()).toEqual({ duplicate: true });
+    else await expect(submit()).rejects.toMatchObject({ code: "verification" });
+    expect(writes).toHaveLength(0);
+    expect(sqlite.query("SELECT state FROM form_submissions WHERE cohort_id = 99").get().state).toBe(state);
+  });
+}
+test("an unrelated legacy receipt does not block a new trainer", async () => {
+  await legacyReceipt("review", 1, "another@example.invalid");
+  expect(await submit()).toEqual({ duplicate: false });
+});
+test("a pending legacy receipt wins over another completed receipt", async () => {
+  await legacyReceipt("complete", 1);
+  await legacyReceipt("review", 2);
+  await expect(submit()).rejects.toMatchObject({ code: "verification" });
+  expect(writes).toHaveLength(0);
+});
+
+test("the public trainer endpoint returns already received without any Brevo call", async () => {
+  rows[NC.tables.formateurs] = [{ Id: 7, email: "test@example.invalid" }];
+  rows[NC.tables.engagements] = [{ Id: 4, formateurs_id: 7, cohortes_id: null, statut: "Valide" }];
+  const data = {
+    nom: "Martin", prenom: "Test", ville: "Paris", cp: "75001", email: "test@example.invalid", telephone: "0102030405", profession: "Formation",
+    formation_instructeur: "Oui, je suis instructeur·rice certifié·e MBSR", experience_animation: "Non", pratique_personnelle: "Pratique", annees_experience: "3", interventions_animees: "Formation", motivation: "Motivation", disponible_2026_27: "Oui",
+    etab_pressenti: "Oui", etab_pressenti_nom: "École Test", etab_pressenti_adresse: "1 rue Test", etab_pressenti_ville: "Paris", etab_pressenti_cp: "75001", etab_pressenti_academie: "Paris", etab_pressenti_type: "Collège", direction_nom: "Direction", direction_email: "direction@example.invalid", accord_principe: "Oui", consentement: "Oui, je confirme",
+  };
+  let brevoCalls = 0;
+  const nocoFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("api.brevo.com")) { brevoCalls++; throw new Error("Unexpected email"); }
+    return nocoFetch(url, init);
+  };
+  const response = await trainerPost({
+    request: new Request("https://euneos.fr/api/candidature-formateur", { method: "POST", headers: { origin: "https://euneos.fr" }, body: new URLSearchParams(data) }),
+    locals: { runtime: { env: { FORM_SUBMISSIONS: db, NOCODB_TOKEN: "test-token", BREVO_API_KEY: "test-only" } } },
+    redirect: (url, status) => new Response(null, { status, headers: { Location: url } }),
+  });
+  expect(response.headers.get("Location")).toBe("/candidater/formateur?ok=deja");
+  expect(brevoCalls).toBe(0);
   expect(writes).toHaveLength(0);
 });
 test("a link accepted but not persisted never yields a false success", async () => {

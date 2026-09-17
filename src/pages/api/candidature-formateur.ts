@@ -13,7 +13,8 @@ export const prerender = false
  * « WISE-UP — 1. Candidature formateur·rice WISE UP ». L'identite de la
  * personne va dans `formateurs`, tout ce qui decrit la CANDIDATURE (parcours,
  * experience, motivation, etablissement pressenti, consentement) va dans
- * `engagements` : une personne peut candidater sur plusieurs cohortes.
+ * `engagements` : une seule candidature publique par personne ; les reprises
+ * et affectations à une session sont gérées ensuite par l'équipe.
  */
 
 const ROUTE = '/candidater/formateur'

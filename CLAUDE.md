@@ -48,7 +48,9 @@ missions, adultes formés, groupes d'élèves, sessions, présences, et les mod�
 - une **participation** est cette école **dans une cohorte donnée**.
 
 Une école qui revient l'année suivante n'est pas un doublon : c'est une seconde
-participation. Même logique côté formateurs : une **personne**, et ses **engagements**.
+participation. Côté formateurs, une **personne** conserve sa candidature : une
+reprise de modules ou une affectation à une autre session ne crée pas une nouvelle
+candidature publique. Les **engagements** et validations restent suivis par l'équipe.
 
 ---
 
