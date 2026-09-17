@@ -1,0 +1,353 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals, false)
+if (context instanceof Response) return context
+const identity = context.identity
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+---
+
+<InternalLayout title="Calendriers de l’équipe" current="calendrier" identity={identity}>
+  <div id="iw-calendar" data-email={identity.email} data-admin={String(identity.admin)}>
+    <div class="iw-intro">
+      <div class="iw-intro__text">
+        <p class="iw-eyebrow">Organisation & communication</p><h1>Calendriers de l’équipe</h1><p>
+          Préparer les contenus, partager les activités et suivre le temps de chacun, au même
+          endroit.
+        </p>
+      </div>
+      <button type="button" class="iw-button iw-button--primary iw-button--new" id="iw-new"
+        ><span aria-hidden="true">＋</span> Nouvelle fiche</button
+      >
+    </div>
+    <noscript
+      ><p class="iw-feedback">
+        Activez JavaScript pour consulter les calendriers et enregistrer vos fiches.
+      </p></noscript
+    >
+    <div class="iw-kindbar">
+      <div class="iw-switch" role="group" aria-label="Choisir le calendrier">
+        <button type="button" data-kind="editorial" aria-pressed="true">Éditorial</button><button
+          type="button"
+          data-kind="equipe"
+          aria-pressed="false">Équipe & heures</button>
+      </div>
+      <p id="iw-kind-help" class="iw-small iw-muted">
+        Les publications sur les réseaux restent manuelles.
+      </p>
+    </div>
+    <dl class="iw-metrics" aria-label="Chiffres du mois">
+      <div class="iw-metric">
+        <dt id="iw-metric-label-1">Fiches du mois</dt><dd id="iw-metric-1">—</dd>
+      </div><div class="iw-metric">
+        <dt id="iw-metric-label-2">À valider</dt><dd id="iw-metric-2">—</dd>
+      </div><div class="iw-metric">
+        <dt id="iw-metric-label-3">Publiées</dt><dd id="iw-metric-3">—</dd>
+      </div>
+    </dl>
+    <p id="iw-notice" role="status" class="iw-feedback"></p>
+    <section class="iw-panel" aria-label="Calendrier et filtres">
+      <div class="iw-toolbar">
+        <div class="iw-period">
+          <button
+            id="iw-prev"
+            type="button"
+            class="iw-button iw-button--icon"
+            aria-label="Mois précédent">←</button
+          ><label class="iw-sr-only" for="iw-month">Mois affiché</label><input
+            type="month"
+            id="iw-month"
+            min="1900-01"
+            max="2200-12"
+            required
+          /><button
+            id="iw-next"
+            type="button"
+            class="iw-button iw-button--icon"
+            aria-label="Mois suivant">→</button
+          ><button id="iw-today" type="button" class="iw-button iw-button--plain"
+            >Ce mois-ci</button>
+        </div>
+        <div class="iw-switch" role="group" aria-label="Mode d’affichage">
+          <button type="button" data-view="month" aria-pressed="true">Mois</button><button
+            type="button"
+            data-view="list"
+            aria-pressed="false">Liste</button>
+        </div>
+      </div>
+      <div class="iw-filters">
+        <div class="iw-field">
+          <label for="iw-person">Personne</label><select id="iw-person" data-filter="person"
+            ><option value="">Toutes les personnes</option></select>
+        </div>
+        <div class="iw-field">
+          <label for="iw-activity">Activité</label><select id="iw-activity" data-filter="activity"
+            ><option value="">Toutes les activités</option></select>
+        </div>
+        <div class="iw-field">
+          <label for="iw-channel">Canal</label><select id="iw-channel" data-filter="channel"
+            ><option value="">Tous les canaux</option></select>
+        </div>
+        <div class="iw-field">
+          <label for="iw-status">Statut de suivi</label><select id="iw-status" data-filter="status"
+            ><option value="">Tous les statuts</option></select>
+        </div>
+        <button id="iw-reset" type="button" class="iw-button iw-button--plain">Réinitialiser</button
+        >
+      </div>
+      <div class="iw-resultsbar">
+        <p id="iw-result-count" role="status" aria-live="polite">Chargement du calendrier…</p><div
+          class="iw-actions"
+        >
+          <p id="iw-updated" class="iw-small iw-muted"></p><button
+            id="iw-refresh"
+            type="button"
+            class="iw-button iw-button--plain">Actualiser</button>
+        </div>
+      </div>
+      <div id="iw-calendar-state" class="iw-state" role="status">
+        <span class="iw-loading" aria-hidden="true"></span><h3>Chargement du calendrier</h3><p>
+          Nous récupérons les fiches du mois.
+        </p>
+      </div>
+      <div id="iw-calendar-content" aria-busy="true" hidden></div>
+    </section>
+    <section id="iw-totals" class="iw-panel iw-totals" aria-labelledby="iw-totals-heading" hidden>
+      <div class="iw-sectionhead">
+        <div>
+          <h2 id="iw-totals-heading">Les heures, personne par personne</h2><p class="iw-muted">
+            Tout le mois affiché, indépendamment des filtres.
+          </p>
+        </div><span class="iw-badge">Suivi mensuel</span>
+      </div><div id="iw-totals-content"></div><p class="iw-footnote">
+        Les heures validées sont incluses dans les heures déclarées. Les fiches annulées sont
+        exclues des totaux. Seuls les responsables peuvent valider les heures.
+      </p>
+    </section>
+    <p class="iw-footnote">
+      Une fiche annulée reste consultable. Les calendriers ne déclenchent aucune publication sur les
+      réseaux sociaux.
+    </p>
+  </div>
+
+  <dialog
+    id="iw-editor"
+    class="iw-dialog"
+    aria-labelledby="iw-editor-title"
+    aria-describedby="iw-editor-description"
+  >
+    <header class="iw-dialog__header">
+      <div>
+        <p class="iw-eyebrow" id="iw-editor-kind">Calendrier éditorial</p><h2 id="iw-editor-title">
+          Nouvelle fiche
+        </h2><p id="iw-editor-description" class="iw-muted iw-small">
+          Les champs marqués d’un astérisque sont obligatoires.
+        </p>
+      </div><button
+        type="button"
+        id="iw-close"
+        class="iw-button iw-button--icon"
+        aria-label="Fermer la fiche">✕</button>
+    </header>
+    <div class="iw-dialog__body">
+      <div id="iw-close-warning" class="iw-close-warning" hidden>
+        <p>Des modifications ne sont pas enregistrées.</p><div class="iw-actions">
+          <button type="button" id="iw-keep-editing" class="iw-button iw-button--primary"
+            >Continuer la saisie</button
+          ><button type="button" id="iw-discard" class="iw-button">Fermer sans enregistrer</button>
+        </div>
+      </div>
+      <p id="iw-readonly" class="iw-feedback" hidden>
+        Cette fiche peut être modifiée par son auteur ou un responsable. Vous pouvez ajouter un
+        commentaire.
+      </p>
+      <form id="iw-entry-form">
+        <fieldset class="iw-form-fields" id="iw-entry-fields">
+          <legend class="iw-sr-only">Informations de la fiche</legend><div class="iw-formgrid">
+            <div class="iw-field iw-field--wide">
+              <label for="iw-title">Titre *</label><input
+                id="iw-title"
+                name="title"
+                maxlength="180"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div class="iw-field">
+              <label for="iw-starts">Date de début *</label><input
+                id="iw-starts"
+                name="starts_on"
+                type="date"
+                min="1900-01-01"
+                max="2200-12-31"
+                required
+              />
+            </div>
+            <div class="iw-field">
+              <label for="iw-ends">Date de fin *</label><input
+                id="iw-ends"
+                name="ends_on"
+                type="date"
+                min="1900-01-01"
+                max="2200-12-31"
+                required
+              />
+            </div>
+            <div class="iw-field">
+              <label for="iw-entry-person">Personne *</label><input
+                id="iw-entry-person"
+                name="person"
+                list="iw-people-options"
+                maxlength="120"
+                required
+                autocomplete="off"
+              /><datalist id="iw-people-options"></datalist>
+            </div>
+            <div class="iw-field">
+              <label for="iw-entry-activity">Activité</label><input
+                id="iw-entry-activity"
+                name="activity"
+                list="iw-activities-options"
+                maxlength="120"
+                autocomplete="off"
+              /><datalist id="iw-activities-options"></datalist>
+            </div>
+            <div class="iw-field">
+              <label for="iw-entry-channel">Canal</label><input
+                id="iw-entry-channel"
+                name="channel"
+                list="iw-channels-options"
+                maxlength="80"
+                autocomplete="off"
+              /><datalist id="iw-channels-options"></datalist>
+            </div>
+            <div class="iw-field">
+              <label for="iw-entry-status">Statut de suivi *</label><select
+                id="iw-entry-status"
+                name="status"
+                required></select>
+            </div>
+            <div class="iw-field" id="iw-attendance-field" hidden>
+              <label for="iw-attendance">Présence / absence</label><select
+                id="iw-attendance"
+                name="attendance"
+                aria-describedby="iw-attendance-help"
+                ><option value="">Non renseigné</option><option value="presence">Présence</option
+                ><option value="absence">Absence</option><option value="conge">Congé</option
+                ></select
+              ><p id="iw-attendance-help" class="iw-small iw-muted">
+                Indépendant de la validation des heures.
+              </p>
+            </div>
+            <div class="iw-field" id="iw-location-field" hidden>
+              <label for="iw-location">Lieu</label><input
+                id="iw-location"
+                name="location"
+                maxlength="200"
+                autocomplete="off"
+              />
+            </div>
+            <div class="iw-field iw-field--wide" id="iw-hours-field" hidden>
+              <label for="iw-hours">Heures déclarées</label><input
+                id="iw-hours"
+                name="hours"
+                type="number"
+                min="0"
+                max="744"
+                step="any"
+                inputmode="decimal"
+                aria-describedby="iw-hours-help"
+              /><p id="iw-hours-help" class="iw-small iw-muted">
+                Ex. 1,5 pour 1 h 30. Pour une activité sur plusieurs mois, créez une fiche par mois.
+              </p>
+            </div>
+            <div class="iw-field iw-field--wide">
+              <label for="iw-notes">Notes & contexte</label><textarea
+                id="iw-notes"
+                name="notes"
+                rows="3"
+                maxlength="6000"></textarea>
+            </div>
+            <div class="iw-field iw-field--wide">
+              <label for="iw-content">Texte du contenu</label><textarea
+                id="iw-content"
+                name="content"
+                rows="6"
+                maxlength="20000"
+                aria-describedby="iw-content-help"></textarea><p
+                id="iw-content-help"
+                class="iw-small iw-muted"
+              >
+                Texte de travail partagé avec l’équipe. Son enregistrement ne publie rien à
+                l’extérieur.
+              </p>
+            </div>
+            <div class="iw-field iw-field--wide">
+              <label for="iw-link">Lien associé</label><input
+                id="iw-link"
+                name="link"
+                type="url"
+                maxlength="2000"
+                placeholder="https://…"
+                aria-describedby="iw-link-help"
+              /><p id="iw-link-help" class="iw-small iw-muted">
+                Document, visuel ou publication · lien HTTPS uniquement.
+              </p>
+            </div>
+          </div>
+        </fieldset>
+        <div id="iw-conflict" class="iw-conflict" hidden>
+          <h3>Cette fiche a été modifiée entre-temps</h3><p>
+            Votre saisie est conservée. Comparez-la avec la version actuelle avant d’enregistrer.
+          </p><button id="iw-compare" type="button" class="iw-button">Comparer les versions</button
+          ><div id="iw-conflict-fields" class="iw-conflict-list"></div><button
+            id="iw-apply-merge"
+            type="button"
+            class="iw-button iw-button--yellow"
+            hidden>Appliquer les choix au brouillon</button>
+        </div>
+        <p id="iw-save-feedback" class="iw-feedback" role="status" aria-live="polite"></p>
+        <div class="iw-form-actions">
+          <a id="iw-open-link" class="iw-button" target="_blank" rel="noopener noreferrer" hidden
+            >Ouvrir le lien <span aria-hidden="true">↗</span><span class="iw-sr-only">
+              (nouvel onglet)</span
+            ></a
+          ><button id="iw-save" type="submit" class="iw-button iw-button--primary"
+            >Enregistrer la fiche</button>
+        </div>
+        <p class="iw-footnote" id="iw-entry-audit"></p>
+      </form>
+      <section class="iw-comments" aria-labelledby="iw-comments-title">
+        <div class="iw-sectionhead">
+          <h3 id="iw-comments-title">Commentaires</h3><button
+            id="iw-comments-refresh"
+            type="button"
+            class="iw-button iw-button--plain"
+            hidden>Actualiser les commentaires</button>
+        </div><p id="iw-comments-state" role="status" class="iw-muted">
+          Enregistrez la fiche pour démarrer la discussion.
+        </p><ol id="iw-comment-list" class="iw-comment-list"></ol><form
+          id="iw-comment-form"
+          class="iw-comment-form"
+          hidden
+        >
+          <div class="iw-field">
+            <label for="iw-comment">Votre commentaire</label><textarea
+              id="iw-comment"
+              name="content"
+              rows="3"
+              maxlength="6000"
+              required></textarea>
+          </div><p class="iw-small iw-muted">
+            Publié avec votre identité : <span id="iw-comment-author">{identity.email}</span>.
+          </p><p id="iw-comment-feedback" class="iw-feedback" role="status"></p><button
+            type="submit"
+            id="iw-comment-submit"
+            class="iw-button">Ajouter le commentaire</button>
+        </form>
+      </section>
+    </div>
+  </dialog>
+</InternalLayout>

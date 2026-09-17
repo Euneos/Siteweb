@@ -1,0 +1,38 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import ResourceForm from '../../components/interne/ResourceForm.astro'
+import { getInternalContext } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals, false)
+if (context instanceof Response) return context
+const identity = context.identity
+if (!identity.admin)
+  return new Response('La gestion des ressources est réservée aux responsables de l’équipe.', {
+    status: 403,
+    headers: {
+      'Cache-Control': 'private, no-store, max-age=0',
+      'X-Robots-Tag': 'noindex, nofollow',
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  })
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+---
+
+<InternalLayout title="Gérer les ressources" current="catalogue" identity={identity}>
+  <div class="iw-intro">
+    <div class="iw-intro__text">
+      <p class="iw-eyebrow">Partage avec les formateurs</p><h1>Gérer les ressources</h1><p>
+        Ajoutez un document à la bibliothèque. Son titre, sa description et son lien seront visibles
+        par les comptes autorisés à consulter les ressources.
+      </p>
+    </div><a class="iw-button" href="/interne/ressources"
+      >Voir la bibliothèque <span aria-hidden="true">↗</span></a>
+  </div>
+  <noscript
+    ><p class="iw-feedback">
+      Activez JavaScript pour ajouter une ressource au catalogue.
+    </p></noscript
+  >
+  <ResourceForm />
+</InternalLayout>

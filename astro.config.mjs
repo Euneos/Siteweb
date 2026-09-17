@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 
 const site = process.env.SITE_URL ?? 'https://euneos.fr'
-const pagesHorsSitemap = ['/style-guide', '/etat-candidatures']
+const pagesHorsSitemap = ['/style-guide', '/etat-candidatures', '/interne']
 
 export default defineConfig({
   site,
@@ -12,7 +12,9 @@ export default defineConfig({
   // Les endpoints et la page de suivi NocoDB sont rendus a la demande.
   output: 'static',
   adapter: cloudflare({ imageService: 'compile' }),
-  integrations: [sitemap({ filter: (page) => !pagesHorsSitemap.some((chemin) => page.includes(chemin)) })],
+  integrations: [
+    sitemap({ filter: (page) => !pagesHorsSitemap.some((chemin) => page.includes(chemin)) }),
+  ],
   vite: { plugins: [tailwindcss()] },
   i18n: {
     defaultLocale: 'fr',
