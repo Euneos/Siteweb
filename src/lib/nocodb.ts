@@ -66,18 +66,95 @@ export async function relier(token: string, lien: keyof typeof NC.liens, table: 
   await appel(token, `/tables/${NC.tables[table]}/links/${NC.liens[lien]}/records/${id}`, [{ Id: cible }])
 }
 
-/** Read every page even when NocoDB clamps the requested limit. */
+const identifiantValide = (id: unknown): id is number =>
+  typeof id === 'number' && Number.isSafeInteger(id) && id > 0
+
+/**
+ * Validate the complete snapshot before excluding archived rows. A merge points
+ * directly to an active canonical row; chains, cycles and guessed identities are
+ * refused. Missing fusionne_vers is the pre-migration schema (active).
+ * Link nullability is explicit: trainer cohorts may both be null, while school
+ * cohorts and parent identities must be valid IDs. An omitted link is not null.
+ * This only builds a view: source rows and their historical links stay untouched.
+ */
+export function reconcilierActifs<T extends { Id: number; fusionne_vers?: unknown }>(
+  rows: T[],
+  liens: readonly (keyof T)[] = [],
+  liensNullables: readonly (keyof T)[] = [],
+): T[] {
+  const incoherent = (detail: string): never => {
+    throw new Error(`Lecture NocoDB incohérente : ${detail}`)
+  }
+  if (!Array.isArray(rows)) incoherent('liste absente')
+  const byId = new Map<number, T>()
+  for (const row of rows) {
+    if (!row || !identifiantValide(row.Id) || byId.has(row.Id))
+      incoherent('Id invalide ou ambigu')
+    if (row.fusionne_vers != null && !identifiantValide(row.fusionne_vers))
+      incoherent(`fusionne_vers invalide pour #${row.Id}`)
+    byId.set(row.Id, row)
+  }
+
+  // Follow all edges to diagnose dangling links and cycles, without recursion.
+  const verified = new Set<number>()
+  for (const row of rows) {
+    const path = new Set<number>()
+    let current = row
+    while (!verified.has(current.Id)) {
+      if (path.has(current.Id)) incoherent(`cycle de fusion pour #${current.Id}`)
+      path.add(current.Id)
+      if (current.fusionne_vers == null) break
+      const target = byId.get(current.fusionne_vers as number)
+      if (!target) incoherent(`cible de fusion absente pour #${current.Id}`)
+      current = target!
+    }
+    for (const id of path) verified.add(id)
+  }
+  for (const row of rows) {
+    if (row.fusionne_vers == null) continue
+    const target = byId.get(row.fusionne_vers as number)!
+    if (target.fusionne_vers != null) incoherent(`cible de fusion non active pour #${row.Id}`)
+    for (const lien of liens) {
+      const valide = identifiantValide(row[lien]) || (row[lien] === null && liensNullables.includes(lien))
+      if (!valide || row[lien] !== target[lien])
+        incoherent(`rattachement ${String(lien)} absent ou différent pour #${row.Id}`)
+    }
+  }
+  return rows.filter((row) => row.fusionne_vers == null)
+}
+
+/** Read every raw page before reconciliation, even when NocoDB clamps the limit. */
 export async function lireToutes(token: string, table: keyof typeof NC.tables, fields: string): Promise<(Record<string, unknown> & { Id: number })[]> {
   const rows: (Record<string, unknown> & { Id: number })[] = []
+  const liens = table === 'participations' ? ['etablissements_id', 'cohortes_id']
+    : table === 'engagements' ? ['formateurs_id', 'cohortes_id'] : []
+  const projection = [...new Set([
+    'Id', ...fields.split(',').map((field) => field.trim()).filter(Boolean),
+    ...(liens.length ? ['fusionne_vers', ...liens] : []),
+  ])].join(',')
+  const ids = new Set<number>()
   for (;;) {
-    const result = await appel(token, `/tables/${NC.tables[table]}/records?limit=200&offset=${rows.length}&fields=${encodeURIComponent(fields)}`) as {
+    const result = await appel(token, `/tables/${NC.tables[table]}/records?limit=200&offset=${rows.length}&fields=${encodeURIComponent(projection)}`) as {
       list: (Record<string, unknown> & { Id: number })[]
       pageInfo?: { isLastPage?: boolean }
     }
+    if (!Array.isArray(result?.list)) throw new Error('Lecture NocoDB incohérente : liste absente')
+    for (const row of result.list) {
+      if (!row || !identifiantValide(row.Id) || ids.has(row.Id))
+        throw new Error('Pagination NocoDB incohérente : Id invalide ou ambigu')
+      ids.add(row.Id)
+    }
     rows.push(...result.list)
-    if (result.pageInfo?.isLastPage || !result.list.length) return rows
+    if (result.pageInfo?.isLastPage === true) break
+    if (!result.list.length) {
+      if (result.pageInfo?.isLastPage === false) throw new Error('Pagination NocoDB incohérente : interrompue')
+      break
+    }
     if (rows.length >= 10000) throw new Error('NocoDB pagination safety limit reached')
   }
+  return liens.length
+    ? reconcilierActifs(rows, liens, table === 'engagements' ? ['cohortes_id'] : [])
+    : rows
 }
 
 /** Never create an unscoped application or guess between two active years. */

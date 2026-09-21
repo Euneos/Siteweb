@@ -1,4 +1,4 @@
-import { NC } from './nocodb'
+import { NC, reconcilierActifs } from './nocodb'
 
 const API = 'https://app.nocodb.com/api/v2'
 const COHORTE = { debut: 2026, fin: 2027, label: '2026–2027' } as const
@@ -17,6 +17,8 @@ interface CohorteNoco {
 
 interface ParticipationNoco {
   Id: number
+  fusionne_vers?: number | null
+  cohortes_id?: number | null
   code?: string
   statut?: string
   date_candidature?: string | null
@@ -107,15 +109,15 @@ async function lister<T>(token: string, table: string, champs: string[], where?:
     if (where) params.set('where', where)
 
     const page = await lire<Reponse<T>>(token, `/tables/${table}/records?${params}`)
-    if (!Array.isArray(page.list)) throw new Error('Réponse NocoDB incomplète')
+    if (!Array.isArray(page?.list)) throw new Error('Réponse NocoDB incomplète')
     const lignes = page.list
     for (const ligne of lignes) {
-      const id = (ligne as { Id?: number }).Id
-      if (typeof id !== 'number' || ids.has(id)) throw new Error('Pagination NocoDB incohérente')
+      const id = (ligne as { Id?: number } | null)?.Id
+      if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0 || ids.has(id)) throw new Error('Pagination NocoDB incohérente')
       ids.add(id)
     }
     resultat.push(...lignes)
-    if (page.pageInfo?.isLastPage === true || (page.pageInfo?.isLastPage === undefined && lignes.length < limite)) break
+    if (page.pageInfo?.isLastPage === true || (page.pageInfo?.isLastPage === undefined && !lignes.length)) break
     if (!lignes.length || resultat.length >= 10000) throw new Error('Pagination NocoDB interrompue')
   }
 
@@ -135,7 +137,7 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
   const cohorte = cohortes[0]
   if (!cohorte) throw new Error(`Cohorte ${COHORTE.label} introuvable`)
 
-  const participations = await lister<ParticipationNoco>(
+  const dossiers = await lister<ParticipationNoco>(
     token,
     NC.tables.participations,
     [
@@ -150,9 +152,16 @@ export async function lireEtatCohorte(token: string): Promise<EtatCohorte> {
       'date_fin_formation',
       'statut_formation',
       'etablissements_id',
+      'cohortes_id',
+      'fusionne_vers',
     ],
     `(cohortes_id,eq,${cohorte.Id})`,
   )
+  // The scoped export must contain both source and canonical row in this cohort.
+  // A missing/out-of-scope target fails reconciliation instead of hiding a dossier.
+  if (dossiers.some((p) => p.cohortes_id !== cohorte.Id))
+    throw new Error('Lecture NocoDB incohérente : participation hors cohorte')
+  const participations = reconcilierActifs(dossiers, ['etablissements_id', 'cohortes_id'])
 
   const ids = [...new Set(participations.map((p) => p.etablissements_id).filter((id): id is number => typeof id === 'number'))]
   const etablissements = ids.length

@@ -24,6 +24,24 @@ export class CandidatureError extends Error {
 
 const normalise = (value: unknown) => String(value ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr')
 
+// Keep the legacy normalise/hash algorithm available for historical receipts.
+// New school reservations and record matching must use the same canonical parts.
+const schoolText = (value: unknown) => normalise(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const schoolPostcode = (value: unknown) => {
+  const text = normalise(value)
+  // Imports stored integer postcodes as decimals and sometimes lost leading
+  // zeroes. Compare digits without guessing a country or padding a Tunisian CP.
+  // Keep non-numeric codes intact; never round fractions or parse exponents.
+  const digits = /^(\d+)(?:\.0+)?$/.exec(text)?.[1]
+  return digits === undefined ? text : digits.replace(/^0+(?=\d)/, '')
+}
+const schoolParts = (identity: Record<string, unknown>) =>
+  [schoolText(identity.nom), schoolPostcode(identity.cp), schoolText(identity.ville)]
+const sameSchool = (left: Record<string, unknown>, right: Record<string, unknown>) =>
+  schoolParts(left).every((part, index) => part === schoolParts(right)[index])
+const SCHOOL_RECEIPT_PREFIX = 'school:v2:'
+type Receipt = { submission_key: string; state: string; parent_id: number | null; record_id: number | null }
+
 async function submissionKey(kind: FormType, identity: string[], cohort: number) {
   const bytes = new TextEncoder().encode(JSON.stringify([kind, identity, cohort]))
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('')
@@ -52,12 +70,18 @@ export async function enregistrerCandidature(input: {
     ? [normalise(identity.nom), normalise(identity.cp), normalise(identity.ville)]
     : [normalise(identity.email)]
   // Zero is the lifetime scope of a trainer receipt, never a NocoDB cohort ID.
-  // Keep the school's existing keys unchanged. Defer the active-cohort lookup
-  // for trainers: an existing application does not need a current intake.
+  // Defer the active-cohort lookup for trainers: an existing application does
+  // not need a current intake. School claims still have an annual scope.
   let cohort = school ? await cohorteActive(token) : null
   if (school && !cohort) throw new CandidatureError('indisponible', 'Exactly one active cohort is required')
   const scope = school ? cohort! : 0
-  const key = await submissionKey(kind, identityParts, scope)
+  const legacyKey = await submissionKey(kind, identityParts, scope)
+  // One atomic reservation for ALL equivalent spellings, including before a
+  // parent exists. Prefixing distinguishes new claims from irreversible legacy
+  // hashes without a D1 migration or storing names/addresses in the ledger.
+  const key = school
+    ? SCHOOL_RECEIPT_PREFIX + await submissionKey(kind, schoolParts(identity), scope)
+    : legacyKey
   // Without the Sessions API, D1 reads and writes go to the primary database.
   const claimed = await db.prepare(`INSERT INTO form_submissions
     (submission_key, form_type, cohort_id, state, phase) VALUES (?, ?, ?, 'processing', 'checking')
@@ -78,7 +102,29 @@ export async function enregistrerCandidature(input: {
   }
 
   try {
-    if (!school) {
+    let schoolReceipts: Receipt[] = []
+    if (school) {
+      const legacy = await db.prepare(`SELECT submission_key, state, parent_id, record_id
+        FROM form_submissions WHERE form_type = 'etablissement' AND cohort_id = ?
+        AND submission_key NOT LIKE ?`).bind(scope, `${SCHOOL_RECEIPT_PREFIX}%`).all<Receipt>()
+      schoolReceipts = legacy.results
+      const exact = schoolReceipts.find(receipt => receipt.submission_key === legacyKey)
+      if (exact) {
+        if (exact.state !== 'complete') {
+          throw new CandidatureError(exact.state === 'processing' ? 'en_cours' : 'verification', 'Legacy school receipt needs reconciliation')
+        }
+        parentId = exact.parent_id
+        recordId = exact.record_id
+        await trace('existing_receipt', 'complete')
+        return { duplicate: true }
+      }
+      // A legacy hash cannot reveal which spelling or school it belonged to.
+      // Without either remote ID, no school in this cohort can safely exclude
+      // a lost write. Reconciliation is required; never discard these receipts.
+      if (schoolReceipts.some(receipt => receipt.state !== 'complete' && receipt.parent_id === null && receipt.record_id === null)) {
+        throw new CandidatureError('verification', 'Uncorrelated legacy school receipt blocks this cohort until reconciliation')
+      }
+    } else {
       // The old code claimed a different key for each cohort. Do not bypass
       // a timed-out write (even with no known parent ID) when changing scope.
       // Read cohort IDs from D1 itself so deleted/inactive cohorts are covered.
@@ -105,23 +151,47 @@ export async function enregistrerCandidature(input: {
     // into its filter grammar. Do not select one of several ambiguous matches.
     const parents = await lireToutes(token, parentTable, school ? 'Id,nom,cp,ville' : 'Id,email')
     const matches = parents.filter(row => school
-      ? [row.nom, row.cp, row.ville].map(normalise).every((v, i) => v === identityParts[i])
+      ? sameSchool(row, identity)
       : normalise(row.email) === identityParts[0])
     if (matches.length > 1) throw new CandidatureError('verification', 'Multiple matching identities')
     parentId = matches[0]?.Id ?? null
+    // A receipt with only a record ID can be correlated through its surviving
+    // canonical dossier. Missing/archived/orphan references remain fail-closed.
+    const needsRecords = parentId || schoolReceipts.some(receipt => receipt.parent_id === null && receipt.record_id !== null)
+    const rows = needsRecords ? await lireToutes(token, childTable, `Id,${parentField},cohortes_id`) : []
+    let previousSchool: Receipt | undefined
+    if (school) {
+      const parentsById = new Map(parents.map(parent => [parent.Id, parent]))
+      const recordsById = new Map(rows.map(row => [row.Id, row]))
+      for (const receipt of schoolReceipts) {
+        const relatedId = receipt.parent_id ?? recordsById.get(receipt.record_id!)?.[parentField]
+        const related = typeof relatedId === 'number' ? parentsById.get(relatedId) : undefined
+        const correlatable = related && schoolParts(related).every(Boolean)
+        if (receipt.state !== 'complete') {
+          if (!correlatable) throw new CandidatureError('verification', 'Uncorrelated legacy school receipt blocks this cohort until reconciliation')
+          if (sameSchool(related, identity)) throw new CandidatureError('verification', 'Matching legacy school receipt needs reconciliation')
+        } else if (correlatable && sameSchool(related, identity)) {
+          previousSchool = receipt
+        }
+      }
+    }
     if (parentId) {
-      const rows = await lireToutes(token, childTable, `Id,${parentField},cohortes_id`)
       const paths = rows.filter(row => row[parentField] === parentId)
       const existing = school ? paths.filter(row => row.cohortes_id === cohort) : paths
-      if (!school && existing.length > 1) throw new CandidatureError('verification', 'Multiple existing trainer applications')
+      if (existing.length > 1) throw new CandidatureError('verification', 'Multiple existing applications')
+      // An unscoped path is ambiguous even alongside a current-year dossier.
+      // A public submission cannot decide which year that path belongs to.
+      if (school && paths.some(row => !row.cohortes_id)) throw new CandidatureError('verification', 'Existing path without cohort')
       if (existing.length) {
         recordId = existing[0].Id
         await trace('existing', 'complete')
         return { duplicate: true }
       }
-      // Historical imports include paths without a year. A public submission
-      // cannot decide whether that is a previous year or the current dossier.
-      if (school && paths.some(row => !row.cohortes_id)) throw new CandidatureError('verification', 'Existing path without cohort')
+    }
+    if (previousSchool) {
+      recordId = previousSchool.record_id
+      await trace('existing_receipt', 'complete')
+      return { duplicate: true }
     }
     if (!school) cohort = await cohorteActive(token)
     if (!cohort) throw new CandidatureError('indisponible', 'Exactly one active cohort is required')

@@ -1,4 +1,4 @@
-import { lireToutes } from './nocodb'
+import { lireToutes, reconcilierActifs } from './nocodb'
 import reference from '../data/map-communes.json?raw'
 import projections from '../data/map-projections.json'
 
@@ -133,7 +133,15 @@ export function buildMapData(
   participations: Row[],
   establishments: Row[],
 ): MapData {
-  for (const rows of [cohorts, participations, establishments]) validateRows(rows)
+  return buildActiveMapData(
+    cohorts,
+    reconcilierActifs(participations, ['etablissements_id', 'cohortes_id']),
+    establishments,
+  )
+}
+/** Internal assembly: API rows have already been reconciled by lireToutes. */
+function buildActiveMapData(cohorts: Row[], participations: Row[], establishments: Row[]): MapData {
+  for (const rows of [cohorts, establishments]) validateRows(rows)
   const cohortById = new Map(cohorts.map((row) => [row.Id, row]))
   const establishmentById = new Map(establishments.map((row) => [row.Id, row]))
   const groups = new Map<string, MapGroup>()
@@ -215,5 +223,5 @@ export async function readMapData(token: string): Promise<MapData> {
     lireToutes(token, 'participations', 'Id,code,statut,etablissements_id,cohortes_id'),
     lireToutes(token, 'etablissements', 'Id,nom,type_etab,ville,cp'),
   ])
-  return buildMapData(cohorts, participations, establishments)
+  return buildActiveMapData(cohorts, participations, establishments)
 }

@@ -130,6 +130,69 @@ describe('Fidélité à toutes les participations NocoDB', () => {
     ).toThrow('incohérente')
     expect(() => buildMapData(cohorts, [{ Id: 'wrong' }], establishments)).toThrow('incohérente')
   })
+  test('archives exclues des totaux, doublons actifs visibles et deux cohortes distinctes', () => {
+    const rows = [
+      { Id: 1, etablissements_id: 1, cohortes_id: 2, fusionne_vers: 2, code: 'CODE-ARCHIVE' },
+      { Id: 2, etablissements_id: 1, cohortes_id: 2, fusionne_vers: null, code: 'CANONIQUE' },
+      { Id: 3, etablissements_id: 1, cohortes_id: 1, code: 'ANNEE-PRECEDENTE' },
+      { Id: 4, etablissements_id: 1, cohortes_id: 2, code: 'AMBIGU-ACTIF' },
+      { Id: 5, etablissements_id: 1, cohortes_id: null },
+      { Id: 6, etablissements_id: 1, cohortes_id: null },
+      { Id: 7, etablissements_id: 1, cohortes_id: 999 },
+      { Id: 8, etablissements_id: 1, cohortes_id: 999 },
+    ]
+    const data = buildMapData(cohorts, rows, establishments)
+    expect(data.totals).toMatchObject({ participations: 7, groups: 6, establishments: 1, duplicateGroups: 1, orphanParticipations: 4 })
+    expect(data.groups.find((g) => g.key === '1:2').participations.map((p) => p.id)).toEqual([2, 4])
+    expect(data.groups.find((g) => g.key === '1:1').participations.map((p) => p.id)).toEqual([3])
+    expect(data.groups.filter((g) => !g.cohortKnown)).toHaveLength(4)
+    expect(data.groups.every((g) => g.establishmentId === 1)).toBe(true)
+    expect(JSON.stringify(data)).not.toContain('CODE-ARCHIVE')
+    expect(rows).toHaveLength(8)
+  })
+  test.each([
+    ['cible absente', [{ Id: 1, fusionne_vers: 99 }]],
+    ['cycle', [{ Id: 1, fusionne_vers: 2 }, { Id: 2, fusionne_vers: 1 }]],
+    ['cible archivée', [{ Id: 1, fusionne_vers: 2 }, { Id: 2, fusionne_vers: 3 }, { Id: 3 }]],
+    ['cible zéro', [{ Id: 1, fusionne_vers: 0 }]],
+    ['cible non entière', [{ Id: 1, fusionne_vers: 2.5 }]],
+    ['autre cohorte', [{ Id: 1, fusionne_vers: 2 }, { Id: 2, cohortes_id: 1 }]],
+    ['cohortes absentes', [{ Id: 1, fusionne_vers: 2, cohortes_id: null }, { Id: 2, cohortes_id: null }]],
+    ['autre établissement', [{ Id: 1, fusionne_vers: 2 }, { Id: 2, etablissements_id: 2 }]],
+  ])('%s refuse la carte aussi bien en données brutes que via l’API', async (_, partialRows) => {
+    const rows = partialRows.map((p) => ({ etablissements_id: 1, cohortes_id: 2, ...p }))
+    expect(() => buildMapData(cohorts, rows, establishments)).toThrow('incohérente')
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input))
+      const list = url.pathname.includes(NC.tables.participations) ? rows
+        : url.pathname.includes(NC.tables.cohortes) ? cohorts : establishments
+      return Response.json({ list, pageInfo: { isLastPage: true } })
+    }
+    await expect(readMapData('synthetic')).rejects.toThrow('incohérente')
+  })
+  test('API et lignes brutes donnent la même carte après pagination des archives', async () => {
+    const rows = participations.map((p) => p.Id === 1 ? { ...p, fusionne_vers: 2 } : p)
+    const offsets = []
+    globalThis.fetch = async (input, options) => {
+      const url = new URL(String(input))
+      expect(options.method).toBe('GET')
+      expect(url.searchParams.get('fields')).not.toMatch(/adresse|lat|lng|email|contact/)
+      const table = Object.entries(NC.tables).find(([, id]) => url.pathname.includes(id))[0]
+      const source = { cohortes: cohorts, participations: rows, etablissements: establishments }[table]
+      const offset = Number(url.searchParams.get('offset'))
+      if (table === 'participations') {
+        expect(url.searchParams.get('fields').split(',')).toContain('fusionne_vers')
+        offsets.push(offset)
+      }
+      return Response.json({ list: source.slice(offset, offset + 1), pageInfo: { isLastPage: offset + 1 >= source.length } })
+    }
+    const rawData = buildMapData(cohorts, rows, establishments)
+    const apiData = await readMapData('synthetic')
+    expect({ ...apiData, updatedAt: null }).toEqual({ ...rawData, updatedAt: null })
+    expect(apiData.totals.participations).toBe(16)
+    expect(apiData.totals.duplicateGroups).toBe(0)
+    expect(offsets).toEqual(Array.from({ length: 17 }, (_, i) => i))
+  })
   test('réutilise la pagination complète même si Noco réduit la taille des pages', async () => {
     const requests = []
     const source = { cohortes: cohorts, participations, etablissements: establishments }

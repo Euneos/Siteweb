@@ -43,7 +43,7 @@ describe('Lecture NocoDB', () => {
       else if (url.pathname.includes('mbunbu0f1zztce4')) {
         expect(url.searchParams.get('where')).toBe('(cohortes_id,eq,2)')
         const offset = Number(url.searchParams.get('offset')); offsets.push(offset)
-        list = [{ Id: offset + 1, etablissements_id: 7, statut: 'Candidature recue' }]
+        list = [{ Id: offset + 1, etablissements_id: 7, cohortes_id: 2, statut: 'Candidature recue' }]
         isLastPage = offset === 1
       } else if (url.pathname.includes('mg12klh5zv7b5n5')) list = [{ Id: 7, nom: 'Établissement de test' }]
       else if (url.pathname.includes('merrsayuq3xb3uk')) list = [{ Id: 1, participations_id: 1, formateurs_id: 42 }]
@@ -69,5 +69,55 @@ describe('Lecture NocoDB', () => {
   test('une page répétée est une erreur explicite', async () => {
     globalThis.fetch = (async () => Response.json({ list: [{ Id: 2 }], pageInfo: { isLastPage: false } }))
     await expect(lireEtatCohorte('test')).rejects.toThrow('Pagination')
+  })
+  test('valide les archives après toutes les pages de la cohorte et ignore leurs anciens codes', async () => {
+    const offsets = []
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input))
+      if (url.pathname.includes('m5ayop8ul8s040l'))
+        return Response.json({ list: [{ Id: 2 }], pageInfo: { isLastPage: true } })
+      if (url.pathname.includes('mbunbu0f1zztce4')) {
+        const fields = url.searchParams.get('fields').split(',')
+        expect(fields).toContain('fusionne_vers')
+        expect(fields).toContain('cohortes_id')
+        expect(fields).not.toContain('email')
+        expect(url.searchParams.get('where')).toBe('(cohortes_id,eq,2)')
+        const offset = Number(url.searchParams.get('offset'))
+        offsets.push(offset)
+        const list = offset === 0
+          ? [{ Id: 1, fusionne_vers: 2, etablissements_id: 7, cohortes_id: 2, code: 'CODE-ARCHIVE' }]
+          : [{ Id: 2, fusionne_vers: null, etablissements_id: 7, cohortes_id: 2, code: 'CANONIQUE' }]
+        return Response.json({ list, pageInfo: { isLastPage: offset === 1 } })
+      }
+      if (url.pathname.includes('mg12klh5zv7b5n5'))
+        return Response.json({ list: [{ Id: 7, nom: 'École' }], pageInfo: { isLastPage: true } })
+      expect(url.pathname).toContain('merrsayuq3xb3uk')
+      expect(url.searchParams.get('where')).toBe('(participations_id,in,2)')
+      return Response.json({ list: [], pageInfo: { isLastPage: true } })
+    }
+    const etat = await lireEtatCohorte('synthetic')
+    expect(offsets).toEqual([0, 1])
+    expect(etat.lignes.map((p) => [p.id, p.code])).toEqual([[2, 'CANONIQUE']])
+    expect(etat.etablissementsDistincts).toBe(1)
+    expect(etat.lignesAVerifier).toBe(0)
+    expect(JSON.stringify(etat)).not.toContain('CODE-ARCHIVE')
+  })
+  test.each([
+    ['cible absente ou hors cohorte', [{ Id: 1, fusionne_vers: 99, cohortes_id: 2 }]],
+    ['cycle', [{ Id: 1, fusionne_vers: 2, cohortes_id: 2 }, { Id: 2, fusionne_vers: 1, cohortes_id: 2 }]],
+    ['cible non entière', [{ Id: 1, fusionne_vers: 2.5, cohortes_id: 2 }]],
+    ['cible zéro', [{ Id: 1, fusionne_vers: 0, cohortes_id: 2 }]],
+    ['autre cohorte renvoyée', [{ Id: 1, fusionne_vers: 2, cohortes_id: 2 }, { Id: 2, cohortes_id: 3 }]],
+    ['cohorte inconnue renvoyée', [{ Id: 1, fusionne_vers: 2, cohortes_id: 2 }, { Id: 2, cohortes_id: null }]],
+    ['autre établissement', [{ Id: 1, fusionne_vers: 2, cohortes_id: 2 }, { Id: 2, cohortes_id: 2, etablissements_id: 8 }]],
+  ])('%s : aucun résultat de suivi partiel', async (_, rows) => {
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input))
+      if (url.pathname.includes('m5ayop8ul8s040l'))
+        return Response.json({ list: [{ Id: 2 }], pageInfo: { isLastPage: true } })
+      expect(url.pathname).toContain('mbunbu0f1zztce4')
+      return Response.json({ list: rows.map((p) => ({ etablissements_id: 7, ...p })), pageInfo: { isLastPage: true } })
+    }
+    await expect(lireEtatCohorte('synthetic')).rejects.toThrow('incohérente')
   })
 })

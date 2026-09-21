@@ -28,6 +28,12 @@ const formatDate = (date: string) =>
   new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(date),
   )
+const establishmentLabel = (group: MapGroup) =>
+  group.establishmentId ? `Établissement #${group.establishmentId}` : 'Établissement non relié'
+const dossierLabel = (p: MapGroup['participations'][number]) =>
+  p.code === `DOS-${String(p.id).padStart(4, '0')}`
+    ? `Dossier ${p.code}`
+    : `Dossier #${p.id}${p.code === `Dossier #${p.id}` ? '' : ` · Référence historique : ${p.code}`}`
 if ($('im-app')) {
   let data: MapData | null = null,
     initial = true,
@@ -59,10 +65,11 @@ if ($('im-app')) {
       const item = node('article', '', 'im-detail-item')
       item.append(
         node('h3', group.name),
+        node('p', establishmentLabel(group)),
         node('p', `${group.location?.name} · ${group.cohortLabel}`),
       )
       for (const p of group.participations)
-        item.append(node('p', `${p.code} · ${statusLabel(p.status)}`, 'iw-small'))
+        item.append(node('p', `${dossierLabel(p)} · ${statusLabel(p.status)}`, 'iw-small'))
       detail.append(item)
     }
     markers
@@ -79,7 +86,7 @@ if ($('im-app')) {
     selectedCodes = []
     $('im-detail-title').textContent = 'Explorez un territoire'
     $('im-detail-description').textContent =
-      'Sélectionnez un repère pour retrouver les établissements et leurs dossiers sources.'
+      'Sélectionnez un repère pour retrouver les établissements et leurs dossiers courants.'
     $('im-detail-list').replaceChildren()
   }
   function list(groups: MapGroup[]) {
@@ -102,6 +109,7 @@ if ($('im-app')) {
       const name = node('div')
       name.append(
         node('h3', group.name),
+        node('p', establishmentLabel(group)),
         node('p', [group.type, group.cohortLabel].filter(Boolean).join(' · ')),
       )
       const total = data!.groups.find((g) => g.key === group.key)!.participations.length
@@ -137,7 +145,7 @@ if ($('im-app')) {
       for (const p of group.participations) {
         const badge = node('span', statusLabel(p.status), 'iw-badge')
         badge.dataset.status = stopped(p.status) ? 'annule' : ''
-        sources.append(badge, node('p', `${p.code} · #${p.id}`))
+        sources.append(badge, node('p', dossierLabel(p)))
       }
       item.append(name, place, sources)
       if (group.location) {
@@ -340,7 +348,7 @@ if ($('im-app')) {
         dateStyle: 'long',
       }).format(new Date(data.referenceDate + 'T12:00:00Z'))
       $('im-source-count').textContent =
-        `Lecture NocoDB complète : ${data.totals.participations} participations, ${data.totals.establishments} établissements distincts reliés, ${data.totals.groups} groupes, dont ${data.totals.duplicateGroups} avec plusieurs dossiers. Le tableau de suivi reste la référence des étapes et décisions.`
+        `Lecture NocoDB complète : ${data.totals.participations} participations non archivées, ${data.totals.establishments} établissements distincts reliés, ${data.totals.groups} groupes, dont ${data.totals.duplicateGroups} avec plusieurs dossiers. Les dossiers archivés restent conservés dans NocoDB. Le tableau de suivi reste la référence des étapes et décisions.`
       $('im-state').hidden = true
       $('im-data').hidden = false
       render()
