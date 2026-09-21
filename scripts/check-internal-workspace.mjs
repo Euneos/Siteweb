@@ -39,6 +39,7 @@ const env = {
   RESOURCE_ACCESS_DOMAIN: 'workspace-fixture.cloudflareaccess.com',
   RESOURCE_ACCESS_AUD: 'resource-fixture',
   INTERNAL_ADMIN_EMAILS: 'manager@example.test',
+  INTERNAL_WORKSPACE_PREVIEW: 'true',
   TEAM_WORKSPACE: db,
 }
 const token = (aud, email) =>
@@ -147,6 +148,23 @@ for (const role of ['trainer', 'trainerManager']) {
 }
 assert.equal(reads, 0, 'Wrong audiences cannot reach the database')
 assert.equal((await call('/interne/catalogue', 'member')).status, 403)
+assert.match(await (await call('/interne', 'member')).text(), /Espace d’essai\./)
+assert.doesNotMatch(
+  await (
+    await call(
+      '/interne',
+      'member',
+      'GET',
+      undefined,
+      {},
+      {
+        ...env,
+        INTERNAL_WORKSPACE_PREVIEW: undefined,
+      },
+    )
+  ).text(),
+  /Espace d’essai\./,
+)
 assert.equal((await call('/api/interne/ressources', 'trainer')).status, 200)
 
 const id = crypto.randomUUID(),

@@ -1,6 +1,7 @@
 ---
 import Brand from '../components/Brand.astro'
 import '../styles/global.css'
+import { internalEnvironment } from '../lib/internal-context'
 
 interface Props {
   title: string
@@ -9,6 +10,7 @@ interface Props {
   teamAccess?: boolean
 }
 const { title, current, identity, teamAccess = true } = Astro.props
+const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
 ---
 
 <!doctype html>
@@ -82,7 +84,18 @@ const { title, current, identity, teamAccess = true } = Astro.props
         <a class="iw-nav__public" href="/">Voir le site <span aria-hidden="true">↗</span></a>
       </div>
     </nav>
-    <main id="main" class="iw-main" tabindex="-1"><slot /></main>
+    <main id="main" class="iw-main" tabindex="-1">
+      {
+        preview && (
+          <aside class="iw-feedback" aria-label="Espace d’essai">
+            <strong>Espace d’essai.</strong> Les calendriers et le catalogue sont en préparation.
+            Gardez les saisies réelles dans Notion jusqu’à la bascule convenue avec l’équipe. Le
+            suivi des établissements et la carte consultent la base EUNEOS en lecture seule.
+          </aside>
+        )
+      }
+      <slot />
+    </main>
     <footer class="iw-footer">
       {!teamAccess && <a href="/interne">Accès équipe EUNEOS</a>}
       <span>EUNEOS · Un espace pour travailler ensemble.</span><span

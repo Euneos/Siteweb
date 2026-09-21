@@ -32,6 +32,24 @@ Références publiques du 17 septembre 2026 : [API communes](https://geo.api.gou
 
 ## Configuration à réaliser après revue de la PR
 
+### Préparation du 21 septembre
+
+La base D1 européenne `euneos-team-workspace-preview` a été créée et la migration
+`0001_workspace.sql` appliquée. Ses trois tables sont vides : aucun historique Notion
+n'a été importé. Son binding existe uniquement dans `env.preview` ; aucun binding
+des calendriers n'est ajouté à la production. La configuration de préversion conserve
+explicitement les variables et le registre des formulaires déjà présents.
+
+`INTERNAL_WORKSPACE_PREVIEW=true` affiche un avertissement sur les pages de l'espace :
+les saisies réelles restent dans Notion jusqu'à la bascule. La carte et le suivi
+consultent NocoDB en lecture seule. Les domaines et audiences Access ne sont pas
+inventés : ils seront renseignés après la création des applications réelles.
+
+Cette préparation D1 ne donne aucun accès à elle seule : tant que les audiences
+ne sont pas configurées, les routes refusent toute lecture de données. Conserver
+les listes nominatives et le suivi d'activation dans le dossier d'exploitation privé,
+sans les ajouter au dépôt du site.
+
 1. Activer Cloudflare Access sur le compte EUNEOS, choisir la formule et approuver les éventuels engagements dans le compte du client. Au contrôle du 17 septembre, l’API du compte répond `access.api.error.not_enabled` ; aucune application ni audience utilisable n’a donc été obtenue. Le navigateur n’est pas connecté au tableau de bord.
 2. Vérifier avec EUNEOS les emails de l’équipe, les responsables habilités à valider et la liste des formateurs ayant accès aux ressources. Créer les deux applications et relever leurs audiences réelles.
 3. Définir `INTERNAL_ACCESS_DOMAIN`, `INTERNAL_ACCESS_AUD`, `RESOURCE_ACCESS_DOMAIN`, `RESOURCE_ACCESS_AUD`, `INTERNAL_ADMIN_EMAILS` dans l’environnement cible. Le domaine est de la forme `equipe.cloudflareaccess.com`, sans URL ni slash ; l’audience est celle de l’application, pas son nom.
