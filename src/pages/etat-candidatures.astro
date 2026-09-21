@@ -1,6 +1,6 @@
 ---
-import Base from '../layouts/Base.astro'
-import { requireInternalAccess } from '../lib/internal-access'
+import InternalLayout from '../layouts/InternalLayout.astro'
+import { readInternalIdentity } from '../lib/internal-access'
 import { jeton } from '../lib/nocodb'
 import { lireEtatCohorte, type EtatCohorte } from '../lib/etat-candidatures'
 
@@ -10,8 +10,15 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
 Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
 
 const env = (Astro.locals as { runtime?: { env?: Record<string, string> } }).runtime?.env ?? {}
-const accesRefuse = await requireInternalAccess(Astro.request, env)
-if (accesRefuse) return accesRefuse
+const access = await readInternalIdentity(Astro.request, env)
+if (access instanceof Response) return access
+const identity = {
+  email: access.email,
+  admin: (env.INTERNAL_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .includes(access.email),
+}
 
 let etat: EtatCohorte | null = null
 let indisponible = false
@@ -39,22 +46,22 @@ const formatActualisation = (date: Date) =>
 const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & décision', 'Sélectionné', 'Lettre signée', 'Fiche contact', 'Formateur désigné', 'Organisation', 'Formations & suivi', 'Ateliers & évaluation']
 ---
 
-<Base
-  title="État des candidatures 2026–2027 — EUNEOS"
-  description="État d’avancement des candidatures des établissements pour la cohorte WISE-UP 2026–2027."
-  heroSurface="bleu"
-  heroFold="bl"
-  noindex
+<InternalLayout
+  title="État des candidatures 2026–2027"
+  current="suivi"
+  identity={identity}
 >
-  <section slot="hero" class="page etat-hero">
-    <p class="etat-hero__sur">Espace équipe · accès réservé</p>
-    <h1>État des candidatures<br />Cohorte 2026–2027</h1>
-    <p class="etat-hero__lead">
-      Données lues directement dans la base EUNEOS. Cette page n’effectue aucune modification.
-    </p>
-  </section>
+  <div class="iw-intro">
+    <div class="iw-intro__text">
+      <p class="iw-eyebrow">Suivi des établissements</p>
+      <h1>État des candidatures<br />Cohorte 2026–2027</h1>
+      <p>
+        Données lues directement dans la base EUNEOS. Cette page n’effectue aucune modification.
+      </p>
+    </div>
+  </div>
 
-  <section class="section page etat" aria-labelledby="synthese">
+  <section class="etat" aria-labelledby="synthese">
     <div class="etat__entete">
       <div>
         <h2 id="synthese">Vue d’ensemble</h2>
@@ -125,30 +132,19 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
       )
     }
   </section>
-</Base>
+</InternalLayout>
 
 <style is:global>
-  .etat-hero {
-    padding-top: clamp(2rem, 5vw, 4rem);
-    padding-bottom: clamp(4rem, 9vw, 7rem);
-    max-width: var(--page-max);
-  }
-  .etat-hero__sur {
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: var(--t-note);
-    margin-bottom: 0.75rem;
-  }
-  .etat-hero__lead {
-    max-width: 58ch;
-    margin-top: 1rem;
+  .etat {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-lie);
   }
   .etat__entete {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.75fr);
     gap: var(--s-int);
     align-items: start;
-    margin-bottom: var(--s-int);
   }
   .etat__actualisation {
     margin-top: 0.5rem;
@@ -168,7 +164,7 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
   }
   .etat__indicateurs {
     list-style: none;
-    margin: 0 0 var(--s-int);
+    margin: 0;
     padding: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -188,9 +184,6 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
   }
   .etat__indicateurs span {
     font-size: var(--t-note);
-  }
-  .etat__note {
-    margin-bottom: 1rem;
   }
   .etat__table-wrap {
     overflow-x: auto;
@@ -234,8 +227,8 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     font-size: 1.08em;
   }
   .etat__mobile-label { display: none; }
-  .etat__legende { font-size: var(--t-note); margin-bottom: 1rem; }
-  .etat__scroll-aide { font-size: var(--t-note); margin-bottom: 0.75rem; }
+  .etat__legende { font-size: var(--t-note); }
+  .etat__scroll-aide { font-size: var(--t-note); }
   .etat__cellule--abandon { color: var(--vert); background: color-mix(in srgb, var(--orange) 12%, var(--papier)); }
   .etat__table tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--papier) 72%, var(--blanc));

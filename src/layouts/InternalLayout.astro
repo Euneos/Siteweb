@@ -5,7 +5,7 @@ import { internalEnvironment } from '../lib/internal-context'
 
 interface Props {
   title: string
-  current: 'calendrier' | 'ressources' | 'catalogue' | 'implantations'
+  current: 'calendrier' | 'suivi' | 'ressources' | 'catalogue' | 'implantations'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
 }
@@ -57,7 +57,13 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
             </a>
           )
         }
-        {teamAccess && <a href="/etat-candidatures">Suivi des établissements</a>}
+        {
+          teamAccess && (
+            <a href="/etat-candidatures" aria-current={current === 'suivi' ? 'page' : undefined}>
+              Suivi des établissements
+            </a>
+          )
+        }
         {
           teamAccess && (
             <a

@@ -53,7 +53,8 @@ assert.match(response.headers.get('Cache-Control'), /no-store/)
 let html = await response.text()
 assert.match(html, /Collège de démonstration/)
 assert.match(html, /Envoi non documenté/)
-assert.doesNotMatch(html, /synthetic-token|member@example.test/)
+assert.doesNotMatch(html, /synthetic-token/)
+assert.match(html, /member@example.test/)
 failData = true
 const errorHtml = await (await render(env, jwt)).text()
 assert.match(errorHtml, /Données momentanément indisponibles/)
@@ -77,11 +78,21 @@ try {
     await tab.goto(`http://127.0.0.1:${server.port}/`)
     await tab.evaluate(() => document.fonts.ready)
     assert(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Overflow at ${width}`)
+    assert(await tab.getByRole('banner').isVisible(), `Shared header at ${width}`)
+    const navigation = tab.getByRole('navigation', { name: 'Espace interne' })
+    assert(await navigation.isVisible(), `Internal navigation at ${width}`)
+    assert.equal(await navigation.getByRole('link', { name: 'Suivi des établissements' }).getAttribute('aria-current'), 'page')
+    assert.equal(await navigation.getByRole('link', { name: 'Calendriers de l’équipe' }).getAttribute('href'), '/interne')
+    assert.equal(await navigation.getByRole('link', { name: 'Implantations' }).getAttribute('href'), '/interne/implantations')
+    assert.equal(await navigation.getByRole('link', { name: 'Ressources formateurs' }).getAttribute('href'), '/interne/ressources')
     assert.equal(await tab.locator('thead tr').count(), 2)
     assert.equal(await tab.locator('thead tr').last().locator('th').count(), 10)
     assert.equal(await tab.locator('tbody tr').first().locator('td').count(), 10)
     if (width <= 860) assert.equal(await tab.locator('.etat__mobile-label:visible').count(), 20)
-    if ([390, 1440].includes(width)) await tab.locator('.etat').screenshot({ path: `${output}/tableau-${width}.png` })
+    if ([390, 1440].includes(width)) {
+      await tab.screenshot({ path: `${output}/page-${width}.png` })
+      await tab.locator('.etat').screenshot({ path: `${output}/tableau-${width}.png` })
+    }
     console.log(`Tableau compilé : ${width}px OK`)
   }
 } finally { await browser.close(); server.stop() }
