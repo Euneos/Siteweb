@@ -57,6 +57,24 @@ try {
       if (output) await page.screenshot({ path: `${output}/${formId}-${path === '/' ? 'accueil' : path.slice(1)}-${width}.png` })
       checks++
 
+      for (const profil of ['etablissement', 'formateur', 'partenaire']) {
+        await form.locator(`[value="${profil}"]`).check()
+        const profileResponse = page.waitForResponse(response => response.url().endsWith('/api/newsletter'))
+        await button.click()
+        const result = await profileResponse
+        const submitted = await new Request(result.url(), {
+          method: 'POST', headers: result.request().headers(), body: result.request().postDataBuffer(),
+        }).formData()
+        assert.equal(submitted.get('profil'), profil)
+        assert.deepEqual(await result.json(), { state: 'confirmation', preview: true })
+        await expect(status).toContainText('Vérifiez votre boîte e-mail')
+        await expect(button).toBeEnabled()
+        assert.equal(page.url(), initialUrl)
+        assert.equal(navigations, 0)
+        checks++
+      }
+      await form.locator('[value="enjeux"]').check()
+
       for (const state of ['deja-inscrit', 'technique', 'network', 'html']) {
         let requests = 0
         let release
