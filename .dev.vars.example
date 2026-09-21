@@ -9,3 +9,13 @@ BREVO_LIST_ENJEUX=
 BREVO_LIST_FORMATEUR=
 BREVO_DOI_TEMPLATE_ID=
 HOOK_SECRET=
+# Internal pages: separate team and trainer Access applications/audiences.
+INTERNAL_ACCESS_DOMAIN=
+INTERNAL_ACCESS_AUD=
+RESOURCE_ACCESS_DOMAIN=
+RESOURCE_ACCESS_AUD=
+# Exact emails of team administrators (comma-separated); no default admin.
+INTERNAL_ADMIN_EMAILS=
+# Show the trial notice until the Notion migration is validated.
+INTERNAL_WORKSPACE_PREVIEW=
+# TEAM_WORKSPACE is a D1 binding, NOT a secret or the FORM_SUBMISSIONS registry.

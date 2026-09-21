@@ -1,0 +1,52 @@
+<form id="iw-resource-form" class="iw-panel iw-catalogue-form">
+  <fieldset class="iw-form-fields" id="iw-resource-fields">
+    <legend class="iw-sr-only">Informations de la ressource</legend><div class="iw-formgrid">
+      <div class="iw-field iw-field--wide">
+        <label for="iw-resource-title">Titre *</label><input
+          id="iw-resource-title"
+          name="title"
+          maxlength="180"
+          required
+        />
+      </div>
+      <div class="iw-field iw-field--wide">
+        <label for="iw-resource-new-category">Catégorie *</label><input
+          id="iw-resource-new-category"
+          name="category"
+          maxlength="180"
+          required
+        />
+      </div>
+      <div class="iw-field iw-field--wide">
+        <label for="iw-resource-description">Description</label><textarea
+          id="iw-resource-description"
+          name="description"
+          maxlength="4000"
+          rows="4"></textarea>
+      </div>
+      <div class="iw-field iw-field--wide">
+        <label for="iw-resource-url">Lien HTTPS du document *</label><input
+          id="iw-resource-url"
+          name="url"
+          type="url"
+          maxlength="2000"
+          placeholder="https://…"
+          aria-describedby="iw-resource-url-help"
+          required
+        /><p id="iw-resource-url-help" class="iw-small iw-muted">
+          Vérifiez que les formateurs disposent aussi de l’accès au document sur le service qui
+          l’héberge.
+        </p>
+      </div>
+    </div>
+  </fieldset>
+  <p id="iw-resource-save-feedback" class="iw-feedback" role="status" aria-live="polite"></p>
+  <div class="iw-form-actions">
+    <p class="iw-small iw-muted">* Champs obligatoires</p><button
+      type="submit"
+      id="iw-resource-save"
+      class="iw-button iw-button--primary">Ajouter au catalogue</button
+    ><button type="button" id="iw-resource-another" class="iw-button" hidden
+      >Ajouter une autre ressource</button>
+  </div>
+</form>

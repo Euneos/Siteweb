@@ -1,0 +1,79 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals, true)
+if (context instanceof Response) return context
+const identity = context.identity
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+---
+
+<InternalLayout
+  title="Ressources formateurs"
+  current="ressources"
+  identity={identity}
+  teamAccess={context.teamMember}
+>
+  <div id="iw-resources">
+    <div class="iw-resource-intro">
+      <div class="iw-intro__text">
+        <p class="iw-eyebrow">Accompagner & transmettre</p><h1>Ressources formateurs</h1><p>
+          Retrouvez les supports et documents partagés par EUNEOS pour préparer et animer vos
+          interventions.
+        </p>
+      </div>
+    </div>
+    <noscript
+      ><p class="iw-feedback">
+        Activez JavaScript pour consulter le catalogue de ressources.
+      </p></noscript
+    >
+    <section class="iw-panel" aria-label="Rechercher une ressource">
+      <div class="iw-resource-controls">
+        <div class="iw-field">
+          <label for="iw-resource-search">Rechercher dans les ressources</label><input
+            type="search"
+            id="iw-resource-search"
+            placeholder="Un titre, un sujet, un mot-clé…"
+            autocomplete="off"
+          />
+        </div><div class="iw-field">
+          <label for="iw-resource-category">Catégorie</label><select id="iw-resource-category"
+            ><option value="">Toutes les catégories</option></select
+          >
+        </div><button id="iw-resource-reset" type="button" class="iw-button iw-button--plain"
+          >Réinitialiser</button
+        >
+      </div>
+    </section>
+    <div class="iw-resultsbar">
+      <p id="iw-resource-count" role="status" aria-live="polite">Chargement des ressources…</p><div
+        class="iw-actions"
+      >
+        <p id="iw-resource-updated" class="iw-small iw-muted"></p><button
+          type="button"
+          id="iw-resource-refresh"
+          class="iw-button iw-button--plain">Actualiser</button
+        >
+      </div>
+    </div>
+    <div id="iw-resource-state" class="iw-state" role="status">
+      <span class="iw-loading" aria-hidden="true"></span><h2>Chargement des ressources</h2><p>
+        Nous récupérons les documents disponibles pour votre compte.
+      </p>
+    </div>
+    <section
+      id="iw-resource-grid"
+      class="iw-resource-grid"
+      aria-label="Catalogue des ressources"
+      aria-busy="true"
+      hidden
+    >
+    </section>
+    <p class="iw-footnote">
+      Les documents s’ouvrent dans un nouvel onglet. Certains peuvent demander une connexion au
+      service qui les héberge.
+    </p>
+  </div>
+</InternalLayout>
