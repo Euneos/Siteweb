@@ -166,6 +166,15 @@ assert.doesNotMatch(
   /Espace d’essai\./,
 )
 assert.equal((await call('/api/interne/ressources', 'trainer')).status, 200)
+const productionHtml = await (
+  await call('/interne', 'member', 'GET', undefined, {}, {
+    ...env,
+    INTERNAL_WORKSPACE_PREVIEW: undefined,
+    INTERNAL_WORKSPACE_IMPORT_PENDING: 'true',
+  })
+).text()
+assert.match(productionHtml, /Historique Notion à reprendre/)
+assert.doesNotMatch(productionHtml, /Espace d’essai\./)
 
 const id = crypto.randomUUID(),
   body = { requestId: id, entry: baseEntry() }

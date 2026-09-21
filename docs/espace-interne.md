@@ -1,6 +1,6 @@
 # Espace interne EUNEOS — mise en service
 
-Cette PR prépare les calendriers éditorial et équipe, les commentaires, la bibliothèque de ressources et la carte des implantations. Elle ne remplace pas encore les calendriers Notion. Tant que les accès, la reprise et la recette métier ne sont pas terminés, **Notion reste la source utilisée par l’équipe**.
+Cet espace réunit les calendriers éditorial et équipe, les commentaires, la bibliothèque de ressources et la carte des implantations. Elle ne remplace pas encore les calendriers Notion. Tant que les accès, la reprise et la recette métier ne sont pas terminés, **Notion reste la source utilisée par l’équipe**.
 
 Le [tableau des candidatures](tableau-interne.md) continue à lire NocoDB côté serveur. Les calendriers ont un stockage collaboratif distinct : D1, binding `TEAM_WORKSPACE`. Ne pas utiliser `FORM_SUBMISSIONS`, registre technique des formulaires publics, pour les heures ou les commentaires.
 
@@ -30,7 +30,20 @@ Les repères utilisent le **centre de la commune**, sans prétendre localiser l�
 
 Références publiques du 17 septembre 2026 : [API communes](https://geo.api.gouv.fr/decoupage-administratif/communes), [contours régionaux Etalab/IGN 2026](https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2026/geojson/regions-1000m.geojson), Licence Ouverte. Le référentiel est complet et ne contient aucun rapprochement EUNEOS. Son actualisation passe par une nouvelle version revue.
 
-## Configuration à réaliser après revue de la PR
+## Configuration et déploiement
+
+### Publication du 21 septembre
+
+La configuration de production lie désormais `TEAM_WORKSPACE` à la base européenne
+`euneos-team-workspace`, avec le schéma `migrations/interne/0001_workspace.sql`.
+La préversion conserve sa base distincte et son bandeau d’essai. Le registre
+`FORM_SUBMISSIONS` et les variables des formulaires sont conservés dans les deux environnements.
+
+`INTERNAL_WORKSPACE_IMPORT_PENDING=true` affiche en production que l’historique Notion
+n’a pas encore été repris. Les nouvelles saisies sont persistantes ; la publication
+n’effectue aucun import et ne synchronise pas les deux outils. Retirer ce paramètre
+après une reprise vérifiée. Les identités, audiences Access et rôles responsables
+restent configurés côté serveur, hors du dépôt public.
 
 ### Préparation du 21 septembre
 
@@ -50,7 +63,7 @@ ne sont pas configurées, les routes refusent toute lecture de données. Conserv
 les listes nominatives et le suivi d'activation dans le dossier d'exploitation privé,
 sans les ajouter au dépôt du site.
 
-1. Activer Cloudflare Access sur le compte EUNEOS, choisir la formule et approuver les éventuels engagements dans le compte du client. Au contrôle du 17 septembre, l’API du compte répond `access.api.error.not_enabled` ; aucune application ni audience utilisable n’a donc été obtenue. Le navigateur n’est pas connecté au tableau de bord.
+1. Cloudflare Access est activé sur le compte EUNEOS. Maintenir les protections équipe et bibliothèque sur tous les domaines servis, y compris le domaine Pages et les alias de préversion ; vérifier les refus anonymes avant chaque changement de domaine.
 2. Vérifier avec EUNEOS les emails de l’équipe, les responsables habilités à valider et la liste des formateurs ayant accès aux ressources. Créer les deux applications et relever leurs audiences réelles.
 3. Définir `INTERNAL_ACCESS_DOMAIN`, `INTERNAL_ACCESS_AUD`, `RESOURCE_ACCESS_DOMAIN`, `RESOURCE_ACCESS_AUD`, `INTERNAL_ADMIN_EMAILS` dans l’environnement cible. Le domaine est de la forme `equipe.cloudflareaccess.com`, sans URL ni slash ; l’audience est celle de l’application, pas son nom.
 4. Créer une base D1 **de preview distincte**, puis y appliquer `migrations/interne/0001_workspace.sql`. Ajouter le binding `TEAM_WORKSPACE` dans la configuration `env.preview` de Wrangler, avec l’ID réel. Préserver les autres bindings explicitement lorsque l’environnement les remplace. Les previews Pages partagent leur configuration d’environnement : ne pas y placer de données client avant protection effective de tous les alias accessibles.
