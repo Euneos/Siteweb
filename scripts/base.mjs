@@ -9,6 +9,8 @@
  * Le jeton se met dans un fichier .env a la racine (jamais dans le code) :
  *   NOCODB_TOKEN=nc_pat_...
  */
+import { reconcilierActifs } from '../src/lib/nocodb.ts'
+
 const API = 'https://app.nocodb.com/api/v2'
 
 const T = {
@@ -25,20 +27,16 @@ const T = {
 }
 
 const STATUTS_ETAB = ['Candidature recue', 'Accuse reception', 'Invite', 'En discussion',
-                      'Retenu', 'Engage', 'Refuse', 'Abandonne']
+                      'En cours d’analyse', 'Candidature acceptée', 'Retenu', 'Engage', 'Refuse', 'Abandonne']
 const STATUTS_FORM = ['Candidature recue', 'Accuse reception', 'Candidature validée',
                       "Liste d'attente", 'Refuse', 'En attente confirmation formation',
                       'En cours de formation', 'Formateur en cours de validation',
                       'Formateur validé', 'Abandonne']
 
-const token = process.env.NOCODB_TOKEN
-if (!token) {
-  console.error("Il manque le jeton d'acces a la base.\n" +
-    "Cree un fichier .env a la racine du projet avec :\n  NOCODB_TOKEN=nc_pat_...")
-  process.exit(1)
-}
-
 async function api(chemin, options = {}) {
+  const token = process.env.NOCODB_TOKEN
+  if (!token) throw new Error("Il manque le jeton d'acces a la base.\n" +
+    "Cree un fichier .env a la racine du projet avec :\n  NOCODB_TOKEN=nc_pat_...")
   const r = await fetch(API + chemin, {
     ...options,
     headers: { 'xc-token': token, 'Content-Type': 'application/json', ...(options.headers || {}) },
@@ -47,19 +45,81 @@ async function api(chemin, options = {}) {
   return r.json()
 }
 
-export async function lire(table, q = '') {
+const idValide = (id) => typeof id === 'number' && Number.isSafeInteger(id) && id > 0
+const liensDossier = (table) => table === 'participations' ? ['etablissements_id', 'cohortes_id']
+  : table === 'engagements' ? ['formateurs_id', 'cohortes_id'] : []
+const actifs = (table, rows) => reconcilierActifs(rows, liensDossier(table), table === 'engagements' ? ['cohortes_id'] : [])
+
+function projection(params, champs) {
+  // No fields parameter means the caller requested full records.
+  if (params.has('fields')) params.set('fields', [...new Set([
+    ...params.get('fields').split(',').map((field) => field.trim()).filter(Boolean), ...champs,
+  ])].join(','))
+}
+
+/** Only the status predicates used by dossier commands are supported locally.
+ * Never send a dossier WHERE to NocoDB: it could hide the canonical target.
+ * Refuse unsupported grammar rather than silently widening a requested filter. */
+function filtreStatut(where) {
+  if (!where) return () => true
+  const conditions = where.split('~and').map((part) => /^\(statut,(eq|neq),([^()]*)\)$/.exec(part))
+  if (conditions.some((condition) => !condition))
+    throw new Error('Filtre de dossiers non pris en charge : seuls les statuts eq/neq reliés par ~and sont permis.')
+  return (row) => conditions.every(([, operation, value]) => operation === 'eq' ? row.statut === value : row.statut !== value)
+}
+
+async function lirePages(table, params) {
+  if (!T[table]) throw new Error('Table inconnue.')
   const rows = []
-  let offset = 0
+  const ids = new Set()
   // NocoDB Cloud can return fewer rows than requested without ending the list.
   for (;;) {
-    const page = await api(`/tables/${T[table]}/records?limit=100&offset=${offset}${q}`)
-    const batch = page.list ?? []
+    params.set('limit', '100')
+    params.set('offset', String(rows.length))
+    const page = await api(`/tables/${T[table]}/records?${params}`)
+    if (!Array.isArray(page?.list)) throw new Error('Lecture NocoDB incohérente : liste absente.')
+    const batch = page.list
+    for (const row of batch) {
+      if (!row || !idValide(row.Id) || ids.has(row.Id)) throw new Error('Pagination NocoDB incohérente : Id invalide ou ambigu.')
+      ids.add(row.Id)
+    }
     rows.push(...batch)
-    if (page.pageInfo?.isLastPage === true || batch.length === 0) return rows
-    offset += batch.length
-    if (page.pageInfo?.totalRows != null && offset >= page.pageInfo.totalRows) return rows
-    if (offset > 100000) throw new Error('Pagination anormale : lecture interrompue.')
+    if (page.pageInfo?.isLastPage === true) return rows
+    if (!batch.length) {
+      if (page.pageInfo?.isLastPage === false) throw new Error('Pagination NocoDB incohérente : lecture interrompue.')
+      return rows
+    }
+    if (rows.length >= 100000) throw new Error('Pagination anormale : lecture interrompue.')
   }
+}
+
+export async function lire(table, q = '') {
+  const params = new URLSearchParams(q.replace(/^[?&]/, ''))
+  const liens = liensDossier(table)
+  if (!liens.length) return lirePages(table, params)
+  const where = params.get('where')
+  const filtre = filtreStatut(where)
+  params.delete('where')
+  projection(params, ['Id', 'fusionne_vers', ...liens, ...(where ? ['statut'] : [])])
+  const rows = await lirePages(table, params)
+  return actifs(table, rows).filter(filtre)
+}
+
+function dossierId(id) {
+  const value = Number(id)
+  if (!/^\d+$/.test(String(id)) || !idValide(value)) throw new Error('Identifiant de dossier invalide.')
+  return value
+}
+
+function cibleArchive(row) {
+  if (row.fusionne_vers == null) return null
+  if (!idValide(row.fusionne_vers)) throw new Error(`Dossier #${row.Id} : fusionne_vers invalide, vérification nécessaire.`)
+  return row.fusionne_vers
+}
+
+function refuserArchive(row) {
+  const target = cibleArchive(row)
+  if (target !== null) throw new Error(`Dossier #${row.Id} archivé vers le dossier canonique #${target}. Aucune modification effectuée ; consulter le dossier #${target}.`)
 }
 
 function tableau(lignes, colonnes) {
@@ -70,7 +130,7 @@ function tableau(lignes, colonnes) {
   for (const x of lignes) console.log('  ' + colonnes.map((c, i) => String(x[c] ?? '').padEnd(l[i])).join('  '))
 }
 
-const commandes = {
+export const commandes = {
   async candidatures() {
     const p = await lire('participations', '&where=' + encodeURIComponent('(statut,neq,Engage)~and(statut,neq,Refuse)~and(statut,neq,Abandonne)') +
       '&fields=Id,code,statut,date_candidature,etablissement')
@@ -100,12 +160,16 @@ const commandes = {
       lire('engagements', '&fields=Id,statut,cohorte'),
       lire('cohortes', '&fields=Id,nom,active,objectif_etablissements'),
     ])
-    const active = coh.find((c) => c.active)
-    console.log(`\nCampagne — cohorte ${active?.nom ?? '?'}\n`)
-    const pc = part.filter((x) => x.cohorte?.nom === active?.nom)
+    const actives = coh.filter((c) => c.active === true || c.active === 1)
+    if (actives.length !== 1) throw new Error('Cohorte active absente ou ambiguë.')
+    const active = actives[0]
+    console.log(`\nCampagne — cohorte ${active.nom ?? '?'}\n`)
+    const pc = part.filter((x) => x.cohortes_id === active.Id)
+    const sansCohorte = part.filter((x) => !coh.some((c) => c.Id === x.cohortes_id)).length
     const engages = pc.filter((x) => x.statut === 'Engage').length
     const objectif = active?.objectif_etablissements ?? 30
     console.log(`  Etablissements engages : ${engages} / ${objectif}   (il en manque ${Math.max(0, objectif - engages)})`)
+    if (sansCohorte) console.log(`  Dossiers avec cohorte indéterminée, hors de ce total : ${sansCohorte}`)
     const parStatut = (l) => l.reduce((a, x) => ((a[x.statut || '?'] = (a[x.statut || '?'] || 0) + 1), a), {})
     console.log('\n  Pipeline etablissements :')
     for (const [s, n] of Object.entries(parStatut(pc)).sort((a, b) => b[1] - a[1])) {
@@ -122,8 +186,12 @@ const commandes = {
 
   async etablissement(id) {
     if (!id) return console.error('Usage : bun scripts/base.mjs etablissement <id>')
-    const p = await api(`/tables/${T.participations}/records/${id}`)
+    const recordId = dossierId(id)
+    const p = await api(`/tables/${T.participations}/records/${recordId}`)
+    if (p?.Id !== recordId) throw new Error('Lecture du dossier incohérente.')
+    const target = cibleArchive(p)
     console.log('\n' + '─'.repeat(60))
+    console.log(`  Dossier #${recordId}${target === null ? '' : ` — ARCHIVÉ vers le dossier canonique #${target} (historique conservé)`}`)
     console.log('  ' + (p.etablissement?.nom ?? '(sans nom)'))
     console.log('─'.repeat(60))
     for (const [k, v] of Object.entries(p)) {
@@ -135,14 +203,35 @@ const commandes = {
   },
 
   async statut(id, nouveau) {
-    if (!id || !nouveau) return console.error('Usage : bun scripts/base.mjs statut <id> "<statut>"')
+    if (!id || !nouveau) throw new Error('Usage : bun scripts/base.mjs statut <id> "<statut>"')
+    const recordId = dossierId(id)
     if (!STATUTS_ETAB.includes(nouveau)) {
-      return console.error(`Statut inconnu.\nStatuts possibles : ${STATUTS_ETAB.join(' · ')}`)
+      throw new Error(`Statut inconnu.\nStatuts possibles : ${STATUTS_ETAB.join(' · ')}`)
     }
+    // Keep the raw snapshot for the archive diagnostic; never retarget a write.
+    const rows = await lirePages('participations', new URLSearchParams({
+      fields: 'Id,fusionne_vers,etablissements_id,cohortes_id,statut',
+    }))
+    const selected = rows.find((row) => row.Id === recordId)
+    if (!selected) throw new Error(`Dossier #${recordId} introuvable.`)
+    refuserArchive(selected)
+    const dossiers = actifs('participations', rows)
+    if (!idValide(selected.etablissements_id) || !idValide(selected.cohortes_id))
+      throw new Error(`Dossier #${recordId} : établissement ou cohorte indéterminé, vérification nécessaire avant modification.`)
+    const matches = dossiers.filter((row) => row.etablissements_id === selected.etablissements_id &&
+      (row.cohortes_id === selected.cohortes_id || !idValide(row.cohortes_id)))
+    if (matches.length !== 1)
+      throw new Error(`Dossier #${recordId} ambigu : plusieurs dossiers actifs pour cet établissement et cette cohorte, ou cohorte indéterminée. Aucune modification effectuée.`)
+    // Recheck the selected row immediately before writing; grouping may have
+    // changed during pagination. This is a guard, not a NocoDB transaction.
+    const p = await api(`/tables/${T.participations}/records/${recordId}?fields=Id,fusionne_vers,etablissements_id,cohortes_id,statut,etablissement`)
+    if (p?.Id !== recordId) throw new Error('Lecture du dossier incohérente.')
+    refuserArchive(p)
+    if (p.etablissements_id !== selected.etablissements_id || p.cohortes_id !== selected.cohortes_id || p.statut !== selected.statut)
+      throw new Error(`Dossier #${recordId} modifié pendant la lecture. Relire le dossier avant de réessayer.`)
     await api(`/tables/${T.participations}/records`, {
-      method: 'PATCH', body: JSON.stringify([{ Id: Number(id), statut: nouveau }]),
+      method: 'PATCH', body: JSON.stringify([{ Id: recordId, statut: nouveau }]),
     })
-    const p = await api(`/tables/${T.participations}/records/${id}`)
     console.log(`\n  ${p.etablissement?.nom ?? id} → ${nouveau}\n`)
   },
 
@@ -229,11 +318,15 @@ const commandes = {
   async chiffres() {
     const n = {}
     for (const t of Object.keys(T)) {
+      if (liensDossier(t).length) {
+        n[t] = (await lire(t, '&fields=Id')).length
+        continue
+      }
       const d = await api(`/tables/${T[t]}/records?limit=1`)
       n[t] = d.pageInfo?.totalRows ?? 0
     }
     console.log('\nContenu de la base\n')
-    for (const [k, v] of Object.entries(n)) console.log(`  ${String(v).padStart(5)}  ${k}`)
+    for (const [k, v] of Object.entries(n)) console.log(`  ${String(v).padStart(5)}  ${k}${liensDossier(k).length ? ' (non archivés)' : ''}`)
     console.log()
   },
 }

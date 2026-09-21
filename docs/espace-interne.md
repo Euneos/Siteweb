@@ -143,3 +143,12 @@ Avant bascule : comparer fiches/commentaires et totaux par personne/mois, vérif
 ## Vérification reproductible
 
 `bun run test`, `bun run build`, `bun scripts/check-internal-workspace.mjs` `bun scripts/check-internal-table.mjs` et `bun scripts/check-implantations.mjs`. Les recettes compilées utilisent exclusivement des identités signées locales et des données fictives ; aucun contournement d’authentification n’est embarqué dans le site. La CI conserve aussi les contrôles newsletter, mise en page, rythme et responsive des pages publiques.
+
+
+## Dossiers courants et historique des regroupements
+
+La carte et le suivi des candidatures lisent tous les enregistrements avant de valider `fusionne_vers`. Une fiche portant cet Id est une archive conservée ; sa cible doit exister, être courante et avoir le même établissement et la même cohorte. Pour les parcours formateurs, la personne doit être identique et une cohorte non renseignée des deux côtés peut être conservée. Les chaînes, cycles et identités divergentes provoquent une erreur de cohérence, pas un masquage silencieux.
+
+Les totaux portent sur les dossiers courants. Les fiches sources et leurs valeurs demeurent consultables dans la vue NocoDB « Historique des regroupements » ; `historique_fusion` conserve les valeurs et les anciennes références. Ces archives ne doivent pas être modifiées comme des candidatures actives. Le numéro d'établissement, stable sur plusieurs années, est affiché séparément du numéro de dossier. Les références importées `ETAB-C…` ne sont pas des clés uniques.
+
+Le déploiement exige les champs `fusionne_vers` (Number, vide par défaut) et `historique_fusion` (LongText) sur participations et parcours formateurs. Une lecture sans ce champ est compatible avec l'ancien schéma, mais aucune donnée ne doit être marquée archivée avant préparation de l'historique et contrôle des liens. Les autres outils qui lisent NocoDB directement doivent appliquer le même contrôle ; un filtre d'interface NocoDB ne filtre pas automatiquement l'API.

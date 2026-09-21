@@ -41,7 +41,10 @@ let reads = 0,
 const realFetch = globalThis.fetch
 const tables = {
   m5ayop8ul8s040l: cohorts,
-  mbunbu0f1zztce4: participations,
+  mbunbu0f1zztce4: [
+    ...participations,
+    { ...participations[0], Id: 18, code: 'ARCHIVE-NON-COURANTE', fusionne_vers: 1 },
+  ],
   mg12klh5zv7b5n5: establishments,
 }
 const unsafeName = '<img src=x onerror="window.injected=true">'
@@ -125,9 +128,20 @@ await check(
     assert.equal(result.totals.participations, 17)
     assert.equal(result.totals.groups, 16)
     assert.equal(result.totals.establishments, 12)
-    assert.doesNotMatch(JSON.stringify(result), /synthetic-token|member@example.test/)
+    assert.doesNotMatch(JSON.stringify(result), /synthetic-token|member@example.test|ARCHIVE-NON-COURANTE/)
   },
 )
+await check('archive invalide : aucun total partiel ni ancien statut affiché', async () => {
+  const archive = tables.mbunbu0f1zztce4.at(-1)
+  archive.fusionne_vers = 99999
+  try {
+    const response = await render(paths[1])
+    assert.equal(response.status, 503)
+    assert.doesNotMatch(await response.text(), /"totals"|ARCHIVE-NON-COURANTE/)
+  } finally {
+    archive.fusionne_vers = 1
+  }
+})
 await check(
   'jeton Noco absent et lecture partielle en échec : 503 sans détails privés',
   async () => {

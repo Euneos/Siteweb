@@ -27,8 +27,9 @@ globalThis.fetch = async (input) => {
   let list = []
   if (url.pathname.includes('m5ayop8ul8s040l')) list = [{ Id: 2, nom: '2026–2027', annee_debut: 2026, annee_fin: 2027 }]
   else if (url.pathname.includes('mbunbu0f1zztce4')) list = empty ? [] : [
-    { Id: 1, code: 'DEMO-01', statut: 'Engage', date_candidature: '2026-09-02', etablissements_id: 1, lettre_interet_signee: true, fiche_contact_recue: true },
-    { Id: 2, code: 'DEMO-02', statut: 'Abandonne', etablissements_id: 2 },
+    { Id: 1, code: 'DEMO-01', statut: 'Engage', date_candidature: '2026-09-02', etablissements_id: 1, cohortes_id: 2, lettre_interet_signee: true, fiche_contact_recue: true },
+    { Id: 2, code: 'DEMO-02', statut: 'Abandonne', etablissements_id: 2, cohortes_id: 2 },
+    { Id: 3, code: 'ARCHIVE-NON-COURANTE', statut: 'Refuse', etablissements_id: 1, cohortes_id: 2, fusionne_vers: 1 },
   ]
   else if (url.pathname.includes('mg12klh5zv7b5n5')) list = [{ Id: 1, nom: 'Collège de démonstration', ville: 'Ville de test' }, { Id: 2, nom: 'Lycée de démonstration', ville: 'Ville de test' }]
   else if (url.pathname.includes('merrsayuq3xb3uk')) list = [{ Id: 1, participations_id: 1, formateurs_id: 1, statut: 'Terminee', nb_adultes_formes: 12 }]
@@ -54,6 +55,7 @@ let html = await response.text()
 assert.match(html, /Collège de démonstration/)
 assert.match(html, /Envoi non documenté/)
 assert.doesNotMatch(html, /synthetic-token/)
+assert.doesNotMatch(html, /ARCHIVE-NON-COURANTE/)
 assert.match(html, /member@example.test/)
 failData = true
 const errorHtml = await (await render(env, jwt)).text()
