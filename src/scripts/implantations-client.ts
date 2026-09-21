@@ -31,7 +31,9 @@ const formatDate = (date: string) =>
 const establishmentLabel = (group: MapGroup) =>
   group.establishmentId ? `Établissement #${group.establishmentId}` : 'Établissement non relié'
 const dossierLabel = (p: MapGroup['participations'][number]) =>
-  `Dossier #${p.id}${p.code === `Dossier #${p.id}` ? '' : ` · ${p.code.startsWith('DOS-') ? 'Référence' : 'Référence historique'} : ${p.code}`}`
+  p.code === `DOS-${String(p.id).padStart(4, '0')}`
+    ? `Dossier ${p.code}`
+    : `Dossier #${p.id}${p.code === `Dossier #${p.id}` ? '' : ` · Référence historique : ${p.code}`}`
 if ($('im-app')) {
   let data: MapData | null = null,
     initial = true,
@@ -84,7 +86,7 @@ if ($('im-app')) {
     selectedCodes = []
     $('im-detail-title').textContent = 'Explorez un territoire'
     $('im-detail-description').textContent =
-      'Sélectionnez un repère pour retrouver les établissements et leurs dossiers sources.'
+      'Sélectionnez un repère pour retrouver les établissements et leurs dossiers courants.'
     $('im-detail-list').replaceChildren()
   }
   function list(groups: MapGroup[]) {
