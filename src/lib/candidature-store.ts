@@ -7,6 +7,7 @@ export interface SubmissionDatabase {
     bind(...values: (string | number | null)[]): {
       run(): Promise<{ meta: { changes: number } }>
       first<T>(): Promise<T | null>
+      all<T>(): Promise<{ results: T[] }>
     }
   }
 }
@@ -28,8 +29,9 @@ async function submissionKey(kind: FormType, identity: string[], cohort: number)
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** One public application per identity and active cohort. A deliberate later
- * training resumption belongs to the team's workflow, not a duplicate POST.
+/** One public trainer application per email, across cohorts. Schools retain
+ * one application per identity and active cohort. Training resumptions and
+ * session assignment belong to the team's workflow, not a duplicate POST.
  * D1's unique INSERT arbitrates across Workers; no process-local lock or expiry
  * can silently repeat an ambiguous NocoDB write. */
 export async function enregistrerCandidature(input: {
@@ -49,13 +51,17 @@ export async function enregistrerCandidature(input: {
   const identityParts = school
     ? [normalise(identity.nom), normalise(identity.cp), normalise(identity.ville)]
     : [normalise(identity.email)]
-  const cohort = await cohorteActive(token)
-  if (!cohort) throw new CandidatureError('indisponible', 'Exactly one active cohort is required')
-  const key = await submissionKey(kind, identityParts, cohort)
+  // Zero is the lifetime scope of a trainer receipt, never a NocoDB cohort ID.
+  // Keep the school's existing keys unchanged. Defer the active-cohort lookup
+  // for trainers: an existing application does not need a current intake.
+  let cohort = school ? await cohorteActive(token) : null
+  if (school && !cohort) throw new CandidatureError('indisponible', 'Exactly one active cohort is required')
+  const scope = school ? cohort! : 0
+  const key = await submissionKey(kind, identityParts, scope)
   // Without the Sessions API, D1 reads and writes go to the primary database.
   const claimed = await db.prepare(`INSERT INTO form_submissions
     (submission_key, form_type, cohort_id, state, phase) VALUES (?, ?, ?, 'processing', 'checking')
-    ON CONFLICT(submission_key) DO NOTHING`).bind(key, kind, cohort).run()
+    ON CONFLICT(submission_key) DO NOTHING`).bind(key, kind, scope).run()
   if (claimed.meta.changes !== 1) {
     const receipt = await db.prepare('SELECT state FROM form_submissions WHERE submission_key = ?').bind(key).first<{ state: string }>()
     if (receipt?.state === 'complete') return { duplicate: true }
@@ -72,6 +78,29 @@ export async function enregistrerCandidature(input: {
   }
 
   try {
+    if (!school) {
+      // The old code claimed a different key for each cohort. Do not bypass
+      // a timed-out write (even with no known parent ID) when changing scope.
+      // Read cohort IDs from D1 itself so deleted/inactive cohorts are covered.
+      const legacy = await db.prepare(`SELECT submission_key, cohort_id, state, parent_id, record_id
+        FROM form_submissions WHERE form_type = 'formateur' AND cohort_id != 0`).bind().all<{
+          submission_key: string; cohort_id: number; state: string; parent_id: number | null; record_id: number | null
+        }>()
+      const keys = new Map<number, string>()
+      for (const receipt of legacy.results) {
+        if (!keys.has(receipt.cohort_id)) keys.set(receipt.cohort_id, await submissionKey(kind, identityParts, receipt.cohort_id))
+      }
+      const previous = legacy.results.filter(r => r.submission_key === keys.get(r.cohort_id))
+      if (previous.some(r => r.state !== 'complete')) {
+        throw new CandidatureError('verification', 'Previous cohort receipt needs reconciliation')
+      }
+      if (previous.length) {
+        parentId = previous[0].parent_id
+        recordId = previous[0].record_id
+        await trace('existing_receipt', 'complete')
+        return { duplicate: true }
+      }
+    }
     // Read all pages: NocoDB may clamp limit, and input is never interpolated
     // into its filter grammar. Do not select one of several ambiguous matches.
     const parents = await lireToutes(token, parentTable, school ? 'Id,nom,cp,ville' : 'Id,email')
@@ -83,7 +112,8 @@ export async function enregistrerCandidature(input: {
     if (parentId) {
       const rows = await lireToutes(token, childTable, `Id,${parentField},cohortes_id`)
       const paths = rows.filter(row => row[parentField] === parentId)
-      const existing = paths.filter(row => row.cohortes_id === cohort)
+      const existing = school ? paths.filter(row => row.cohortes_id === cohort) : paths
+      if (!school && existing.length > 1) throw new CandidatureError('verification', 'Multiple existing trainer applications')
       if (existing.length) {
         recordId = existing[0].Id
         await trace('existing', 'complete')
@@ -91,8 +121,10 @@ export async function enregistrerCandidature(input: {
       }
       // Historical imports include paths without a year. A public submission
       // cannot decide whether that is a previous year or the current dossier.
-      if (paths.some(row => !row.cohortes_id)) throw new CandidatureError('verification', 'Existing path without cohort')
+      if (school && paths.some(row => !row.cohortes_id)) throw new CandidatureError('verification', 'Existing path without cohort')
     }
+    if (!school) cohort = await cohorteActive(token)
+    if (!cohort) throw new CandidatureError('indisponible', 'Exactly one active cohort is required')
     if (!parentId) {
       await trace('creating_identity')
       mutationStarted = true

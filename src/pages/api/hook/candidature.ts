@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../../lib/brevo'
 import { modeApercu } from '../../../lib/forms'
+import { IMPORT_CANDIDATURE_VERSION, separerReprises } from '../../../lib/candidature-import'
 
 /**
  * Point d'arrivee du webhook NocoDB : appele a chaque nouvelle candidature.
@@ -15,6 +16,18 @@ import { modeApercu } from '../../../lib/forms'
  * la reponse et les logs indiquent explicitement que rien n'est parti.
  */
 export const prerender = false
+
+/** Authenticated, side-effect-free deployment preflight for the import runner. */
+export const GET: APIRoute = async ({ request, locals }) => {
+  if (modeApercu(request)) return new Response('indisponible en aperçu', { status: 404 })
+  const attendu = brevoEnv(locals).HOOK_SECRET
+  if (!attendu || request.headers.get('x-hook-secret') !== attendu) {
+    return new Response('non autorise', { status: 401 })
+  }
+  return Response.json({ historicalImportVersion: IMPORT_CANDIDATURE_VERSION }, {
+    headers: { 'Cache-Control': 'private, no-store' },
+  })
+}
 
 /** Envoie la notification si un transport est configure. Sinon le dit. */
 async function envoyer(e: ReturnType<typeof brevoEnv>, sujet: string, corps: string): Promise<'envoye' | 'pas-de-transport'> {
@@ -65,7 +78,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.log('[hook-candidature]', diag, brut.slice(0, 300))
     return new Response(diag, { status: 200 })
   }
-  const resume = lignes.map((r) => {
+  let selection: ReturnType<typeof separerReprises>
+  try {
+    selection = separerReprises(charge, lignes)
+  } catch {
+    console.error('[hook-candidature] reprise historique non reconnue')
+    return new Response('reprise historique non reconnue', { status: 422 })
+  }
+  if (!selection.nouvelles.length) {
+    console.log('[hook-candidature]', { etat: 'reprise-historique', nb: selection.reprises })
+    return new Response('reprise-historique', { status: 200 })
+  }
+  const resume = selection.nouvelles.map((r) => {
     const etab = (r.etablissement as { nom?: string } | undefined)?.nom ?? '(etablissement non relie)'
     return `• ${etab} — statut ${r.statut ?? '?'} — reçue le ${r.date_candidature ?? "aujourd'hui"}`
   })

@@ -78,7 +78,7 @@ const pleineLargeur = (c: Champ) =>
       {
         ok && (
           <p class="cand__ok" role="status">
-            {ok === 'deja' ? <><strong>Un dossier existe déjà pour cette année.</strong> Pour le compléter ou le reprendre, écrivez-nous à euneosequipe@gmail.com. Cet envoi n’a pas modifié votre dossier.</> : <>
+            {ok === 'deja' ? <><strong>{action === '/api/candidature-formateur' ? 'Votre candidature est déjà enregistrée.' : 'Un dossier existe déjà pour cette année.'}</strong> Pour compléter ou reprendre votre dossier, écrivez-nous à euneosequipe@gmail.com. Cet envoi n’a pas modifié votre dossier.</> : <>
               <strong>Candidature bien reçue.</strong> Notre équipe l’étudie et revient vers vous dans
               les prochaines semaines. {emailEnvoye
                 ? 'Un accusé de réception vient de vous être envoyé par e-mail.'

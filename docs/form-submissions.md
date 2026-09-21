@@ -1,14 +1,16 @@
 # Candidatures publiques : déduplication et reprise
 
 Les deux endpoints réutilisent `src/lib/candidature-store.ts`. Une soumission
-publique est unique pour une identité et une cohorte active. Pour une personne,
-la clé utilise son email normalisé ; pour un établissement, son nom, code postal
-et sa ville. Ce rapprochement ne prétend pas résoudre les alias ou changements
+publique formateur est unique pour un email normalisé, toutes cohortes confondues.
+Pour un établissement, elle reste unique par nom, code postal, ville et cohorte
+active. Ce rapprochement ne prétend pas résoudre les alias ou changements
 d’adresse. Le suivi des reprises de formation reste une opération de l’équipe.
 
 Le registre Cloudflare D1 `euneos-form-submissions`, binding `FORM_SUBMISSIONS`,
 contient uniquement une clé SHA-256, le type de formulaire, la cohorte, les IDs
-NocoDB, l’état, l’étape et les dates techniques. Il ne duplique ni coordonnées,
+NocoDB, l’état, l’étape et les dates techniques. Pour les nouveaux reçus formateurs,
+`cohort_id = 0` désigne la portée permanente de la clé, jamais une cohorte NocoDB.
+Il ne duplique ni coordonnées,
 ni réponses du formulaire. Il est accessible uniquement au serveur.
 
 Un INSERT avec clé primaire arbitre les requêtes simultanées entre Workers.
@@ -17,10 +19,21 @@ Il n’y a pas de verrou mémoire, ni d’expiration qui relancerait une écritu
 NocoDB dont la réponse s’est perdue. Les appels SQL utilisent des paramètres.
 
 Avant de créer, la lecture paginée de NocoDB cherche une identité et un parcours
-existant dans l’année. Les doublons d’identité et parcours sans cohorte passent
-à la vérification humaine. Une absence de cohorte active, ou plusieurs cohortes
-actives, refuse la création. Une année différente peut avoir un nouveau parcours.
+existant. Un unique parcours formateur est reconnu quelle que soit sa cohorte,
+même absente, sans réaffecter sa session ni ses validations. Plusieurs identités
+ou parcours formateurs passent à la vérification humaine. Pour les établissements,
+le contrôle reste annuel et un parcours sans cohorte nécessite une vérification.
+Une absence de cohorte active, ou plusieurs cohortes actives, refuse toute
+nouvelle création, mais ne bloque pas la reconnaissance d'un formateur existant.
+Une nouvelle année autorise une nouvelle participation établissement seulement.
 Aucun statut existant n’est écrasé par une nouvelle soumission.
+
+Les anciens reçus formateurs par cohorte sont également contrôlés avant toute
+création : leurs clés sont recalculées pour l'email soumis, à partir des cohortes
+conservées dans D1 (y compris une cohorte retirée depuis de NocoDB). Un ancien
+reçu `processing` ou `review` bloque la demande même si son ID métier est inconnu.
+Un reçu `complete` empêche un nouvel enregistrement et un nouvel accusé. Aucun
+reçu historique n'est supprimé ou modifié lors de ce changement de portée.
 
 Après création, les liens identité/cohorte sont relus avant le succès. Le reçu
 est marqué `complete` avant l’accusé de réception Brevo : une répétition ne
@@ -59,8 +72,9 @@ bunx wrangler d1 execute euneos-form-submissions --remote --command "SELECT subm
   Relire les IDs connus dans NocoDB, leur année et leurs liens. Ne pas supprimer
   une identité en cascade, ni relancer aveuglément le POST initial.
 - Si l’ID d’une création est inconnu, utiliser sa fenêtre de création, puis
-  recalculer la clé avec les coordonnées de la fiche candidate et sa cohorte
-  (`submissionKey` dans le store) pour vérifier la correspondance.
+  recalculer la clé avec les coordonnées de la fiche candidate et la portée du
+  reçu (`cohort_id`, zéro pour la nouvelle clé formateur ; `submissionKey` dans
+  le store) pour vérifier la correspondance.
 - Quand le parcours et ses deux liens sont prouvés, réparer uniquement les liens
   manquants puis marquer le reçu `complete` avec les bons IDs. Une suppression
   du reçu n’est permise qu’après preuve qu’aucune écriture n’a eu lieu et qu’aucun
@@ -73,7 +87,8 @@ traitées par l’équipe ; elles ne justifient pas de supprimer l’historique.
 ## Vérification
 
 `bun run test` exécute les tests sur le schéma SQL réel avec SQLite et un serveur
-NocoDB simulé : concurrence, relecture, changement d’année, identité ambiguë,
+NocoDB simulé : concurrence, relecture, changement d’année distinct par type,
+reprise formateur sans cohorte, anciens reçus incertains, identité ambiguë,
 réponse perdue après écriture, lien non persisté et panne de lecture. Aucun email
 ni écriture dans la base métier ne part des tests. Compléter par le build Astro
 et les contrôles de formulaire sur la preview avant publication.
