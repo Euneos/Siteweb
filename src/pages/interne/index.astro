@@ -249,6 +249,14 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 autocomplete="off"
               />
             </div>
+            <div class="iw-field iw-field--wide" id="iw-daily-hours" hidden>
+              <input type="hidden" name="daily_hours" value="" />
+              <h3>Jours et heures</h3>
+              <p class="iw-small iw-muted">Choisissez les jours travaillés. Les notes ne programment pas le calendrier. Laissez le réalisé vide tant que les heures ne sont pas effectuées.</p>
+              <div id="iw-daily-controls"></div>
+              <p id="iw-daily-feedback" class="iw-feedback" role="status"></p>
+              <div id="iw-daily-rows"></div>
+            </div>
             <div class="iw-field iw-field--wide" id="iw-hours-field" hidden>
               <label for="iw-hours">Heures déclarées</label><input
                 id="iw-hours"

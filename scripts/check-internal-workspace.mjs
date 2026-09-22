@@ -13,6 +13,7 @@ const sql = new Database(':memory:')
 sql.exec(
   await readFile(new URL('../migrations/interne/0001_workspace.sql', import.meta.url), 'utf8'),
 )
+sql.exec(await readFile(new URL('../migrations/interne/0003_daily_hours.sql', import.meta.url), 'utf8'))
 let reads = 0,
   failDatabase = false
 const db = {
@@ -394,6 +395,40 @@ try {
   checks.push('browser-create-comment-xss-conflict-merge')
   checks.push('comparison-race-and-moved-month')
   await page.locator('#iw-close').click()
+  await page.locator('#iw-new').click()
+  await page.locator('#iw-title').fill('Planning quotidien de recette')
+  await page.locator('#iw-starts').fill('2026-09-01')
+  await page.locator('#iw-ends').fill('2026-09-30')
+  await page.getByRole('button', { name: 'Saisir les heures par jour', exact: true }).click()
+  await page.getByRole('button', { name: 'Prévoir 7 h les mardis et jeudis', exact: true }).click()
+  await page.getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true }).fill('3.5')
+  await page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true }).fill('8')
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  const dailyEntry = sql.query('SELECT * FROM workspace_entries WHERE title=?').get('Planning quotidien de recette')
+  assert.equal(dailyEntry.hours, 8)
+  assert.equal(JSON.parse(dailyEntry.daily_hours).length, 10)
+  await page.locator('#iw-close').click()
+  await page.reload()
+  await page.locator('[data-kind="equipe"]').click()
+  await page.locator('#iw-month').fill('2026-09')
+  await page.locator('#iw-month').press('Tab')
+  await expect(page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' })).toHaveCount(10)
+  await page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' }).first().click()
+  await expect(page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true })).toHaveValue('8')
+  await page.getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true }).fill('')
+  await page.getByRole('spinbutton', { name: 'Heures prévues le mercredi 2 septembre', exact: true }).fill('3.5')
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    assert(await page.evaluate(() => document.querySelector('#iw-editor').scrollWidth <= document.querySelector('#iw-editor').clientWidth + 1), `Daily editor overflow ${width}`)
+  }
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  const revised = JSON.parse(sql.query('SELECT daily_hours FROM workspace_entries WHERE id=?').get(dailyEntry.id).daily_hours)
+  assert(revised.some((row) => row.date === '2026-09-02' && row.planned === 3.5))
+  assert(!revised.some((row) => row.date === '2026-09-04'))
+  await page.locator('#iw-close').click()
+  checks.push('daily-planned-actual-reload-move-responsive')
   failDatabase = true
   await page.locator('#iw-refresh').click()
   await expect(page.locator('#iw-calendar-state')).toContainText(

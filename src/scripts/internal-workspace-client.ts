@@ -1,4 +1,6 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
+import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
+import { initDailyHours } from './daily-hours-editor'
 
 type Kind = Entry['kind']
 type EntryInput = Pick<
@@ -14,6 +16,7 @@ type EntryInput = Pick<
   | 'location'
   | 'status'
   | 'hours'
+  | 'daily_hours'
   | 'notes'
   | 'content'
   | 'link'
@@ -33,7 +36,8 @@ const labels: Record<Field, string> = {
   attendance: 'Présence / absence',
   location: 'Lieu',
   status: 'Statut de suivi',
-  hours: 'Heures',
+  hours: 'Heures réalisées',
+  daily_hours: 'Détail quotidien (prévu et réalisé)',
   notes: 'Notes & contexte',
   content: 'Texte du contenu',
   link: 'Lien associé',
@@ -189,7 +193,7 @@ const validCalendar = (data: CalendarData) => {
           field === 'hours'
             ? entry.hours !== null &&
               (typeof entry.hours !== 'number' || !Number.isFinite(entry.hours))
-            : typeof entry[field] !== 'string',
+            : field === 'daily_hours' && entry[field] === undefined ? false : typeof entry[field] !== 'string',
         ),
     ) ||
     data.totals.some(
@@ -232,6 +236,7 @@ function initCalendar(root: HTMLElement) {
   const mergeButton = byId<HTMLButtonElement>('iw-apply-merge')
   const input = (field: Field) =>
     form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  const dailyEditor = initDailyHours(form)
   let selected: Entry | null = null
   let editorKind: Kind = kind
   let savedSnapshot = ''
@@ -262,6 +267,7 @@ function initCalendar(root: HTMLElement) {
     status: input('status').value,
     hours:
       editorKind === 'equipe' && input('hours').value !== '' ? Number(input('hours').value) : null,
+    daily_hours: editorKind === 'equipe' ? input('daily_hours').value : '',
     notes: input('notes').value.trim(),
     content: input('content').value.trim(),
     link: input('link').value.trim(),
@@ -304,7 +310,8 @@ function initCalendar(root: HTMLElement) {
       statusSelect.add(option)
     }
     for (const field of fields)
-      input(field).value = entry[field] === null ? '' : String(entry[field])
+      input(field).value = entry[field] == null ? '' : String(entry[field])
+    dailyEditor.render(editorKind === 'equipe')
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
     byId('iw-location-field').hidden = editorKind !== 'equipe'
@@ -441,7 +448,10 @@ function initCalendar(root: HTMLElement) {
         ),
       )
       const person = node('span', 'iw-entry__person', entry.person)
-      if (entry.hours !== null) person.append(node('span', 'iw-entry__details', hours(entry.hours)))
+      if (entry.daily_hours) {
+        const rows = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!
+        person.append(node('span', 'iw-entry__details', `${hours(dailyTotal(rows, 'planned') ?? 0)} prévues · ${entry.hours === null ? 'Réalisé non renseigné' : `${hours(entry.hours)} réalisées`}`))
+      } else if (entry.hours !== null) person.append(node('span', 'iw-entry__details', hours(entry.hours)))
       open.append(node('span', 'iw-entry__date', dateRange(entry)), text, person, badge(entry))
       open.setAttribute(
         'aria-label',
@@ -482,7 +492,7 @@ function initCalendar(root: HTMLElement) {
       if (date === localDate()) time.setAttribute('aria-current', 'date')
       cell.append(time)
       const todayEntries = entries.filter(
-        (entry) => entry.starts_on <= date && entry.ends_on >= date,
+        (entry) => entryOccursOn(entry, date),
       )
       const events = node('div', 'iw-day__events')
       todayEntries.forEach((entry) => {
@@ -499,7 +509,12 @@ function initCalendar(root: HTMLElement) {
               entry.channel,
               attendanceLabels[entry.attendance],
               entry.location,
-              entry.hours !== null ? hours(entry.hours) : '',
+              entry.daily_hours
+                ? (() => {
+                    const day = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!.find((row) => row.date === date)!
+                    return [day.planned !== null ? `${hours(day.planned)} prévues` : '', day.actual !== null ? `${hours(day.actual)} réalisées` : 'Réalisé non renseigné'].filter(Boolean).join(' · ')
+                  })()
+                : entry.hours !== null ? `${hours(entry.hours)} sur la période` : '',
             ]
               .filter(Boolean)
               .join(' · '),
@@ -883,6 +898,7 @@ function initCalendar(root: HTMLElement) {
       }
     selected = { ...latestConflict }
     editorKind = selected.kind
+    dailyEditor.render(editorKind === 'equipe')
     conflictPending = false
     conflict.hidden = true
     mergeButton.hidden = true
@@ -905,6 +921,7 @@ function initCalendar(root: HTMLElement) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     if (saving || readOnly || conflictPending || comparing || !form.reportValidity()) return
+    if (!dailyEditor.validate()) return
     const entry = readForm()
     if (!entry.title || !entry.person) {
       feedback(saveFeedback, 'Renseignez un titre et une personne.', true)

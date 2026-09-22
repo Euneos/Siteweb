@@ -140,6 +140,14 @@ Le script vérifie les données et les commentaires avant écriture, conserve da
 
 Avant bascule : comparer fiches/commentaires et totaux par personne/mois, vérifier les sources non mappées, faire valider, sauvegarder l’existant et convenir d’un seul outil de saisie. Aucun historique existant n’a encore été importé.
 
+## Saisie quotidienne des heures — proposition du 22 septembre
+
+Avant de déployer cette version, appliquer `migrations/interne/0003_daily_hours.sql` dans l’environnement de préversion, puis dans celui de production uniquement après validation de l’aperçu. La migration ajoute une colonne vide aux anciennes fiches ; elle ne répartit ni ne modifie leurs totaux. Ne pas fusionner tant que cette préparation et la recette de préversion ne sont pas vérifiées. Le workflow de déploiement ne réalise pas cette migration automatiquement.
+
+Dans Équipe & heures, « Saisir les heures par jour » active le détail quotidien pour une période dans un même mois. Le préremplissage propose 7 h les mardis et jeudis sans remplacer les valeurs existantes. Chaque mercredi/vendredi dispose d’un raccourci 3 h 30. Les heures réalisées restent vides tant qu’elles ne sont pas saisies ; le total déclaré est calculé uniquement sur le réalisé. Les jours vides ne sont pas affichés. Une ancienne fiche reste en mode période jusqu’à sa conversion explicite ; la conversion avertit avant de remplacer un total non réparti. Les droits et la validation par un responsable restent identiques.
+
+Les tests unitaires couvrent la persistance, le déplacement d’une demi-journée, les dépassements, les dates invalides et la distinction prévu/réalisé. La recette compilée couvre aussi la saisie, le rechargement et l’affichage sur téléphone/ordinateur avec des données fictives.
+
 ## Vérification reproductible
 
 `bun run test`, `bun run build`, `bun scripts/check-internal-workspace.mjs` `bun scripts/check-internal-table.mjs` et `bun scripts/check-implantations.mjs`. Les recettes compilées utilisent exclusivement des identités signées locales et des données fictives ; aucun contournement d’authentification n’est embarqué dans le site. La CI conserve aussi les contrôles newsletter, mise en page, rythme et responsive des pages publiques.
