@@ -55,6 +55,7 @@ const filtre = ['bientot', 'dates', 'sans-date'].includes(
   : 'tous'
 const tri = Astro.url.searchParams.get('tri') === 'nom' ? 'nom' : 'debut'
 const dossiersAffiches = selectionnerDossiers(etat?.lignes ?? [], filtre, tri)
+const dossiersDatesAConfirmer = selectionnerDossiers(etat?.lignes ?? [], 'dates').length
 const colonnes = [
   'Candidature reçue',
   'Accusé de réception',
@@ -129,10 +130,19 @@ const colonnes = [
             <li>
               <>
                 <strong>{etat.lignes.filter((l) => l.commenceBientot).length}</strong>
-                <span>débuts dans les 30 jours</span>
+                <span>débuts dans les 30 jours · dates cohérentes</span>
+                <a href="/etat-candidatures?filtre=dates#formations">
+                  {dossiersDatesAConfirmer} dossier{dossiersDatesAConfirmer === 1 ? '' : 's'} aux
+                  dates à confirmer
+                </a>
               </>
             </li>
           </ul>
+
+          <p class="etat__legende">
+            Les dossiers aux dates à confirmer ne sont pas comptés parmi les débuts proches ; leur
+            échéance reste à vérifier.
+          </p>
 
           {etat.lignesAVerifier > 0 && (
             <p class="etat__note">
@@ -248,18 +258,24 @@ const colonnes = [
                             </strong>
                           </p>
                           {ligne.contact.receivedAt && (
-                            <p>Réponse du {dateFormationFr(ligne.contact.receivedAt)}</p>
-                          )}
-                          {((ligne.contact.formation.start &&
-                            ligne.contact.formation.start !== ligne.dateDebutFormation) ||
-                            (ligne.contact.formation.end &&
-                              ligne.contact.formation.end !== ligne.dateFinFormation)) && (
                             <p>
-                              Dates de la source : {dateFormationFr(ligne.contact.formation.start)}{' '}
-                              → {dateFormationFr(ligne.contact.formation.end)}. À rapprocher du
-                              dossier.
+                              Fiche contact reçue le {dateFormationFr(ligne.contact.receivedAt)}
                             </p>
                           )}
+                          {ligne.contact.formation.start &&
+                            ligne.contact.formation.start !== ligne.dateDebutFormation && (
+                              <p>
+                                Début déclaré (à confirmer) :{' '}
+                                {dateFormationFr(ligne.contact.formation.start)}
+                              </p>
+                            )}
+                          {ligne.contact.formation.end &&
+                            ligne.contact.formation.end !== ligne.dateFinFormation && (
+                              <p>
+                                Fin déclarée (à confirmer) :{' '}
+                                {dateFormationFr(ligne.contact.formation.end)}
+                              </p>
+                            )}
                           {ligne.contact.formation.format && (
                             <p>Format : {ligne.contact.formation.format}</p>
                           )}
@@ -496,6 +512,11 @@ const colonnes = [
   .etat__indicateurs strong {
     font-size: var(--t-chiffre);
     line-height: 1;
+  }
+  .etat__indicateurs a {
+    margin-top: 0.5rem;
+    font-size: var(--t-note);
+    text-decoration: underline;
   }
   .etat__indicateurs span {
     font-size: var(--t-note);

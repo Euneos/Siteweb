@@ -47,6 +47,10 @@ son identifiant et « nom non renseigné » ; elle n’est pas transformée en a
 
 Filtres GET : tous, commence dans les 30 jours, dates/provenance à vérifier, début
 non renseigné. Tri par début croissant (dates absentes/invalides en dernier) ou nom.
+Le compteur « débuts dans les 30 jours · dates cohérentes » est accompagné d’un
+lien chiffré vers les dossiers aux dates/provenances à confirmer. Ce second total
+est calculé sur toute la cohorte et ne présume pas que ces dossiers commencent
+bientôt.
 Le filtre imminent couvre aujourd’hui jusqu’à J+30 inclus, en jours calendaires à
 Paris, indépendamment des changements d’heure. Il exclut les candidatures abandonnées
 ou refusées, les formations terminées/annulées/abandonnées et les dates ou provenances
@@ -71,6 +75,8 @@ Les notes humaines sont préservées. Le producteur ajoute ou remplace **un seul
 ```
 
 `formation.start` et `formation.end` sont des dates ISO ou `null`. `receivedAt`
+représente la réception de la fiche contact, y compris lorsque la formation est validée
+par un déploiement ; le libellé reste « Fiche contact reçue le ». Ce champ
 accepte une date ISO, un timestamp ISO avec fuseau, ou `null` ; le rendu garde la date
 littérale (dix premiers caractères). `readAt` accepte les timestamps ISO avec fuseau
 et de une à six décimales, notamment ceux de Python. Les extensions telles que
@@ -84,7 +90,10 @@ Le parseur vérifie structure/version, dates, compteurs, lignes source et unicit
 bloc. Un bloc illisible/dupliqué produit une alerte explicite et sort le dossier du
 filtre imminent ; une note humaine sans bloc reste une note, sans preuve de réception.
 Les dates de source différentes de celles du dossier sont affichées séparément pour
-rapprochement. Elles ne remplacent jamais implicitement les dates NocoDB.
+rapprochement, sous les libellés « Début déclaré (à confirmer) » et « Fin déclarée
+(à confirmer) ». Même inversées, elles restent consultables ; les dates du dossier
+restent inchangées et les anomalies excluent le dossier du compteur de débuts proches.
+Elles ne remplacent jamais implicitement les dates NocoDB.
 
 ## Dix étapes, accessibles sous la vue opérationnelle
 

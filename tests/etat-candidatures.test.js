@@ -477,3 +477,57 @@ describe('Lecture opérationnelle complète', () => {
     expect(l.commenceBientot).toBe(false)
   })
 })
+
+test('le compteur des dates à confirmer inclut anomalies et provenance, sans présumer une échéance proche', () => {
+  const rows = [
+    {
+      id: 1,
+      etablissement: 'Alpha',
+      anomaliesDates: ['Date contradictoire'],
+      provenanceInvalide: false,
+      commenceBientot: false,
+    },
+    {
+      id: 2,
+      etablissement: 'Beta',
+      anomaliesDates: [],
+      provenanceInvalide: true,
+      commenceBientot: false,
+    },
+    {
+      id: 3,
+      etablissement: 'Gamma',
+      anomaliesDates: ['Date invalide'],
+      provenanceInvalide: true,
+      commenceBientot: false,
+    },
+    {
+      id: 4,
+      etablissement: 'Delta',
+      anomaliesDates: [],
+      provenanceInvalide: false,
+      commenceBientot: true,
+    },
+  ]
+  expect(selectionnerDossiers(rows, 'dates')).toHaveLength(3)
+  expect(selectionnerDossiers(rows, 'bientot')).toHaveLength(1)
+  expect(selectionnerDossiers(rows, 'dates').every((row) => !row.commenceBientot)).toBe(true)
+})
+
+test('une paire source inversée reste visible sans renseigner les dates du dossier ni devenir un début proche', async () => {
+  const c = source()
+  c.formation.start = '2026-10-08'
+  c.formation.end = '2026-04-08'
+  c.formation.issues = ['Fin antérieure au début : vérifier la réponse']
+  mockOperations({ dossiers: [{ Id: 1, etablissements_id: 7, cohortes_id: 2, notes: note(c) }] })
+  const {
+    lignes: [l],
+  } = await lireEtatCohorte('synthetic', new Date('2026-09-22T12:00:00Z'))
+  expect(l.dateDebutFormation).toBeNull()
+  expect(l.dateFinFormation).toBeNull()
+  expect(l.contact.formation.start).toBe('2026-10-08')
+  expect(l.contact.formation.end).toBe('2026-04-08')
+  expect(l.commenceBientot).toBe(false)
+  expect(selectionnerDossiers([l], 'dates')).toHaveLength(1)
+  expect(selectionnerDossiers([l], 'bientot')).toHaveLength(0)
+})

@@ -56,8 +56,8 @@ export const tables = {
       statut_formation: 'À préciser',
       notes: block({
         formation: {
-          start: null,
-          end: null,
+          start: '2026-10-08',
+          end: '2026-04-08',
           kind: 'previsionnelle',
           format: '',
           planning: '',

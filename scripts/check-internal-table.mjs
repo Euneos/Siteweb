@@ -88,6 +88,11 @@ assert.doesNotMatch(html, /synthetic-token/)
 assert.doesNotMatch(html, /ARCHIVE-NON-COURANTE/)
 assert.match(html, /member@example.test/)
 assert.match(html, /Participants recensés/)
+assert.match(html, /débuts dans les 30 jours · dates cohérentes/)
+assert.match(html, /1 dossier aux\s+dates à confirmer/)
+assert.doesNotMatch(html, /3 dossiers aux\s+dates à confirmer/)
+assert.match(html, /Fiche contact reçue le 21\/09\/2026/)
+assert.doesNotMatch(html, /Réponse du 21\/09\/2026/)
 assert.match(html, /01\/10\/2026/)
 assert.match(html, /01\/03\/2027/)
 assert.match(html, /Prévisionnelle/)
@@ -182,7 +187,35 @@ try {
       await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       `Expanded overflow at ${width}`,
     )
+    const uncertain = tab
+      .locator('.etat__dossier')
+      .filter({
+        has: tab.getByRole('heading', { name: 'École des dates à confirmer', exact: true }),
+      })
+    assert(
+      await uncertain
+        .getByText('Début déclaré (à confirmer) : 08/10/2026', { exact: true })
+        .isVisible(),
+    )
+    assert(
+      await uncertain
+        .getByText('Fin déclarée (à confirmer) : 08/04/2026', { exact: true })
+        .isVisible(),
+    )
+    assert.deepEqual(
+      (await uncertain.locator('.etat__dates dd').allTextContents())
+        .slice(0, 2)
+        .map((t) => t.trim()),
+      ['Non renseignée', 'Non renseignée'],
+    )
+    assert.equal(await uncertain.getByText('Début dans les 30 jours', { exact: true }).count(), 0)
     await tab.locator('.etat__progression > summary').click()
+    assert.equal(
+      await tab
+        .getByRole('link', { name: '1 dossier aux dates à confirmer', exact: true })
+        .getAttribute('href'),
+      '/etat-candidatures?filtre=dates#formations',
+    )
     assert.equal(await tab.locator('thead tr').count(), 2)
     assert.equal(await tab.locator('thead tr').last().locator('th').count(), 10)
     assert.equal(await tab.locator('tbody tr').first().locator('td').count(), 10)
@@ -192,6 +225,7 @@ try {
       await tab.screenshot({ path: `${output}/page-${width}.png` })
       await tab.locator('.etat').screenshot({ path: `${output}/tableau-${width}.png` })
       await card.screenshot({ path: `${output}/dossier-${width}.png` })
+      await uncertain.screenshot({ path: `${output}/dates-a-confirmer-${width}.png` })
     }
     await tab.getByRole('combobox', { name: /Afficher/ }).selectOption('bientot')
     await tab.getByRole('button', { name: 'Appliquer', exact: true }).click()
@@ -202,6 +236,15 @@ try {
       await tab
         .locator('.etat__dossier')
         .getByText('Collège de démonstration', { exact: true })
+        .isVisible(),
+    )
+    await tab.getByRole('link', { name: '1 dossier aux dates à confirmer', exact: true }).click()
+    await tab.waitForURL('**/etat-candidatures?filtre=dates#formations')
+    assert.equal(await tab.locator('.etat__dossier').count(), 1)
+    assert(
+      await tab
+        .locator('.etat__dossier')
+        .getByText('École des dates à confirmer', { exact: true })
         .isVisible(),
     )
     console.log(`Tableau compilé : ${width}px OK`)
