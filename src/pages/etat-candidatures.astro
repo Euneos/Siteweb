@@ -2,7 +2,12 @@
 import InternalLayout from '../layouts/InternalLayout.astro'
 import { readInternalIdentity } from '../lib/internal-access'
 import { jeton } from '../lib/nocodb'
-import { lireEtatCohorte, type EtatCohorte } from '../lib/etat-candidatures'
+import {
+  lireEtatCohorte,
+  selectionnerDossiers,
+  dateFormationFr,
+  type EtatCohorte,
+} from '../lib/etat-candidatures'
 
 export const prerender = false
 
@@ -43,20 +48,36 @@ const formatActualisation = (date: Date) =>
     timeZone: 'Europe/Paris',
   }).format(date)
 
-const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & décision', 'Sélectionné', 'Lettre signée', 'Fiche contact', 'Formateur désigné', 'Organisation', 'Formations & suivi', 'Ateliers & évaluation']
+const filtre = ['bientot', 'dates', 'sans-date'].includes(
+  Astro.url.searchParams.get('filtre') ?? '',
+)
+  ? Astro.url.searchParams.get('filtre')!
+  : 'tous'
+const tri = Astro.url.searchParams.get('tri') === 'nom' ? 'nom' : 'debut'
+const dossiersAffiches = selectionnerDossiers(etat?.lignes ?? [], filtre, tri)
+const dossiersDatesAConfirmer = selectionnerDossiers(etat?.lignes ?? [], 'dates').length
+const colonnes = [
+  'Candidature reçue',
+  'Accusé de réception',
+  'Analyse & décision',
+  'Sélectionné',
+  'Lettre signée',
+  'Fiche contact',
+  'Formateur désigné',
+  'Organisation',
+  'Formations & suivi',
+  'Ateliers & évaluation',
+]
 ---
 
-<InternalLayout
-  title="État des candidatures 2026–2027"
-  current="suivi"
-  identity={identity}
->
+<InternalLayout title="État des candidatures 2026–2027" current="suivi" identity={identity}>
   <div class="iw-intro">
     <div class="iw-intro__text">
       <p class="iw-eyebrow">Suivi des établissements</p>
       <h1>État des candidatures<br />Cohorte 2026–2027</h1>
       <p>
-        Données lues directement dans la base EUNEOS. Cette page n’effectue aucune modification.
+        Dates de formation, affectations et participants de la cohorte. Les informations manquantes
+        restent à compléter dans le suivi EUNEOS.
       </p>
     </div>
   </div>
@@ -65,10 +86,17 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     <div class="etat__entete">
       <div>
         <h2 id="synthese">Vue d’ensemble</h2>
-        {etat && <p class="etat__actualisation">Actualisé le {formatActualisation(etat.actualiseLe)}</p>}
+        {
+          etat && (
+            <p class="etat__actualisation">
+              Base consultée le {formatActualisation(etat.actualiseLe)}
+            </p>
+          )
+        }
       </div>
       <p class="etat__confidentialite">
-        Accès réservé aux membres autorisés. Les informations sont relues à chaque ouverture ; actualisez la page pour obtenir la dernière version.
+        Accès réservé aux membres autorisés. Les informations sont relues à chaque ouverture ;
+        actualisez la page pour obtenir la dernière version.
       </p>
     </div>
 
@@ -81,53 +109,356 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
       ) : (
         <>
           <ul class="etat__indicateurs" aria-label="Indicateurs de la cohorte 2026–2027">
-            <li><strong>{etat.etablissementsDistincts}</strong><span>établissements distincts</span></li>
-            <li><strong>{etat.lignes.length}</strong><span>lignes de candidature</span></li>
-            <li><strong>{etat.lignesAVerifier}</strong><span>lignes à vérifier</span></li>
+            <li>
+              <>
+                <strong>{etat.etablissementsDistincts}</strong>
+                <span>établissements distincts</span>
+              </>
+            </li>
+            <li>
+              <>
+                <strong>{etat.lignes.length}</strong>
+                <span>dossiers courants</span>
+              </>
+            </li>
+            <li>
+              <>
+                <strong>{etat.lignesAVerifier}</strong>
+                <span>dossiers à rapprocher</span>
+              </>
+            </li>
+            <li>
+              <>
+                <strong>{etat.lignes.filter((l) => l.commenceBientot).length}</strong>
+                <span>débuts dans les 30 jours · dates cohérentes</span>
+                <a href="/etat-candidatures?filtre=dates#formations">
+                  {dossiersDatesAConfirmer} dossier{dossiersDatesAConfirmer === 1 ? '' : 's'} aux
+                  dates à confirmer
+                </a>
+              </>
+            </li>
           </ul>
+
+          <p class="etat__legende">
+            Les dossiers aux dates à confirmer ne sont pas comptés parmi les débuts proches ; leur
+            échéance reste à vérifier.
+          </p>
 
           {etat.lignesAVerifier > 0 && (
             <p class="etat__note">
-              « À vérifier » signale plusieurs dossiers pour un établissement, ou une liaison manquante. La vue conserve ces dossiers pour permettre leur rapprochement.
+              « Dossier à rapprocher » signale plusieurs dossiers pour un établissement, ou une
+              liaison manquante. La vue conserve ces dossiers pour permettre leur rapprochement.
             </p>
           )}
 
-          <p class="etat__legende">✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée. Une case vide ne signifie pas que l’action n’a pas eu lieu.</p>
-          <p class="etat__scroll-aide">Faites défiler le tableau horizontalement pour consulter les dix étapes.</p>
+          <section id="formations" class="etat__operations" aria-labelledby="titre-formations">
+            <div>
+              <h2 id="titre-formations">Préparer les formations</h2>
+              <p class="etat__legende">
+                Les dates sont celles renseignées dans le dossier. Une fiche contact donne des
+                prévisions ; les formateurs affectés proviennent des missions reliées.
+              </p>
+            </div>
+            <form class="etat__filtres" method="get" action="#formations">
+              <label>
+                Afficher
+                <select name="filtre">
+                  <option value="tous" selected={filtre === 'tous'}>
+                    Tous les dossiers
+                  </option>
+                  <option value="bientot" selected={filtre === 'bientot'}>
+                    Commence dans les 30 jours
+                  </option>
+                  <option value="dates" selected={filtre === 'dates'}>
+                    Dates ou provenance à vérifier
+                  </option>
+                  <option value="sans-date" selected={filtre === 'sans-date'}>
+                    Début non renseigné
+                  </option>
+                </select>
+              </label>
+              <label>
+                Trier par
+                <select name="tri">
+                  <option value="debut" selected={tri === 'debut'}>
+                    Date de début croissante
+                  </option>
+                  <option value="nom" selected={tri === 'nom'}>
+                    Nom de l’établissement
+                  </option>
+                </select>
+              </label>
+              <button class="iw-button" type="submit">
+                Appliquer
+              </button>
+              <a href="/etat-candidatures#formations">Réinitialiser</a>
+            </form>
+            <p class="etat__legende">
+              {dossiersAffiches.length} dossier(s) affiché(s) sur {etat.lignes.length}.
+              {filtre === 'bientot' &&
+                ' Du jour de consultation jusqu’à 30 jours inclus, selon les dates renseignées. Les dates contradictoires et les formations terminées ou annulées sont exclues.'}
+            </p>
+            {dossiersAffiches.length === 0 && (
+              <p class="etat__note">
+                Aucun dossier ne correspond à ce filtre. Une date absente ne permet pas de conclure
+                qu’aucun démarrage n’est prévu.
+              </p>
+            )}
+            <div class="etat__dossiers">
+              {dossiersAffiches.map((ligne) => (
+                <article class="etat__dossier" aria-labelledby={`dossier-${ligne.id}`}>
+                  <header class="etat__dossier-entete">
+                    <div>
+                      <h3 id={`dossier-${ligne.id}`}>{ligne.etablissement}</h3>
+                      <p class="etat__legende">
+                        {[ligne.typeEtablissement, ligne.ville, ligne.code]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+                    <div class="etat__badges">
+                      <span class="etat__badge">Candidature : {ligne.statut}</span>
+                      {ligne.commenceBientot && (
+                        <span class="etat__badge etat__badge--proche">Début dans les 30 jours</span>
+                      )}
+                      {ligne.aVerifier && (
+                        <span class="etat__verification">Dossier à rapprocher</span>
+                      )}
+                    </div>
+                  </header>
+                  <div class="etat__operation-grid">
+                    <section aria-label="Dates et organisation">
+                      <h4>Formation</h4>
+                      <dl class="etat__dates">
+                        <div>
+                          <dt>Début</dt>
+                          <dd>{dateFormationFr(ligne.dateDebutFormation)}</dd>
+                        </div>
+                        <div>
+                          <dt>Fin</dt>
+                          <dd>{dateFormationFr(ligne.dateFinFormation)}</dd>
+                        </div>
+                        <div>
+                          <dt>Statut de formation</dt>
+                          <dd>{ligne.statutFormation || 'Non renseigné'}</dd>
+                        </div>
+                      </dl>
+                      <p class="etat__legende">
+                        {ligne.ficheContactRecue
+                          ? 'Fiche contact reçue selon le suivi.'
+                          : 'Réception de la fiche contact non renseignée.'}
+                      </p>
+                      {ligne.contact && (
+                        <div class="etat__source">
+                          <p>
+                            <strong>
+                              {ligne.contact.formation.kind === 'deploiement'
+                                ? 'Source : organisation du déploiement'
+                                : 'Source : fiche contact prévisionnelle'}
+                            </strong>
+                          </p>
+                          {ligne.contact.receivedAt && (
+                            <p>
+                              Fiche contact reçue le {dateFormationFr(ligne.contact.receivedAt)}
+                            </p>
+                          )}
+                          {ligne.contact.formation.start &&
+                            ligne.contact.formation.start !== ligne.dateDebutFormation && (
+                              <p>
+                                Début déclaré (à confirmer) :{' '}
+                                {dateFormationFr(ligne.contact.formation.start)}
+                              </p>
+                            )}
+                          {ligne.contact.formation.end &&
+                            ligne.contact.formation.end !== ligne.dateFinFormation && (
+                              <p>
+                                Fin déclarée (à confirmer) :{' '}
+                                {dateFormationFr(ligne.contact.formation.end)}
+                              </p>
+                            )}
+                          {ligne.contact.formation.format && (
+                            <p>Format : {ligne.contact.formation.format}</p>
+                          )}
+                          {ligne.contact.formation.planning && (
+                            <p class="etat__planning">
+                              Planning déclaré : {ligne.contact.formation.planning}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                    <section aria-label="Formateurs du dossier">
+                      <h4>Formateurs affectés</h4>
+                      {ligne.formateurs.length ? (
+                        <ul>
+                          {ligne.formateurs.map((f) => (
+                            <li>{f.nom}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>Aucune affectation renseignée.</p>
+                      )}
+                      <p class="etat__legende">Missions non annulées reliées au dossier.</p>
+                      {ligne.contact?.declaredTrainers.length ? (
+                        <div class="etat__source">
+                          <h4>Déclarés dans la fiche</h4>
+                          <ul>
+                            {ligne.contact.declaredTrainers.map((nom) => (
+                              <li>{nom}</li>
+                            ))}
+                          </ul>
+                          <p>Cette déclaration ne confirme pas une affectation.</p>
+                        </div>
+                      ) : null}
+                    </section>
+                    <section aria-label="Participants adultes">
+                      <h4>Participants recensés</h4>
+                      <p>
+                        <strong>{ligne.adultesInscrits.length}</strong> personne(s) rattachée(s) au
+                        dossier.
+                      </p>
+                      {ligne.adultesInscrits.length ? (
+                        <details class="etat__participants">
+                          <summary>Voir les {ligne.adultesInscrits.length} participants</summary>
+                          <ul>
+                            {ligne.adultesInscrits.map((a) => (
+                              <li>
+                                {a.nom}
+                                {a.fonction && <span> · {a.fonction}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : (
+                        <p class="etat__legende">
+                          Aucun participant enregistré ici ; des listes peuvent encore être
+                          présentes dans les formulaires.
+                        </p>
+                      )}
+                      {ligne.contact?.participants.declared && (
+                        <p class="etat__source">
+                          Effectif ou liste déclaré(e) : {ligne.contact.participants.declared}
+                        </p>
+                      )}
+                      {ligne.contact?.participants.unresolved.length ? (
+                        <details class="etat__participants etat__source">
+                          <summary>
+                            {ligne.contact.participants.unresolved.length} identité(s) à compléter
+                          </summary>
+                          <ul>
+                            {ligne.contact.participants.unresolved.map((nom) => (
+                              <li>{nom}</li>
+                            ))}
+                          </ul>
+                          <p>Non comptées parmi les personnes rattachées ci-dessus.</p>
+                        </details>
+                      ) : null}
+                      <p class="etat__legende">
+                        Le recensement ne vaut pas validation de la formation. Le bilan des missions
+                        reste dans les étapes du suivi ci-dessous.
+                      </p>
+                    </section>
+                  </div>
+                  {(ligne.anomaliesDates.length > 0 || ligne.provenanceInvalide) && (
+                    <div class="etat__note">
+                      <strong>À vérifier avant de confirmer le planning</strong>
+                      <ul>
+                        {ligne.anomaliesDates.map((erreur) => (
+                          <li>{erreur}</li>
+                        ))}
+                      </ul>
+                      {ligne.provenanceInvalide && (
+                        <p>
+                          La provenance de la fiche est illisible ou ambiguë. Les dates du dossier
+                          doivent être vérifiées à la source.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
 
-          <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures, défilement horizontal possible">
-            <table class="etat__table">
-              <caption>Progression des établissements — cohorte 2026–2027</caption>
-              <thead>
-                <tr>
-                  <th class="etat__etablissement" scope="col" rowspan="2">Établissement</th>
-                  <th scope="colgroup" colspan="3">Étape 1 — Candidature</th>
-                  <th scope="colgroup" colspan="4">Étape 2 — Sélection & confirmation</th>
-                  <th scope="colgroup" colspan="3">Étapes 3 à 9 — Déploiement → Évaluation</th>
-                </tr>
-                <tr>{colonnes.map(titre => <th scope="col">{titre}</th>)}</tr>
-              </thead>
-              <tbody>
-                {etat.lignes.length === 0 && <tr><td colspan="11">Aucun dossier dans cette cohorte.</td></tr>}
-                {etat.lignes.map((ligne) => (
-                  <tr class:list={[ligne.aVerifier && 'is-a-verifier']}>
-                    <th scope="row">
-                      <span class="etat__nom">{ligne.etablissement}</span>
-                      <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
-                      {ligne.aVerifier && <span class="etat__verification">À vérifier</span>}
+          <details class="etat__progression">
+            <summary>Consulter les dix étapes de candidature et de suivi</summary>
+            <p class="etat__legende">
+              ✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée. Une
+              case vide ne signifie pas que l’action n’a pas eu lieu.
+            </p>
+            <p class="etat__scroll-aide">
+              Faites défiler le tableau horizontalement pour consulter les dix étapes.
+            </p>
+
+            <div
+              class="etat__table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Tableau des candidatures, défilement horizontal possible"
+            >
+              <table class="etat__table">
+                <caption>Progression des établissements — cohorte 2026–2027</caption>
+                <thead>
+                  <tr>
+                    <th class="etat__etablissement" scope="col" rowspan="2">
+                      Établissement
                     </th>
-                    {ligne.progression.map((cellule, index) => (
-                      <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`]}>
-                        <span aria-hidden="true">{cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
-                        <span class="etat__mobile-label">{colonnes[index]}</span>
-                        <small>{cellule.texte}</small>
-                      </td>
+                    <th scope="colgroup" colspan="3">
+                      Étape 1 — Candidature
+                    </th>
+                    <th scope="colgroup" colspan="4">
+                      Étape 2 — Sélection & confirmation
+                    </th>
+                    <th scope="colgroup" colspan="3">
+                      Étapes 3 à 9 — Déploiement → Évaluation
+                    </th>
+                  </tr>
+                  <tr>
+                    {colonnes.map((titre) => (
+                      <th scope="col">{titre}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {etat.lignes.length === 0 && (
+                    <tr>
+                      <td colspan="11">Aucun dossier dans cette cohorte.</td>
+                    </tr>
+                  )}
+                  {etat.lignes.map((ligne) => (
+                    <tr class:list={[ligne.aVerifier && 'is-a-verifier']}>
+                      <th scope="row">
+                        <span class="etat__nom">{ligne.etablissement}</span>
+                        <span class="etat__meta">
+                          {[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                        {ligne.aVerifier && (
+                          <span class="etat__verification">Dossier à rapprocher</span>
+                        )}
+                      </th>
+                      {ligne.progression.map((cellule, index) => (
+                        <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`]}>
+                          <span aria-hidden="true">
+                            {cellule.etat === 'fait'
+                              ? '✓'
+                              : cellule.etat === 'en-cours'
+                                ? '◔'
+                                : cellule.etat === 'abandon'
+                                  ? '×'
+                                  : '—'}
+                          </span>
+                          <span class="etat__mobile-label">{colonnes[index]}</span>
+                          <small>{cellule.texte}</small>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         </>
       )
     }
@@ -167,7 +498,7 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
   }
   .etat__indicateurs li {
@@ -181,6 +512,11 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
   .etat__indicateurs strong {
     font-size: var(--t-chiffre);
     line-height: 1;
+  }
+  .etat__indicateurs a {
+    margin-top: 0.5rem;
+    font-size: var(--t-note);
+    text-decoration: underline;
   }
   .etat__indicateurs span {
     font-size: var(--t-note);
@@ -226,10 +562,19 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     text-align: left;
     font-size: 1.08em;
   }
-  .etat__mobile-label { display: none; }
-  .etat__legende { font-size: var(--t-note); }
-  .etat__scroll-aide { font-size: var(--t-note); }
-  .etat__cellule--abandon { color: var(--vert); background: color-mix(in srgb, var(--orange) 12%, var(--papier)); }
+  .etat__mobile-label {
+    display: none;
+  }
+  .etat__legende {
+    font-size: var(--t-note);
+  }
+  .etat__scroll-aide {
+    font-size: var(--t-note);
+  }
+  .etat__cellule--abandon {
+    color: var(--vert);
+    background: color-mix(in srgb, var(--orange) 12%, var(--papier));
+  }
   .etat__table tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--papier) 72%, var(--blanc));
   }
@@ -269,8 +614,172 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     font-weight: 600;
     white-space: nowrap;
   }
+  .etat__operations,
+  .etat__dossiers {
+    display: grid;
+    gap: var(--s-lie);
+    min-width: 0;
+  }
+  .etat__operations {
+    margin-block: var(--s-titre);
+    scroll-margin-top: 1rem;
+  }
+  .etat__filtres {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--blanc);
+    border: 1px solid var(--iw-line);
+  }
+  .etat__filtres label {
+    display: grid;
+    gap: 0.4rem;
+    flex: 1 1 15rem;
+    min-width: 0;
+    font-size: var(--t-note);
+  }
+  .etat__filtres select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem;
+    font: inherit;
+    color: var(--vert);
+    border: 1px solid var(--iw-line);
+    background: var(--blanc);
+  }
+  .etat__filtres a {
+    padding-block: 0.65rem;
+    font-size: var(--t-note);
+    text-decoration: underline;
+  }
+  .etat__dossier {
+    border: 1px solid var(--iw-line);
+    background: var(--blanc);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .etat__dossier-entete {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bleu-clair);
+  }
+  .etat__dossier h3 {
+    font-size: var(--t-carte);
+  }
+  .etat__dossier h4 {
+    font-size: var(--t-note);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .etat__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: end;
+  }
+  .etat__badge {
+    padding: 0.3rem 0.65rem;
+    background: var(--blanc);
+    font-size: var(--t-note);
+  }
+  .etat__badge--proche {
+    background: var(--jaune-clair);
+    font-weight: 600;
+  }
+  .etat__operation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    font-size: var(--t-note);
+  }
+  .etat__operation-grid > section {
+    padding: 1.25rem;
+    min-width: 0;
+  }
+  .etat__operation-grid > section + section {
+    border-left: 1px solid var(--iw-line);
+  }
+  .etat__operation-grid p + p {
+    margin-top: 0.6rem;
+  }
+  .etat__dates {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .etat__dates > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 0.5rem;
+  }
+  .etat__dates dt {
+    color: var(--iw-muted);
+  }
+  .etat__dates dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  .etat__source {
+    margin-top: 1rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--iw-line);
+  }
+  .etat__planning {
+    white-space: pre-wrap;
+  }
+  .etat__dossier ul {
+    padding-left: 1.2rem;
+    margin-block: 0.5rem;
+  }
+  .etat__dossier li + li {
+    margin-top: 0.3rem;
+  }
+  .etat__participants summary,
+  .etat__progression > summary {
+    cursor: pointer;
+    padding-block: 0.7rem;
+    min-height: 44px;
+    font-weight: 600;
+  }
+  .etat__participants summary {
+    text-decoration: underline;
+  }
+  .etat__progression > summary {
+    font-size: var(--t-carte);
+  }
+  .etat__progression[open] > summary {
+    margin-bottom: var(--s-lie);
+  }
+  .etat__dossier .etat__note {
+    margin: 0 1.25rem 1.25rem;
+  }
+  @media (max-width: 1100px) {
+    .etat__dossier-entete {
+      flex-direction: column;
+    }
+    .etat__badges {
+      justify-content: start;
+    }
+    .etat__indicateurs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   @media (max-width: 860px) {
-    .etat__scroll-aide { display: none; }
+    .etat__operation-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .etat__operation-grid > section + section {
+      border-left: 0;
+      border-top: 1px solid var(--iw-line);
+    }
+
+    .etat__scroll-aide {
+      display: none;
+    }
     .etat__entete,
     .etat__indicateurs {
       grid-template-columns: 1fr;
@@ -278,17 +787,56 @@ const colonnes = ['Candidature reçue', 'Accusé de réception', 'Analyse & déc
     .etat__indicateurs li {
       min-height: 0;
     }
-    .etat__table-wrap { overflow: visible; border: 0; }
-    .etat__table { min-width: 0; }
-    .etat__table caption { display: block; padding-inline: 0; }
-    .etat__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-    .etat__table, .etat__table tbody, .etat__table tr { display: block; width: 100%; }
-    .etat__table tbody tr { border: 1px solid var(--vert); margin-bottom: 1.5rem; }
-    .etat__table th, .etat__table td { display: block; border: 0; overflow-wrap: anywhere; }
-    .etat__table tbody th { background: var(--bleu-clair); }
-    .etat__table td { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); text-align: left !important; border-top: 1px solid var(--papier); }
-    .etat__mobile-label { display: block; font-weight: 600; }
-    .etat__table small { grid-column: 2; opacity: 1; }
-
+    .etat__table-wrap {
+      overflow: visible;
+      border: 0;
+    }
+    .etat__table {
+      min-width: 0;
+    }
+    .etat__table caption {
+      display: block;
+      padding-inline: 0;
+    }
+    .etat__table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .etat__table,
+    .etat__table tbody,
+    .etat__table tr {
+      display: block;
+      width: 100%;
+    }
+    .etat__table tbody tr {
+      border: 1px solid var(--vert);
+      margin-bottom: 1.5rem;
+    }
+    .etat__table th,
+    .etat__table td {
+      display: block;
+      border: 0;
+      overflow-wrap: anywhere;
+    }
+    .etat__table tbody th {
+      background: var(--bleu-clair);
+    }
+    .etat__table td {
+      display: grid;
+      grid-template-columns: 1.5rem minmax(0, 1fr);
+      text-align: left !important;
+      border-top: 1px solid var(--papier);
+    }
+    .etat__mobile-label {
+      display: block;
+      font-weight: 600;
+    }
+    .etat__table small {
+      grid-column: 2;
+      opacity: 1;
+    }
   }
 </style>
