@@ -41,6 +41,59 @@ for (const route of routes) {
   assert.doesNotMatch(html[route], /<input[^>]*name="(?:participationId|schoolId|cohortId)"/)
 }
 
+// Failed GETs use the compiled public layout, preserving status and privacy.
+// The only stored-link fixture is expired; no transport or real credential is used.
+let expiredReads = 0, errorNetworkCalls = 0
+const expiredDb = { prepare(query) {
+  assert.match(query, /SELECT l\.target_id/)
+  return { bind() { return { async first() {
+    expiredReads++
+    return { target_id: 901, school_id: 902, cohort_id: 903, kind: 'contact', expires_at: 0, private_name: 'PRIVATE_LINK_CANARY' }
+  } } } }
+} }
+const expiredLocals = { runtime: { env: {
+  OPERATIONAL_FORMS_ENABLED: 'true', FORM_SUBMISSIONS: expiredDb, NOCODB_TOKEN: 'fixture-only-link-check',
+} } }
+const linkErrors = [
+  { label: 'preview-missing', url: 'http://localhost/suivi/fiche-contact', locals: {}, status: 404 },
+  { label: 'preview-invalid', url: 'http://localhost/suivi/fiche-contact?t=not-demo', locals: {}, status: 404 },
+  { label: 'missing', url: 'https://euneos.fr/suivi/fiche-contact', locals: expiredLocals, status: 403 },
+  { label: 'expired', url: `https://euneos.fr/suivi/fiche-contact?t=${'c'.repeat(64)}`, locals: expiredLocals, status: 403 },
+  { label: 'unavailable', url: 'https://euneos.fr/suivi/participants', locals: {}, status: 503 },
+  { label: 'unknown-kind', url: 'http://localhost/suivi/inconnu?t=demo', locals: {}, status: 404 },
+]
+const errorRealFetch = globalThis.fetch
+globalThis.fetch = async () => { errorNetworkCalls++; throw new Error('No external request allowed during failed GET tests') }
+try {
+  for (const fixture of linkErrors) {
+    const response = await app.render(new Request(fixture.url), { locals: fixture.locals })
+    assert.equal(response.status, fixture.status, fixture.label)
+    assert.match(response.headers.get('Content-Type'), /text\/html/)
+    assert.match(response.headers.get('Cache-Control'), /no-store/)
+    assert.match(response.headers.get('X-Robots-Tag'), /noindex/)
+    assert.equal(response.headers.get('Referrer-Policy'), 'no-referrer')
+    const body = await response.text(), main = body.match(/<main\b[^>]*>([\s\S]*?)<\/main>/)?.[1]
+    assert(main, 'Shared Base main content')
+    assert.match(body, /<header\b/)
+    assert.match(body, /<title>Lien à vérifier — EUNEOS<\/title>/)
+    assert.match(main, /<h1>Lien à vérifier<\/h1>/)
+    assert.match(main, /href="\/contact"[^>]*>Contacter l’équipe EUNEOS<\/a>/)
+    assert.match(main, fixture.status === 503 ? /momentanément indisponible/ : /invalide, expiré ou a été remplacé/)
+    assert.doesNotMatch(main, /<form\b|<input\b|of-context/)
+    assert.doesNotMatch(body, /PRIVATE_LINK_CANARY|fixture-only-link-check|Collège Exemple|Ville Exemple|"code":|c{64}/)
+    html[`error-${fixture.label}`] = body
+  }
+  assert.equal(expiredReads, 1, 'Only the expired-link lookup reads the simulated store')
+  assert.equal(errorNetworkCalls, 0, 'Invalid links never read private dossier data')
+  const apiError = await app.render(new Request('http://localhost/api/suivi/fiche-contact', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost' },
+    body: JSON.stringify({ token: 'not-demo' }),
+  }), { locals: {} })
+  assert.equal(apiError.status, 400)
+  assert.match(apiError.headers.get('Content-Type'), /application\/json/)
+  assert.equal(typeof (await apiError.json()).code, 'string', 'API errors remain JSON')
+} finally { globalThis.fetch = errorRealFetch }
+
 const { publicKey, privateKey } = await generateKeyPair('RS256')
 const jwk = { ...(await exportJWK(publicKey)), kid: 'fixture', alg: 'RS256', use: 'sig' }
 const env = {
@@ -146,6 +199,9 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url),
       path = url.pathname
+    if (path === '/__qa/link-error/expired') return new Response(html['error-expired'], {
+      status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    })
     if (path.startsWith('/api/suivi/')) {
       publicPosts.push(await request.clone().json())
       if (releasePublic) await releasePublic
@@ -226,6 +282,18 @@ try {
   })
   const page = await context.newPage()
   page.on('pageerror', (error) => errors.push(error.message))
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    const response = await page.goto(`${origin}/__qa/link-error/expired`)
+    assert.equal(response.status(), 403)
+    await expect(page.getByRole('banner')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Lien à vérifier' })).toBeVisible()
+    await expect(page.locator('main form,main input')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Contacter l’équipe EUNEOS', exact: true })).toHaveAttribute('href', '/contact')
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.evaluate(() => document.fonts.ready)
+    await page.screenshot({ path: `${output}/link-error-${width}.png` })
+  }
   const form = page.locator('#operational-form'),
     feedback = page.locator('#operational-feedback')
   const goto = async (route = 'fiche-contact') => {
@@ -552,6 +620,7 @@ try {
   assert.deepEqual(errors, [], 'No browser JavaScript errors')
   const report = {
     compiledPreviewValidation: routes,
+    compiledErrorPages: linkErrors.map(({label,status}) => ({label,status})),
     viewports: measures,
     publicPosts: publicPosts.length,
     linkPosts: linkPosts.length,

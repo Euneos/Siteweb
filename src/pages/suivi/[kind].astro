@@ -7,15 +7,23 @@ export const prerender = false
 Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
 Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
 Astro.response.headers.set('Referrer-Policy', 'no-referrer')
-const page = await getOperationalPageContext(Astro.request, Astro.locals, Astro.params.kind)
-if (page instanceof Response) return page
+const result = await getOperationalPageContext(Astro.request, Astro.locals, Astro.params.kind)
+const page = result instanceof Response ? null : result
+const errorStatus = result instanceof Response ? result.status : null
+if (errorStatus) Astro.response.status = errorStatus
+// Render a public message, never the JSON body or private context of a failed lookup.
+const errorMessage = errorStatus === 503
+  ? 'Ce formulaire est momentanément indisponible. Réessayez plus tard ou contactez l’équipe EUNEOS.'
+  : errorStatus === 409
+    ? 'Le dossier associé à ce lien a changé. Demandez un nouveau lien à l’équipe EUNEOS.'
+    : 'Ce lien est invalide, expiré ou a été remplacé. Demandez un nouveau lien à l’équipe EUNEOS.'
 const titles = {
   contact: 'Fiche contact',
   deploiement: 'Organisation de la formation',
   participants: 'Participants adultes',
 }
-const title = titles[page.kind]
-const route = page.kind === 'contact' ? 'fiche-contact' : page.kind
+const title = page ? titles[page.kind] : 'Lien à vérifier'
+const route = page?.kind === 'contact' ? 'fiche-contact' : page?.kind
 ---
 
 <Base
@@ -29,8 +37,9 @@ const route = page.kind === 'contact' ? 'fiche-contact' : page.kind
     <div class="of-intro">
       <p class="of-eyebrow">Programme WISE-UP</p>
       <h1>{title}</h1>
-      <p>Complétez les informations de votre établissement pour préparer la formation.</p>
+      <p>{page ? 'Complétez les informations de votre établissement pour préparer la formation.' : errorMessage}</p>
     </div>
+    {page ? (
     <div class="of-stack">
       {
         page.preview && (
@@ -313,6 +322,11 @@ const route = page.kind === 'contact' ? 'fiche-contact' : page.kind
         )
       }
     </div>
+    ) : (
+      <div class="of-actions">
+        <a class="cta cta--sm s-vert" href="/contact">Contacter l’équipe EUNEOS</a>
+      </div>
+    )}
   </section>
   <script src="../../scripts/operational-forms.ts"></script>
 </Base>
