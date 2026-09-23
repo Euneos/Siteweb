@@ -1,0 +1,54 @@
+---
+interface Props {
+  name: string
+  label: string
+  type?: 'text' | 'email' | 'tel' | 'date' | 'number' | 'textarea'
+  required?: boolean
+  hint?: string
+  maxLength?: number
+  min?: number
+  max?: number
+  step?: string
+}
+const {
+  name,
+  label,
+  type = 'text',
+  required = false,
+  hint,
+  maxLength = 500,
+  min,
+  max,
+  step = '1',
+} = Astro.props
+---
+
+<label class="of-field" for={`of-${name}`}>
+  <span>{label}{required ? ' *' : ' (facultatif)'}</span>
+  {
+    type === 'textarea' ? (
+      <textarea
+        id={`of-${name}`}
+        name={name}
+        rows="4"
+        maxlength={maxLength}
+        required={required}
+        aria-describedby={hint ? `of-help-${name}` : undefined}
+      />
+    ) : (
+      <input
+        id={`of-${name}`}
+        name={name}
+        type={type}
+        required={required}
+        maxlength={maxLength}
+        min={min}
+        max={max}
+        step={type === 'number' ? step : undefined}
+        autocomplete="off"
+        aria-describedby={hint ? `of-help-${name}` : undefined}
+      />
+    )
+  }
+  {hint && <small id={`of-help-${name}`}>{hint}</small>}
+</label>

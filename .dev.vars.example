@@ -19,3 +19,7 @@ INTERNAL_ADMIN_EMAILS=
 # Show the trial notice until the Notion migration is validated.
 INTERNAL_WORKSPACE_PREVIEW=
 # TEAM_WORKSPACE is a D1 binding, NOT a secret or the FORM_SUBMISSIONS registry.
+
+# Formulaires de suivi : activés en production via wrangler.toml.
+# Les previews ne valident que des données fictives, sans écriture ni email.
+OPERATIONAL_FORMS_ENABLED="false"

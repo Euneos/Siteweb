@@ -1,0 +1,106 @@
+---
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+import '../../styles/operational-forms.css'
+export const prerender = false
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+Astro.response.headers.set('Referrer-Policy', 'no-referrer')
+const access = await getInternalContext(Astro.request, Astro.locals, false)
+if (access instanceof Response) return access
+---
+
+<InternalLayout
+  title="Formulaires des établissements"
+  current="formulaires"
+  identity={access.identity}
+>
+  <div class="iw-intro">
+    <div class="iw-intro__text">
+      <p class="iw-eyebrow">Suivi des établissements</p>
+      <h1>Formulaires des établissements</h1>
+      <p>
+        Préparez le lien personnel d’un dossier, puis transmettez-le à la personne qui doit le
+        compléter.
+      </p>
+    </div><a class="iw-button" href="/etat-candidatures">Retour au suivi</a>
+  </div>
+  <div id="operational-links" class="of-stack">
+    <noscript
+      ><p class="of-feedback" role="alert">
+        Activez JavaScript pour consulter les réceptions et préparer un lien.
+      </p></noscript
+    >
+    <section class="iw-panel of-panel" aria-labelledby="link-title">
+      <h2 id="link-title">Préparer un lien</h2>
+      <p>
+        Un lien concerne un seul établissement, une cohorte et un formulaire. Il reste valable 90
+        jours et permet une seule validation. Aucun e-mail n’est envoyé depuis cette page. Le lien
+        est conservé dans le dossier : vous pouvez le retrouver et le copier ici.
+      </p>
+      <p class="of-note">
+        Créer un nouveau lien remplace le précédent lien non utilisé pour ce même dossier et ce même
+        formulaire. Les réponses déjà reçues sont conservées.
+      </p>
+      <form id="operational-link-form" class="of-stack">
+        <div class="of-grid">
+          <label class="of-field"
+            >Dossier de l’établissement<select name="participationId" required disabled
+              ><option value="">Chargement des dossiers…</option></select
+            ></label
+          >
+          <label class="of-field"
+            >Formulaire<select name="kind" required disabled>
+              <option value="contact">Fiche contact</option><option value="deploiement"
+                >Organisation de la formation</option
+              ><option value="participants">Participants adultes</option>
+            </select></label
+          >
+        </div>
+        <div class="of-actions">
+          <button type="submit" class="iw-button iw-button--primary" disabled>Créer le lien</button>
+        </div>
+      </form>
+      <p id="link-feedback" class="of-feedback" role="status" aria-live="polite" tabindex="-1">
+        Lecture des dossiers en cours…
+      </p>
+      <div id="link-result" class="of-stack" hidden>
+        <p><strong>Lien prêt à transmettre.</strong> <span id="link-expiration"></span></p>
+        <label class="of-field"
+          >Lien personnel<input
+            id="link-url"
+            type="text"
+            readonly
+            autocomplete="off"
+            spellcheck="false"
+          /></label
+        >
+        <div class="of-actions">
+          <button id="link-copy" type="button" class="iw-button">Copier le lien</button><span
+            id="copy-feedback"
+            role="status"
+            aria-live="polite"></span>
+        </div>
+        <p class="of-note">
+          Ce lien donne accès au formulaire du dossier. Partagez-le uniquement avec la personne
+          concernée.
+        </p>
+      </div>
+    </section>
+    <section class="iw-panel of-panel" aria-labelledby="receptions-title">
+      <div class="of-heading">
+        <div>
+          <h2 id="receptions-title">Réponses et vérifications</h2><p>
+            Retrouvez les 100 dernières tentatives de transmission et les dossiers qui demandent
+            l’attention de l’équipe. Pour le détail d’une réponse, consultez le suivi ou demandez à
+            l’agent EUNEOS de lire les notes du dossier.
+          </p>
+        </div><button type="button" id="links-refresh" class="iw-button">Actualiser</button>
+      </div>
+      <p id="submissions-feedback" class="of-feedback" role="status" aria-live="polite">
+        Lecture des réceptions en cours…
+      </p>
+      <div id="submissions-list" class="of-submissions" hidden></div>
+    </section>
+  </div>
+  <script src="../../scripts/operational-links.ts"></script>
+</InternalLayout>
