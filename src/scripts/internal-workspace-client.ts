@@ -34,7 +34,7 @@ const labels: Record<Field, string> = {
   location: 'Lieu',
   status: 'Statut de suivi',
   hours: 'Heures',
-  notes: 'Notes & contexte',
+  notes: 'Notes et inspirations',
   content: 'Texte du contenu',
   link: 'Lien associé',
 }
@@ -43,6 +43,7 @@ const statuses: Record<string, string> = {
   brouillon: 'Brouillon',
   a_valider: 'À valider',
   valide: 'Validé',
+  programme: 'Programmé',
   publie: 'Publié',
   annule: 'Annulé',
 }
@@ -349,7 +350,6 @@ function initCalendar(root: HTMLElement) {
     for (const [field, id] of [
       ['person', 'iw-people-options'],
       ['activity', 'iw-activities-options'],
-      ['channel', 'iw-channels-options'],
     ] as const) {
       const list = byId(id)
       list.replaceChildren(
