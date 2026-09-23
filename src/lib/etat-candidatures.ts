@@ -1,4 +1,5 @@
 import { NC, reconcilierActifs } from './nocodb'
+import { validContactSource } from './google-form-contact'
 
 const API = 'https://app.nocodb.com/api/v2'
 const COHORTE = { debut: 2026, fin: 2027, label: '2026–2027' } as const
@@ -487,14 +488,7 @@ export function lireSourceContact(notes?: string | null): {
       return invalide
     const { source: s, formation: f, participants: p } = c
     if (
-      !texte(s.spreadsheetId) ||
-      !s.spreadsheetId.trim() ||
-      !Array.isArray(s.rows) ||
-      !s.rows.length ||
-      s.rows.length > 500 ||
-      !s.rows.every((n) => Number.isSafeInteger(n) && n > 0) ||
-      new Set(s.rows).size !== s.rows.length ||
-      !isoTimestamp(s.readAt) ||
+      !validContactSource(s) ||
       !(dateNullable(c.receivedAt) || isoTimestamp(c.receivedAt)) ||
       !dateNullable(f.start) ||
       !dateNullable(f.end) ||

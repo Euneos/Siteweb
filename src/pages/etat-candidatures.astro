@@ -217,6 +217,7 @@ const colonnes = [
                       </p>
                     </div>
                     <div class="etat__badges">
+                      <a class="iw-button" href={`/interne/formulaires?dossier=${ligne.id}`}>Formulaires du dossier</a>
                       <span class="etat__badge">Candidature : {ligne.statut}</span>
                       {ligne.commenceBientot && (
                         <span class="etat__badge etat__badge--proche">Début dans les 30 jours</span>
