@@ -39,7 +39,7 @@ export class WorkspaceError extends Error {
     super(message)
   }
 }
-const statuses = ['brouillon', 'a_valider', 'valide', 'programme', 'publie', 'annule']
+const statuses = ['brouillon', 'a_valider', 'valide', 'programme', 'publie', 'annule', 'en_cours', 'a_creer', 'a_modifier']
 const text = (value: unknown, max: number, required = false): string => {
   if (typeof value !== 'string' || value.length > max || (required && !value.trim()))
     throw new WorkspaceError(400, 'Un champ est absent ou trop long.')
