@@ -10,6 +10,7 @@ const migration = readFileSync(
   new URL('../migrations/interne/0002_programme_status.sql', import.meta.url),
   'utf8',
 )
+const editorialMigration = readFileSync(new URL('../migrations/interne/0003_editorial_statuses.sql', import.meta.url), 'utf8')
 const tables = ['workspace_entries', 'workspace_comments', 'workspace_resources']
 const oldStatuses = ['brouillon', 'a_valider', 'valide', 'publie', 'annule']
 const connections = []
@@ -106,6 +107,29 @@ const structure = (db) =>
 // D1 wraps one migration in one transaction. Do the same with real SQLite,
 // leaving foreign_keys ON both during the migration and at the final commit.
 const apply = (db) => db.transaction(() => db.exec(migration))()
+
+test('les nouveaux statuts éditoriaux préservent les données et relations et permettent un retour transactionnel', () => {
+  const db = fixture()
+  apply(db)
+  const before = data(db)
+  const beforeStructure = structure(db)
+  const beforeSchema = schema(db)
+  expect(() => db.transaction(() => {
+    db.exec(editorialMigration)
+    db.exec("UPDATE workspace_entries SET status='inconnu' WHERE id='entry-0'")
+  })()).toThrow('CHECK')
+  expect(data(db)).toEqual(before)
+  expect(schema(db)).toEqual(beforeSchema)
+  db.transaction(() => db.exec(editorialMigration))()
+  expect(data(db)).toEqual(before)
+  expect(structure(db)).toEqual(beforeStructure)
+  expect(db.query('PRAGMA foreign_key_check').all()).toEqual([])
+  expect(db.query('PRAGMA integrity_check').all()).toEqual([{ integrity_check: 'ok' }])
+  for (const status of ['en_cours', 'a_creer', 'a_modifier', 'a_valider', 'programme', 'valide', 'publie']) {
+    db.query("UPDATE workspace_entries SET status=? WHERE id='entry-0'").run(status)
+    expect(db.query("SELECT status FROM workspace_entries WHERE id='entry-0'").get().status).toBe(status)
+  }
+})
 
 describe('Migration du statut Programmé sur une base existante', () => {
   test('conserve intégralement les fiches, imports, commentaires, ressources, index et clés étrangères', () => {

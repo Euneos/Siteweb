@@ -32,6 +32,12 @@ Références publiques du 17 septembre 2026 : [API communes](https://geo.api.gou
 
 ## Configuration et déploiement
 
+### Nouveaux statuts éditoriaux — préparation du 24 septembre
+
+`0003_editorial_statuses.sql` ajoute `en_cours`, `a_creer`, `a_modifier` sans convertir les valeurs historiques. Elle doit être appliquée après `0002`, en transaction et avec vérification des données, index et clés étrangères. Son application distante n'est pas réalisée par le workflow de déploiement du site et reste à vérifier sur la préversion puis la production avant publication de cette évolution. Ne pas annoncer l'enregistrement fonctionnel des nouveaux statuts sur ces environnements sans cette preuve.
+
+Le formulaire éditorial propose les sept statuts demandés ; un ancien statut reste sélectionnable sur la fiche qui le porte pour ne pas écraser sa valeur lors d'une autre correction. Date de publication remplace le libellé de début. La fin est masquée, conservée pour une ancienne période inchangée, ou alignée sur la publication lorsque celle-ci change. Les fiches équipe conservent leurs périodes.
+
 ### Statut Programmé — 24 septembre
 
 Le schéma courant comprend `0001_workspace.sql` puis
