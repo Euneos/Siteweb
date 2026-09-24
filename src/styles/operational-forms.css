@@ -1,0 +1,216 @@
+/* Scoped to the operational forms; existing public and internal rhythms remain intact. */
+.of-page {
+  max-width: 62rem;
+  margin-inline: auto;
+  padding-block: var(--s-bloc);
+}
+.of-intro {
+  display: grid;
+  gap: var(--s-lie);
+  margin-bottom: var(--s-titre);
+}
+.of-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--t-note);
+  font-weight: 600;
+}
+.of-stack {
+  display: grid;
+  gap: var(--s-lie);
+  min-width: 0;
+}
+.of-panel {
+  padding: var(--s-int);
+  display: grid;
+  gap: var(--s-lie);
+  background: var(--blanc);
+  border: 1px solid color-mix(in srgb, var(--vert) 20%, transparent);
+}
+.of-panel h2,
+.of-section legend {
+  font-size: var(--t-carte);
+  font-weight: 600;
+  color: var(--vert);
+}
+.of-section {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--s-lie);
+  min-width: 0;
+}
+.of-section + .of-section {
+  border-top: 1px solid color-mix(in srgb, var(--vert) 20%, transparent);
+  padding-top: var(--s-titre);
+  margin-top: var(--s-lie);
+}
+.of-section legend {
+  margin-bottom: var(--s-lie);
+}
+.of-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-lie);
+}
+.of-field {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: var(--t-note);
+  font-weight: 600;
+}
+.of-field input,
+.of-field select,
+.of-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--vert) 50%, transparent);
+  border-radius: 0;
+  background: var(--blanc);
+  color: var(--vert);
+  font: inherit;
+  /* The body token stays above 16px, preventing focus zoom on mobile Safari. */
+  font-size: var(--t-corps);
+  font-weight: 400;
+}
+.of-field input:focus-visible,
+.of-field select:focus-visible,
+.of-field textarea:focus-visible {
+  outline: 3px solid var(--vert);
+  outline-offset: 2px;
+}
+.of-field textarea {
+  resize: vertical;
+}
+#operational-links :is(input, select, textarea) {
+  font-size: var(--t-bio);
+}
+.of-field small,
+.of-note {
+  font-size: var(--t-note);
+  font-weight: 400;
+  color: var(--vert);
+}
+.of-context {
+  background: var(--bleu-clair);
+  padding: var(--s-int);
+  display: grid;
+  gap: 0.5rem;
+  font-size: var(--t-note);
+}
+.of-context strong {
+  font-size: var(--t-carte);
+  overflow-wrap: anywhere;
+}
+.of-feedback {
+  padding: 1rem;
+  font-size: var(--t-note);
+  background: var(--jaune-clair);
+  border-left: 4px solid var(--jaune);
+  overflow-wrap: anywhere;
+}
+.of-feedback.is-error {
+  border-color: var(--orange);
+}
+.of-feedback.is-ok {
+  background: var(--papier);
+  border-color: var(--vert);
+}
+.of-actions,
+.of-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.of-actions {
+  justify-content: start;
+}
+.of-actions button {
+  min-height: 44px;
+  white-space: normal;
+}
+.of-panel button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.of-consent {
+  display: flex;
+  gap: 0.75rem;
+  align-items: start;
+  font-size: var(--t-note);
+}
+.of-consent input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  accent-color: var(--vert);
+}
+.of-person {
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--vert) 20%, transparent);
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.of-person h3 {
+  font-size: var(--t-carte);
+}
+.of-person-remove {
+  font: inherit;
+  font-size: var(--t-note);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  padding: 0.6rem 0;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--vert);
+}
+.of-submissions {
+  display: grid;
+  gap: 1rem;
+}
+.of-submission {
+  border-top: 1px solid color-mix(in srgb, var(--vert) 20%, transparent);
+  padding-top: 1rem;
+  overflow-wrap: anywhere;
+}
+.of-submission h3 {
+  font-size: var(--t-note);
+  margin-bottom: 0.5rem;
+}
+.of-submission p {
+  font-size: var(--t-note);
+}
+.of-state {
+  font-weight: 600;
+}
+.of-panel [hidden],
+.of-page [hidden],
+#operational-links [hidden] {
+  display: none !important;
+}
+@media (max-width: 680px) {
+  .of-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .of-panel {
+    padding: 1.25rem;
+  }
+  .of-actions > .cta {
+    width: 100%;
+  }
+  .of-person {
+    padding: 1rem;
+  }
+  .of-heading {
+    align-items: start;
+  }
+}

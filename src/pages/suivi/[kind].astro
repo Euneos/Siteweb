@@ -1,0 +1,332 @@
+---
+import Base from '../../layouts/Base.astro'
+import Field from '../../components/OperationalField.astro'
+import { getOperationalPageContext } from '../../lib/operational-links'
+import '../../styles/operational-forms.css'
+export const prerender = false
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+Astro.response.headers.set('Referrer-Policy', 'no-referrer')
+const result = await getOperationalPageContext(Astro.request, Astro.locals, Astro.params.kind)
+const page = result instanceof Response ? null : result
+const errorStatus = result instanceof Response ? result.status : null
+if (errorStatus) Astro.response.status = errorStatus
+// Render a public message, never the JSON body or private context of a failed lookup.
+const errorMessage = errorStatus === 503
+  ? 'Ce formulaire est momentanément indisponible. Réessayez plus tard ou contactez l’équipe EUNEOS.'
+  : errorStatus === 409
+    ? 'Le dossier associé à ce lien a changé. Demandez un nouveau lien à l’équipe EUNEOS.'
+    : 'Ce lien est invalide, expiré ou a été remplacé. Demandez un nouveau lien à l’équipe EUNEOS.'
+const titles = {
+  contact: 'Fiche contact',
+  deploiement: 'Organisation de la formation',
+  participants: 'Participants adultes',
+}
+const title = page ? titles[page.kind] : 'Lien à vérifier'
+const route = page?.kind === 'contact' ? 'fiche-contact' : page?.kind
+---
+
+<Base
+  title={`${title} — EUNEOS`}
+  description="Complétez le suivi de votre établissement pour le programme WISE-UP."
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP</p>
+      <h1>{title}</h1>
+      <p>{page ? 'Complétez les informations de votre établissement pour préparer la formation.' : errorMessage}</p>
+    </div>
+    {page ? (
+    <div class="of-stack">
+      {
+        page.preview && (
+          <aside class="of-feedback">
+            <strong>Aperçu de démonstration.</strong> Utilisez uniquement des informations fictives.
+            Aucun enregistrement dans le suivi réel et aucun e-mail ne seront effectués.
+          </aside>
+        )
+      }
+      <div class="of-context" aria-label="Dossier concerné">
+        <strong>{page.context.schoolName}</strong>
+        <span>{page.context.city}</span><span>Cohorte {page.context.cohortLabel}</span>
+        <span>Ces informations identifient votre dossier et ne sont pas modifiables ici.</span>
+      </div>
+      {
+        page.state !== 'ready' ? (
+          <div class="of-feedback" role="status">
+            <h2>
+              {page.state === 'complete'
+                ? 'Réponse déjà reçue'
+                : 'Réponse en cours de vérification'}
+            </h2>
+            <p>
+              {page.state === 'complete'
+                ? 'Ce lien a déjà été utilisé. Pour corriger ou compléter votre réponse, demandez un nouveau lien à l’équipe EUNEOS.'
+                : 'L’équipe EUNEOS vérifie cette réponse. N’envoyez pas une nouvelle copie ; contactez l’équipe si vous devez apporter une correction.'}
+            </p>
+          </div>
+        ) : (
+          <div class="of-panel">
+            <p class="of-note">
+              Les champs marqués d’un astérisque sont obligatoires. Ce lien permet une seule
+              validation ; pour corriger ensuite votre réponse, demandez un nouveau lien à l’équipe.
+            </p>
+            <noscript>
+              <p class="of-feedback" role="alert">
+                Activez JavaScript pour envoyer ce formulaire. Votre saisie restera sur cette page
+                en cas d’erreur.
+              </p>
+            </noscript>
+            <form
+              id="operational-form"
+              class="of-stack"
+              method="post"
+              action={`/api/suivi/${route}`}
+              data-kind={page.kind}
+              data-preview={String(page.preview)}
+            >
+              <input type="hidden" name="token" value={page.token} />
+              <fieldset class="of-section">
+                <legend>Le référent principal</legend>
+                <div class="of-grid">
+                  <Field
+                    name="referentName"
+                    label="Nom et prénom du référent principal"
+                    required
+                    maxLength={300}
+                  />
+                  <Field
+                    name="referentEmail"
+                    label="E-mail du référent principal"
+                    type="email"
+                    required
+                    maxLength={254}
+                  />
+                </div>
+              </fieldset>
+              {page.kind === 'contact' && (
+                <fieldset class="of-section">
+                  <legend>Votre établissement</legend>
+                  <Field name="academy" label="Académie / territoire" required />
+                  <Field name="address" label="Adresse complète" required maxLength={1000} />
+                  <div class="of-grid">
+                    <Field name="postalCode" label="Code postal" required maxLength={30} />
+                    <label class="of-field">
+                      Type d’établissement *
+                      <select name="schoolType" required>
+                        <option value="">Choisir le type</option>
+                        <option>École primaire</option>
+                        <option>Collège</option>
+                        <option>Lycée général et technologique</option>
+                        <option>Lycée professionnel</option>
+                        <option>Autre</option>
+                      </select>
+                    </label>
+                  </div>
+                  <Field
+                    name="directionEmail"
+                    label="E-mail de la direction"
+                    type="email"
+                    required
+                    maxLength={254}
+                  />
+                  <label class="of-field">
+                    D’autres établissements seront-ils regroupés avec le vôtre pour cette formation
+                    ? *
+                    <select name="groupedSchools" required>
+                      <option value="">Choisir une réponse</option>
+                      <option value="false">Non</option>
+                      <option value="true">Oui</option>
+                    </select>
+                  </label>
+                  <Field
+                    name="associatedSchools"
+                    label="Si oui, précisez les établissements concernés"
+                    type="textarea"
+                    maxLength={3000}
+                  />
+                </fieldset>
+              )}
+              {page.kind !== 'participants' && (
+                <>
+                  <fieldset class="of-section">
+                    <legend>
+                      {page.kind === 'contact'
+                        ? 'Premières prévisions de formation'
+                        : 'Organisation retenue pour la formation'}
+                    </legend>
+                    {page.kind === 'contact' && (
+                      <p class="of-note">
+                        Indiquez les dates prévisionnelles. Si elles ne sont pas encore définies,
+                        contactez l’équipe EUNEOS avant de valider.
+                      </p>
+                    )}
+                    <div class="of-grid">
+                      <Field
+                        name="start"
+                        label={
+                          page.kind === 'contact'
+                            ? 'Date prévisionnelle de début de la formation'
+                            : 'Date de début prévue (première session)'
+                        }
+                        type="date"
+                        required={page.kind === 'contact'}
+                      />
+                      <Field
+                        name="end"
+                        label={
+                          page.kind === 'contact'
+                            ? 'Date prévisionnelle de fin de la formation'
+                            : 'Date de fin prévue (dernière session)'
+                        }
+                        type="date"
+                        required={page.kind === 'contact'}
+                      />
+                    </div>
+                    <label class="of-field">
+                      {page.kind === 'contact'
+                        ? 'Format envisagé pour la formation'
+                        : 'Modalité principale de la formation'}{' '}
+                      *
+                      <select name="format" required>
+                        <option value="">Choisir une modalité</option>
+                        <option>Présentiel</option>
+                        <option>Hybride</option>
+                      </select>
+                    </label>
+                    {page.kind === 'deploiement' && (
+                      <Field
+                        name="sessions"
+                        label="Nombre total de sessions prévues"
+                        type="number"
+                        min={1}
+                        max={1000}
+                        required
+                      />
+                    )}
+                    <Field
+                      name="planning"
+                      label={
+                        page.kind === 'contact'
+                          ? 'Planning détaillé de la formation, si connu'
+                          : 'Planning détaillé de la formation'
+                      }
+                      type="textarea"
+                      required={page.kind === 'deploiement'}
+                      maxLength={10000}
+                      hint="Une session par ligne : numéro ; date ; heure de début ; heure de fin ; nombre d’heures ; modalité ; remarque."
+                    />
+                  </fieldset>
+                  <fieldset class="of-section">
+                    <legend>
+                      {page.kind === 'contact'
+                        ? 'Formateurs identifiés (facultatif)'
+                        : 'Formateurs attribués'}
+                    </legend>
+                    <p class="of-note">
+                      {page.kind === 'contact'
+                        ? 'Si un formateur est déjà identifié, indiquez son nom et son e-mail. Sinon, EUNEOS vous proposera un formateur.'
+                        : 'Renseignez le nom et l’e-mail de chaque formateur attribué à la formation des adultes.'}
+                    </p>
+                    <p class="of-note">
+                      L’équipe vérifiera ces informations avant de confirmer l’affectation dans le
+                      suivi.
+                    </p>
+                    <div id="of-trainers" class="of-stack" />
+                    <div class="of-actions">
+                      <button
+                        id="of-add-trainer"
+                        type="button"
+                        class="cta cta--sm s-papier"
+                        disabled
+                      >
+                        Ajouter un formateur
+                      </button>
+                    </div>
+                    <p id="of-trainers-count" class="of-note" role="status" aria-live="polite" />
+                  </fieldset>
+                </>
+              )}
+              {page.kind !== 'deploiement' && (
+                <fieldset class="of-section">
+                  <legend>
+                    Adultes participant à la formation
+                    {page.kind === 'contact' ? ' (facultatif)' : ''}
+                  </legend>
+                  <p class="of-note">
+                    Renseignez les adultes de l’équipe éducative qui suivent la formation. Ce
+                    recensement ne vaut pas validation de leur formation.
+                  </p>
+                  <div id="of-participants" class="of-stack" />
+                  <div class="of-actions">
+                    <button id="of-add-person" type="button" class="cta cta--sm s-papier" disabled>
+                      Ajouter un adulte
+                    </button>
+                  </div>
+                  <p id="of-participants-count" class="of-note" role="status" aria-live="polite" />
+                </fieldset>
+              )}
+              {page.kind === 'deploiement' ? (
+                <>
+                  <label class="of-consent">
+                    <input type="checkbox" name="organizationConfirmed" required />
+                    <span>
+                      Je confirme que les informations transmises correspondent à l’organisation
+                      retenue pour le déploiement de WISE-UP dans l’établissement. *
+                    </span>
+                  </label>
+                  <label class="of-consent">
+                    <input type="checkbox" name="changesAcknowledged" required />
+                    <span>
+                      Je comprends que toute modification ultérieure devra être signalée afin de
+                      mettre à jour les relances et le suivi du programme. *
+                    </span>
+                  </label>
+                </>
+              ) : (
+                <label class="of-consent">
+                  <input type="checkbox" name="confirmed" required />
+                  <span>
+                    {page.kind === 'contact'
+                      ? 'Je confirme que les informations transmises sont correctes à ce stade et serviront à organiser le déploiement du programme WISE-UP dans l’établissement.'
+                      : 'Je confirme que cette liste correspond aux adultes participant à la formation dans le dossier indiqué.'}{' '}
+                    *
+                  </span>
+                </label>
+              )}
+              <p class="of-note">
+                Les informations sont destinées au suivi du programme par EUNEOS.{' '}
+                <a href="/politique-de-confidentialite">
+                  Consulter la politique de confidentialité
+                </a>
+                .
+              </p>
+              <div class="of-actions">
+                <button type="submit" class="cta cta--sm s-vert" disabled>
+                  Transmettre les informations
+                </button>
+              </div>
+            </form>
+            <p
+              id="operational-feedback"
+              class="of-feedback"
+              role="status"
+              aria-live="polite"
+              tabindex="-1"
+              hidden
+            />
+          </div>
+        )
+      }
+    </div>
+    ) : (
+      <div class="of-actions">
+        <a class="cta cta--sm s-vert" href="/contact">Contacter l’équipe EUNEOS</a>
+      </div>
+    )}
+  </section>
+  <script src="../../scripts/operational-forms.ts"></script>
+</Base>

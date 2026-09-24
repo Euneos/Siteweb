@@ -18,6 +18,7 @@ BREVO_LIST_ENJEUX = "9"
 # Adresse publique de réception des demandes du formulaire de contact.
 CONTACT_EMAIL = "euneosequipe@gmail.com"
 INTERNAL_WORKSPACE_IMPORT_PENDING = "true"
+OPERATIONAL_FORMS_ENABLED = "true"
 
 # Registre technique des soumissions : clés hachées et IDs, aucun contenu métier.
 [[d1_databases]]
@@ -39,6 +40,7 @@ BREVO_LIST_FORMATEUR = "6"
 BREVO_LIST_ENJEUX = "9"
 CONTACT_EMAIL = "euneosequipe@gmail.com"
 INTERNAL_WORKSPACE_PREVIEW = "true"
+OPERATIONAL_FORMS_ENABLED = "false"
 
 [[env.preview.d1_databases]]
 binding = "FORM_SUBMISSIONS"

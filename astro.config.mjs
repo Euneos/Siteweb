@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 
 const site = process.env.SITE_URL ?? 'https://euneos.fr'
-const pagesHorsSitemap = ['/style-guide', '/etat-candidatures', '/interne']
+const pagesHorsSitemap = ['/style-guide', '/etat-candidatures', '/interne', '/suivi']
 
 export default defineConfig({
   site,

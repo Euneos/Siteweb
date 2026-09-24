@@ -5,7 +5,7 @@ import { internalEnvironment } from '../lib/internal-context'
 
 interface Props {
   title: string
-  current: 'calendrier' | 'suivi' | 'ressources' | 'catalogue' | 'implantations'
+  current: 'calendrier' | 'suivi' | 'ressources' | 'catalogue' | 'implantations' | 'formulaires'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
 }
@@ -75,6 +75,9 @@ const importPending = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_IMPOR
             </a>
           )
         }
+        {teamAccess && (
+          <a href="/interne/formulaires" aria-current={current === 'formulaires' ? 'page' : undefined}>Formulaires</a>
+        )}
         <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
           >Ressources formateurs</a
         >
