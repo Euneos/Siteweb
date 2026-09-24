@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   saveEntry,
   listEntries,
@@ -16,9 +16,12 @@ const connections = []
 const fixture = () => {
   const sql = new Database(':memory:')
   connections.push(sql)
-  sql.exec(
-    readFileSync(new URL('../migrations/interne/0001_workspace.sql', import.meta.url), 'utf8'),
-  )
+  sql.exec('PRAGMA foreign_keys = ON')
+  const migrations = new URL('../migrations/interne/', import.meta.url)
+  for (const file of readdirSync(migrations)
+    .filter((name) => /^\d.*\.sql$/.test(name))
+    .sort())
+    sql.transaction(() => sql.exec(readFileSync(new URL(file, migrations), 'utf8')))()
   const db = {
     prepare(query) {
       return {
@@ -57,6 +60,39 @@ const entry = (extra = {}) => ({
 })
 
 describe('Calendriers et commentaires persistants', () => {
+  test('le statut Programmé persiste dans le schéma SQL migré, sans effacer canal et activité historiques', async () => {
+    const { db, sql } = fixture()
+    const initial = entry({
+      kind: 'editorial',
+      channel: 'Réseau historique',
+      activity: 'Communication',
+      hours: null,
+    })
+    const id = await saveEntry(db, actor, initial)
+    await saveEntry(
+      db,
+      actor,
+      { ...initial, status: 'programme', notes: 'Contenu planifié' },
+      id,
+      1,
+    )
+    const [saved] = await listEntries(db, '2026-09', 'editorial')
+    expect(saved).toMatchObject({
+      id,
+      status: 'programme',
+      channel: 'Réseau historique',
+      activity: 'Communication',
+      notes: 'Contenu planifié',
+      version: 2,
+    })
+    expect(sql.query('SELECT status,channel FROM workspace_entries WHERE id=?').get(id)).toEqual({
+      status: 'programme',
+      channel: 'Réseau historique',
+    })
+    expect(() =>
+      sql.query("UPDATE workspace_entries SET status='inconnu' WHERE id=?").run(id),
+    ).toThrow()
+  })
   test('une même adresse ne divise pas les totaux selon sa casse ; un congé sans heures peut traverser un mois', async () => {
     const { db } = fixture()
     await saveEntry(db, admin, entry({ person: 'MEMBER@example.test', hours: 2 }))

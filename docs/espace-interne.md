@@ -32,6 +32,27 @@ Références publiques du 17 septembre 2026 : [API communes](https://geo.api.gou
 
 ## Configuration et déploiement
 
+### Statut Programmé — 24 septembre
+
+Le schéma courant comprend `0001_workspace.sql` puis
+`0002_programme_status.sql`. Cette seconde migration a été appliquée et relue
+sur les bases de préversion et de production avant la publication du nouveau
+statut. Ne pas la rejouer sur ces bases : vérifier d'abord le `CHECK` de
+`workspace_entries` dans `sqlite_schema`. Les sauvegardes et reçus d'exécution
+restent dans le dossier d'exploitation privé.
+
+Sur une nouvelle base, appliquer les deux fichiers dans l'ordre, chacun dans
+une transaction. `0002` conserve tous les champs, commentaires, ressources,
+index et clés étrangères ; seul `programme` s'ajoute aux statuts autorisés.
+D1 fournit la transaction implicite : transmettre le fichier entier sans
+désactiver les clés étrangères, puis comparer les données avant/après et
+exécuter `PRAGMA foreign_key_check`. Les tests SQLite et D1 local couvrent
+aussi l'annulation complète en cas d'erreur.
+
+Le menu Canal propose LinkedIn, Newsletter et Site. Une valeur historique
+différente reste visible et conservée jusqu'à son remplacement explicite.
+L'activité est masquée dans la fiche sans effacer sa valeur enregistrée.
+
 ### Publication du 21 septembre
 
 La configuration de production lie désormais `TEAM_WORKSPACE` à la base européenne
