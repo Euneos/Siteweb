@@ -34,7 +34,7 @@ const labels: Record<Field, string> = {
   location: 'Lieu',
   status: 'Statut de suivi',
   hours: 'Heures',
-  notes: 'Notes & contexte',
+  notes: 'Notes et inspirations',
   content: 'Texte du contenu',
   link: 'Lien associé',
 }
@@ -43,6 +43,7 @@ const statuses: Record<string, string> = {
   brouillon: 'Brouillon',
   a_valider: 'À valider',
   valide: 'Validé',
+  programme: 'Programmé',
   publie: 'Publié',
   annule: 'Annulé',
 }
@@ -232,6 +233,21 @@ function initCalendar(root: HTMLElement) {
   const mergeButton = byId<HTMLButtonElement>('iw-apply-merge')
   const input = (field: Field) =>
     form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  const writeField = (field: Field, value: EntryInput[Field]) => {
+    const control = input(field)
+    const text = value === null ? '' : String(value)
+    if (field === 'channel' && control instanceof HTMLSelectElement) {
+      // Imported free-text channels must survive edits and conflict resolution.
+      // Keep only the current record's legacy option, never add it to new records.
+      control.querySelectorAll('option[data-legacy-channel]').forEach((option) => option.remove())
+      if (text && ![...control.options].some((option) => option.value === text)) {
+        const option = new Option(`${text} (ancien canal)`, text)
+        option.dataset.legacyChannel = 'true'
+        control.add(option)
+      }
+    }
+    control.value = text
+  }
   let selected: Entry | null = null
   let editorKind: Kind = kind
   let savedSnapshot = ''
@@ -303,8 +319,7 @@ function initCalendar(root: HTMLElement) {
       if (editorKind === 'equipe' && !identity.admin && value === 'valide') option.disabled = true
       statusSelect.add(option)
     }
-    for (const field of fields)
-      input(field).value = entry[field] === null ? '' : String(entry[field])
+    for (const field of fields) writeField(field, entry[field])
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
     byId('iw-location-field').hidden = editorKind !== 'equipe'
@@ -349,7 +364,6 @@ function initCalendar(root: HTMLElement) {
     for (const [field, id] of [
       ['person', 'iw-people-options'],
       ['activity', 'iw-activities-options'],
-      ['channel', 'iw-channels-options'],
     ] as const) {
       const list = byId(id)
       list.replaceChildren(
@@ -879,7 +893,7 @@ function initCalendar(root: HTMLElement) {
     for (const choice of choices)
       if (choice.value === 'current') {
         const field = choice.dataset.field as Field
-        input(field).value = latestConflict[field] === null ? '' : String(latestConflict[field])
+        writeField(field, latestConflict[field])
       }
     selected = { ...latestConflict }
     editorKind = selected.kind

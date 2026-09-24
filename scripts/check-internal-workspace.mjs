@@ -10,9 +10,12 @@ import { chromium, expect } from '@playwright/test'
 const output = process.env.CHECK_SCREENSHOTS ?? '/tmp/euneos-internal-workspace'
 await mkdir(output, { recursive: true })
 const sql = new Database(':memory:')
-sql.exec(
-  await readFile(new URL('../migrations/interne/0001_workspace.sql', import.meta.url), 'utf8'),
-)
+sql.exec('PRAGMA foreign_keys = ON')
+const migrations = new URL('../migrations/interne/', import.meta.url)
+for (const file of (await readdir(migrations)).filter((name) => /^\d.*\.sql$/.test(name)).sort()) {
+  const migration = await readFile(new URL(file, migrations), 'utf8')
+  sql.transaction(() => sql.exec(migration))()
+}
 let reads = 0,
   failDatabase = false
 const db = {
@@ -167,11 +170,18 @@ assert.doesNotMatch(
 )
 assert.equal((await call('/api/interne/ressources', 'trainer')).status, 200)
 const productionHtml = await (
-  await call('/interne', 'member', 'GET', undefined, {}, {
-    ...env,
-    INTERNAL_WORKSPACE_PREVIEW: undefined,
-    INTERNAL_WORKSPACE_IMPORT_PENDING: 'true',
-  })
+  await call(
+    '/interne',
+    'member',
+    'GET',
+    undefined,
+    {},
+    {
+      ...env,
+      INTERNAL_WORKSPACE_PREVIEW: undefined,
+      INTERNAL_WORKSPACE_IMPORT_PENDING: 'true',
+    },
+  )
 ).text()
 assert.match(productionHtml, /Historique Notion à reprendre/)
 assert.doesNotMatch(productionHtml, /Espace d’essai\./)
@@ -262,6 +272,26 @@ await call('/api/interne/calendrier', 'manager', 'POST', {
     hours: null,
   }),
 })
+const legacyId = crypto.randomUUID()
+const legacyChannel = 'Réseau historique · partenariats'
+const legacyTitle = 'Publication historique de démonstration'
+assert.equal(
+  (
+    await call('/api/interne/calendrier', 'manager', 'POST', {
+      requestId: legacyId,
+      entry: baseEntry({
+        kind: 'editorial',
+        title: legacyTitle,
+        channel: legacyChannel,
+        activity: 'Communication historique',
+        hours: null,
+        content: 'Texte de la publication fictive.',
+        notes: 'Sources et inspirations fictives.',
+      }),
+    })
+  ).status,
+  201,
+)
 await call('/api/interne/calendrier', 'manager', 'POST', {
   requestId: crypto.randomUUID(),
   entry: baseEntry({ title: 'Coordination validée', status: 'valide', hours: 2 }),
@@ -324,6 +354,121 @@ try {
       await page.screenshot({ path: `${output}/calendrier-${width}.png`, fullPage: true })
     checks.push(`calendar-${width}`)
   }
+  // PR18: editing another field must not erase a legacy free-text channel.
+  // These interactions use the compiled client/API and read back the real fixture SQL.
+  const channel = page.locator('#iw-entry-channel')
+  const editor = page.locator('#iw-editor')
+  const openLegacy = () =>
+    page.getByRole('button', { name: new RegExp(`^Ouvrir ${legacyTitle},`) }).click()
+  await page.locator('[data-view="list"]').click()
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await openLegacy()
+    await expect(channel).toHaveValue(legacyChannel)
+    await expect(channel.locator('option[data-legacy-channel]')).toHaveCount(1)
+    await expect(channel.locator('option[data-legacy-channel]')).toHaveText(
+      `${legacyChannel} (ancien canal)`,
+    )
+    await expect(page.locator('#iw-entry-activity')).toBeHidden()
+    await expect(page.locator('#iw-entry-activity')).toHaveValue('Communication historique')
+    assert(
+      await page.evaluate(() => {
+        const content = document.querySelector('#iw-content'),
+          notes = document.querySelector('#iw-notes')
+        return (
+          !!(content.compareDocumentPosition(notes) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          notes.getBoundingClientRect().top > content.getBoundingClientRect().bottom
+        )
+      }),
+      'Notes stay below content',
+    )
+    assert(
+      await editor.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      `Editor overflow ${width}`,
+    )
+    await channel.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${output}/fiche-canal-${width}.png` })
+    await page.locator('#iw-notes').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${output}/fiche-contenu-notes-${width}.png` })
+    await page.locator('#iw-notes').fill(`Note modifiée à ${width} px`)
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    assert.deepEqual(
+      sql.query('SELECT channel,activity,notes FROM workspace_entries WHERE id=?').get(legacyId),
+      {
+        channel: legacyChannel,
+        activity: 'Communication historique',
+        notes: `Note modifiée à ${width} px`,
+      },
+    )
+    await page.locator('#iw-close').click()
+    await expect(editor).not.toBeVisible()
+    await page.getByRole('button', { name: /^Ouvrir Faire découvrir le programme,/ }).click()
+    await expect(channel).toHaveValue('LinkedIn')
+    await expect(channel.locator('option[data-legacy-channel]')).toHaveCount(0)
+    await page.locator('#iw-close').click()
+    await page.locator('#iw-new').click()
+    await expect(channel).toHaveValue('')
+    assert.deepEqual(
+      await channel
+        .locator('option')
+        .evaluateAll((options) => options.map((option) => option.value)),
+      ['', 'LinkedIn', 'Newsletter', 'Site'],
+    )
+    await page.locator('#iw-close').click()
+    checks.push(`legacy-channel-hidden-activity-notes-order-${width}`)
+  }
+  // A concurrently changed legacy channel is also preserved when choosing the server version.
+  await openLegacy()
+  await page.locator('#iw-notes').fill('Note conservée après comparaison')
+  const changedChannel = 'Ancien canal <b>partenaires</b>'
+  sql
+    .query('UPDATE workspace_entries SET channel=?,version=version+1 WHERE id=?')
+    .run(changedChannel, legacyId)
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-conflict')).toBeVisible()
+  await page.locator('#iw-compare').click()
+  await expect(page.locator('#iw-merge-channel')).toBeVisible()
+  await page.locator('#iw-merge-channel').selectOption('current')
+  await page.locator('#iw-apply-merge').click()
+  await expect(channel).toHaveValue(changedChannel)
+  await expect(channel.locator('option[data-legacy-channel]')).toHaveCount(1)
+  await expect(channel.locator('b')).toHaveCount(0)
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  assert.deepEqual(
+    sql.query('SELECT channel,notes FROM workspace_entries WHERE id=?').get(legacyId),
+    {
+      channel: changedChannel,
+      notes: 'Note conservée après comparaison',
+    },
+  )
+  checks.push('legacy-channel-concurrent-merge-safe-text')
+  // An explicit selection replaces the old value; Programmé must persist server-side.
+  await channel.selectOption('Newsletter')
+  await page.locator('#iw-entry-status').selectOption('programme')
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  assert.deepEqual(
+    sql.query('SELECT channel,status,activity FROM workspace_entries WHERE id=?').get(legacyId),
+    {
+      channel: 'Newsletter',
+      status: 'programme',
+      activity: 'Communication historique',
+    },
+  )
+  await page.locator('#iw-close').click()
+  await page.reload()
+  await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
+  await page.locator('#iw-month').fill('2026-09')
+  await page.locator('#iw-month').press('Tab')
+  await page.locator('[data-view="list"]').click()
+  await openLegacy()
+  await expect(channel).toHaveValue('Newsletter')
+  await expect(channel.locator('option[data-legacy-channel]')).toHaveCount(0)
+  await expect(page.locator('#iw-entry-status')).toHaveValue('programme')
+  await page.locator('#iw-close').click()
+  checks.push('explicit-channel-change-and-programme-status-sql-reload')
   await page.locator('[data-kind="equipe"]').click()
   await expect(page.locator('#iw-totals-content')).toContainText('6 h')
   await page.locator('#iw-new').click()

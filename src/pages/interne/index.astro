@@ -205,7 +205,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 autocomplete="off"
               /><datalist id="iw-people-options"></datalist>
             </div>
-            <div class="iw-field">
+            <div class="iw-field" hidden>
               <label for="iw-entry-activity">Activité</label><input
                 id="iw-entry-activity"
                 name="activity"
@@ -215,13 +215,10 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
               /><datalist id="iw-activities-options"></datalist>
             </div>
             <div class="iw-field">
-              <label for="iw-entry-channel">Canal</label><input
+              <label for="iw-entry-channel">Canal</label><select
                 id="iw-entry-channel"
                 name="channel"
-                list="iw-channels-options"
-                maxlength="80"
-                autocomplete="off"
-              /><datalist id="iw-channels-options"></datalist>
+              ><option value="">Non renseigné</option><option value="LinkedIn">LinkedIn</option><option value="Newsletter">Newsletter</option><option value="Site">Site</option></select>
             </div>
             <div class="iw-field">
               <label for="iw-entry-status">Statut de suivi *</label><select
@@ -264,13 +261,6 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
               </p>
             </div>
             <div class="iw-field iw-field--wide">
-              <label for="iw-notes">Notes & contexte</label><textarea
-                id="iw-notes"
-                name="notes"
-                rows="3"
-                maxlength="6000"></textarea>
-            </div>
-            <div class="iw-field iw-field--wide">
               <label for="iw-content">Texte du contenu</label><textarea
                 id="iw-content"
                 name="content"
@@ -283,6 +273,13 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 Texte de travail partagé avec l’équipe. Son enregistrement ne publie rien à
                 l’extérieur.
               </p>
+            </div>
+            <div class="iw-field iw-field--wide">
+              <label for="iw-notes">Notes et inspirations</label><textarea
+                id="iw-notes"
+                name="notes"
+                rows="3"
+                maxlength="6000"></textarea>
             </div>
             <div class="iw-field iw-field--wide">
               <label for="iw-link">Lien associé</label><input
