@@ -348,6 +348,17 @@ function initCalendar(root: HTMLElement) {
     )
     if (validated) validated.disabled = editorKind === 'equipe' && !identity.admin
   }
+  const updateContentField = () => {
+    const editorial = editorKind === 'editorial'
+    input('content').closest<HTMLElement>('.iw-field')!.hidden =
+      !editorial && !(selected && input('content').value.trim())
+    form.querySelector('label[for="iw-content"]')!.textContent = editorial
+      ? 'Texte du contenu'
+      : 'Détails complémentaires'
+    byId('iw-content-help').textContent = editorial
+      ? 'Texte de travail partagé avec l’équipe. Son enregistrement ne publie rien à l’extérieur.'
+      : 'Informations déjà saisies dans cette fiche. Les heures mentionnées dans ce texte ne sont pas automatiquement reprises : renseignez-les dans les champs d’heures.'
+  }
   const fillForm = (entry: EntryInput) => {
     publicationDates = { starts_on: entry.starts_on, ends_on: entry.ends_on }
     const statusSelect = input('status') as HTMLSelectElement
@@ -370,10 +381,11 @@ function initCalendar(root: HTMLElement) {
     byId('iw-fill-month').textContent =
       `Couvrir tout le mois de ${monthFormat.format(dateObject(`${month}-01`))}`
     feedback(byId('iw-month-feedback'), '')
-    for (const field of ['activity', 'channel', 'content'] as const) {
+    for (const field of ['activity', 'channel'] as const) {
       input(field).closest<HTMLElement>('.iw-field')!.hidden =
         field === 'activity' ? editorKind !== 'equipe' : editorKind !== 'editorial'
     }
+    updateContentField()
     form.querySelector('label[for="iw-notes"]')!.textContent =
       editorKind === 'equipe' ? 'Notes et contexte' : 'Notes et inspirations'
     input('ends_on').required = editorKind === 'equipe'
@@ -1024,6 +1036,7 @@ function initCalendar(root: HTMLElement) {
     writeField('ends_on', publicationDates.ends_on)
     selected = { ...latestConflict }
     editorKind = selected.kind
+    updateContentField()
     dailyEditor.render(editorKind === 'equipe')
     conflictPending = false
     conflict.hidden = true

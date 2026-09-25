@@ -600,6 +600,77 @@ try {
   checks.push('explicit-channel-change-and-programme-status-sql-reload')
   await page.locator('[data-kind="equipe"]').click()
   await expect(page.locator('#iw-totals-content')).toContainText('6 h')
+  // Synthetic historical text only: prose must remain accessible without
+  // becoming hours, notes, or an editorial field on new team entries.
+  const teamTextId = crypto.randomUUID()
+  const teamText = 'Consigne fictive : préparer la salle le matin. Prévision indicative : 2 heures.'
+  const teamNotes = 'Note fictive indépendante.'
+  assert.equal(
+    (
+      await call('/api/interne/calendrier', 'member', 'POST', {
+        requestId: teamTextId,
+        entry: baseEntry({
+          title: 'Informations équipe historiques de recette',
+          hours: null,
+          content: teamText,
+          notes: teamNotes,
+          channel: 'Ancien canal fictif',
+        }),
+      })
+    ).status,
+    201,
+  )
+  await page.locator('#iw-refresh').click()
+  const openTeamText = () =>
+    page
+      .getByRole('button', { name: /^Ouvrir Informations équipe historiques de recette,/ })
+      .click()
+  await openTeamText()
+  await expect(page.getByLabel('Détails complémentaires', { exact: true })).toBeVisible()
+  await expect(page.locator('#iw-content')).toBeEditable()
+  await expect(page.locator('#iw-content')).toHaveValue(teamText)
+  await expect(page.locator('#iw-content-help')).toContainText(
+    'ne sont pas automatiquement reprises',
+  )
+  await expect(page.locator('#iw-hours')).toHaveValue('')
+  await page.locator('#iw-location').fill('Lieu fictif modifié')
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  assert.deepEqual(
+    sql
+      .query('SELECT content,notes,hours,daily_hours,channel FROM workspace_entries WHERE id=?')
+      .get(teamTextId),
+    {
+      content: teamText,
+      notes: teamNotes,
+      hours: null,
+      daily_hours: '',
+      channel: 'Ancien canal fictif',
+    },
+  )
+  await page.locator('#iw-content').fill(`${teamText}\nPrécision fictive ajoutée.`)
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  await page.locator('#iw-close').click()
+  await openTeamText()
+  await expect(page.locator('#iw-content')).toHaveValue(`${teamText}\nPrécision fictive ajoutée.`)
+  assert.equal(
+    sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(teamTextId).hours,
+    null,
+  )
+  await expect(page.locator('#iw-notes')).toHaveValue(teamNotes)
+  await page.locator('#iw-close').click()
+  // Same content stays readable for a member who cannot edit the fiche.
+  sql
+    .query('UPDATE workspace_entries SET created_by=? WHERE id=?')
+    .run('manager@example.test', teamTextId)
+  await page.locator('#iw-refresh').click()
+  await openTeamText()
+  await expect(page.locator('#iw-content')).toBeVisible()
+  await expect(page.locator('#iw-content')).toBeDisabled()
+  await expect(page.locator('#iw-save')).toBeHidden()
+  await page.locator('#iw-close').click()
+  checks.push('existing-team-content-readable-editable-preserved-without-hours-or-rights')
   await page.locator('#iw-new').click()
   await expect(page.getByLabel('Date de début *', { exact: true })).toBeVisible()
   await expect(page.locator('#iw-ends')).toBeVisible()
