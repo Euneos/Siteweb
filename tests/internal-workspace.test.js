@@ -93,6 +93,29 @@ describe('Calendriers et commentaires persistants', () => {
       sql.query("UPDATE workspace_entries SET status='inconnu' WHERE id=?").run(id),
     ).toThrow()
   })
+  test('prévisions quotidiennes, dépassements et conservation après modification', async () => {
+    const { db } = fixture()
+    const daily = [{ date: '2026-09-01', planned: 7, actual: 8 }, { date: '2026-09-03', planned: 7, actual: null }, { date: '2026-09-04', planned: 3.5, actual: null }]
+    const input = entry({ starts_on: '2026-09-01', ends_on: '2026-09-30', hours: null, daily_hours: JSON.stringify(daily) })
+    const id = await saveEntry(db, actor, input)
+    let saved = (await listEntries(db, '2026-09', 'equipe'))[0]
+    expect(saved.hours).toBe(8)
+    expect(JSON.parse(saved.daily_hours)).toEqual(daily)
+    daily[2] = { date: '2026-09-02', planned: 3.5, actual: 4 }
+    await saveEntry(db, actor, { ...input, daily_hours: JSON.stringify(daily) }, id, 1)
+    saved = (await listEntries(db, '2026-09', 'equipe'))[0]
+    expect(saved.hours).toBe(12)
+    expect(JSON.parse(saved.daily_hours).map((row) => row.date)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03'])
+    expect(saved.version).toBe(2)
+  })
+  test('les prévisions seules ne deviennent pas des heures réalisées', () => {
+    expect(parseEntry(entry({ daily_hours: JSON.stringify([{ date: '2026-09-17', planned: 7, actual: null }]) })).hours).toBeNull()
+    for (const row of [
+      { date: '2026-09-18', planned: 7, actual: null },
+      { date: '2026-09-17', planned: 25, actual: null },
+      { date: '2026-09-17', planned: 7, actual: -1 },
+    ]) expect(() => parseEntry(entry({ daily_hours: JSON.stringify([row]) }))).toThrow()
+  })
   test('une même adresse ne divise pas les totaux selon sa casse ; un congé sans heures peut traverser un mois', async () => {
     const { db } = fixture()
     await saveEntry(db, admin, entry({ person: 'MEMBER@example.test', hours: 2 }))
