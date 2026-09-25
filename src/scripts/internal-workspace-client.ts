@@ -61,7 +61,7 @@ const editorialStatuses: Record<string, string> = {
   publie: 'Publié',
 }
 Object.assign(statuses, editorialStatuses)
-const teamStatuses = ['brouillon', 'a_valider', 'valide', 'programme', 'annule']
+const teamStatuses = ['brouillon', 'a_valider', 'valide', 'annule']
 const attendanceLabels: Record<string, string> = {
   presence: 'Présence',
   absence: 'Absence',
@@ -205,7 +205,9 @@ const validCalendar = (data: CalendarData) => {
           field === 'hours'
             ? entry.hours !== null &&
               (typeof entry.hours !== 'number' || !Number.isFinite(entry.hours))
-            : field === 'daily_hours' && entry[field] === undefined ? false : typeof entry[field] !== 'string',
+            : field === 'daily_hours' && entry[field] === undefined
+              ? false
+              : typeof entry[field] !== 'string',
         ),
     ) ||
     data.totals.some(
@@ -336,6 +338,15 @@ function initCalendar(root: HTMLElement) {
     person.readOnly = editorKind === 'equipe' && !identity.admin
     // Existing values stay visible in read-only records belonging to another person.
     if (!selected && person.readOnly) person.value = identity.email
+    const help = byId('iw-status-help')
+    help.hidden = editorKind !== 'equipe'
+    help.textContent = identity.admin
+      ? 'Votre accès : responsable. Vous pouvez valider les heures déclarées de l’équipe.'
+      : 'Votre accès : membre. Enregistrez vos heures avec « À valider ». Le statut « Validé » est réservé aux responsables.'
+    const validated = (input('status') as HTMLSelectElement).querySelector<HTMLOptionElement>(
+      'option[value="valide"]',
+    )
+    if (validated) validated.disabled = editorKind === 'equipe' && !identity.admin
   }
   const fillForm = (entry: EntryInput) => {
     publicationDates = { starts_on: entry.starts_on, ends_on: entry.ends_on }
@@ -353,8 +364,18 @@ function initCalendar(root: HTMLElement) {
     for (const field of fields) writeField(field, entry[field])
     dailyEditor.render(editorKind === 'equipe')
     form.querySelector('label[for="iw-starts"]')!.textContent =
-      editorKind === 'editorial' ? 'Date de publication *' : 'Date de début *' 
+      editorKind === 'editorial' ? 'Date de publication *' : 'Date de début *'
     byId('iw-ends-field').hidden = editorKind === 'editorial'
+    byId('iw-month-field').hidden = editorKind !== 'equipe'
+    byId('iw-fill-month').textContent =
+      `Couvrir tout le mois de ${monthFormat.format(dateObject(`${month}-01`))}`
+    feedback(byId('iw-month-feedback'), '')
+    for (const field of ['activity', 'channel', 'content'] as const) {
+      input(field).closest<HTMLElement>('.iw-field')!.hidden =
+        field === 'activity' ? editorKind !== 'equipe' : editorKind !== 'editorial'
+    }
+    form.querySelector('label[for="iw-notes"]')!.textContent =
+      editorKind === 'equipe' ? 'Notes et contexte' : 'Notes et inspirations'
     input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
@@ -362,6 +383,31 @@ function initCalendar(root: HTMLElement) {
     updatePermissions()
     updateLink()
   }
+  byId('iw-fill-month').addEventListener('click', () => {
+    if (editorKind !== 'equipe' || fieldset.disabled) return
+    const start = `${month}-01`
+    const end = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+      .toISOString()
+      .slice(0, 10)
+    try {
+      // Refuse a different month rather than discarding any daily values.
+      parseDailyHours(input('daily_hours').value, start, end)
+    } catch {
+      feedback(
+        byId('iw-month-feedback'),
+        'La saisie quotidienne contient des dates hors de ce mois. Conservez cette fiche et créez une autre fiche pour le nouveau mois.',
+        true,
+      )
+      return
+    }
+    input('starts_on').value = start
+    input('ends_on').value = end
+    dailyEditor.render(true)
+    feedback(
+      byId('iw-month-feedback'),
+      'Dates remplies pour le mois affiché. Aucune heure ajoutée ; enregistrez pour conserver cette période.',
+    )
+  })
   const setMetrics = (loaded: CalendarData | null) => {
     byId('iw-metric-label-1').textContent = 'Fiches du mois'
     byId('iw-metric-label-2').textContent = kind === 'equipe' ? 'Heures déclarées' : 'À valider'
@@ -382,6 +428,8 @@ function initCalendar(root: HTMLElement) {
     if (!data) return
     for (const filter of filters) {
       const field = filter.dataset.filter as 'person' | 'activity' | 'channel' | 'status'
+      filter.closest<HTMLElement>('.iw-field')!.hidden =
+        (field === 'channel' && kind === 'equipe') || (field === 'activity' && kind === 'editorial')
       const current = filter.value
       const first = filter.options[0].cloneNode(true)
       const values =
@@ -490,16 +538,27 @@ function initCalendar(root: HTMLElement) {
         node(
           'span',
           'iw-entry__details',
-          [entry.activity, entry.channel, entry.location, attendanceLabels[entry.attendance]]
+          (entry.kind === 'equipe'
+            ? [entry.activity, entry.location, attendanceLabels[entry.attendance]]
+            : [entry.channel]
+          )
             .filter(Boolean)
-            .join(' · ') || 'Activité non renseignée',
+            .join(' · ') ||
+            (entry.kind === 'equipe' ? 'Activité non renseignée' : 'Canal non renseigné'),
         ),
       )
       const person = node('span', 'iw-entry__person', entry.person)
       if (entry.daily_hours) {
         const rows = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!
-        person.append(node('span', 'iw-entry__details', `${hours(dailyTotal(rows, 'planned') ?? 0)} prévues · ${entry.hours === null ? 'Réalisé non renseigné' : `${hours(entry.hours)} réalisées`}`))
-      } else if (entry.hours !== null) person.append(node('span', 'iw-entry__details', hours(entry.hours)))
+        person.append(
+          node(
+            'span',
+            'iw-entry__details',
+            `${hours(dailyTotal(rows, 'planned') ?? 0)} prévues · ${entry.hours === null ? 'Réalisé non renseigné' : `${hours(entry.hours)} réalisées`}`,
+          ),
+        )
+      } else if (entry.hours !== null)
+        person.append(node('span', 'iw-entry__details', hours(entry.hours)))
       open.append(node('span', 'iw-entry__date', dateRange(entry)), text, person, badge(entry))
       open.setAttribute(
         'aria-label',
@@ -539,9 +598,7 @@ function initCalendar(root: HTMLElement) {
       time.setAttribute('aria-label', longDateFormat.format(dateObject(date)))
       if (date === localDate()) time.setAttribute('aria-current', 'date')
       cell.append(time)
-      const todayEntries = entries.filter(
-        (entry) => entryOccursOn(entry, date),
-      )
+      const todayEntries = entries.filter((entry) => entryOccursOn(entry, date))
       const events = node('div', 'iw-day__events')
       todayEntries.forEach((entry) => {
         const event = button('', () => openEditor(entry), 'iw-event')
@@ -554,15 +611,28 @@ function initCalendar(root: HTMLElement) {
             [
               entry.person,
               statuses[entry.status] ?? entry.status,
-              entry.channel,
-              attendanceLabels[entry.attendance],
-              entry.location,
+              entry.kind === 'editorial' ? entry.channel : entry.activity,
+              entry.kind === 'equipe' ? attendanceLabels[entry.attendance] : '',
+              entry.kind === 'equipe' ? entry.location : '',
               entry.daily_hours
                 ? (() => {
-                    const day = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!.find((row) => row.date === date)!
-                    return [day.planned !== null ? `${hours(day.planned)} prévues` : '', day.actual !== null ? `${hours(day.actual)} réalisées` : 'Réalisé non renseigné'].filter(Boolean).join(' · ')
+                    const day = parseDailyHours(
+                      entry.daily_hours,
+                      entry.starts_on,
+                      entry.ends_on,
+                    )!.find((row) => row.date === date)!
+                    return [
+                      day.planned !== null ? `${hours(day.planned)} prévues` : '',
+                      day.actual !== null
+                        ? `${hours(day.actual)} réalisées`
+                        : 'Réalisé non renseigné',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
                   })()
-                : entry.hours !== null ? `${hours(entry.hours)} sur la période` : '',
+                : entry.hours !== null
+                  ? `${hours(entry.hours)} sur la période`
+                  : '',
             ]
               .filter(Boolean)
               .join(' · '),

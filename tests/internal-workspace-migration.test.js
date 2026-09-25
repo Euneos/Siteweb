@@ -14,6 +14,10 @@ const editorialMigration = readFileSync(
   new URL('../migrations/interne/0003_editorial_statuses.sql', import.meta.url),
   'utf8',
 )
+const dailyMigration = readFileSync(
+  new URL('../migrations/interne/0004_daily_hours.sql', import.meta.url),
+  'utf8',
+)
 const tables = ['workspace_entries', 'workspace_comments', 'workspace_resources']
 const oldStatuses = ['brouillon', 'a_valider', 'valide', 'publie', 'annule']
 const connections = []
@@ -84,7 +88,8 @@ function fixture(populated = true) {
 
 const data = (db) =>
   Object.fromEntries(
-    tables.map((table) => [table, db.query(`SELECT * FROM ${table} ORDER BY id`).all()]),
+    // Fresh statement after ALTER TABLE: Bun caches the column list of query().
+    tables.map((table) => [table, db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()]),
   )
 const schema = (db) =>
   db
@@ -110,6 +115,44 @@ const structure = (db) =>
 // D1 wraps one migration in one transaction. Do the same with real SQLite,
 // leaving foreign_keys ON both during the migration and at the final commit.
 const apply = (db) => db.transaction(() => db.exec(migration))()
+
+test('0004 après 0003 conserve toutes les données, relations et index ; le détail quotidien survit au rechargement', () => {
+  const db = fixture()
+  apply(db)
+  db.transaction(() => db.exec(editorialMigration))()
+  const before = data(db)
+  const beforeStructure = structure(db)
+  const beforeSchema = schema(db)
+  expect(() =>
+    db.transaction(() => {
+      db.exec(dailyMigration)
+      db.exec("UPDATE workspace_comments SET entry_id='absente' WHERE id='comment-0-0'")
+    })(),
+  ).toThrow('FOREIGN KEY')
+  expect(data(db)).toEqual(before)
+  expect(schema(db)).toEqual(beforeSchema)
+  db.transaction(() => db.exec(dailyMigration))()
+  expect(data(db)).toEqual({
+    ...before,
+    workspace_entries: before.workspace_entries.map((row) => ({ ...row, daily_hours: '' })),
+  })
+  const afterStructure = structure(db)
+  const newColumn = afterStructure[0].columns.pop()
+  expect(newColumn).toMatchObject({
+    name: 'daily_hours',
+    type: 'TEXT',
+    notnull: 1,
+    dflt_value: "''",
+  })
+  expect(afterStructure).toEqual(beforeStructure)
+  const daily = JSON.stringify([{ date: '2026-09-24', planned: 7, actual: null }])
+  db.query("UPDATE workspace_entries SET daily_hours=? WHERE id='entry-1'").run(daily)
+  expect(
+    db.query("SELECT daily_hours FROM workspace_entries WHERE id='entry-1'").get().daily_hours,
+  ).toBe(daily)
+  expect(db.query('PRAGMA foreign_key_check').all()).toEqual([])
+  expect(db.query('PRAGMA integrity_check').all()).toEqual([{ integrity_check: 'ok' }])
+})
 
 test('les nouveaux statuts éditoriaux préservent les données et relations et permettent un retour transactionnel', () => {
   const db = fixture()

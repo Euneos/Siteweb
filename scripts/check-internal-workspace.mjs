@@ -185,6 +185,43 @@ const productionHtml = await (
 ).text()
 assert.match(productionHtml, /Historique Notion à reprendre/)
 assert.doesNotMatch(productionHtml, /Espace d’essai\./)
+const withoutAdmins = { ...env, INTERNAL_ADMIN_EMAILS: undefined }
+assert.equal(
+  (
+    await (
+      await call(
+        '/api/interne/calendrier?month=2026-09&kind=equipe',
+        'manager',
+        'GET',
+        undefined,
+        {},
+        withoutAdmins,
+      )
+    ).json()
+  ).identity.admin,
+  false,
+)
+assert.equal(
+  (
+    await call(
+      '/api/interne/calendrier',
+      'manager',
+      'POST',
+      {
+        requestId: crypto.randomUUID(),
+        entry: baseEntry({
+          person: 'manager@example.test',
+          status: 'valide',
+          hours: null,
+          daily_hours: JSON.stringify([{ date: '2026-09-17', planned: 7, actual: 8 }]),
+        }),
+      },
+      {},
+      withoutAdmins,
+    )
+  ).status,
+  403,
+)
 
 const id = crypto.randomUUID(),
   body = { requestId: id, entry: baseEntry() }
@@ -570,8 +607,16 @@ try {
     await page
       .locator('#iw-entry-status option')
       .evaluateAll((options) => options.map((option) => option.value)),
-    ['brouillon', 'a_valider', 'valide', 'programme', 'annule'],
+    ['brouillon', 'a_valider', 'valide', 'annule'],
   )
+  await expect(page.locator('#iw-entry-status option[value="valide"]')).toBeDisabled()
+  await expect(page.locator('#iw-status-help')).toContainText('Votre accès : membre')
+  await expect(page.locator('#iw-entry-activity')).toBeVisible()
+  await expect(page.locator('#iw-activity')).toBeVisible()
+  await expect(page.locator('#iw-entry-channel')).toBeHidden()
+  await expect(page.locator('#iw-channel')).toBeHidden()
+  await expect(page.locator('#iw-content')).toBeHidden()
+  await expect(page.getByLabel('Notes et contexte', { exact: true })).toBeVisible()
   await page.locator('#iw-title').fill('Recette depuis le navigateur')
   await page.locator('#iw-starts').fill('2026-09-17')
   await page.locator('#iw-ends').fill('2026-09-17')
@@ -639,17 +684,46 @@ try {
   checks.push('browser-create-comment-xss-conflict-merge')
   checks.push('comparison-race-and-moved-month')
   await page.locator('#iw-close').click()
+  // Choosing a calendar month must not silently rewrite a fiche or declare hours.
+  await page.locator('#iw-month').fill('2028-02')
+  await page.locator('#iw-month').press('Tab')
+  await expect(page.locator('#iw-result-count')).toContainText('février 2028')
+  await page.locator('#iw-new').click()
+  await expect(page.locator('#iw-ends')).toHaveValue('2028-02-01')
+  await page.locator('#iw-fill-month').click()
+  await expect(page.locator('#iw-starts')).toHaveValue('2028-02-01')
+  await expect(page.locator('#iw-ends')).toHaveValue('2028-02-29')
+  await expect(page.locator('#iw-hours')).toHaveValue('')
+  await page.locator('#iw-close').click()
+  await expect(page.locator('#iw-close-warning')).toBeVisible()
+  await page.locator('#iw-discard').click()
+  assert.equal(
+    sql.query("SELECT count(*) n FROM workspace_entries WHERE starts_on LIKE '2028-02%'").get().n,
+    0,
+  )
+  await page.locator('#iw-month').fill('2026-09')
+  await page.locator('#iw-month').press('Tab')
+  await expect(page.locator('#iw-result-count')).toContainText('septembre 2026')
+  checks.push('team-fields-permissions-and-explicit-month-no-autosave')
   await page.locator('#iw-new').click()
   await page.locator('#iw-title').fill('Planning quotidien de recette')
-  await page.locator('#iw-starts').fill('2026-09-01')
-  await page.locator('#iw-ends').fill('2026-09-30')
+  await page.locator('#iw-fill-month').click()
+  await expect(page.locator('#iw-starts')).toHaveValue('2026-09-01')
+  await expect(page.locator('#iw-ends')).toHaveValue('2026-09-30')
+  await page.locator('#iw-entry-status').selectOption('a_valider')
   await page.getByRole('button', { name: 'Saisir les heures par jour', exact: true }).click()
   await page.getByRole('button', { name: 'Prévoir 7 h les mardis et jeudis', exact: true }).click()
-  await page.getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true }).fill('3.5')
-  await page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true }).fill('8')
+  await page
+    .getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true })
+    .fill('3.5')
+  await page
+    .getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true })
+    .fill('8')
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const dailyEntry = sql.query('SELECT * FROM workspace_entries WHERE title=?').get('Planning quotidien de recette')
+  const dailyEntry = sql
+    .query('SELECT * FROM workspace_entries WHERE title=?')
+    .get('Planning quotidien de recette')
   assert.equal(dailyEntry.hours, 8)
   assert.equal(JSON.parse(dailyEntry.daily_hours).length, 10)
   await page.locator('#iw-close').click()
@@ -657,18 +731,56 @@ try {
   await page.locator('[data-kind="equipe"]').click()
   await page.locator('#iw-month').fill('2026-09')
   await page.locator('#iw-month').press('Tab')
-  await expect(page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' })).toHaveCount(10)
-  await page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' }).first().click()
-  await expect(page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true })).toHaveValue('8')
-  await page.getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true }).fill('')
-  await page.getByRole('spinbutton', { name: 'Heures prévues le mercredi 2 septembre', exact: true }).fill('3.5')
+  await expect(
+    page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' }),
+  ).toHaveCount(10)
+  await page
+    .locator('.iw-event')
+    .filter({ hasText: 'Planning quotidien de recette' })
+    .first()
+    .click()
+  await expect(
+    page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true }),
+  ).toHaveValue('8')
+  await page
+    .getByRole('spinbutton', { name: 'Heures prévues le vendredi 4 septembre', exact: true })
+    .fill('')
+  await page
+    .getByRole('spinbutton', { name: 'Heures prévues le mercredi 2 septembre', exact: true })
+    .fill('3.5')
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
-    assert(await page.evaluate(() => document.querySelector('#iw-editor').scrollWidth <= document.querySelector('#iw-editor').clientWidth + 1), `Daily editor overflow ${width}`)
+    assert(
+      await page.evaluate(
+        () =>
+          document.querySelector('#iw-editor').scrollWidth <=
+          document.querySelector('#iw-editor').clientWidth + 1,
+      ),
+      `Daily editor overflow ${width}`,
+    )
+    if (width === 1440) {
+      const planned = await page
+        .getByRole('spinbutton', { name: 'Heures prévues le mercredi 2 septembre', exact: true })
+        .boundingBox()
+      const actual = await page
+        .getByRole('spinbutton', { name: 'Heures réalisées le mercredi 2 septembre', exact: true })
+        .boundingBox()
+      assert(
+        Math.abs(planned.y - actual.y) <= 1,
+        'Planned and actual hours stay on the same desktop row',
+      )
+    }
+    await page.locator('#iw-status-help').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${output}/daily-permissions-${width}.png` })
+    await page.locator('#iw-daily-rows').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${output}/daily-hours-${width}.png` })
   }
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const revised = JSON.parse(sql.query('SELECT daily_hours FROM workspace_entries WHERE id=?').get(dailyEntry.id).daily_hours)
+  const revised = JSON.parse(
+    sql.query('SELECT daily_hours FROM workspace_entries WHERE id=?').get(dailyEntry.id)
+      .daily_hours,
+  )
   assert(revised.some((row) => row.date === '2026-09-02' && row.planned === 3.5))
   assert(!revised.some((row) => row.date === '2026-09-04'))
   await page.locator('#iw-close').click()

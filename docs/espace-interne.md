@@ -167,9 +167,15 @@ Le script vérifie les données et les commentaires avant écriture, conserve da
 
 Avant bascule : comparer fiches/commentaires et totaux par personne/mois, vérifier les sources non mappées, faire valider, sauvegarder l’existant et convenir d’un seul outil de saisie. Aucun historique existant n’a encore été importé.
 
-## Saisie quotidienne des heures — proposition du 22 septembre
+## Saisie quotidienne des heures
 
 Avant de déployer cette version, appliquer `migrations/interne/0004_daily_hours.sql` dans l’environnement de préversion, puis dans celui de production uniquement après validation de l’aperçu. La migration ajoute une colonne vide aux anciennes fiches ; elle ne répartit ni ne modifie leurs totaux. Ne pas fusionner tant que cette préparation et la recette de préversion ne sont pas vérifiées. Le workflow de déploiement ne réalise pas cette migration automatiquement.
+
+L’ordre est obligatoire : `0001`, `0002`, `0003_editorial_statuses.sql`, puis `0004_daily_hours.sql`. Ne jamais rejouer `0003` après `0004` : elle reconstruit la table dans son ancien schéma, sans détail quotidien. Sauvegarder les fiches et commentaires puis comparer les données et relations après migration.
+
+Le bouton « Couvrir tout le mois de … » remplit explicitement les deux dates à partir du mois affiché, sans ajouter d’heures ni enregistrer la fiche. Changer le mois du calendrier ne modifie aucune fiche. Si des heures quotidiennes existent dans un autre mois, le bouton les préserve et demande une autre fiche.
+
+Équipe & heures propose Activité, Présence / absence, Lieu et les statuts Brouillon, À valider, Validé, Annulé. Canal, Texte du contenu et Programmé concernent l’éditorial ; leurs anciennes valeurs restent conservées lors des modifications ou conflits. Une ancienne fiche équipe Programmé reste modifiable sans créer de nouveaux dossiers sous ce statut. Le formulaire explique le rôle effectif : un membre peut demander la validation, seul un responsable peut valider. Sans `INTERNAL_ADMIN_EMAILS`, aucun membre ne devient responsable automatiquement ; cette livraison ne change pas cette configuration.
 
 Dans Équipe & heures, « Saisir les heures par jour » active le détail quotidien pour une période dans un même mois. Le préremplissage propose 7 h les mardis et jeudis sans remplacer les valeurs existantes. Chaque mercredi/vendredi dispose d’un raccourci 3 h 30. Les heures réalisées restent vides tant qu’elles ne sont pas saisies ; le total déclaré est calculé uniquement sur le réalisé. Les jours vides ne sont pas affichés. Une ancienne fiche reste en mode période jusqu’à sa conversion explicite ; la conversion avertit avant de remplacer un total non réparti. Les droits et la validation par un responsable restent identiques.
 

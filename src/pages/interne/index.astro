@@ -32,7 +32,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         <button type="button" data-kind="editorial" aria-pressed="true">Éditorial</button><button
           type="button"
           data-kind="equipe"
-          aria-pressed="false">Équipe & heures</button>
+          aria-pressed="false">Équipe & heures</button
+        >
       </div>
       <p id="iw-kind-help" class="iw-small iw-muted">
         Les publications sur les réseaux restent manuelles.
@@ -67,32 +68,37 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             type="button"
             class="iw-button iw-button--icon"
             aria-label="Mois suivant">→</button
-          ><button id="iw-today" type="button" class="iw-button iw-button--plain"
-            >Ce mois-ci</button>
+          ><button id="iw-today" type="button" class="iw-button iw-button--plain">Ce mois-ci</button
+          >
         </div>
         <div class="iw-switch" role="group" aria-label="Mode d’affichage">
           <button type="button" data-view="month" aria-pressed="true">Mois</button><button
             type="button"
             data-view="list"
-            aria-pressed="false">Liste</button>
+            aria-pressed="false">Liste</button
+          >
         </div>
       </div>
       <div class="iw-filters">
         <div class="iw-field">
           <label for="iw-person">Personne</label><select id="iw-person" data-filter="person"
-            ><option value="">Toutes les personnes</option></select>
+            ><option value="">Toutes les personnes</option></select
+          >
         </div>
         <div class="iw-field">
           <label for="iw-activity">Activité</label><select id="iw-activity" data-filter="activity"
-            ><option value="">Toutes les activités</option></select>
+            ><option value="">Toutes les activités</option></select
+          >
         </div>
         <div class="iw-field">
           <label for="iw-channel">Canal</label><select id="iw-channel" data-filter="channel"
-            ><option value="">Tous les canaux</option></select>
+            ><option value="">Tous les canaux</option></select
+          >
         </div>
         <div class="iw-field">
           <label for="iw-status">Statut de suivi</label><select id="iw-status" data-filter="status"
-            ><option value="">Tous les statuts</option></select>
+            ><option value="">Tous les statuts</option></select
+          >
         </div>
         <button id="iw-reset" type="button" class="iw-button iw-button--plain">Réinitialiser</button
         >
@@ -104,7 +110,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
           <p id="iw-updated" class="iw-small iw-muted"></p><button
             id="iw-refresh"
             type="button"
-            class="iw-button iw-button--plain">Actualiser</button>
+            class="iw-button iw-button--plain">Actualiser</button
+          >
         </div>
       </div>
       <div id="iw-calendar-state" class="iw-state" role="status">
@@ -149,7 +156,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         type="button"
         id="iw-close"
         class="iw-button iw-button--icon"
-        aria-label="Fermer la fiche">✕</button>
+        aria-label="Fermer la fiche">✕</button
+      >
     </header>
     <div class="iw-dialog__body">
       <div id="iw-close-warning" class="iw-close-warning" hidden>
@@ -195,6 +203,19 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 required
               />
             </div>
+            <div class="iw-field iw-field--wide" id="iw-month-field" hidden>
+              <button
+                type="button"
+                id="iw-fill-month"
+                class="iw-button"
+                aria-describedby="iw-month-help">Couvrir tout le mois affiché</button
+              >
+              <p id="iw-month-help" class="iw-small iw-muted">
+                Ce bouton remplit les dates de début et de fin. Il n’ajoute aucune heure.
+                Enregistrez ensuite la fiche.
+              </p>
+              <p id="iw-month-feedback" class="iw-feedback" role="status"></p>
+            </div>
             <div class="iw-field">
               <label for="iw-entry-person">Personne *</label><input
                 id="iw-entry-person"
@@ -218,13 +239,18 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
               <label for="iw-entry-channel">Canal</label><select
                 id="iw-entry-channel"
                 name="channel"
-              ><option value="">Non renseigné</option><option value="LinkedIn">LinkedIn</option><option value="Newsletter">Newsletter</option><option value="Site">Site</option></select>
+                ><option value="">Non renseigné</option><option value="LinkedIn">LinkedIn</option
+                ><option value="Newsletter">Newsletter</option><option value="Site">Site</option
+                ></select
+              >
             </div>
             <div class="iw-field">
               <label for="iw-entry-status">Statut de suivi *</label><select
                 id="iw-entry-status"
                 name="status"
+                aria-describedby="iw-status-help"
                 required></select>
+              <p id="iw-status-help" class="iw-small iw-muted" hidden></p>
             </div>
             <div class="iw-field" id="iw-attendance-field" hidden>
               <label for="iw-attendance">Présence / absence</label><select
@@ -249,7 +275,10 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             <div class="iw-field iw-field--wide" id="iw-daily-hours" hidden>
               <input type="hidden" name="daily_hours" value="" />
               <h3>Jours et heures</h3>
-              <p class="iw-small iw-muted">Choisissez les jours travaillés. Les notes ne programment pas le calendrier. Laissez le réalisé vide tant que les heures ne sont pas effectuées.</p>
+              <p class="iw-small iw-muted">
+                Choisissez les jours travaillés. Les notes ne programment pas le calendrier. Laissez
+                le réalisé vide tant que les heures ne sont pas effectuées.
+              </p>
               <div id="iw-daily-controls"></div>
               <p id="iw-daily-feedback" class="iw-feedback" role="status"></p>
               <div id="iw-daily-rows"></div>
@@ -311,7 +340,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             id="iw-apply-merge"
             type="button"
             class="iw-button iw-button--yellow"
-            hidden>Appliquer les choix au brouillon</button>
+            hidden>Appliquer les choix au brouillon</button
+          >
         </div>
         <p id="iw-save-feedback" class="iw-feedback" role="status" aria-live="polite"></p>
         <div class="iw-form-actions">
@@ -320,7 +350,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
               (nouvel onglet)</span
             ></a
           ><button id="iw-save" type="submit" class="iw-button iw-button--primary"
-            >Enregistrer la fiche</button>
+            >Enregistrer la fiche</button
+          >
         </div>
         <p class="iw-footnote" id="iw-entry-audit"></p>
       </form>
@@ -330,7 +361,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             id="iw-comments-refresh"
             type="button"
             class="iw-button iw-button--plain"
-            hidden>Actualiser les commentaires</button>
+            hidden>Actualiser les commentaires</button
+          >
         </div><p id="iw-comments-state" role="status" class="iw-muted">
           Enregistrez la fiche pour démarrer la discussion.
         </p><ol id="iw-comment-list" class="iw-comment-list"></ol><form
@@ -350,7 +382,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
           </p><p id="iw-comment-feedback" class="iw-feedback" role="status"></p><button
             type="submit"
             id="iw-comment-submit"
-            class="iw-button">Ajouter le commentaire</button>
+            class="iw-button">Ajouter le commentaire</button
+          >
         </form>
       </section>
     </div>

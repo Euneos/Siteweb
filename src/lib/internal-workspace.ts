@@ -106,7 +106,10 @@ export function parseEntry(input: unknown) {
       dailyActual = dailyTotal(rows, 'actual')
     }
   } catch (error) {
-    throw new WorkspaceError(400, error instanceof Error ? error.message : 'Détail des heures invalide.')
+    throw new WorkspaceError(
+      400,
+      error instanceof Error ? error.message : 'Détail des heures invalide.',
+    )
   }
   const attendance = text(x.attendance ?? '', 20)
   if (!['', 'presence', 'absence', 'conge'].includes(attendance))
@@ -185,8 +188,18 @@ export async function saveEntry(
     ? await db.prepare('SELECT * FROM workspace_entries WHERE id = ?').bind(id).first<Entry>()
     : null
   if (id && !previous) throw new WorkspaceError(404, 'Fiche introuvable.')
+  // Keep existing historical statuses editable, without creating new team
+  // entries with an editorial publication status.
+  if (entry.kind === 'equipe' && entry.status === 'programme' && previous?.status !== 'programme')
+    throw new WorkspaceError(
+      400,
+      'Le statut Programmé concerne les publications. Pour les heures, choisissez Brouillon ou À valider.',
+    )
   if (previous?.daily_hours && !(input as Record<string, unknown>).daily_hours)
-    throw new WorkspaceError(409, 'Cette fiche contient un détail quotidien. Rechargez-la avant de modifier les heures.')
+    throw new WorkspaceError(
+      409,
+      'Cette fiche contient un détail quotidien. Rechargez-la avant de modifier les heures.',
+    )
   if (previous && entry.kind !== previous.kind)
     throw new WorkspaceError(400, 'Le calendrier d’une fiche ne peut pas changer.')
   if (previous?.kind === 'equipe' && previous.created_by !== actor.email && !actor.admin)
