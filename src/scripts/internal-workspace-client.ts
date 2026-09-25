@@ -51,6 +51,17 @@ const statuses: Record<string, string> = {
   publie: 'Publié',
   annule: 'Annulé',
 }
+const editorialStatuses: Record<string, string> = {
+  en_cours: 'En cours',
+  a_creer: 'À créer',
+  a_modifier: 'À modifier',
+  a_valider: 'À valider',
+  programme: 'Programmé',
+  valide: 'Validé',
+  publie: 'Publié',
+}
+Object.assign(statuses, editorialStatuses)
+const teamStatuses = ['brouillon', 'a_valider', 'valide', 'programme', 'annule']
 const attendanceLabels: Record<string, string> = {
   presence: 'Présence',
   absence: 'Absence',
@@ -274,7 +285,9 @@ function initCalendar(root: HTMLElement) {
     kind: editorKind,
     title: input('title').value.trim(),
     starts_on: input('starts_on').value,
-    ends_on: input('ends_on').value,
+    ends_on: editorKind === 'editorial'
+      ? (selected && input('starts_on').value === selected.starts_on ? selected.ends_on : input('starts_on').value)
+      : input('ends_on').value,
     person: input('person').value.trim(),
     activity: input('activity').value.trim(),
     channel: input('channel').value.trim(),
@@ -319,14 +332,21 @@ function initCalendar(root: HTMLElement) {
   const fillForm = (entry: EntryInput) => {
     const statusSelect = input('status') as HTMLSelectElement
     statusSelect.replaceChildren()
-    for (const [value, label] of Object.entries(statuses)) {
-      if (editorKind === 'equipe' && value === 'publie') continue
+    const choices = editorKind === 'editorial'
+      ? Object.entries(editorialStatuses)
+      : teamStatuses.map((value) => [value, statuses[value]])
+    if (editorKind === 'editorial' && !editorialStatuses[entry.status])
+      choices.push([entry.status, `${statuses[entry.status] ?? entry.status} (ancien statut)`])
+    for (const [value, label] of choices) {
       const option = new Option(label, value)
       if (editorKind === 'equipe' && !identity.admin && value === 'valide') option.disabled = true
       statusSelect.add(option)
     }
     for (const field of fields) writeField(field, entry[field])
     dailyEditor.render(editorKind === 'equipe')
+    form.querySelector('label[for="iw-starts"]')!.textContent = editorKind === 'editorial' ? 'Date de publication *' : 'Date de début *'
+    byId('iw-ends-field').hidden = editorKind === 'editorial'
+    input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
     byId('iw-location-field').hidden = editorKind !== 'equipe'
@@ -357,7 +377,7 @@ function initCalendar(root: HTMLElement) {
       const first = filter.options[0].cloneNode(true)
       const values =
         field === 'status'
-          ? Object.keys(statuses).filter((status) => kind === 'editorial' || status !== 'publie')
+          ? [...new Set([...(kind === 'editorial' ? Object.keys(editorialStatuses) : teamStatuses), ...data.entries.map((entry) => entry.status)])]
           : [...new Set(data.entries.map((entry) => entry[field]).filter(Boolean))].sort((a, b) =>
               a.localeCompare(b, 'fr'),
             )
@@ -720,7 +740,7 @@ function initCalendar(root: HTMLElement) {
         channel: '',
         attendance: '',
         location: '',
-        status: 'brouillon',
+        status: editorKind === 'editorial' ? 'en_cours' : 'brouillon',
         hours: null,
         notes: '',
         content: '',

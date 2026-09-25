@@ -272,6 +272,14 @@ await call('/api/interne/calendrier', 'manager', 'POST', {
     hours: null,
   }),
 })
+for (const status of ['en_cours', 'a_creer', 'a_modifier']) {
+  const statusId = crypto.randomUUID()
+  assert.equal((await call('/api/interne/calendrier', 'manager', 'POST', {
+    requestId: statusId,
+    entry: baseEntry({ kind: 'editorial', status, hours: null }),
+  })).status, 201)
+  assert.equal(sql.query('SELECT status FROM workspace_entries WHERE id=?').get(statusId).status, status)
+}
 const legacyId = crypto.randomUUID()
 const legacyChannel = 'Réseau historique · partenariats'
 const legacyTitle = 'Publication historique de démonstration'
@@ -409,6 +417,10 @@ try {
     await page.locator('#iw-close').click()
     await page.locator('#iw-new').click()
     await expect(channel).toHaveValue('')
+    await expect(page.getByLabel('Date de publication *', { exact: true })).toBeVisible()
+    await expect(page.locator('#iw-ends')).toBeHidden()
+    assert.deepEqual(await page.locator('#iw-entry-status option').allTextContents(),
+      ['En cours', 'À créer', 'À modifier', 'À valider', 'Programmé', 'Validé', 'Publié'])
     assert.deepEqual(
       await channel
         .locator('option')
@@ -444,6 +456,16 @@ try {
     },
   )
   checks.push('legacy-channel-concurrent-merge-safe-text')
+  // Every editorial status and publication-date change must persist through the compiled API.
+  for (const status of ['en_cours', 'a_creer', 'a_modifier', 'a_valider', 'programme', 'valide', 'publie']) {
+    await page.locator('#iw-entry-status').selectOption(status)
+    await page.locator('#iw-starts').fill('2026-09-22')
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    assert.deepEqual(sql.query('SELECT status,starts_on,ends_on FROM workspace_entries WHERE id=?').get(legacyId),
+      { status, starts_on: '2026-09-22', ends_on: '2026-09-22' })
+  }
+  checks.push('editorial-seven-statuses-publication-date-sql')
   // An explicit selection replaces the old value; Programmé must persist server-side.
   await channel.selectOption('Newsletter')
   await page.locator('#iw-entry-status').selectOption('programme')
