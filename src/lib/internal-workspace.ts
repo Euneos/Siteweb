@@ -39,7 +39,8 @@ export class WorkspaceError extends Error {
     super(message)
   }
 }
-const statuses = ['brouillon', 'a_valider', 'valide', 'programme', 'publie', 'annule', 'en_cours', 'a_creer', 'a_modifier']
+const teamStatuses = ['brouillon', 'a_valider', 'valide', 'programme', 'annule']
+const statuses = [...teamStatuses, 'publie', 'en_cours', 'a_creer', 'a_modifier']
 const text = (value: unknown, max: number, required = false): string => {
   if (typeof value !== 'string' || value.length > max || (required && !value.trim()))
     throw new WorkspaceError(400, 'Un champ est absent ou trop long.')
@@ -80,7 +81,7 @@ export function parseEntry(input: unknown) {
     ends_on = date(x.ends_on)
   if (ends_on < starts_on) throw new WorkspaceError(400, 'La fin précède le début.')
   const status = text(x.status, 20)
-  if (!statuses.includes(status) || (x.kind === 'equipe' && status === 'publie'))
+  if (!(x.kind === 'equipe' ? teamStatuses : statuses).includes(status))
     throw new WorkspaceError(400, 'Statut invalide.')
   const hours = x.hours === null || x.hours === '' ? null : x.hours
   if (

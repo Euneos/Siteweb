@@ -274,11 +274,19 @@ await call('/api/interne/calendrier', 'manager', 'POST', {
 })
 for (const status of ['en_cours', 'a_creer', 'a_modifier']) {
   const statusId = crypto.randomUUID()
-  assert.equal((await call('/api/interne/calendrier', 'manager', 'POST', {
-    requestId: statusId,
-    entry: baseEntry({ kind: 'editorial', status, hours: null }),
-  })).status, 201)
-  assert.equal(sql.query('SELECT status FROM workspace_entries WHERE id=?').get(statusId).status, status)
+  assert.equal(
+    (
+      await call('/api/interne/calendrier', 'manager', 'POST', {
+        requestId: statusId,
+        entry: baseEntry({ kind: 'editorial', status, hours: null }),
+      })
+    ).status,
+    201,
+  )
+  assert.equal(
+    sql.query('SELECT status FROM workspace_entries WHERE id=?').get(statusId).status,
+    status,
+  )
 }
 const legacyId = crypto.randomUUID()
 const legacyChannel = 'Réseau historique · partenariats'
@@ -290,6 +298,7 @@ assert.equal(
       entry: baseEntry({
         kind: 'editorial',
         title: legacyTitle,
+        ends_on: '2026-09-20',
         channel: legacyChannel,
         activity: 'Communication historique',
         hours: null,
@@ -409,6 +418,11 @@ try {
         notes: `Note modifiée à ${width} px`,
       },
     )
+    assert.equal(
+      sql.query('SELECT ends_on FROM workspace_entries WHERE id=?').get(legacyId).ends_on,
+      '2026-09-20',
+      'An unchanged historical editorial period stays intact',
+    )
     await page.locator('#iw-close').click()
     await expect(editor).not.toBeVisible()
     await page.getByRole('button', { name: /^Ouvrir Faire découvrir le programme,/ }).click()
@@ -419,8 +433,15 @@ try {
     await expect(channel).toHaveValue('')
     await expect(page.getByLabel('Date de publication *', { exact: true })).toBeVisible()
     await expect(page.locator('#iw-ends')).toBeHidden()
-    assert.deepEqual(await page.locator('#iw-entry-status option').allTextContents(),
-      ['En cours', 'À créer', 'À modifier', 'À valider', 'Programmé', 'Validé', 'Publié'])
+    assert.deepEqual(await page.locator('#iw-entry-status option').allTextContents(), [
+      'En cours',
+      'À créer',
+      'À modifier',
+      'À valider',
+      'Programmé',
+      'Validé',
+      'Publié',
+    ])
     assert.deepEqual(
       await channel
         .locator('option')
@@ -457,13 +478,23 @@ try {
   )
   checks.push('legacy-channel-concurrent-merge-safe-text')
   // Every editorial status and publication-date change must persist through the compiled API.
-  for (const status of ['en_cours', 'a_creer', 'a_modifier', 'a_valider', 'programme', 'valide', 'publie']) {
+  for (const status of [
+    'en_cours',
+    'a_creer',
+    'a_modifier',
+    'a_valider',
+    'programme',
+    'valide',
+    'publie',
+  ]) {
     await page.locator('#iw-entry-status').selectOption(status)
     await page.locator('#iw-starts').fill('2026-09-22')
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-    assert.deepEqual(sql.query('SELECT status,starts_on,ends_on FROM workspace_entries WHERE id=?').get(legacyId),
-      { status, starts_on: '2026-09-22', ends_on: '2026-09-22' })
+    assert.deepEqual(
+      sql.query('SELECT status,starts_on,ends_on FROM workspace_entries WHERE id=?').get(legacyId),
+      { status, starts_on: '2026-09-22', ends_on: '2026-09-22' },
+    )
   }
   checks.push('editorial-seven-statuses-publication-date-sql')
   // An explicit selection replaces the old value; Programmé must persist server-side.
@@ -489,11 +520,58 @@ try {
   await expect(channel).toHaveValue('Newsletter')
   await expect(channel.locator('option[data-legacy-channel]')).toHaveCount(0)
   await expect(page.locator('#iw-entry-status')).toHaveValue('programme')
+  // A hidden legacy end date must honor the explicit choice made in a conflict.
+  await page.locator('#iw-notes').fill('Conserver ma date après comparaison')
+  sql
+    .query("UPDATE workspace_entries SET ends_on='2026-09-26',version=version+1 WHERE id=?")
+    .run(legacyId)
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-conflict')).toBeVisible()
+  await page.locator('#iw-compare').click()
+  await expect(page.locator('#iw-merge-ends_on')).toBeVisible()
+  await page.locator('#iw-merge-ends_on').selectOption('mine')
+  await page.locator('#iw-apply-merge').click()
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  assert.equal(
+    sql.query('SELECT ends_on FROM workspace_entries WHERE id=?').get(legacyId).ends_on,
+    '2026-09-22',
+    'The chosen date must not be overwritten by the latest server date',
+  )
+  // A concurrent historical status may not already exist in the closed select.
+  await page.locator('#iw-notes').fill('Conserver le statut actuel après comparaison')
+  sql
+    .query("UPDATE workspace_entries SET status='annule',version=version+1 WHERE id=?")
+    .run(legacyId)
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-conflict')).toBeVisible()
+  await page.locator('#iw-compare').click()
+  await page.locator('#iw-merge-status').selectOption('current')
+  await page.locator('#iw-apply-merge').click()
+  await expect(page.locator('#iw-entry-status')).toHaveValue('annule')
+  await expect(page.locator('#iw-entry-status option[data-legacy-status]')).toHaveText(
+    'Annulé (ancien statut)',
+  )
+  await page.locator('#iw-save').click()
+  await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+  assert.equal(
+    sql.query('SELECT status FROM workspace_entries WHERE id=?').get(legacyId).status,
+    'annule',
+  )
+  checks.push('editorial-conflict-preserves-chosen-date-and-historical-status')
   await page.locator('#iw-close').click()
   checks.push('explicit-channel-change-and-programme-status-sql-reload')
   await page.locator('[data-kind="equipe"]').click()
   await expect(page.locator('#iw-totals-content')).toContainText('6 h')
   await page.locator('#iw-new').click()
+  await expect(page.getByLabel('Date de début *', { exact: true })).toBeVisible()
+  await expect(page.locator('#iw-ends')).toBeVisible()
+  assert.deepEqual(
+    await page
+      .locator('#iw-entry-status option')
+      .evaluateAll((options) => options.map((option) => option.value)),
+    ['brouillon', 'a_valider', 'valide', 'programme', 'annule'],
+  )
   await page.locator('#iw-title').fill('Recette depuis le navigateur')
   await page.locator('#iw-starts').fill('2026-09-17')
   await page.locator('#iw-ends').fill('2026-09-17')
