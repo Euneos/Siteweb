@@ -60,6 +60,17 @@ const entry = (extra = {}) => ({
 })
 
 describe('Calendriers et commentaires persistants', () => {
+  test.each(['en_cours', 'a_creer', 'a_modifier'])(
+    'le statut %s est réservé aux fiches éditoriales',
+    async (status) => {
+      const { db } = fixture()
+      await expect(saveEntry(db, actor, entry({ status }))).rejects.toMatchObject({ status: 400 })
+      const id = await saveEntry(db, actor, entry({ kind: 'editorial', status, hours: null }))
+      expect(
+        (await listEntries(db, '2026-09', 'editorial')).find((row) => row.id === id).status,
+      ).toBe(status)
+    },
+  )
   test('le statut Programmé persiste dans le schéma SQL migré, sans effacer canal et activité historiques', async () => {
     const { db, sql } = fixture()
     const initial = entry({
