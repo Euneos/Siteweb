@@ -47,6 +47,17 @@ const statuses: Record<string, string> = {
   publie: 'Publié',
   annule: 'Annulé',
 }
+const editorialStatuses: Record<string, string> = {
+  en_cours: 'En cours',
+  a_creer: 'À créer',
+  a_modifier: 'À modifier',
+  a_valider: 'À valider',
+  programme: 'Programmé',
+  valide: 'Validé',
+  publie: 'Publié',
+}
+Object.assign(statuses, editorialStatuses)
+const teamStatuses = ['brouillon', 'a_valider', 'valide', 'programme', 'annule']
 const attendanceLabels: Record<string, string> = {
   presence: 'Présence',
   absence: 'Absence',
@@ -236,19 +247,24 @@ function initCalendar(root: HTMLElement) {
   const writeField = (field: Field, value: EntryInput[Field]) => {
     const control = input(field)
     const text = value === null ? '' : String(value)
-    if (field === 'channel' && control instanceof HTMLSelectElement) {
-      // Imported free-text channels must survive edits and conflict resolution.
+    if ((field === 'channel' || field === 'status') && control instanceof HTMLSelectElement) {
+      // Historical values must survive edits and conflict resolution.
       // Keep only the current record's legacy option, never add it to new records.
-      control.querySelectorAll('option[data-legacy-channel]').forEach((option) => option.remove())
+      control.querySelectorAll(`option[data-legacy-${field}]`).forEach((option) => option.remove())
       if (text && ![...control.options].some((option) => option.value === text)) {
-        const option = new Option(`${text} (ancien canal)`, text)
-        option.dataset.legacyChannel = 'true'
+        const label =
+          field === 'status'
+            ? `${statuses[text] ?? text} (ancien statut)`
+            : `${text} (ancien canal)`
+        const option = new Option(label, text)
+        option.dataset[field === 'status' ? 'legacyStatus' : 'legacyChannel'] = 'true'
         control.add(option)
       }
     }
     control.value = text
   }
   let selected: Entry | null = null
+  let publicationDates: Pick<EntryInput, 'starts_on' | 'ends_on'> | null = null
   let editorKind: Kind = kind
   let savedSnapshot = ''
   let entryRequestId = ''
@@ -269,7 +285,12 @@ function initCalendar(root: HTMLElement) {
     kind: editorKind,
     title: input('title').value.trim(),
     starts_on: input('starts_on').value,
-    ends_on: input('ends_on').value,
+    ends_on:
+      editorKind === 'editorial'
+        ? publicationDates && input('starts_on').value === publicationDates.starts_on
+          ? publicationDates.ends_on
+          : input('starts_on').value
+        : input('ends_on').value,
     person: input('person').value.trim(),
     activity: input('activity').value.trim(),
     channel: input('channel').value.trim(),
@@ -311,15 +332,23 @@ function initCalendar(root: HTMLElement) {
     if (!selected && person.readOnly) person.value = identity.email
   }
   const fillForm = (entry: EntryInput) => {
+    publicationDates = { starts_on: entry.starts_on, ends_on: entry.ends_on }
     const statusSelect = input('status') as HTMLSelectElement
     statusSelect.replaceChildren()
-    for (const [value, label] of Object.entries(statuses)) {
-      if (editorKind === 'equipe' && value === 'publie') continue
+    const choices =
+      editorKind === 'editorial'
+        ? Object.entries(editorialStatuses)
+        : teamStatuses.map((value) => [value, statuses[value]])
+    for (const [value, label] of choices) {
       const option = new Option(label, value)
       if (editorKind === 'equipe' && !identity.admin && value === 'valide') option.disabled = true
       statusSelect.add(option)
     }
     for (const field of fields) writeField(field, entry[field])
+    form.querySelector('label[for="iw-starts"]')!.textContent =
+      editorKind === 'editorial' ? 'Date de publication *' : 'Date de début *'
+    byId('iw-ends-field').hidden = editorKind === 'editorial'
+    input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
     byId('iw-location-field').hidden = editorKind !== 'equipe'
@@ -350,7 +379,12 @@ function initCalendar(root: HTMLElement) {
       const first = filter.options[0].cloneNode(true)
       const values =
         field === 'status'
-          ? Object.keys(statuses).filter((status) => kind === 'editorial' || status !== 'publie')
+          ? [
+              ...new Set([
+                ...(kind === 'editorial' ? Object.keys(editorialStatuses) : teamStatuses),
+                ...data.entries.map((entry) => entry.status),
+              ]),
+            ]
           : [...new Set(data.entries.map((entry) => entry[field]).filter(Boolean))].sort((a, b) =>
               a.localeCompare(b, 'fr'),
             )
@@ -705,7 +739,7 @@ function initCalendar(root: HTMLElement) {
         channel: '',
         attendance: '',
         location: '',
-        status: 'brouillon',
+        status: editorKind === 'editorial' ? 'en_cours' : 'brouillon',
         hours: null,
         notes: '',
         content: '',
@@ -895,6 +929,14 @@ function initCalendar(root: HTMLElement) {
         const field = choice.dataset.field as Field
         writeField(field, latestConflict[field])
       }
+    // Keep the user's explicit date choices independently of the server version
+    // used for concurrency control; editorial end dates are otherwise hidden.
+    const mergedDate = (field: 'starts_on' | 'ends_on') =>
+      choices.some((choice) => choice.dataset.field === field && choice.value === 'current')
+        ? latestConflict![field]
+        : draft[field]
+    publicationDates = { starts_on: mergedDate('starts_on'), ends_on: mergedDate('ends_on') }
+    writeField('ends_on', publicationDates.ends_on)
     selected = { ...latestConflict }
     editorKind = selected.kind
     conflictPending = false
@@ -985,6 +1027,8 @@ function initCalendar(root: HTMLElement) {
         created_by: previous?.created_by ?? identity.email,
         updated_by: identity.email,
       }
+      publicationDates = { starts_on: entry.starts_on, ends_on: entry.ends_on }
+      writeField('ends_on', entry.ends_on)
       savedSnapshot = snapshot()
       byId('iw-close-warning').hidden = true
       byId('iw-editor-title').textContent = 'Détail de la fiche'

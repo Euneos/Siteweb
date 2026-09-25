@@ -176,7 +176,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
               />
             </div>
             <div class="iw-field">
-              <label for="iw-starts">Date de début *</label><input
+              <label for="iw-starts">Date de publication *</label><input
                 id="iw-starts"
                 name="starts_on"
                 type="date"
@@ -185,7 +185,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 required
               />
             </div>
-            <div class="iw-field">
+            <div class="iw-field" id="iw-ends-field" hidden>
               <label for="iw-ends">Date de fin *</label><input
                 id="iw-ends"
                 name="ends_on"
