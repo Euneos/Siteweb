@@ -763,6 +763,17 @@ const importPending = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_IMPOR
   .iw-field--wide {
     grid-column: 1/-1;
   }
+  .iw-daily-day + .iw-daily-day {
+    margin-top: 1.2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--iw-line);
+  }
+  .iw-daily-day > p {
+    font-weight: 600;
+  }
+  .iw-daily-day > button {
+    justify-self: start;
+  }
   .iw-form-fields {
     border: 0;
     padding: 0;

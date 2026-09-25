@@ -1,6 +1,8 @@
 /** Team calendars are a separate domain from WISE-UP's NocoDB dossiers.
  * Notion stays canonical until an audited import and an explicit cutover.
  * No live cross-system synchronization or automatic social publication. */
+import { parseDailyHours, dailyTotal } from './daily-hours'
+
 export interface WorkspaceDatabase {
   prepare(sql: string): {
     bind(...values: (string | number | null)[]): {
@@ -22,6 +24,7 @@ export type Entry = {
   channel: string
   status: string
   hours: number | null
+  daily_hours?: string
   attendance: string
   location: string
   notes: string
@@ -93,6 +96,21 @@ export function parseEntry(input: unknown) {
   // an arbitrary fraction of a multi-month duration.
   if (hours !== null && hours > 0 && starts_on.slice(0, 7) !== ends_on.slice(0, 7))
     throw new WorkspaceError(400, 'Répartissez les heures en une fiche par mois.')
+  let daily_hours = text(x.daily_hours ?? '', 6000)
+  let dailyActual: number | null = hours as number | null
+  try {
+    const rows = parseDailyHours(daily_hours, starts_on, ends_on)
+    if (rows !== null) {
+      if (x.kind !== 'equipe') throw new Error('Le détail des heures concerne uniquement l’équipe.')
+      daily_hours = JSON.stringify(rows)
+      dailyActual = dailyTotal(rows, 'actual')
+    }
+  } catch (error) {
+    throw new WorkspaceError(
+      400,
+      error instanceof Error ? error.message : 'Détail des heures invalide.',
+    )
+  }
   const attendance = text(x.attendance ?? '', 20)
   if (!['', 'presence', 'absence', 'conge'].includes(attendance))
     throw new WorkspaceError(400, 'Présence ou absence invalide.')
@@ -110,7 +128,8 @@ export function parseEntry(input: unknown) {
     attendance,
     location: text(x.location ?? '', 200),
     status,
-    hours: x.kind === 'equipe' ? hours : null,
+    hours: x.kind === 'equipe' ? dailyActual : null,
+    daily_hours,
     notes: text(x.notes, 6000),
     content: text(x.content, 20000),
     link: safeLink(x.link),
@@ -130,7 +149,7 @@ export function monthBounds(month: string) {
   return { start, end }
 }
 const entryColumns =
-  'id,kind,title,starts_on,ends_on,person,activity,channel,attendance,location,status,hours,notes,content,link,created_by,updated_by,version'
+  'id,kind,title,starts_on,ends_on,person,activity,channel,attendance,location,status,hours,daily_hours,notes,content,link,created_by,updated_by,version'
 export async function getEntry(db: WorkspaceDatabase, id: string): Promise<Entry> {
   const entry = await db
     .prepare(`SELECT ${entryColumns} FROM workspace_entries WHERE id=?`)
@@ -169,6 +188,18 @@ export async function saveEntry(
     ? await db.prepare('SELECT * FROM workspace_entries WHERE id = ?').bind(id).first<Entry>()
     : null
   if (id && !previous) throw new WorkspaceError(404, 'Fiche introuvable.')
+  // Keep existing historical statuses editable, without creating new team
+  // entries with an editorial publication status.
+  if (entry.kind === 'equipe' && entry.status === 'programme' && previous?.status !== 'programme')
+    throw new WorkspaceError(
+      400,
+      'Le statut Programmé concerne les publications. Pour les heures, choisissez Brouillon ou À valider.',
+    )
+  if (previous?.daily_hours && !(input as Record<string, unknown>).daily_hours)
+    throw new WorkspaceError(
+      409,
+      'Cette fiche contient un détail quotidien. Rechargez-la avant de modifier les heures.',
+    )
   if (previous && entry.kind !== previous.kind)
     throw new WorkspaceError(400, 'Le calendrier d’une fiche ne peut pas changer.')
   if (previous?.kind === 'equipe' && previous.created_by !== actor.email && !actor.admin)
@@ -200,6 +231,7 @@ export async function saveEntry(
     entry.location,
     entry.status,
     entry.hours,
+    entry.daily_hours,
     entry.notes,
     entry.content,
     entry.link,
@@ -209,7 +241,7 @@ export async function saveEntry(
       throw new WorkspaceError(400, 'Version de fiche absente.')
     const result = await db
       .prepare(
-        `UPDATE workspace_entries SET title=?, starts_on=?, ends_on=?, person=?, activity=?, channel=?, attendance=?, location=?, status=?, hours=?, notes=?, content=?, link=?, updated_by=?, version=version+1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND version=?`,
+        `UPDATE workspace_entries SET title=?, starts_on=?, ends_on=?, person=?, activity=?, channel=?, attendance=?, location=?, status=?, hours=?, daily_hours=?, notes=?, content=?, link=?, updated_by=?, version=version+1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND version=?`,
       )
       .bind(...values, actor.email, id, version!)
       .run()
@@ -223,7 +255,7 @@ export async function saveEntry(
   const newId = requestId ?? crypto.randomUUID()
   const inserted = await db
     .prepare(
-      `INSERT INTO workspace_entries (id,kind,title,starts_on,ends_on,person,activity,channel,attendance,location,status,hours,notes,content,link,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
+      `INSERT INTO workspace_entries (id,kind,title,starts_on,ends_on,person,activity,channel,attendance,location,status,hours,daily_hours,notes,content,link,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
     )
     .bind(newId, entry.kind, ...values, actor.email, actor.email)
     .run()

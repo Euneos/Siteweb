@@ -60,6 +60,51 @@ const entry = (extra = {}) => ({
 })
 
 describe('Calendriers et commentaires persistants', () => {
+  test('Programmé reste éditorial, une ancienne fiche équipe conserve son statut sans le proposer à nouveau', async () => {
+    const { db, sql } = fixture()
+    await expect(saveEntry(db, actor, entry({ status: 'programme' }))).rejects.toMatchObject({
+      status: 400,
+    })
+    const id = await saveEntry(db, actor, entry())
+    await expect(saveEntry(db, actor, entry({ status: 'programme' }), id, 1)).rejects.toMatchObject(
+      { status: 400 },
+    )
+    sql.query("UPDATE workspace_entries SET status='programme' WHERE id=?").run(id)
+    await saveEntry(db, actor, entry({ status: 'programme', notes: 'Historique conservé' }), id, 1)
+    expect((await listEntries(db, '2026-09', 'equipe'))[0]).toMatchObject({
+      status: 'programme',
+      notes: 'Historique conservé',
+      version: 2,
+    })
+  })
+  test('le détail quotidien conserve les droits, les conflits et les données masquées', async () => {
+    const { db } = fixture()
+    const input = entry({
+      hours: null,
+      channel: 'Canal historique',
+      content: 'Texte historique',
+      daily_hours: JSON.stringify([{ date: '2026-09-17', planned: 7, actual: 8 }]),
+    })
+    const id = await saveEntry(db, actor, input)
+    await expect(saveEntry(db, actor, { ...input, status: 'valide' }, id, 1)).rejects.toMatchObject(
+      { status: 403 },
+    )
+    await expect(
+      saveEntry(db, { email: 'other@example.test', admin: false }, input, id, 1),
+    ).rejects.toMatchObject({ status: 403 })
+    await expect(saveEntry(db, actor, entry(), id, 1)).rejects.toMatchObject({ status: 409 })
+    await saveEntry(db, admin, { ...input, status: 'valide' }, id, 1)
+    await expect(saveEntry(db, actor, input, id, 1)).rejects.toMatchObject({ status: 409 })
+    const rows = await listEntries(db, '2026-09', 'equipe')
+    expect(rows[0]).toMatchObject({
+      channel: 'Canal historique',
+      content: 'Texte historique',
+      hours: 8,
+      daily_hours: input.daily_hours,
+      status: 'valide',
+    })
+    expect(hoursByPerson(rows)).toEqual([{ person: actor.email, declared: 8, approved: 8 }])
+  })
   test.each(['en_cours', 'a_creer', 'a_modifier'])(
     'le statut %s est réservé aux fiches éditoriales',
     async (status) => {
@@ -103,6 +148,47 @@ describe('Calendriers et commentaires persistants', () => {
     expect(() =>
       sql.query("UPDATE workspace_entries SET status='inconnu' WHERE id=?").run(id),
     ).toThrow()
+  })
+  test('prévisions quotidiennes, dépassements et conservation après modification', async () => {
+    const { db } = fixture()
+    const daily = [
+      { date: '2026-09-01', planned: 7, actual: 8 },
+      { date: '2026-09-03', planned: 7, actual: null },
+      { date: '2026-09-04', planned: 3.5, actual: null },
+    ]
+    const input = entry({
+      starts_on: '2026-09-01',
+      ends_on: '2026-09-30',
+      hours: null,
+      daily_hours: JSON.stringify(daily),
+    })
+    const id = await saveEntry(db, actor, input)
+    let saved = (await listEntries(db, '2026-09', 'equipe'))[0]
+    expect(saved.hours).toBe(8)
+    expect(JSON.parse(saved.daily_hours)).toEqual(daily)
+    daily[2] = { date: '2026-09-02', planned: 3.5, actual: 4 }
+    await saveEntry(db, actor, { ...input, daily_hours: JSON.stringify(daily) }, id, 1)
+    saved = (await listEntries(db, '2026-09', 'equipe'))[0]
+    expect(saved.hours).toBe(12)
+    expect(JSON.parse(saved.daily_hours).map((row) => row.date)).toEqual([
+      '2026-09-01',
+      '2026-09-02',
+      '2026-09-03',
+    ])
+    expect(saved.version).toBe(2)
+  })
+  test('les prévisions seules ne deviennent pas des heures réalisées', () => {
+    expect(
+      parseEntry(
+        entry({ daily_hours: JSON.stringify([{ date: '2026-09-17', planned: 7, actual: null }]) }),
+      ).hours,
+    ).toBeNull()
+    for (const row of [
+      { date: '2026-09-18', planned: 7, actual: null },
+      { date: '2026-09-17', planned: 25, actual: null },
+      { date: '2026-09-17', planned: 7, actual: -1 },
+    ])
+      expect(() => parseEntry(entry({ daily_hours: JSON.stringify([row]) }))).toThrow()
   })
   test('une même adresse ne divise pas les totaux selon sa casse ; un congé sans heures peut traverser un mois', async () => {
     const { db } = fixture()
