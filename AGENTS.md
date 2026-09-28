@@ -473,6 +473,18 @@ rose de la mission est réduit et centré sur la photo. Les biographies du conse
 contiennent un seul texte, limité visuellement à deux lignes à la fermeture et
 développé sans coupure à l’ouverture. Préserver les portraits et textes de Pauline.
 
+### Migrations des pages internes et preuve de publication
+
+Le circuit `TEAM_WORKSPACE` est décrit dans
+[docs/internal-migrations.md](docs/internal-migrations.md). Après l'adoption initiale
+vérifiée des migrations historiques, le workflow **Deploiement** migre la preview
+puis la production avant Pages ; une erreur D1 bloque la publication. Pour changer
+les statuts, ajouter une nouvelle migration et ses tests, puis suivre la PR et
+les reçus CI du SHA publié. Pauline n'a aucune commande D1 à exécuter.
+Ne jamais rejouer ni modifier 0001–0004 ; ne pas appliquer manuellement l'historique
+à une base dont le registre manque. Les bases des formulaires restent hors de ce
+circuit. La compétence locale `modifier-le-site` précise les preuves à vérifier.
+
 ### Protection des candidatures contre les doubles envois
 
 Les deux formulaires passent par `src/lib/candidature-store.ts` et le registre D1

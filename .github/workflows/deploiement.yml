@@ -1,6 +1,7 @@
 # Deploiement automatique du site EUNEOS.
 #
-# A chaque PR : preview isolee. A chaque push sur main : mise en production.
+# PR interne : preview. Main : migrations preview, puis production, puis Pages.
+# Les URLs de preview sont distinctes, leur base TEAM_WORKSPACE est commune.
 # L'equipe d'EUNEOS n'a rien a lancer : elle demande une modification a l'agent,
 # l'agent pousse sur GitHub, et le site se met a jour tout seul.
 #
@@ -15,9 +16,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: deploiement-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 env:
   # Meme version que `bun.lock` et que les postes de l'equipe.
@@ -27,13 +27,12 @@ env:
   SITE_URL: ${{ github.event_name == 'pull_request' && format('https://pr-{0}.euneos-site.pages.dev', github.event.number) || 'https://euneos.fr' }}
 
 jobs:
-  deployer:
+  verifier:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Installer bun
         id: bun
@@ -61,6 +60,9 @@ jobs:
       - name: Vérifier les formulaires et les profils newsletter
         run: bun run test
 
+      - name: Vérifier le lot transactionnel sur D1 local
+        run: bun scripts/check-internal-migrations-d1.mjs
+
       - name: Construire le site
         run: bun run build
 
@@ -83,18 +85,88 @@ jobs:
           bun run test:rhythm
           AUDIT_WIDTHS=320,390,599,600,601,768,859,860,861,900,901,1024,1099,1100,1101,1300,1440,1920,2560,3840 bun run test:responsive
 
-      - name: Mettre en production sur Cloudflare Pages
-        if: github.event_name != 'pull_request'
-        uses: cloudflare/wrangler-action@v3
+      - name: Conserver le build vérifié
+        uses: actions/upload-artifact@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=euneos-site --branch=main
+          name: site-verifie
+          path: dist
+          include-hidden-files: true
+          retention-days: 3
+
+  deployer:
+    needs: verifier
+    # Aucun secret ni job privilégié pour un fork, Dependabot ou un dispatch hors main.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+       ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      deployments: write
+    concurrency:
+      # Commun à toutes les PR et main, jusqu'au dernier déploiement Pages.
+      # Ne pas annuler un job qui a commencé à migrer.
+      group: euneos-team-workspace-deployment
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Installer le moteur verrouillé
+        run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-verifie
+          path: dist
+
+      - name: Migrer et vérifier la base preview
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bun scripts/internal-migrations.mjs apply-ci --environment preview --receipt "$RUNNER_TEMP/d1-receipts/preview.json"
 
       - name: Mettre la preview sur Cloudflare Pages
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: cloudflare/wrangler-action@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIEW_BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'validation-main' }}
+        run: |
+          bun scripts/check-deployment-revision.mjs
+          bunx --no-install wrangler pages deploy dist --project-name=euneos-site --branch="$PREVIEW_BRANCH"
+
+      - name: Migrer et vérifier la base production après preview
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bun scripts/internal-migrations.mjs apply-ci --environment production --preview-receipt "$RUNNER_TEMP/d1-receipts/preview.json" --receipt "$RUNNER_TEMP/d1-receipts/production.json"
+
+      - name: Mettre en production sur Cloudflare Pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          bun scripts/check-deployment-revision.mjs
+          bunx --no-install wrangler pages deploy dist --project-name=euneos-site --branch=main
+
+      - name: Conserver les reçus techniques (aucune donnée métier)
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=euneos-site --branch=pr-${{ github.event.number }}
+          name: d1-receipts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/d1-receipts/*.json
+          if-no-files-found: ignore
+          retention-days: 30

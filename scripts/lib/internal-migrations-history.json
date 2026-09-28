@@ -1,0 +1,18 @@
+[
+  {
+    "name": "0001_workspace.sql",
+    "sha256": "f70d9ba3b3c7737ee9c9a6e7734c12a13a252ebef884ca96c41738296754b06e"
+  },
+  {
+    "name": "0002_programme_status.sql",
+    "sha256": "e80a4df3c7ac6579603f029f10530f1e596c331279302926c2f270922bc9cfcf"
+  },
+  {
+    "name": "0003_editorial_statuses.sql",
+    "sha256": "a8af1f73101b62c06d7107fe1cf83398b9ffd37382fd03b29ab4ee192f70d093"
+  },
+  {
+    "name": "0004_daily_hours.sql",
+    "sha256": "d316d112ed6bdbb62796c0c1fce2d4108dd1327b9034b961da9e08dc76d9726c"
+  }
+]

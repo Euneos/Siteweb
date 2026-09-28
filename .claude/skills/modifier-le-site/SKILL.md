@@ -60,6 +60,26 @@ gh run list --commit <sha-pousse> --json databaseId,status,conclusion,url
 gh run watch <id-du-run-correspondant> --exit-status
 ```
 
+Pour les pages internes, vérifier les deux jobs `verifier` et `deployer` du
+workflow **Deploiement** sur le SHA réellement publié. Le build seul ne suffit
+pas : les migrations `TEAM_WORKSPACE` passent automatiquement sur la base preview
+avant la production, puis Pages publie le build testé. Pauline n'a aucune commande
+D1 ni configuration technique à effectuer pour chaque changement de statut.
+
+Le job conserve l'artifact `d1-receipts-<run-id>-<tentative>` : vérifier le reçu de
+l'environnement publié, `status: verified`, `codeSha`, `planSha256` et la liste
+`after`. En production, le reçu preview doit porter le même SHA et le même plan.
+Une PR externe n'a ni secrets ni déploiement ; une PR interne devenue ancienne
+doit être synchronisée avec main et revalidée avant sa preview.
+
+Pour un changement de schéma, lire [le circuit D1](../../../docs/internal-migrations.md),
+ajouter une nouvelle migration consécutive dans `migrations/interne` et ses tests,
+puis suivre la même PR. Ne jamais modifier/rejouer 0001–0004, ni lancer
+`wrangler d1 migrations apply` manuellement. L'adoption initiale des migrations
+historiques est une opération unique du responsable technique, avec exports
+privés ; un message « Bootstrap local requis » doit être remonté avec le run
+concerné, sans demander à Pauline de manipuler la base.
+
 Puis vérifier la page réelle, pas seulement le workflow :
 
 ```
@@ -67,13 +87,17 @@ curl -fsS https://euneos.fr/<page> | rg "<un mot du nouveau texte>"
 ```
 
 Tant que les deux ne sont pas verts, la réponse à donner est **« en cours »**, jamais
-« en ligne ». Si le workflow a échoué :
+« en ligne ». Si le workflow a échoué sur le réseau ou Pages, après avoir vérifié
+la cause :
 
 ```
 gh run rerun <id> --failed
 ```
 
 Et si l'échec vient du code et non du réseau, le dire franchement et corriger.
+Si l'échec vient de D1, consulter les reçus et relire le registre avant une
+relance. Ne jamais supprimer une ligne du registre, rejouer le SQL à la main ou
+restaurer automatiquement la base pour obtenir une CI verte.
 
 ## Règles
 
