@@ -144,6 +144,29 @@ const colonnes = [
             échéance reste à vérifier.
           </p>
 
+          <details class="etat__reperes">
+            <summary>Établissement, dossier, codes DOS et ETAB : comment s’y retrouver ?</summary>
+            <div>
+              <p>
+                <strong>Un établissement, une fiche.</strong> Cette fiche décrit la structure.
+                Un <strong>dossier DOS</strong> suit sa participation pour une année scolaire,
+                avec son statut, ses dates, ses formateurs et ses participants.
+                Un établissement peut donc avoir un dossier pour chaque année.
+              </p>
+              <p>
+                <strong>Les anciens codes ETAB sont conservés dans les archives.</strong>
+                Ils correspondent aux anciens dossiers regroupés, pas à de nouvelles candidatures.
+                Ils sont exclus du suivi courant affiché ici.
+              </p>
+              <p>
+                Dans NocoDB, utilisez <strong>« Suivi opérationnel 2026–2027 »</strong>
+                pour cette année, <strong>« Dossiers courants — toutes années »</strong>
+                pour comparer les années, et <strong>« Archives — anciens dossiers regroupés »</strong>
+                uniquement pour retrouver l’historique.
+              </p>
+            </div>
+          </details>
+
           {etat.lignesAVerifier > 0 && (
             <p class="etat__note">
               « Dossier à rapprocher » signale plusieurs dossiers pour un établissement, ou une
@@ -211,7 +234,7 @@ const colonnes = [
                     <div>
                       <h3 id={`dossier-${ligne.id}`}>{ligne.etablissement}</h3>
                       <p class="etat__legende">
-                        {[ligne.typeEtablissement, ligne.ville, ligne.code]
+                        {[ligne.typeEtablissement, ligne.ville, ligne.code ? `Dossier ${ligne.code}` : '']
                           .filter(Boolean)
                           .join(' · ')}
                       </p>
@@ -481,6 +504,28 @@ const colonnes = [
   .etat__actualisation {
     margin-top: 0.5rem;
     font-size: var(--t-note);
+  }
+  .etat__reperes {
+    padding: 1rem 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--vert) 25%, transparent);
+    font-size: var(--t-note);
+    line-height: 1.55;
+  }
+  .etat__reperes summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .etat__reperes summary:focus-visible {
+    outline: 3px solid var(--jaune);
+    outline-offset: 0.25rem;
+  }
+  .etat__reperes div {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .etat__reperes p {
+    margin: 0;
   }
   .etat__confidentialite,
   .etat__note,
