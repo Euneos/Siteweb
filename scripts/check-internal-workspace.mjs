@@ -183,7 +183,7 @@ const productionHtml = await (
     },
   )
 ).text()
-assert.match(productionHtml, /Historique Notion à reprendre/)
+assert.match(productionHtml, /Reprise de l’historique Notion en cours/)
 assert.doesNotMatch(productionHtml, /Espace d’essai\./)
 const withoutAdmins = { ...env, INTERNAL_ADMIN_EMAILS: undefined }
 assert.equal(

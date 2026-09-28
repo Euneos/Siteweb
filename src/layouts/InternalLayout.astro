@@ -107,9 +107,10 @@ const importPending = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_IMPOR
       {
         !preview && importPending && (
           <aside class="iw-feedback" aria-label="Reprise de l’historique">
-            <strong>Historique Notion à reprendre.</strong> Les anciennes fiches et leurs
-            commentaires n’ont pas encore été importés. Les nouvelles fiches enregistrées
-            dans cet espace sont conservées.
+            <strong>Reprise de l’historique Notion en cours.</strong> Les fiches « Copie Notion »
+            reprennent les informations disponibles ; leurs notes précisent les manques et la
+            source. Les heures reprises restent à valider et les commentaires historiques ne sont
+            pas repris. Les nouvelles saisies sont conservées.
           </aside>
         )
       }
