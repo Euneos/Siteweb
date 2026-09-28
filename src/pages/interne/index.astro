@@ -1,5 +1,6 @@
 ---
 export const prerender = false
+import EditorialImage from '../../components/interne/EditorialImage.astro'
 import InternalLayout from '../../layouts/InternalLayout.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, false)
@@ -355,6 +356,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         </div>
         <p class="iw-footnote" id="iw-entry-audit"></p>
       </form>
+      <EditorialImage />
       <section class="iw-comments" aria-labelledby="iw-comments-title">
         <div class="iw-sectionhead">
           <h3 id="iw-comments-title">Commentaires</h3><button

@@ -1,0 +1,88 @@
+<section id="iw-images" class="iw-images" aria-labelledby="iw-image-title" hidden>
+  <div class="iw-sectionhead">
+    <h3 id="iw-image-title">Visuel de la publication</h3>
+    <button type="button" id="iw-image-refresh" class="iw-button iw-button--plain"
+      >Actualiser le visuel</button
+    >
+  </div>
+  <p class="iw-small iw-muted">
+    Un visuel PNG ou JPG, 5 Mo maximum. Visible uniquement par l’équipe. L’ajout du visuel est
+    enregistré séparément du texte de la fiche.
+  </p>
+  <p id="iw-image-status" class="iw-feedback" role="status" aria-live="polite"></p>
+  <figure id="iw-image-current" class="iw-image-card" hidden>
+    <img id="iw-image-stored" alt="Visuel enregistré pour cette publication" />
+    <figcaption>Visuel enregistré · <span id="iw-image-details"></span></figcaption>
+  </figure>
+  <div class="iw-field">
+    <label for="iw-image-file">Choisir un visuel</label>
+    <input
+      id="iw-image-file"
+      type="file"
+      accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+      aria-describedby="iw-image-help"
+    />
+    <p id="iw-image-help" class="iw-small iw-muted">
+      Vérifiez l’aperçu avant de l’ajouter. Maximum 24 millions de pixels. Utilisez une image
+      autorisée pour cette publication.
+    </p>
+  </div>
+  <figure id="iw-image-pending" class="iw-image-card" hidden>
+    <img id="iw-image-preview" alt="Aperçu du nouveau visuel, pas encore enregistré" />
+    <figcaption>Aperçu · pas encore enregistré</figcaption>
+  </figure>
+  <div class="iw-image-actions">
+    <button type="button" id="iw-image-upload" class="iw-button iw-button--primary" hidden
+      >Ajouter le visuel</button
+    >
+    <button type="button" id="iw-image-cancel" class="iw-button" hidden>Annuler la sélection</button
+    >
+    <button type="button" id="iw-image-remove" class="iw-button" hidden>Supprimer le visuel</button>
+  </div>
+  <div id="iw-image-confirm" class="iw-conflict" hidden>
+    <p>Supprimer le visuel enregistré de cette fiche ? Le texte sera conservé.</p>
+    <div class="iw-image-actions">
+      <button type="button" id="iw-image-confirm-remove" class="iw-button"
+        >Confirmer la suppression</button
+      >
+      <button type="button" id="iw-image-keep" class="iw-button">Conserver le visuel</button>
+    </div>
+  </div>
+</section>
+<style is:global>
+  .iw-images {
+    border-top: 1px solid var(--iw-line, #d5d9d6);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+  }
+  .iw-image-card {
+    margin: 0;
+    border: 1px solid var(--iw-line, #d5d9d6);
+    background: #f1eeee;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  .iw-image-card img {
+    display: block;
+    width: 100%;
+    max-height: 22rem;
+    object-fit: contain;
+  }
+  .iw-image-card figcaption {
+    padding: 0.65rem 1rem;
+    font-size: var(--t-note);
+    overflow-wrap: anywhere;
+  }
+  .iw-image-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+  #iw-image-file {
+    max-width: 100%;
+    min-width: 0;
+  }
+</style>

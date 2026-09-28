@@ -13,7 +13,8 @@
     "test:layout": "bun scripts/check-layout.mjs",
     "test:responsive": "bun scripts/audit-responsive.mjs",
     "test:rhythm": "bun scripts/check-section-rhythm.mjs",
-    "test:operational": "bun scripts/check-operational-forms.mjs"
+    "test:operational": "bun scripts/check-operational-forms.mjs",
+    "test:editorial-images": "bun scripts/check-editorial-images.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
