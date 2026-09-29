@@ -13,6 +13,8 @@ import {
   readOperationalBody,
   operationalLinkColumns,
   savedOperationalLinks,
+  operationalYouthEnabled,
+  requireOperationalKindEnabled,
 } from '../../../lib/operational-links'
 import { listOperationalSubmissions } from '../../../lib/operational-store'
 export const prerender = false
@@ -29,7 +31,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
         token,
         'participations',
         'Id,code,statut,etablissements_id,cohortes_id,fusionne_vers,' +
-          Object.values(operationalLinkColumns).join(','),
+          Object.entries(operationalLinkColumns)
+            .filter(([kind]) => kind !== 'activites-jeunes' || operationalYouthEnabled(locals))
+            .map(([, column]) => column)
+            .join(','),
       ),
       lireToutes(token, 'cohortes', 'Id,nom,annee_debut,annee_fin,active'),
       listOperationalSubmissions(db),
@@ -60,7 +65,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
         }),
     )
     dossiers.sort((a, b) => a.schoolName.localeCompare(b.schoolName, 'fr'))
-    return operationalJson({ enabled: true, dossiers, submissions })
+    return operationalJson({
+      enabled: true,
+      dossiers,
+      submissions,
+      kinds: Object.keys(operationalLinkColumns).filter(
+        (kind) => kind !== 'activites-jeunes' || operationalYouthEnabled(locals),
+      ),
+    })
   } catch (error) {
     return operationalError(error)
   }
@@ -78,6 +90,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       )
     const { db, token } = operationalConfig(locals)
     const kind = operationalKind(body.kind)
+    requireOperationalKindEnabled(locals, kind)
     const result = await issueOperationalLink({
       db,
       token,

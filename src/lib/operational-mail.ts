@@ -22,6 +22,7 @@ export async function acknowledgeOperational(input: {
     contact: 'votre fiche contact',
     deploiement: 'les informations d’organisation de la formation',
     participants: 'votre liste de participants',
+    'activites-jeunes': 'l’organisation déclarée des activités avec les jeunes',
   }
   let state: 'sent' | 'unavailable' | 'uncertain' = 'uncertain'
   try {

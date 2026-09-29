@@ -390,3 +390,76 @@ test('actual middleware protects bearer documents and APIs, including error resp
     expect(response.status).toBe(403); privateResponse(response)
   }
 })
+
+// Current site contract, exercised through real route + durable SQLite + mocked Noco.
+const {contactV2,deploymentV2,youthV2}=await import('./fixtures/operational-forms-v2')
+test.each([['contact',contactV2],['deploiement',deploymentV2],['activites-jeunes',youthV2]])('v2 %s preview is entirely inert and validates the actual contract', async(kind,fixture)=>{
+  const poison=new Proxy({}, {get(){throw new Error('PREVIEW_ENV_ACCESS')}})
+  const response=await post('demo',kind,fixture(),poison,'https://pr-27.euneos-site.pages.dev')
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({state:'complete',preview:true})
+  expect(calls).toHaveLength(0)
+})
+test('youth disabled blocks public and authenticated issuance before business reads/writes', async()=>{
+  const response=await post('a'.repeat(64),'activites-jeunes',youthV2())
+  expect(response.status).toBe(503)
+  const listed=await teamGet({request:req('/api/interne/formulaires',undefined,{'Cf-Access-Jwt-Assertion':await jwt()}),locals:locals()})
+  expect((await listed.json()).kinds).not.toContain('activites-jeunes')
+  calls=[]
+  const link=await teamPost({request:req('/api/interne/formulaires',{participationId:7,kind:'activites-jeunes'},{'Cf-Access-Jwt-Assertion':await jwt()}),locals:locals()})
+  expect(link.status).toBe(503);expect(noco()).toHaveLength(0);noMutation()
+})
+test('youth personal link, complete raw history, replay and correction keep a single receipt', async()=>{
+  env.OPERATIONAL_YOUTH_ENABLED='true'
+  const token=await issue('activites-jeunes');calls=[]
+  adults=[{Id:40,adulte_id:'AD-EXAMPLE',participations_id:7,nom:'Exemple',prenom:'Adulte',statut:'Inscrit'}]
+  const first=await post(token,'activites-jeunes',youthV2()), saved=await first.json()
+  expect(first.status).toBe(200);expect(saved).toMatchObject({state:'complete',createdAdults:0})
+  expect(parts[0].activites_jeunes_effectif).toBe(75)
+  expect(parts[0].evaluation_jeunes_statut).toBe('À examiner')
+  expect(adults[0].statut).toBe('Inscrit')
+  expect(readContact(parts[0].notes).operationalSubmissions[0].data.youth).toEqual(youthV2().youth)
+  const before=JSON.stringify(parts),writesBefore=writes().length
+  const replay=await post(token,'activites-jeunes',youthV2())
+  expect(await replay.json()).toMatchObject({receipt:saved.receipt,duplicate:true})
+  const changed=youthV2();changed.youth.totalStudents=78
+  const correction=await post(token,'activites-jeunes',changed)
+  expect(correction.status).toBe(409);expect(await correction.json()).toMatchObject({code:'payload_changed'})
+  expect(JSON.stringify(parts)).toBe(before);expect(writes()).toHaveLength(writesBefore)
+  expect(count('operational_submissions')).toBe(1)
+  expect(JSON.stringify(sql.query('SELECT * FROM operational_submissions').all())).not.toContain('example.invalid')
+})
+test('youth lost PATCH reply holds target lock and never writes again on replay', async()=>{
+  env.OPERATIONAL_YOUTH_ENABLED='true'
+  const token=await issue('activites-jeunes');calls=[]
+  hook=call=>{if(call.method==='PATCH')throw new Error('lost response')}
+  const first=await post(token,'activites-jeunes',youthV2())
+  expect(await first.json()).toMatchObject({state:'review',code:'write_uncertain'})
+  const writesBefore=writes().length
+  expect(count('operational_submission_locks')).toBe(1)
+  expect(await (await post(token,'activites-jeunes',youthV2())).json()).toMatchObject({duplicate:true,state:'review'})
+  expect(writes()).toHaveLength(writesBefore);expect(mails()).toHaveLength(0)
+})
+test('youth rejects reused wrong-kind and old-cohort links before journal writes', async()=>{
+  env.OPERATIONAL_YOUTH_ENABLED='true'
+  const wrong=await issue('contact');calls=[]
+  expect((await post(wrong,'activites-jeunes',youthV2())).status).toBe(403);noMutation()
+  const token=await issue('activites-jeunes');calls=[]
+  cohorts[0].active=false
+  expect((await post(token,'activites-jeunes',youthV2())).status).toBe(409);noMutation()
+})
+test('v2 contact updates only present declarations; preformation gets its own explicit field', async()=>{
+  parts[0].date_debut_formation='2026-10-05';parts[0].date_fin_formation='2027-01-01'
+  const token=await issue('contact');calls=[]
+  expect((await post(token,'contact',contactV2())).status).toBe(200)
+  expect(parts[0].date_debut_formation).toBe('2026-10-05')
+  expect(parts[0].date_fin_formation).toBe('2027-01-01')
+  const deploy=await issue('deploiement');calls=[]
+  expect((await post(deploy,'deploiement',deploymentV2())).status).toBe(200)
+  expect(parts[0].preformation_questionnaire).toBe('Je vais le faire')
+  expect(adults).toHaveLength(0)
+})
+test('v2 honeypot rejects before any persistence, no fake success', async()=>{
+  const response=await post('a'.repeat(64),'contact',{...contactV2(),website:'bot'})
+  expect(response.status).toBe(400);expect(calls).toHaveLength(0);noMutation()
+})

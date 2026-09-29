@@ -164,6 +164,26 @@ if (form) {
   addTrainer?.addEventListener('click', () => newTrainer(true))
   if (form.dataset.kind === 'deploiement') newTrainer()
   else updateTrainers()
+  const interest = form.querySelector<HTMLSelectElement>('[name=evaluationInterest]')
+  const evaluation = form.querySelector<HTMLSelectElement>('[name=evaluation]')
+  function updateConditionalFields() {
+    for (const [id, visible] of [
+      ['of-interest-level', interest?.value === 'Oui'],
+      ['of-evaluation-details', evaluation?.value === 'true'],
+    ] as const) {
+      const section = document.getElementById(id)
+      if (!section) continue
+      section.hidden = !visible
+      section
+        .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea')
+        .forEach((input) => {
+          input.disabled = !visible || pending || terminal
+        })
+    }
+  }
+  interest?.addEventListener('change', updateConditionalFields)
+  evaluation?.addEventListener('change', updateConditionalFields)
+  updateConditionalFields()
   submit.disabled = false
 
   function show(message: string, error = false) {
@@ -183,6 +203,8 @@ if (form) {
     const num = (key: string) => (str(key) === '' ? null : Number(str(key)))
     const payload: Record<string, unknown> = {
       token: str('token'),
+      website: str('website'),
+      ...(form.dataset.kind !== 'participants' ? { version: 2 } : {}),
       referrer: {
         name: str('referentName'),
         email: str('referentEmail'),
@@ -190,6 +212,10 @@ if (form) {
       ...(form.dataset.kind === 'contact'
         ? {
             directionEmail: str('directionEmail'),
+            evaluationInterest: {
+              answer: str('evaluationInterest'),
+              level: str('evaluationLevel'),
+            },
             schoolDetails: {
               academy: str('academy'),
               address: str('address'),
@@ -203,7 +229,7 @@ if (form) {
           }
         : {}),
       formation:
-        form.dataset.kind === 'participants'
+        form.dataset.kind === 'participants' || form.dataset.kind === 'activites-jeunes'
           ? null
           : {
               start: str('start'),
@@ -212,6 +238,26 @@ if (form) {
               planning: str('planning'),
               sessions: num('sessions'),
             },
+      ...(form.dataset.kind === 'deploiement' ? { preformation: str('preformation') } : {}),
+      ...(form.dataset.kind === 'activites-jeunes'
+        ? {
+            youth: {
+              totalClasses: num('totalClasses'),
+              totalStudents: num('totalStudents'),
+              levels: str('levels'),
+              evaluation: str('evaluation') === 'true',
+              activeClasses: str('activeClasses'),
+              controlClasses: str('controlClasses'),
+              activeCount: num('activeCount'),
+              controlCount: num('controlCount'),
+              activeT1: str('activeT1'),
+              activeT2: str('activeT2'),
+              controlT1: str('controlT1'),
+              workshopCount: num('workshopCount'),
+              workshopSchedule: str('workshopSchedule'),
+            },
+          }
+        : {}),
       declaredTrainers: trainers
         ? [...trainers.querySelectorAll('[data-trainer]')].map((row) =>
             Object.fromEntries(
@@ -233,8 +279,11 @@ if (form) {
           )
         : [],
       confirmed:
-        data.get(form.dataset.kind === 'deploiement' ? 'organizationConfirmed' : 'confirmed') ===
-        'on',
+        data.get(
+          ['deploiement', 'activites-jeunes'].includes(form.dataset.kind!)
+            ? 'organizationConfirmed'
+            : 'confirmed',
+        ) === 'on',
       organizationConfirmed: data.get('organizationConfirmed') === 'on',
       changesAcknowledged: data.get('changesAcknowledged') === 'on',
     }
@@ -295,6 +344,9 @@ if (form) {
           trainer_required: 'Indiquez au moins un formateur avec son nom et son e-mail.',
           sessions_required: 'Indiquez au moins une session prévue.',
           grouping_required: 'Précisez si d’autres établissements seront regroupés avec le vôtre.',
+          preformation_required:
+            'Précisez si le questionnaire pré-formation a été proposé aux stagiaires.',
+          evaluation_required: 'Précisez votre choix concernant l’évaluation scientifique.',
           invalid_format: 'Choisissez la modalité Présentiel ou Hybride.',
           invalid_school_type: 'Choisissez un type d’établissement dans la liste.',
           read_failed:
@@ -372,6 +424,7 @@ if (form) {
         })
         updatePeople()
         updateTrainers()
+        updateConditionalFields()
       }
     }
   })

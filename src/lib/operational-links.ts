@@ -40,7 +40,8 @@ export function operationalError(error: unknown) {
 }
 export function operationalKind(value: unknown): OperationalKind {
   if (value === 'fiche-contact' || value === 'contact') return 'contact'
-  if (value === 'deploiement' || value === 'participants') return value
+  if (value === 'deploiement' || value === 'participants' || value === 'activites-jeunes')
+    return value
   throw new OperationalLinkError(404, 'introuvable', 'Ce formulaire n’existe pas.')
 }
 export const operationalPath = (kind: OperationalKind) =>
@@ -49,7 +50,19 @@ export const operationalLinkColumns = {
   contact: 'lien_fiche_contact',
   deploiement: 'lien_deploiement',
   participants: 'lien_participants',
+  'activites-jeunes': 'lien_activites_jeunes',
 } as const
+export function operationalYouthEnabled(locals: unknown) {
+  return internalEnvironment(locals).OPERATIONAL_YOUTH_ENABLED === 'true'
+}
+export function requireOperationalKindEnabled(locals: unknown, kind: OperationalKind) {
+  if (kind === 'activites-jeunes' && !operationalYouthEnabled(locals))
+    throw new OperationalLinkError(
+      503,
+      'indisponible',
+      'Ce formulaire est en préparation. Contactez l’équipe EUNEOS.',
+    )
+}
 export async function operationalHash(value: string) {
   const bytes = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)),
@@ -300,6 +313,7 @@ export async function getOperationalPageContext(
         preview: true,
       }
     }
+    requireOperationalKindEnabled(locals, kind)
     const { db, token } = operationalConfig(locals)
     const { hash, target } = await resolveOperationalLink(db, secret, kind)
     const current = await operationalTarget(token, target.participationId)

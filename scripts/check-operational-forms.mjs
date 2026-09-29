@@ -24,7 +24,7 @@ const app = new App({
     ['src/pages/api/suivi/[kind].ts', async () => publicEndpoint],
   ]),
 })
-const routes = ['fiche-contact', 'deploiement', 'participants']
+const routes = ['fiche-contact', 'deploiement', 'participants', 'activites-jeunes']
 const html = {}
 for (const route of routes) {
   const response = await app.render(new Request(`http://localhost/suivi/${route}?t=demo`), {
@@ -77,7 +77,7 @@ try {
     assert.match(body, /<header\b/)
     assert.match(body, /<title>Lien à vérifier — EUNEOS<\/title>/)
     assert.match(main, /<h1>Lien à vérifier<\/h1>/)
-    assert.match(main, /href="\/contact"[^>]*>Contacter l’équipe EUNEOS<\/a>/)
+    assert.match(main, /href="\/contact"[^>]*>\s*Contacter l’équipe EUNEOS\s*<\/a>/)
     assert.match(main, fixture.status === 503 ? /momentanément indisponible/ : /invalide, expiré ou a été remplacé/)
     assert.doesNotMatch(main, /<form\b|<input\b|of-context/)
     assert.doesNotMatch(body, /PRIVATE_LINK_CANARY|fixture-only-link-check|Collège Exemple|Ville Exemple|"code":|c{64}/)
@@ -305,8 +305,6 @@ try {
     await page.locator('[name=referentEmail]').fill('alex@example.test')
     if (route === 'fiche-contact') {
       for (const [name, value] of Object.entries({
-        start: '2026-11-04',
-        end: '2027-01-20',
         academy: 'Académie Exemple',
         address: '1 rue de la Démonstration',
         postalCode: '00000',
@@ -315,15 +313,28 @@ try {
         await page.locator(`[name=${name}]`).fill(value)
       await page.locator('[name=schoolType]').selectOption('Collège')
       await page.locator('[name=groupedSchools]').selectOption('false')
+      await page.locator('[name=evaluationInterest]').selectOption('Non')
     }
-    if (route !== 'participants') await page.locator('[name=format]').selectOption('Présentiel')
+    if (['fiche-contact','deploiement'].includes(route)) await page.locator('[name=format]').selectOption('Présentiel')
     if (route === 'deploiement') {
+      await page.locator('[name=preformation]').selectOption('Je vais le faire')
       await page.locator('[name=sessions]').fill('5')
       await page
         .locator('[name=planning]')
         .fill('Session 1 ; 04/11/2026 ; 14h ; 17h ; 3h ; Présentiel')
       await page.locator('[data-trainer-field=name]').fill('Dominique Exemple')
       await page.locator('[data-trainer-field=email]').fill('trainer@example.test')
+      await page.locator('[name=organizationConfirmed]').check()
+      await page.locator('[name=changesAcknowledged]').check()
+    } else if (route === 'activites-jeunes') {
+      await page.locator('[name=totalClasses]').fill('3')
+      await page.locator('[name=totalStudents]').fill('75')
+      await page.locator('[name=levels]').fill('Cinquième et quatrième')
+      await page.locator('[name=evaluation]').selectOption('true')
+      await page.locator('[name=activeClasses]').fill('5A ; 24 ; Enseignant Exemple')
+      await page.locator('[name=controlClasses]').fill('4B ; 29 ; Enseignante Exemple')
+      await page.locator('[name=activeCount]').fill('24')
+      await page.locator('[name=controlCount]').fill('29')
       await page.locator('[name=organizationConfirmed]').check()
       await page.locator('[name=changesAcknowledged]').check()
     } else await page.locator('[name=confirmed]').check()
@@ -333,7 +344,7 @@ try {
     }
   }
   const submit = () => form.locator('[type=submit]').click()
-  // All three actual compiled preview routes enforce the backend schema.
+  // Actual compiled preview routes enforce the backend schema.
   for (const route of routes) {
     await goto(route)
     await fill(route)
@@ -382,6 +393,7 @@ try {
     if (route === 'deploiement') {
       assert.equal(payload.declaredTrainers.length, 2)
       assert.equal(payload.formation.sessions, 5)
+      assert.equal(payload.preformation, 'Je vais le faire')
       assert.equal(payload.formation.start, '')
       assert.equal(payload.formation.end, '')
       assert.equal(payload.confirmed, true)
@@ -389,7 +401,44 @@ try {
       assert(!Object.hasOwn(payload, 'schoolDetails'))
     }
     if (route === 'participants') assert.equal(payload.formation, null)
+    if (route === 'activites-jeunes') {
+      assert.equal(payload.formation, null)
+      assert.equal(payload.youth.activeCount, 24)
+      assert.equal(payload.youth.controlCount, 29)
+      assert.equal(payload.youth.activeT1, '')
+    }
   }
+
+  // Contact removed questions and conditional scientific intention.
+  await goto()
+  await fill()
+  for (const name of ['start','end','planning','sessions','phone','totalStudents'])
+    await expect(page.locator(`[name=${name}]`)).toHaveCount(0)
+  await expect(page.locator('#of-participants')).toHaveCount(0)
+  await page.locator('[name=evaluationInterest]').selectOption('Oui')
+  const beforeLevel=publicPosts.length
+  await submit()
+  assert.equal(publicPosts.length,beforeLevel)
+  await page.locator('[name=evaluationLevel]').fill('Cinquième')
+  await page.locator('[name=evaluationInterest]').selectOption('Non')
+  await expect(page.locator('[name=evaluationLevel]')).toBeDisabled()
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.equal(publicPosts.at(-1).evaluationInterest.level,'')
+
+  // No scientific option: hidden group values are omitted, even after an error.
+  await goto('activites-jeunes')
+  await fill('activites-jeunes')
+  await page.locator('[name=evaluation]').selectOption('false')
+  publicMode='error'
+  await submit()
+  await expect(feedback).toContainText('Vérifiez les adresses')
+  await expect(page.locator('[name=activeClasses]')).toBeDisabled()
+  publicMode='real'
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.equal(publicPosts.at(-1).youth.activeClasses,'')
+  assert.equal(publicPosts.at(-1).youth.activeCount,null)
 
   // Native confirmation, chronological validation and dynamic row controls.
   await goto('deploiement')
@@ -414,6 +463,9 @@ try {
   await submit()
   assert.equal(publicPosts.length, beforeValidation)
   await page.locator('[name=confirmed]').check()
+  await goto('deploiement')
+  await fill('deploiement')
+  await page.locator('[name=start]').fill('2026-11-04')
   await page.locator('[name=end]').fill('2026-01-01')
   await submit()
   await expect(feedback).toContainText('une fin ne peut pas précéder son début')
@@ -570,10 +622,14 @@ try {
         ).toHaveAttribute('aria-current', 'page')
       } else {
         await goto(route)
-        if (route !== 'deploiement') {
-          if (route === 'fiche-contact') await page.locator('#of-add-person').click()
+        if (route === 'participants') {
           await page.locator('[data-person-field=firstName]').fill('Camille')
           await page.locator('[data-person-field=lastName]').fill('Exemple')
+        }
+        if (route === 'activites-jeunes') await fill(route)
+        if (route === 'fiche-contact') {
+          await page.locator('[name=evaluationInterest]').selectOption('Oui')
+          await page.locator('[name=evaluationLevel]').fill('Cinquième')
         }
       }
       await page.evaluate(() => document.fonts.ready)
@@ -610,7 +666,7 @@ try {
         await page.screenshot({ path: `${output}/${route}-${width}-full.png`, fullPage: true })
         if (route !== 'internal') {
           await page
-            .locator(route === 'deploiement' ? '#of-trainers' : '#of-participants')
+            .locator(route === 'participants' ? '#of-participants' : route === 'activites-jeunes' ? '#of-evaluation-details' : '#of-trainers')
             .scrollIntoViewIfNeeded()
           await page.screenshot({ path: `${output}/${route}-${width}-adults.png` })
         }
@@ -651,7 +707,7 @@ try {
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2))
   verified = true
   console.log(
-    `Operational UI: passed ${measures.length} viewport/page checks; real compiled preview API validated all three forms. Evidence: ${output}`,
+    `Operational UI: passed ${measures.length} viewport/page checks; real compiled preview API validated ${routes.length} forms. Evidence: ${output}`,
   )
 } finally {
   await browser.close()
