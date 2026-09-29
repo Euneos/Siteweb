@@ -100,6 +100,14 @@ vérifie leur conservation, y compris un reçu incertain avec verrou, l’unicit
 l’intégrité SQL. Le runner D1 reste responsable du registre et de la transaction.
 Ne pas appliquer l’historique sur une base dont le registre n’est pas vérifié.
 
+Si des tables historiques existent sans leurs entrées dans le registre, comparer
+leur schéma complet aux migrations attendues et adopter seulement les entrées
+manquantes après vérification, sans rejouer les créations. Conserver une preuve
+de récupération et comparer les données avant/après. La configuration actuelle
+utilise la même base FORM_SUBMISSIONS pour preview et production : une migration
+sur ce binding n’est donc pas une recette isolée. Les essais de démonstration du
+site restent sans accès à cette base.
+
 ## Activation et catalogue
 
 Avant toute publication, faire relire les deux plans, appliquer et vérifier les
@@ -121,3 +129,12 @@ une seule tentative par lien, aucun renvoi sur replay ou réception à vérifier
 Aucun merge, déploiement, écriture de schéma ou de données de production n’est
 réalisé par la préparation de ce lot. Les migrations des formulaires ne sont pas
 prises en charge par le workflow des calendriers internes.
+
+## Recette locale du lot
+
+748 tests, compilation Astro, parcours compilés des quatre types (40 contrôles
+de pages/largeurs), mise en page, espacements et audit responsive (260 dispositions)
+passent. Les captures mobile et ordinateur ont été relues. Les tests de migration
+incluent les reçus incertains et leurs verrous ; ceux des parcours utilisent des
+réponses fictives et des transports simulés. La CI et sa preview peuvent compléter
+cette recette avant toute décision de publication en production.
