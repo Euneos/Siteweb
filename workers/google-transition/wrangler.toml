@@ -9,9 +9,11 @@ PROJECTION_ENABLED = "false"
 INPUT_MODE = "push"
 # Set INPUT_MODE="push" for the authenticated Apps Script transport. In push
 # mode cron is inert, /ingest accepts one complete source, /check is read-only,
-# and PROJECTION_ENABLED must stay false. ENABLED still gates all ingestion.
-# Future projection requires an explicit ISO cutover AND projectionFirstRow per
-# contact/deploiement source. Previously captured rows and all revisions >1 stay
+# ENABLED still gates all ingestion. Future push projection requires eventVersion=2,
+# cohortId=2, audited mapping/policy (pinned headerDigest and duplicate columns),
+# an explicit ISO cutover AND projectionFirstRow per contact/deploiement source.
+# The receiver independently requires the same cutover, firstRow and headerDigest.
+# Previously captured rows and all revisions >1 stay
 # capture-only. Never enable the projection flag merely to replay the backlog.
 # PROJECTION_START_AT = "..."
 
