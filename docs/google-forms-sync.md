@@ -8,13 +8,15 @@ déployer le Worker ne suffit pas à activer la collecte ou la projection.
 
 ## Périmètre livré
 
-Le Worker livré dans `workers/google-transition/` lit les exports CSV des sources
-explicitement autorisées. Le catalogue opérationnel comprend **11 sources**, dont
+Le Worker livré dans `workers/google-transition/` reçoit les snapshots des sources
+explicitement autorisées, envoyés par Apps Script avec les droits Google du projet.
+Le transport CSV anonyme reste une alternative à accès non validé. Le catalogue opérationnel comprend **11 sources**, dont
 la configuration reste privée : aucune liste de sources réelles n'est codée dans
 le dépôt. La collecte générique conserve toutes les colonnes dans un journal brut
 NocoDB, même sans mapping métier. Ces réponses portent le statut **À rapprocher**.
 La capture D1 précède la livraison NocoDB et le reçu n'est acquitté qu'après
-vérification de la ligne distante. Apps Script n'est pas requis.
+vérification de la ligne distante. Le transport authentifié est livré dans
+`scripts/google-forms/EuneosRawCapture.gs` ; l'ajout du fichier ne l'active pas.
 
 Le récepteur `GET/POST /api/hook/google-forms` accepte uniquement **contact** et
 **déploiement**, cohorte **2**. Il reste à `410 legacy_retired` tant que son flag
@@ -63,22 +65,27 @@ Une ville fournie contradictoire interdit le rapprochement automatique.
 
 ## Configuration et activation du Worker
 
-`workers/google-transition/wrangler.toml` définit une exécution toutes les
-15 minutes. Avec `ENABLED=false`, chaque exécution sort sans lire D1 ni les
-sources. L'activation du Worker se fait séparément de la publication du site.
+`workers/google-transition/wrangler.toml` conserve un cron toutes les 15 minutes,
+**inerte avec `INPUT_MODE=push`**, valeur versionnée. En mode push, aucune exécution
+planifiée ne lit Google ou D1. Avec `ENABLED=false`, l'ingestion est refusée ; le
+contrôle authentifié `/check` reste disponible en lecture seule. L'activation du
+Worker se fait séparément de la publication du site.
 
 | Variable / binding | Prérequis |
 | --- | --- |
 | `ENABLED` | `true` active la collecte brute ; valeur versionnée `false` |
+| `INPUT_MODE` | `push` versionné : snapshots authentifiés, aucun polling Google ; `poll` reste une alternative explicite |
 | `PROJECTION_ENABLED` | `true` autorise la projection ciblée ; valeur versionnée `false`, indépendante de la collecte |
 | `STATE` | tables dédiées de `workers/google-transition/schema.sql`, reçus et curseurs conservés |
 | `SOURCES` | JSON privé du catalogue : libellé, Sheet, onglet et première ligne ; mapping facultatif pour les deux types métier |
 | `JOURNAL_TABLE`, `NOCODB_TOKEN` | journal brut privé et accès NocoDB, fournis hors dépôt |
 | `RUN_SECRET` | authentification des commandes opérateur `GET` (état) et `POST` (exécution), header `Authorization: Bearer …` |
+| `INGEST_SECRET` | secret facultatif distinct pour `/check` et `/ingest` ; sinon `RUN_SECRET` est utilisé |
 | `PROJECTION_START_AT` | date de coupure ISO explicite, obligatoire uniquement pour la projection |
 | `GOOGLE_FORMS_SYNC_SECRET` | secret partagé avec le récepteur, obligatoire uniquement pour la projection |
 
-Chaque source métier exige aussi `projectionFirstRow` lors de la future activation
+Le mode push impose `PROJECTION_ENABLED=false` et refuse toute projection métier.
+Pour le transport poll uniquement, chaque source métier exige aussi `projectionFirstRow` lors de la future activation
 de la projection : seule une **nouvelle réponse de révision 1**, découverte pendant
 cette activation, à partir de cette ligne et après la date de coupure est éligible.
 Activer la projection ne reprend donc pas automatiquement les captures historiques
@@ -123,13 +130,70 @@ Deux transports authentifiés peuvent être préparés séparément :
   fichiers. Voir les [rôles Drive](https://developers.google.com/workspace/drive/api/guides/ref-roles)
   et l'[authentification serveur](https://developers.google.com/identity/protocols/oauth2/service-account).
 
-Ces adaptations de transport ne sont pas implémentées par le poller CSV actuel.
-Le récepteur v1 peut recevoir un push pour les deux types métier, mais ne remplace
-pas le journal générique. Le `POST` opérateur du Worker lance un cycle de lecture :
-ce n'est **pas** un endpoint d'ingestion de réponses. Un futur push de toutes les
-sources doit conserver le contrat de clés/révisions et la livraison durable au
-journal, avant toute activation. Une preview du site réussie ne valide donc pas
-encore le raccord Google en exploitation.
+Le push générique décrit ci-dessous est implémenté. L'alternative API avec compte
+de service ne l'est pas et n'est pas nécessaire à cette installation. Le récepteur
+v1 métier reste distinct du journal générique. En mode push, le `POST /` opérateur
+est refusé : l'ingestion passe uniquement par `POST /ingest`. Une preview du site
+réussie ne valide pas à elle seule les droits Google ni le transport en exploitation.
+
+### Push générique et recette Apps Script
+
+Un appel envoie **une seule source complète**, sans identifiant de ligne choisi
+par l'appelant : `headers` correspond à la ligne 1 et `rows[0]` à la ligne 2.
+Le serveur applique son propre catalogue privé et `firstRow`. Toutes les cellules
+doivent être des chaînes ; aucune date, colonne, valeur vide ou question dupliquée
+n'est reformattée. Limites : 1 000 000 octets UTF-8 réellement lus, 256 colonnes,
+2 000 lignes de réponses. Exemple entièrement fictif :
+
+```json
+{
+  "version": 1,
+  "source": {"spreadsheetId":"fictional_sheet_id_00001","sheetId":0},
+  "headers": ["Horodateur", "Question", "Question"],
+  "rows": [["29/09/2026 10:00:00", "Réponse", ""]]
+}
+```
+
+`POST /check` et `POST /ingest` exigent `Authorization: Bearer …` et
+`Content-Type: application/json`. Source inconnue : 403 ; corps invalide : 400 ;
+trop grand : 413 ; transport/projection incompatibles : 409. `/ingest` refuse
+`ENABLED=false` avec 503. Il réutilise les reçus, curseurs, empreintes, révisions,
+reprises et verrou global existants. Aucune migration ni remise à zéro du bootstrap.
+Son budget temporel est de 45 secondes avant admission de nouveaux appels réseau,
+chaque appel ayant un timeout de 20 secondes ; la suite reprend aux prochains envois.
+
+`POST /check` ne fait que deux lectures D1 et compare chaque empreinte aux reçus
+existants. Il retourne les compteurs `matched`, `fresh`, `changed`, `pending`,
+`missing`, et au plus 100 numéros de lignes différentes, sans les réponses.
+Aucune écriture de reçu, curseur ou verrou, aucun appel NocoDB ni Google. Un verrou
+actif donne `busy`. C'est le contrôle de compatibilité entre les anciens CSV et les
+chaînes de `SpreadsheetApp.getDisplayValues()` ; tout écart historique doit être
+examiné **avant** ingestion, jamais corrigé par une normalisation silencieuse.
+
+Le script GAS utilise quatre propriétés privées de configuration : `ENDPOINT` (origine
+HTTPS du Worker, sans chemin), `SECRET` (secret du pont), `SOURCES` (tableau du
+catalogue autorisé), `ENABLED` (chaîne `true` pour l'envoi). Aucun jeton NocoDB ou
+Google utilisateur ne lui est transmis ou exporté. Fonctions à utiliser :
+
+1. `euneosRawCheckDry()` : autorisation Google puis lecture des sources et comparaison
+   `/check`. Fonction sans mutation, utilisable avec les deux collectes désactivées.
+   Elle affiche seulement des compteurs et numéros de lignes. Examiner tous les
+   écarts avec le bootstrap avant la suite.
+2. `euneosRawSweep()` : exécution manuelle de recette une fois l'ingestion autorisée
+   et les deux `ENABLED=true`. Maximum trois sources par passage, rotation durable
+   dans `EUNEOS_RAW_NEXT_SOURCE`, budget d'admission de 150 secondes. Une source en
+   erreur n'empêche pas le passage aux suivantes. Le journal reste « À rapprocher ».
+   Le verrou GAS est limité à la réservation du curseur ; aucune lecture Google
+   ni requête réseau ne le conserve pendant que les anciens handlers peuvent en avoir besoin.
+3. `euneosRawInstallTrigger()` : action opérateur explicite après recette. Refuse
+   les flags inactifs, une projection active et les écarts historiques/restes à
+   reprendre du contrôle à blanc. Crée seulement son déclencheur `euneosRawSweep`
+   toutes les 15 minutes, ou constate qu'il existe déjà. Aucun ancien déclencheur
+   n'est supprimé, remplacé ou rappelé ; aucun ancien mode `apply` n'est activé.
+
+La lecture à blanc est bornée à trois minutes pour le catalogue complet. Un dépassement
+ou un accès refusé arrête la recette sans installer de déclencheur. Les droits et
+le fichier effectivement enregistrés dans Google restent à vérifier par l'opérateur.
 
 ## Protocole v1 du récepteur
 
@@ -300,7 +364,11 @@ champs supprimés, capture intégrale et flags/authentification/modes.
 `bun test tests/google-transition-worker.test.ts` couvre aussi les budgets HTTP et
 D1 réels par invocation, les SQL échouées, les 429, les reprises, les verrous,
 les horodatages et un bootstrap fictif de 273 réponses réparties sur 11 sources.
-Validation locale effectuée : **683 tests réussis, 0 échec**, dont 40 tests Worker,
+Le script GAS est aussi exécuté dans un bac à sable de test avec des services
+Google simulés : chaînes CSV identiques, absence de mutation au contrôle à blanc,
+rotation bornée, installation explicite et conservation des anciens déclencheurs.
+Validation locale effectuée avec le push : **699 tests réussis, 0 échec**, dont
+**56 tests Worker/GAS**,
 avec `bun run test` ; `bun run build` et le dry-run Wrangler du Worker réussissent.
 Ces validations utilisent des données fictives et ne font aucun appel réel à
 Google, NocoDB ou Brevo.

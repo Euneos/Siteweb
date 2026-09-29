@@ -4,11 +4,13 @@ import { readFileSync } from 'node:fs'
 import worker, {
   answerFields,
   googleTimestamp,
+  handleRequest,
   parseCsv,
   run,
   validateSources,
   type Env,
   type Source,
+  type PushSnapshot,
 } from '../workers/google-transition/worker'
 import type { SubmissionDatabase } from '../src/lib/candidature-store'
 import { digest } from '../src/lib/google-form-sync'
@@ -128,7 +130,7 @@ const runtime = () => ({
   },
   fetch: fakeFetch,
 })
-const poll = async () => {
+const poll = async (input?: PushSnapshot) => {
   // Independent instrumentation at the actual D1 boundary, scoped per invocation
   // (including overlapping polls). Failed SQL executions count too.
   const queries: string[] = []
@@ -143,6 +145,7 @@ const poll = async () => {
         }),
       },
       runtime(),
+      input,
     )
     if ('d1Queries' in result) expect(result.d1Queries).toBe(queries.length)
     return result
@@ -230,6 +233,169 @@ beforeEach(() => {
     PROJECTION_ENABLED: 'false',
     RUN_SECRET: 'fictional-run-secret-over-32-characters',
   }
+})
+
+const pushed = (s = source(), rows = [answer()]): PushSnapshot => ({
+  version: 1,
+  source: { spreadsheetId: s.spreadsheetId, sheetId: s.sheetId },
+  headers,
+  rows,
+})
+const pushRequest = (path: string, body: unknown, token = env.INGEST_SECRET ?? env.RUN_SECRET) =>
+  new Request('https://worker.invalid' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify(body),
+  })
+const ingest = (body: unknown, path = '/ingest') =>
+  handleRequest(pushRequest(path, body), env, runtime())
+
+test('push uses bootstrap receipts, captures changed/raw fields and never fetches Google or hook', async () => {
+  env.INPUT_MODE = 'push'
+  await seed(source(), [headers, answer()])
+  const result = await poll(pushed())
+  expect(result.state).toBe('complete')
+  expect(writes()).toHaveLength(0)
+  expect(calls).toHaveLength(0)
+  const edited = answer()
+  edited[9] = 'Ancienne colonne remplie'
+  await poll(pushed(source(), [edited, answer('Nouvelle réponse')]))
+  expect(writes()).toHaveLength(2)
+  expect(ledger().map((r) => r.revision)).toEqual([1, 2, 1])
+  expect(calls.every((c) => c.url.startsWith('https://app.nocodb.com'))).toBe(true)
+  expect(JSON.parse(String(remote[1].reponses)).at(-1).answer).toBe('Ancienne colonne remplie')
+})
+test('push cron and operator POST cannot poll sources, even enabled', async () => {
+  env.INPUT_MODE = 'push'
+  let waited = false
+  await worker.scheduled({}, env, {
+    waitUntil: () => {
+      waited = true
+    },
+  })
+  expect(waited).toBe(false)
+  expect(await poll()).toEqual({ state: 'push_idle' })
+  expect((await ingest({}, '/')).status).toBe(409)
+  expect(calls).toHaveLength(0)
+  expect(sql.query('SELECT * FROM google_transition_runs').all()).toHaveLength(0)
+})
+test('push authentication, allowlist, complete shape, body limit and JSON encoding checked before writes', async () => {
+  env.INPUT_MODE = 'push'
+  env.INGEST_SECRET = 'separate-fictional-ingest-secret-over32'
+  expect(
+    (await handleRequest(pushRequest('/ingest', pushed(), env.RUN_SECRET), env, runtime())).status,
+  ).toBe(404)
+  expect((await ingest(pushed(source({ sheetId: 99 })))).status).toBe(403)
+  expect((await ingest({ ...pushed(), rows: [['truncated']] })).status).toBe(400)
+  expect((await ingest({ ...pushed(), rows: [[123, ...answer().slice(1)]] })).status).toBe(400)
+  expect((await ingest({ ...pushed(), headers: headers.map(() => 'Ambiguous') })).status).toBe(400)
+  const huge = answer()
+  huge[9] = 'x'.repeat(1000000)
+  expect((await ingest(pushed(source(), [huge]))).status).toBe(413)
+  const malformed = new Request('https://worker.invalid/ingest', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + env.INGEST_SECRET, 'Content-Type': 'application/json' },
+    body: new Uint8Array([0xc3, 0x28]),
+  })
+  expect((await handleRequest(malformed, env, runtime())).status).toBe(400)
+  expect(ledger()).toHaveLength(0)
+  expect(sql.query('SELECT * FROM google_transition_runs').all()).toHaveLength(0)
+  expect(calls).toHaveLength(0)
+})
+test('check is read-only while disabled, reports CSV/display differences and refuses unrelated source', async () => {
+  env.INPUT_MODE = 'push'
+  env.ENABLED = 'false'
+  await seed(source(), [headers, answer(), answer('Historique absent')])
+  const before = JSON.stringify(ledger()),
+    changed = answer()
+  changed[0] = '29/09/2026 10:00' // formatting differences must not silently duplicate bootstrap
+  const exact = await (
+    await ingest(pushed(source(), [answer(), answer('Historique absent')]), '/check')
+  ).json()
+  expect(exact).toMatchObject({
+    state: 'checked',
+    matched: 2,
+    fresh: 0,
+    changed: 0,
+    missing: 0,
+    enabled: false,
+  })
+  const diff = await (await ingest(pushed(source(), [changed]), '/check')).json()
+  expect(diff).toMatchObject({
+    matched: 0,
+    changed: 1,
+    missing: 1,
+    differences: [{ row: 2, code: 'changed' }],
+  })
+  expect((await ingest(pushed(source({ sheetId: 1 })), '/check')).status).toBe(403)
+  expect((await ingest(pushed())).status).toBe(503)
+  expect(JSON.stringify(ledger())).toBe(before)
+  expect(sql.query('SELECT * FROM google_transition_sources').all()).toHaveLength(0)
+  expect(sql.query('SELECT * FROM google_transition_runs').all()).toHaveLength(0)
+  expect(calls).toHaveLength(0)
+})
+test('push requires its input mode and refuses business projection', async () => {
+  expect((await ingest(pushed())).status).toBe(409)
+  env.INPUT_MODE = 'push'
+  env.PROJECTION_ENABLED = 'true'
+  expect((await ingest(pushed())).status).toBe(409)
+  expect((await ingest(pushed(), '/check')).status).toBe(409)
+  expect(calls).toHaveLength(0)
+  expect(ledger()).toHaveLength(0)
+})
+test('273 bootstrap snapshots in push mode are exact replays; source cursors and new rows progress', async () => {
+  env.INPUT_MODE = 'push'
+  const sources = Array.from({ length: 11 }, (_, i) =>
+    source({
+      spreadsheetId: 'fictional_push_' + String(i).padStart(10, '0'),
+    }),
+  )
+  env.SOURCES = JSON.stringify(sources)
+  for (let i = 0; i < sources.length; i++) {
+    const rows = Array.from({ length: i === 10 ? 23 : 25 }, (_, j) => answer('Fictif ' + j))
+    await seed(sources[i], [headers, ...rows])
+    expect((await (await ingest(pushed(sources[i], rows), '/check')).json()).matched).toBe(
+      rows.length,
+    )
+    await poll(pushed(sources[i], rows))
+  }
+  expect(remote).toHaveLength(273)
+  expect(calls).toHaveLength(0)
+  const future = [
+    ...Array.from({ length: 25 }, (_, j) => answer('Fictif ' + j)),
+    ...Array.from({ length: 12 }, (_, j) => answer('Future ' + j)),
+  ]
+  for (let n = 0; n < 4; n++) await poll(pushed(sources[0], future))
+  expect(remote).toHaveLength(285)
+  expect(new Set(remote.map((r) => r.cle_reponse)).size).toBe(285)
+})
+test('push lost POST and concurrent delivery reuse the same durable lease and receipt', async () => {
+  env.INPUT_MODE = 'push'
+  let entered!: () => void, release!: () => void
+  const blocked = new Promise<void>((r) => (entered = r)),
+    gate = new Promise<void>((r) => (release = r))
+  let held = false
+  fault = async (_url, init) => {
+    if (init.method === 'POST' && !held) {
+      held = true
+      remote.push({ Id: 7, ...JSON.parse(String(init.body)) })
+      entered()
+      await gate
+      throw new Error('lost_response')
+    }
+  }
+  const first = ingest(pushed())
+  await blocked
+  expect((await ingest(pushed())).status).toBe(409)
+  expect((await (await ingest(pushed(), '/check')).json()).state).toBe('busy')
+  release()
+  await first
+  clock += 120000
+  fault = null
+  await ingest(pushed())
+  expect(writes()).toHaveLength(1)
+  expect(ledger()[0].capture_state).toBe('complete')
+  expect(calls.some((c) => c.url.includes('google'))).toBe(false)
 })
 afterEach(() => sql.close())
 

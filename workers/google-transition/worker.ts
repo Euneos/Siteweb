@@ -24,6 +24,8 @@ export type Env = {
   ENABLED: string
   PROJECTION_ENABLED: string
   RUN_SECRET: string
+  INPUT_MODE?: 'poll' | 'push'
+  INGEST_SECRET?: string
   PROJECTION_START_AT?: string
   GOOGLE_FORMS_SYNC_SECRET?: string
 }
@@ -52,6 +54,13 @@ type Captured = {
   timestamp: string
   readAt: string
 }
+export type PushSnapshot = {
+  version: 1
+  source: { spreadsheetId: string; sheetId: number }
+  headers: string[]
+  rows: string[][]
+}
+const MAX_PUSH_BYTES = 1_000_000
 type Outcome = { state: string; code: string; receipt?: string }
 type Runtime = {
   now: () => number
@@ -338,6 +347,132 @@ async function snapshot(s: Source, req: Requests) {
   throw new Error('google_redirect_limit')
 }
 const sourceKey = (s: Source) => `${s.spreadsheetId}:${s.sheetId}`
+function pushSource(env: Env, value: unknown): { source: Source; snapshot: PushSnapshot } {
+  const p = value as PushSnapshot
+  if (
+    !p ||
+    p.version !== 1 ||
+    !p.source ||
+    typeof p.source.spreadsheetId !== 'string' ||
+    !Number.isSafeInteger(p.source.sheetId) ||
+    !Array.isArray(p.headers) ||
+    !p.headers.length ||
+    p.headers.length > 256 ||
+    !p.headers.every((h) => typeof h === 'string') ||
+    !Array.isArray(p.rows) ||
+    p.rows.length > 2000 ||
+    p.rows.some(
+      (r) =>
+        !Array.isArray(r) ||
+        r.length !== p.headers.length ||
+        !r.every((c) => typeof c === 'string'),
+    )
+  )
+    throw new Error('snapshot_invalid')
+  const source = validateSources(env.SOURCES).find(
+    (s) => s.spreadsheetId === p.source.spreadsheetId && s.sheetId === p.source.sheetId,
+  )
+  if (!source) throw new Error('source_not_allowed')
+  // Validate the timestamp header before reserving any receipt, including empty sheets.
+  timestampCell(
+    source,
+    p.headers,
+    p.headers.map(() => ''),
+  )
+  return { source, snapshot: p }
+}
+async function readPush(request: Request) {
+  if (
+    request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json'
+  )
+    throw new Error('json_required')
+  const reader = request.body?.getReader()
+  if (!reader) throw new Error('snapshot_invalid')
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > MAX_PUSH_BYTES) {
+      await reader.cancel()
+      throw new Error('snapshot_too_large')
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  try {
+    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown
+  } catch {
+    throw new Error('snapshot_invalid')
+  }
+}
+/** Read-only bootstrap comparison. No lease, cursor, receipt, NocoDB or Google mutation. */
+export async function checkPush(env: Env, input: unknown, now = Date.now()) {
+  const { source: s, snapshot: p } = pushSource(env, input),
+    key = sourceKey(s)
+  const active = await env.STATE.prepare(
+    "SELECT expires_at FROM google_transition_runs WHERE id='poll'",
+  )
+    .bind()
+    .first<{ expires_at: number }>()
+  if (active && active.expires_at > now) return { state: 'busy' }
+  const prior = await env.STATE.prepare(
+    `SELECT p.source_row,p.fingerprint,p.noco_id,p.capture_state
+    FROM google_transition_poller p WHERE p.source_key=? AND p.revision=(
+      SELECT MAX(q.revision) FROM google_transition_poller q
+      WHERE q.source_key=p.source_key AND q.source_row=p.source_row)`,
+  )
+    .bind(key)
+    .all<Pick<Receipt, 'source_row' | 'fingerprint' | 'noco_id' | 'capture_state'>>()
+  const existing = new Map(prior.results.map((r) => [r.source_row, r]))
+  let matched = 0,
+    fresh = 0,
+    changed = 0,
+    pending = 0
+  const differences: { row: number; code: string }[] = [],
+    seen = new Set<number>()
+  for (let i = s.firstRow - 2; i < p.rows.length; i++) {
+    const cells = p.rows[i],
+      row = i + 2
+    if (!cells.some(Boolean)) continue
+    seen.add(row)
+    const old = existing.get(row),
+      fingerprint = await digest(JSON.stringify(answerFields(p.headers, cells)))
+    if (!old) {
+      fresh++
+      differences.push({ row, code: 'new' })
+    } else if (old.fingerprint !== fingerprint) {
+      changed++
+      differences.push({ row, code: 'changed' })
+    } else {
+      matched++
+      if (!old.noco_id || old.capture_state !== 'complete') pending++
+    }
+  }
+  const missing = prior.results.filter(
+    (r) => r.source_row >= s.firstRow && !seen.has(r.source_row),
+  ).length
+  return {
+    state: 'checked',
+    inputMode: 'push',
+    projectionEnabled: false,
+    enabled: env.ENABLED === 'true',
+    configured: !!env.NOCODB_TOKEN && /^[a-z0-9]{10,30}$/.test(env.JOURNAL_TABLE),
+    matched,
+    fresh,
+    changed,
+    pending,
+    missing,
+    differences: differences.slice(0, 100),
+    differencesTruncated: differences.length > 100,
+  }
+}
 function timestampCell(s: Source, headers: string[], cells: string[]) {
   const selector = s.mapping?.timestamp
   const label = typeof selector === 'string' ? selector : selector?.label
@@ -353,11 +488,17 @@ function timestampCell(s: Source, headers: string[], cells: string[]) {
   return cells[index]
 }
 
-export async function run(env: Env, options: Partial<Runtime> = {}) {
+export async function run(env: Env, options: Partial<Runtime> = {}, input?: PushSnapshot) {
   if (env.ENABLED !== 'true') return { state: 'disabled' }
+  if (env.INPUT_MODE && !['poll', 'push'].includes(env.INPUT_MODE))
+    throw new Error('input_mode_invalid')
+  if (env.INPUT_MODE === 'push' && !input) return { state: 'push_idle' }
+  if (input && env.INPUT_MODE !== 'push') throw new Error('push_disabled')
+  if (env.INPUT_MODE === 'push' && env.PROJECTION_ENABLED === 'true')
+    throw new Error('push_projection_forbidden')
   if (!/^[a-z0-9]{10,30}$/.test(env.JOURNAL_TABLE) || !env.NOCODB_TOKEN)
     throw new Error('configuration_invalid')
-  const sources = validateSources(env.SOURCES),
+  const sources = input ? [pushSource(env, input).source] : validateSources(env.SOURCES),
     rt = { ...defaults, ...options },
     now = rt.now(),
     owner = crypto.randomUUID()
@@ -385,7 +526,8 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
     .bind(owner, now + 20 * 60000, now)
     .run()
   if (!claimed.meta.changes) return { state: 'busy' }
-  const req = new Requests(rt, now + 10 * 60000)
+  // Push is called synchronously by GAS: leave room within its execution limit.
+  const req = new Requests(rt, now + (input ? 45000 : 10 * 60000))
   const result = {
     state: 'complete',
     httpRequests: 0,
@@ -605,9 +747,15 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
     const pending = await d1
       .prepare(
         `SELECT * FROM google_transition_poller WHERE next_attempt_at<=? AND
-      (noco_id IS NULL OR (?=1 AND projection_eligible=1 AND projection_complete=0)) ORDER BY updated_at,response_key LIMIT 10`,
+      (noco_id IS NULL OR (?=1 AND projection_eligible=1 AND projection_complete=0))
+      AND (? IS NULL OR source_key=?) ORDER BY updated_at,response_key LIMIT 10`,
       )
-      .bind(now, projecting ? 1 : 0)
+      .bind(
+        now,
+        projecting ? 1 : 0,
+        input ? sourceKey(sources[0]) : null,
+        input ? sourceKey(sources[0]) : null,
+      )
       .all<Receipt>()
     const attempted = new Set<string>()
     for (const receipt of pending.results) {
@@ -640,7 +788,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
         .bind((index + 1) % sources.length, owner)
         .run()
       try {
-        const rows = await snapshot(s, req),
+        const rows = input ? [input.headers, ...input.rows] : await snapshot(s, req),
           headers = rows[0],
           summary = report(s)
         summary.rows = rows.slice(s.firstRow - 1).filter((r) => r.some(Boolean)).length
@@ -766,34 +914,72 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
   }
   return result
 }
+export async function handleRequest(request: Request, env: Env, options: Partial<Runtime> = {}) {
+  const path = new URL(request.url).pathname
+  const ingest = path === '/ingest' || path === '/check'
+  const auth = request.headers.get('authorization') ?? ''
+  const secret = ingest ? (env.INGEST_SECRET ?? env.RUN_SECRET) : env.RUN_SECRET
+  if (
+    !secret ||
+    secret.length < 32 ||
+    auth.length > 512 ||
+    (await digest(auth)) !== (await digest(`Bearer ${secret}`))
+  )
+    return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  const reply = (body: unknown, status = 200) =>
+    Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
+  if (ingest) {
+    if (request.method !== 'POST') return reply({ code: 'post_required' }, 405)
+    if (env.INPUT_MODE !== 'push') return reply({ code: 'push_disabled' }, 409)
+    if (env.PROJECTION_ENABLED === 'true') return reply({ code: 'push_projection_forbidden' }, 409)
+    if (path === '/ingest' && env.ENABLED !== 'true') return reply({ state: 'disabled' }, 503)
+    try {
+      const parsed = pushSource(env, await readPush(request)).snapshot
+      if (path === '/check') return reply(await checkPush(env, parsed, (options.now ?? Date.now)()))
+      const result = await run(env, options, parsed)
+      return reply(result, result.state === 'busy' ? 409 : 200)
+    } catch (e) {
+      const code = codeOf(e)
+      const status =
+        code === 'snapshot_too_large'
+          ? 413
+          : code === 'json_required'
+            ? 415
+            : code === 'source_not_allowed'
+              ? 403
+              : ['snapshot_invalid', 'timestamp_header_invalid'].includes(code)
+                ? 400
+                : 503
+      return reply({ code }, status)
+    }
+  }
+  if (path !== '/') return new Response('Not found', { status: 404 })
+  if (request.method === 'POST') {
+    if (env.INPUT_MODE === 'push') return reply({ code: 'snapshot_required' }, 409)
+    return reply(await run(env, options))
+  }
+  if (request.method !== 'GET') return new Response('', { status: 405 })
+  const state = await env.STATE.prepare(
+    "SELECT last_result FROM google_transition_runs WHERE id='poll'",
+  )
+    .bind()
+    .first<{ last_result: string | null }>()
+  return Response.json(
+    {
+      enabled: env.ENABLED === 'true',
+      projectionEnabled: env.PROJECTION_ENABLED === 'true',
+      last: state?.last_result ? JSON.parse(state.last_result) : null,
+    },
+    { headers: { 'Cache-Control': 'no-store' } },
+  )
+}
 export default {
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
+    // A deployed cron is inert in push mode; it must never fetch Google.
+    if (env.INPUT_MODE === 'push') return
     ctx.waitUntil(run(env))
   },
-  async fetch(request: Request, env: Env) {
-    const auth = request.headers.get('authorization') ?? ''
-    if (
-      !env.RUN_SECRET ||
-      env.RUN_SECRET.length < 32 ||
-      auth.length > 512 ||
-      (await digest(auth)) !== (await digest(`Bearer ${env.RUN_SECRET}`))
-    )
-      return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
-    if (request.method === 'POST')
-      return Response.json(await run(env), { headers: { 'Cache-Control': 'no-store' } })
-    if (request.method !== 'GET') return new Response('', { status: 405 })
-    const state = await env.STATE.prepare(
-      "SELECT last_result FROM google_transition_runs WHERE id='poll'",
-    )
-      .bind()
-      .first<{ last_result: string | null }>()
-    return Response.json(
-      {
-        enabled: env.ENABLED === 'true',
-        projectionEnabled: env.PROJECTION_ENABLED === 'true',
-        last: state?.last_result ? JSON.parse(state.last_result) : null,
-      },
-      { headers: { 'Cache-Control': 'no-store' } },
-    )
+  fetch(request: Request, env: Env) {
+    return handleRequest(request, env)
   },
 }

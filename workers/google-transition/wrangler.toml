@@ -6,6 +6,10 @@ workers_dev = true
 [vars]
 ENABLED = "false"
 PROJECTION_ENABLED = "false"
+INPUT_MODE = "push"
+# Set INPUT_MODE="push" for the authenticated Apps Script transport. In push
+# mode cron is inert, /ingest accepts one complete source, /check is read-only,
+# and PROJECTION_ENABLED must stay false. ENABLED still gates all ingestion.
 # Future projection requires an explicit ISO cutover AND projectionFirstRow per
 # contact/deploiement source. Previously captured rows and all revisions >1 stay
 # capture-only. Never enable the projection flag merely to replay the backlog.
@@ -24,6 +28,8 @@ enabled = true
 
 # Secrets: NOCODB_TOKEN, JOURNAL_TABLE, SOURCES, RUN_SECRET,
 # GOOGLE_FORMS_SYNC_SECRET (only needed when projection is enabled).
+# Optional INGEST_SECRET separates /ingest and /check from the operator secret;
+# without it they use RUN_SECRET. Never configure a Google user token here.
 # Sources and customer answers never belong in this repository.
 # Hard application budgets: 10 processed rows, 100 inspected rows, 5 sources,
 # 48 external HTTP requests INCLUDING retries/redirects, plus 48 D1 queries
