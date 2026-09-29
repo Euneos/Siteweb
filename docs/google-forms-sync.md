@@ -44,7 +44,11 @@ n'est jamais une demande d'effacement.
 | `FORM_SUBMISSIONS` | D1 existant ; migrations `0002`, `0004`, puis nouvelle `0005_google_form_transition_captures.sql` |
 | `NOCODB_TOKEN` | nécessaire en `plan` / `apply`, inutile en `capture` |
 
-Le flag est versionné **false** dans `wrangler.toml`, production et preview.
+Le flag du récepteur est **absent de `[vars]` en production** : absence = désactivé.
+L'opérateur le gère explicitement dans l'environnement Cloudflare après recette
+(par exemple binding `secret_text` initialisé à `false`), sans valeur de production
+dans Git. La preview reste explicitement versionnée **false**. Les flags de
+collecte/projection du Worker restent également versionnés **false**.
 Les anciennes variables `GOOGLE_FORMS_SYNC_MODE=apply` ne réactivent rien.
 La preview reste interdite même avec le flag actif, car son binding historique
 pointe sur le registre de production. Recette uniquement locale avec données fictives.
@@ -205,7 +209,8 @@ le fichier effectivement enregistrés dans Google restent à vérifier par l'op�
 
 Ce lot ne fournit aucune configuration réelle prête à activer. Un catalogue de
 capture sans `kind`, `mapping` et `projectionFirstRow` continue de collecter le
-brut ; il ne suffit pas à projeter. Les flags restent **false dans Git**. Aucune
+brut ; il ne suffit pas à projeter. Le Worker garde ses flags **false dans Git** ;
+le récepteur de production reste **absent = désactivé**, et la preview **false**. Aucune
 migration supplémentaire n'est introduite : conserver les reçus et verrous
 existants, sans réinitialiser les tables. Le registre métier demeure limité à la
 cohorte 2, qui doit être l'unique cohorte active.

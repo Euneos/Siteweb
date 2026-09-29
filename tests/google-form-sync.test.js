@@ -839,3 +839,19 @@ test('v2 observes shared site lock and a human change before PATCH', async () =>
   expect(patches).toHaveLength(0)
   expect(targets[0].notes).toBe('New human edit')
 })
+
+test('production receiver activation is external; absent stays off, preview and Worker remain explicitly off', async () => {
+  const config = Bun.TOML.parse(readFileSync(new URL('../wrangler.toml', import.meta.url), 'utf8'))
+  const workerConfig = Bun.TOML.parse(
+    readFileSync(new URL('../workers/google-transition/wrangler.toml', import.meta.url), 'utf8'),
+  )
+  expect(Object.hasOwn(config.vars, 'GOOGLE_FORMS_TRANSITION_ENABLED')).toBe(false)
+  expect(config.env.preview.vars.GOOGLE_FORMS_TRANSITION_ENABLED).toBe('false')
+  expect(workerConfig.vars.ENABLED).toBe('false')
+  expect(workerConfig.vars.PROJECTION_ENABLED).toBe('false')
+  const locals = { runtime: { env: config.vars } }
+  expect((await GET({ request: request(), locals })).status).toBe(410)
+  expect((await POST({ request: request(), locals })).status).toBe(410)
+  expect(rows()).toHaveLength(0)
+  expect(patches).toHaveLength(0)
+})
