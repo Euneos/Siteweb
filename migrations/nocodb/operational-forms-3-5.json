@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "table": "participations",
+  "columns": [
+    { "title": "intention_evaluation_scientifique", "uidt": "SingleLineText" },
+    { "title": "niveau_evaluation_envisage", "uidt": "SingleLineText" },
+    { "title": "preformation_questionnaire", "uidt": "SingleLineText" },
+    { "title": "lien_activites_jeunes", "uidt": "URL" },
+    { "title": "activites_jeunes_recues", "uidt": "Checkbox" },
+    { "title": "activites_jeunes_date_reception", "uidt": "DateTime" },
+    { "title": "activites_jeunes_classes", "uidt": "Number" },
+    { "title": "activites_jeunes_effectif", "uidt": "Number" },
+    { "title": "activites_jeunes_niveaux", "uidt": "SingleLineText" },
+    { "title": "evaluation_jeunes_demandee", "uidt": "SingleLineText" },
+    { "title": "evaluation_jeunes_statut", "uidt": "SingleLineText" }
+  ]
+}

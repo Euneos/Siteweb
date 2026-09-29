@@ -3,14 +3,20 @@
 La cible confirmée le 23 septembre : site → NocoDB → suivi interne et agent.
 Brevo assure l'accusé de réception. Google n'intervient pas dans ce circuit.
 
+Le contrat actuel des formulaires 3 (contact), 4 (organisation adultes) et 5
+(activités jeunes), leurs champs et les migrations préalables sont décrits dans
+[Formulaires 3, 4 et 5](operational-forms-3-5.md). Les réponses anciennes restent
+lisibles et les reçus réutilisables ; le n°5 nécessite une activation distincte.
+
 ## Parcours
 
 L'équipe ouvre `/interne/formulaires`, sélectionne le dossier annuel et crée un
-lien de fiche contact, de déploiement ou de participants. Elle le copie dans son
+lien de fiche contact, de déploiement, de participants ou d’activités jeunes si
+ce dernier est activé. Elle le copie dans son
 message. La création d'un lien n'envoie aucun email.
 
 Les liens sont conservés dans les colonnes URL privées de `participations` :
-`lien_fiche_contact`, `lien_deploiement`, `lien_participants`. Les créer avant le
+`lien_fiche_contact`, `lien_deploiement`, `lien_participants`, `lien_activites_jeunes`. Les créer avant le
 déploiement, sans défaut ni contrainte unique. Copier un lien existant ne le renouvelle
 pas. L'agent peut lire ces colonnes pour préparer les modèles NocoDB `fiche_contact`,
 `form_deploiement` et `liste_participants` : variable `lien`, sans retour vers Google.

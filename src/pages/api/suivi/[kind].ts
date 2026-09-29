@@ -8,6 +8,7 @@ import {
   operationalError,
   operationalJson,
   operationalKind,
+  requireOperationalKindEnabled,
   OperationalLinkError,
   operationalTarget,
   readOperationalBody,
@@ -20,7 +21,9 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
   try {
     const kind = operationalKind(params.kind)
     const body = await readOperationalBody(request)
-    const { token: submittedToken, ...answers } = body
+    const { token: submittedToken, website, ...answers } = body
+    if (website !== undefined && website !== '')
+      return operationalJson({ code: 'invalid_fields' }, 400)
     const data = parseOperationalInput(answers, kind)
     if (modeApercu(request)) {
       if (submittedToken !== 'demo')
@@ -37,6 +40,7 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
         createdAdults: 0,
       })
     }
+    requireOperationalKindEnabled(locals, kind)
     const { db, token } = operationalConfig(locals)
     const { hash, target } = await resolveOperationalLink(db, submittedToken, kind)
     const current = await operationalTarget(token, target.participationId)

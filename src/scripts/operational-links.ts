@@ -1,4 +1,4 @@
-type Kind = 'contact' | 'deploiement' | 'participants'
+type Kind = 'contact' | 'deploiement' | 'participants' | 'activites-jeunes'
 type PersonalLink = { url: string; expiresAt: string }
 type Dossier = {
   participationId: number
@@ -19,8 +19,15 @@ const kinds: Record<Kind, string> = {
   contact: 'Fiche contact',
   deploiement: 'Organisation de la formation',
   participants: 'Participants adultes',
+  'activites-jeunes': 'Organisation des activités avec les jeunes',
 }
 const reviewReasons: Record<string, string> = {
+  youth_declaration_conflict:
+    'Les effectifs déclarés diffèrent du dossier. La réponse détaillée est conservée pour vérification.',
+  preformation_conflict:
+    'Le passage du questionnaire pré-formation diffère de la déclaration précédente. Vérifiez la nouvelle réponse.',
+  evaluation_interest_conflict:
+    'L’intention d’évaluation scientifique a changé. Vérifiez la nouvelle déclaration.',
   dates_conflict:
     'Les dates proposées diffèrent de celles du dossier. Vérifiez avec le référent les dates à retenir.',
   source_dates_conflict:
@@ -163,6 +170,12 @@ if (app) {
       )
         throw new Error('invalid response')
       dossiers = data.dossiers
+      // Shared interface for the catalogue: advertise only enabled kinds.
+      const selectedKind = kind.value
+      if (Array.isArray(data.kinds) && data.kinds.every((k: string) => Object.hasOwn(kinds, k))) {
+        kind.replaceChildren(...data.kinds.map((k: Kind) => new Option(kinds[k], k)))
+        if (data.kinds.includes(selectedKind)) kind.value = selectedKind
+      }
       for (const d of dossiers)
         for (const key of Object.keys(kinds) as Kind[]) {
           if (d.links?.[key]) linkUrl(d.links[key]!, key)

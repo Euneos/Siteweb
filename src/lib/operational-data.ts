@@ -8,7 +8,22 @@ import {
   type ContactProjection,
 } from './google-form-contact'
 
-export type OperationalKind = 'contact' | 'deploiement' | 'participants'
+export type OperationalKind = 'contact' | 'deploiement' | 'participants' | 'activites-jeunes'
+export type YouthActivities = {
+  totalClasses: number
+  totalStudents: number
+  levels: string
+  evaluation: boolean
+  activeClasses: string
+  controlClasses: string
+  activeCount: number | null
+  controlCount: number | null
+  activeT1: string
+  activeT2: string
+  controlT1: string
+  workshopCount: number | null
+  workshopSchedule: string
+}
 export type OperationalTarget = { participationId: number; schoolId: number; cohortId: number }
 export type OperationalParticipant = {
   firstName: string
@@ -17,6 +32,13 @@ export type OperationalParticipant = {
   role: string
 }
 export type OperationalInput = {
+  version?: 2
+  preformation?: 'Oui' | 'Non' | 'Je vais le faire'
+  evaluationInterest?: {
+    answer: 'Oui' | 'Non' | 'Je ne sais pas, j’ai besoin de plus d’information'
+    level: string
+  }
+  youth?: YouthActivities
   referrer: { name: string; email: string; phone: string; role: string }
   directionEmail: string
   schoolDetails: { academy: string; address: string; postalCode: string; type: string }
@@ -57,6 +79,8 @@ const publicMessages: Record<string, string> = {
   read_failed: 'Le service est momentanément indisponible. Conservez votre saisie.',
   write_uncertain:
     'La réception nécessite une vérification par l’équipe. Ne renvoyez pas le formulaire.',
+  preformation_required: 'Précisez si le questionnaire pré-formation a été proposé aux stagiaires.',
+  evaluation_required: 'Précisez si vous souhaitez proposer des groupes pour l’évaluation.',
 }
 export class OperationalDataError extends Error {
   constructor(
@@ -138,8 +162,13 @@ export const statusText = (s: unknown) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
 export function parseOperationalInput(raw: unknown, kind: OperationalKind): OperationalInput {
-  if (!['contact', 'deploiement', 'participants'].includes(kind)) fail('invalid_kind')
+  if (!['contact', 'deploiement', 'participants', 'activites-jeunes'].includes(kind))
+    fail('invalid_kind')
   const r = shape(raw, [
+    'version',
+    'preformation',
+    'youth',
+    'evaluationInterest',
     'referrer',
     'directionEmail',
     'schoolDetails',
@@ -151,20 +180,53 @@ export function parseOperationalInput(raw: unknown, kind: OperationalKind): Oper
     'organizationConfirmed',
     'changesAcknowledged',
   ])
+  if (r.version !== undefined && r.version !== 2) fail('invalid_fields')
+  if (r.preformation !== undefined && kind !== 'deploiement') fail('invalid_fields')
+  if (r.youth !== undefined && kind !== 'activites-jeunes') fail('invalid_fields')
+  if (r.evaluationInterest !== undefined && kind !== 'contact') fail('invalid_fields')
+  let evaluationInterest: OperationalInput['evaluationInterest']
+  if (kind === 'contact' && (r.version === 2 || r.evaluationInterest !== undefined)) {
+    const interest = shape(r.evaluationInterest, ['answer', 'level'])
+    if (
+      !['Oui', 'Non', 'Je ne sais pas, j’ai besoin de plus d’information'].includes(
+        String(interest.answer),
+      )
+    )
+      fail('evaluation_required')
+    evaluationInterest = {
+      answer: interest.answer as NonNullable<OperationalInput['evaluationInterest']>['answer'],
+      level: text(interest.level, 500, interest.answer === 'Oui'),
+    }
+    if (interest.answer !== 'Oui' && evaluationInterest.level) fail('invalid_fields')
+  }
+  if ((kind === 'deploiement' && r.version === 2) || r.preformation !== undefined) {
+    if (!['Oui', 'Non', 'Je vais le faire'].includes(String(r.preformation)))
+      fail('preformation_required')
+  }
   if (JSON.stringify(r).length > 65000) fail('input_too_large')
   const ref = shape(r.referrer, ['name', 'email', 'phone', 'role'])
   const school = shape(r.schoolDetails, ['academy', 'address', 'postalCode', 'type'], true)
   const op = shape(r.operations, ['groupedSchools', 'associatedSchools'], true)
   let formation: OperationalInput['formation'] = null
-  if (kind !== 'participants') {
+  if (kind === 'contact' || kind === 'deploiement') {
     const f = shape(r.formation, ['start', 'end', 'format', 'planning', 'sessions'])
     formation = {
-      start: date(f.start, kind === 'contact'),
-      end: date(f.end, kind === 'contact'),
+      start: date(f.start, kind === 'contact' && r.version !== 2),
+      end: date(f.end, kind === 'contact' && r.version !== 2),
       format: text(f.format, 500, true),
       planning: text(f.planning, 10000, kind === 'deploiement'),
       sessions: count(f.sessions, 1000),
     }
+    // Old payloads remain readable for exact receipt replay. Current contact
+    // forms no longer collect or promote premature dates.
+    if (kind === 'contact' && r.version === 2 && (formation.start || formation.end))
+      fail('invalid_fields')
+    if (
+      kind === 'contact' &&
+      r.version === 2 &&
+      (formation.planning || formation.sessions !== null)
+    )
+      fail('invalid_fields')
     if (!!formation.start !== !!formation.end) fail('date_pair_required')
     if (formation.start && formation.end < formation.start) fail('date_order')
     if (!['Présentiel', 'Hybride'].includes(formation.format)) fail('invalid_format')
@@ -181,6 +243,7 @@ export function parseOperationalInput(raw: unknown, kind: OperationalKind): Oper
     }
   })
   if (kind === 'participants' && !participants.length) fail('participants_required')
+  if (kind === 'contact' && r.version === 2 && participants.length) fail('invalid_fields')
   const names = new Set<string>(),
     emails = new Set<string>()
   for (const p of participants) {
@@ -200,9 +263,62 @@ export function parseOperationalInput(raw: unknown, kind: OperationalKind): Oper
     })
     .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
   if (kind === 'deploiement' && !declaredTrainers.length) fail('trainer_required')
+  let youth: YouthActivities | undefined
+  if (kind === 'activites-jeunes') {
+    if (r.version !== 2 || participants.length || declaredTrainers.length) fail('invalid_fields')
+    const y = shape(r.youth, [
+      'totalClasses',
+      'totalStudents',
+      'levels',
+      'evaluation',
+      'activeClasses',
+      'controlClasses',
+      'activeCount',
+      'controlCount',
+      'activeT1',
+      'activeT2',
+      'controlT1',
+      'workshopCount',
+      'workshopSchedule',
+    ])
+    const totalClasses = count(y.totalClasses, 1000),
+      totalStudents = count(y.totalStudents)
+    if (!totalClasses || !totalStudents) fail('invalid_number')
+    if (typeof y.evaluation !== 'boolean') fail('evaluation_required')
+    youth = {
+      totalClasses,
+      totalStudents,
+      levels: text(y.levels, 500, true),
+      evaluation: y.evaluation,
+      activeClasses: text(y.activeClasses, 5000, y.evaluation),
+      controlClasses: text(y.controlClasses, 5000, y.evaluation),
+      activeCount: count(y.activeCount),
+      controlCount: count(y.controlCount),
+      activeT1: date(y.activeT1),
+      activeT2: date(y.activeT2),
+      controlT1: date(y.controlT1),
+      workshopCount: count(y.workshopCount, 10000),
+      workshopSchedule: text(y.workshopSchedule, 10000),
+    }
+    // Reject contradictory hidden data instead of silently discarding answers.
+    if (
+      !youth.evaluation &&
+      [
+        youth.activeClasses,
+        youth.controlClasses,
+        youth.activeCount,
+        youth.controlCount,
+        youth.activeT1,
+        youth.activeT2,
+        youth.controlT1,
+      ].some((v) => v !== '' && v !== null)
+    )
+      fail('invalid_fields')
+  }
   if (
     r.confirmed !== true ||
-    (kind === 'deploiement' && (r.organizationConfirmed !== true || r.changesAcknowledged !== true))
+    ((kind === 'deploiement' || kind === 'activites-jeunes') &&
+      (r.organizationConfirmed !== true || r.changesAcknowledged !== true))
   )
     fail('confirmation_required')
   if (
@@ -239,6 +355,12 @@ export function parseOperationalInput(raw: unknown, kind: OperationalKind): Oper
   )
     fail('invalid_school_type')
   return {
+    ...(r.version === 2 ? { version: 2 as const } : {}),
+    ...(r.preformation !== undefined
+      ? { preformation: r.preformation as OperationalInput['preformation'] }
+      : {}),
+    ...(youth ? { youth } : {}),
+    ...(evaluationInterest ? { evaluationInterest } : {}),
     referrer: {
       name: text(ref.name, 300, true),
       email: email(ref.email, true),
@@ -434,6 +556,18 @@ export function operationalFingerprint(
       p.date_debut_formation ?? null,
       p.date_fin_formation ?? null,
       p.statut_formation ?? null,
+      ...OPERATIONAL_DECLARATION_FIELDS.map((key) => {
+        const value = p[key]
+        if (key === 'activites_jeunes_recues')
+          return value == null ? null : value === true || value === 1
+        if (
+          key === 'activites_jeunes_date_reception' &&
+          typeof value === 'string' &&
+          Number.isFinite(Date.parse(value))
+        )
+          return new Date(value).toISOString()
+        return value ?? null
+      }),
       p.notes ?? '',
     ],
     cohort: [snapshot.cohort.active, snapshot.cohort.annee_debut, snapshot.cohort.annee_fin],
@@ -496,7 +630,50 @@ export function operationalReviewCodes(
     if (kind === 'contact' && notes?.formation.kind === 'deploiement' && status !== 'programmee')
       codes.push('deployment_already_declared')
   }
+  const declared = declarationFields(data)
+  if (
+    Object.entries(declared).some(
+      ([key, value]) => p[key] != null && p[key] !== '' && p[key] !== value,
+    )
+  )
+    codes.push(
+      kind === 'activites-jeunes'
+        ? 'youth_declaration_conflict'
+        : kind === 'contact'
+          ? 'evaluation_interest_conflict'
+          : 'preformation_conflict',
+    )
   return [...new Set(codes)]
+}
+// Declarations are separate from validated impact/training/scientific outcomes.
+export const OPERATIONAL_DECLARATION_FIELDS = [
+  'preformation_questionnaire',
+  'activites_jeunes_recues',
+  'activites_jeunes_date_reception',
+  'activites_jeunes_classes',
+  'activites_jeunes_effectif',
+  'activites_jeunes_niveaux',
+  'evaluation_jeunes_demandee',
+  'evaluation_jeunes_statut',
+  'intention_evaluation_scientifique',
+  'niveau_evaluation_envisage',
+] as const
+function declarationFields(data: OperationalInput): Record<string, unknown> {
+  if (data.evaluationInterest)
+    return {
+      intention_evaluation_scientifique: data.evaluationInterest.answer,
+      ...(data.evaluationInterest.level
+        ? { niveau_evaluation_envisage: data.evaluationInterest.level }
+        : {}),
+    }
+  if (data.youth)
+    return {
+      activites_jeunes_classes: data.youth.totalClasses,
+      activites_jeunes_effectif: data.youth.totalStudents,
+      activites_jeunes_niveaux: data.youth.levels,
+      evaluation_jeunes_demandee: data.youth.evaluation ? 'Oui' : 'Non',
+    }
+  return data.preformation ? { preformation_questionnaire: data.preformation } : {}
 }
 export function buildOperationalPatch(input: {
   snapshot: OperationalSnapshot
@@ -541,7 +718,7 @@ export function buildOperationalPatch(input: {
     projection.receivedAt ??= now
     patch.fiche_contact_recue = true
   }
-  if (reviewCodes.length) {
+  if (reviewCodes.length && kind !== 'activites-jeunes') {
     projection.formation.issues = [
       ...new Set([
         ...projection.formation.issues,
@@ -550,7 +727,14 @@ export function buildOperationalPatch(input: {
     ]
   }
   if (!reviewCodes.length) {
-    if (kind !== 'participants') {
+    Object.assign(patch, declarationFields(data))
+    if (kind === 'activites-jeunes') {
+      patch.activites_jeunes_recues = true
+      patch.activites_jeunes_date_reception = p.activites_jeunes_date_reception || now
+      if (!p.evaluation_jeunes_statut)
+        patch.evaluation_jeunes_statut = data.youth!.evaluation ? 'À examiner' : 'Non demandée'
+    }
+    if (data.formation) {
       const f = data.formation!
       const preserveDeployment =
         kind === 'contact' &&
@@ -562,7 +746,7 @@ export function buildOperationalPatch(input: {
           start: f.start || projection.formation.start,
           end: f.end || projection.formation.end,
           format: f.format,
-          planning: f.planning,
+          planning: f.planning || projection.formation.planning,
           kind: kind === 'deploiement' ? 'deploiement' : 'previsionnelle',
         }
       projection.declaredTrainers = [...projection.declaredTrainers]
@@ -580,7 +764,8 @@ export function buildOperationalPatch(input: {
           statusText(p.statut_formation) === 'programmee' || kind === 'deploiement'
             ? 'Programmée'
             : 'Prévisionnelle'
-      } else if (!p.statut_formation) patch.statut_formation = 'À préciser'
+      } else if (!p.statut_formation && !(kind === 'contact' && data.version === 2))
+        patch.statut_formation = 'À préciser'
     }
     // Retain legacy free-text qualifications/unresolved entries until team review.
     projection.participants.importedCount = Math.max(
