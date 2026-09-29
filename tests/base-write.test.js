@@ -54,13 +54,16 @@ test('la fiche archive reste consultable avec sa cible et son historique, sans r
 })
 
 test('statut refuse une archive, indique le canonique et ne PATCH aucun des deux', async () => {
-  await expect(commandes.statut('1', 'En cours d’analyse')).rejects.toThrow('archivé vers le dossier canonique #2')
+  await expect(commandes.statut('1', 'Candidature acceptée')).rejects.toThrow('archivé vers le dossier canonique #2')
   expect(patches).toEqual([])
   expect(requests.every((r) => r.method === 'GET')).toBe(true)
 })
 
-test.each(['En cours d’analyse', 'Candidature acceptée', 'Engage'])(
+test.each(['Candidature recue', 'Candidature acceptée', 'Engage', 'Abandonne', 'Refuse'])(
   'un dossier canonique unique accepte le statut %s sans toucher son archive', async (statut) => {
+    rows[1].statut = 'Retenu'
+    rows[1].fiche_contact_recue = true
+    rows[1].lettre_interet_signee = true
     await commandes.statut('2', statut)
     expect(patches).toEqual([[{ Id: 2, statut }]])
     expect(rows[0].statut).toBe('Candidature recue')
@@ -118,4 +121,37 @@ test.each(['0', '-1', '1.5', '1?fields=Id', '9007199254740992'])(
 test('un statut inconnu ne provoque aucune requête', async () => {
   await expect(commandes.statut('2', 'Inventé')).rejects.toThrow('Statut inconnu')
   expect(requests).toEqual([])
+})
+
+test.each(['En cours d’analyse', 'Retenu', 'Accuse reception', 'Invite', 'En discussion', 'Établissement engagé'])(
+  'le choix ancien ou le libellé %s ne crée pas une nouvelle valeur stockée', async (statut) => {
+    await expect(commandes.statut('2', statut)).rejects.toThrow('Statut inconnu ou historique')
+    expect(requests).toEqual([])
+  },
+)
+
+test.each([
+  {}, { fiche_contact_recue: true }, { lettre_interet_signee: true },
+  { fiche_contact_recue: 'true', lettre_interet_signee: true },
+  { fiche_contact_recue: true, lettre_interet_signee: 'false' },
+])('Engagé sans les deux preuves %j ne produit aucun PATCH', async (preuves) => {
+  Object.assign(rows[1], preuves)
+  await expect(commandes.statut('2', 'Engage')).rejects.toThrow('fiche contact reçue ET lettre d’intérêt signée')
+  expect(patches).toEqual([])
+  expect(requests.at(-1).url.searchParams.get('fields')).toContain('fiche_contact_recue,lettre_interet_signee')
+})
+
+test('la preuve relue juste avant écriture prévaut sur l’ancienne valeur', async () => {
+  rows[1].fiche_contact_recue = true
+  rows[1].lettre_interet_signee = true
+  reread = { ...rows[1], lettre_interet_signee: false }
+  await expect(commandes.statut('2', 'Engage')).rejects.toThrow('lettre d’intérêt signée')
+  expect(patches).toEqual([])
+})
+
+test.each(['Candidature acceptée', 'Engage'])('rechoisir %s ne réécrit pas le dossier ni ses preuves', async (statut) => {
+  rows[1].statut = statut
+  await commandes.statut('2', statut)
+  expect(patches).toEqual([])
+  expect(log.mock.calls.flat().join('\n')).toContain('déjà enregistré, aucune modification')
 })

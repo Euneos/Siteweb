@@ -10,6 +10,10 @@
  *   NOCODB_TOKEN=nc_pat_...
  */
 import { reconcilierActifs } from '../src/lib/nocodb.ts'
+import {
+  STATUTS_CANDIDATURE, estCodeStatutCandidature, statutCandidature,
+  justificatifsEngagementPresents,
+} from '../src/lib/statut-candidature.ts'
 
 const API = 'https://app.nocodb.com/api/v2'
 
@@ -26,8 +30,7 @@ const T = {
   groupes_jeunes: 'm9rjb4oixy04ptt',
 }
 
-const STATUTS_ETAB = ['Candidature recue', 'Accuse reception', 'Invite', 'En discussion',
-                      'En cours d’analyse', 'Candidature acceptée', 'Retenu', 'Engage', 'Refuse', 'Abandonne']
+const choixStatutsEtab = () => STATUTS_CANDIDATURE.map((s) => `${s.label} (code : "${s.code}")`).join(' · ')
 const STATUTS_FORM = ['Candidature recue', 'Accuse reception', 'Candidature validée',
                       "Liste d'attente", 'Refuse', 'En attente confirmation formation',
                       'En cours de formation', 'Formateur en cours de validation',
@@ -137,10 +140,10 @@ export const commandes = {
     console.log(`\nCandidatures etablissements en cours — ${p.length}\n`)
     tableau(p.map((x) => ({
       id: x.Id, etablissement: x.etablissement?.nom ?? '?',
-      statut: x.statut ?? '', recue_le: x.date_candidature ?? '',
+      statut: statutCandidature(x.statut).label, recue_le: x.date_candidature ?? '',
     })), ['id', 'etablissement', 'statut', 'recue_le'])
     console.log('\n  Pour faire avancer un dossier : bun scripts/base.mjs statut <id> "<statut>"')
-    console.log('  Statuts possibles : ' + STATUTS_ETAB.join(' · ') + '\n')
+    console.log('  Statuts possibles : ' + choixStatutsEtab() + '\n')
   },
 
   async formateurs() {
@@ -166,13 +169,14 @@ export const commandes = {
     console.log(`\nCampagne — cohorte ${active.nom ?? '?'}\n`)
     const pc = part.filter((x) => x.cohortes_id === active.Id)
     const sansCohorte = part.filter((x) => !coh.some((c) => c.Id === x.cohortes_id)).length
-    const engages = pc.filter((x) => x.statut === 'Engage').length
+    const engages = pc.filter((x) => statutCandidature(x.statut).code === 'Engage').length
     const objectif = active?.objectif_etablissements ?? 30
     console.log(`  Etablissements engages : ${engages} / ${objectif}   (il en manque ${Math.max(0, objectif - engages)})`)
     if (sansCohorte) console.log(`  Dossiers avec cohorte indéterminée, hors de ce total : ${sansCohorte}`)
     const parStatut = (l) => l.reduce((a, x) => ((a[x.statut || '?'] = (a[x.statut || '?'] || 0) + 1), a), {})
     console.log('\n  Pipeline etablissements :')
-    for (const [s, n] of Object.entries(parStatut(pc)).sort((a, b) => b[1] - a[1])) {
+    const pipeline = parStatut(pc.map((x) => ({ ...x, statut: statutCandidature(x.statut).label })))
+    for (const [s, n] of Object.entries(pipeline).sort((a, b) => b[1] - a[1])) {
       console.log(`    ${String(n).padStart(4)}  ${s}`)
     }
     // Un parcours n'est pas une personne : une candidature et une formation
@@ -196,7 +200,8 @@ export const commandes = {
     console.log('─'.repeat(60))
     for (const [k, v] of Object.entries(p)) {
       if (v === null || v === '' || k === 'Id') continue
-      const val = typeof v === 'object' ? (v.nom ?? JSON.stringify(v)) : v
+      const val = k === 'statut' ? `${statutCandidature(v).label} (valeur conservée : ${v})`
+        : typeof v === 'object' ? (v.nom ?? JSON.stringify(v)) : v
       console.log(`  ${k.padEnd(24)} ${val}`)
     }
     console.log()
@@ -205,8 +210,8 @@ export const commandes = {
   async statut(id, nouveau) {
     if (!id || !nouveau) throw new Error('Usage : bun scripts/base.mjs statut <id> "<statut>"')
     const recordId = dossierId(id)
-    if (!STATUTS_ETAB.includes(nouveau)) {
-      throw new Error(`Statut inconnu.\nStatuts possibles : ${STATUTS_ETAB.join(' · ')}`)
+    if (!estCodeStatutCandidature(nouveau)) {
+      throw new Error(`Statut inconnu ou historique non proposé.\nStatuts possibles : ${choixStatutsEtab()}`)
     }
     // Keep the raw snapshot for the archive diagnostic; never retarget a write.
     const rows = await lirePages('participations', new URLSearchParams({
@@ -224,15 +229,21 @@ export const commandes = {
       throw new Error(`Dossier #${recordId} ambigu : plusieurs dossiers actifs pour cet établissement et cette cohorte, ou cohorte indéterminée. Aucune modification effectuée.`)
     // Recheck the selected row immediately before writing; grouping may have
     // changed during pagination. This is a guard, not a NocoDB transaction.
-    const p = await api(`/tables/${T.participations}/records/${recordId}?fields=Id,fusionne_vers,etablissements_id,cohortes_id,statut,etablissement`)
+    const p = await api(`/tables/${T.participations}/records/${recordId}?fields=Id,fusionne_vers,etablissements_id,cohortes_id,statut,etablissement,fiche_contact_recue,lettre_interet_signee`)
     if (p?.Id !== recordId) throw new Error('Lecture du dossier incohérente.')
     refuserArchive(p)
     if (p.etablissements_id !== selected.etablissements_id || p.cohortes_id !== selected.cohortes_id || p.statut !== selected.statut)
       throw new Error(`Dossier #${recordId} modifié pendant la lecture. Relire le dossier avant de réessayer.`)
+    if (p.statut === nouveau) {
+      console.log(`\n  Dossier #${recordId} : ${statutCandidature(nouveau).label} déjà enregistré, aucune modification.\n`)
+      return
+    }
+    if (nouveau === 'Engage' && !justificatifsEngagementPresents(p))
+      throw new Error(`Dossier #${recordId} : fiche contact reçue ET lettre d’intérêt signée doivent être renseignées avant de choisir Établissement engagé. Aucune modification effectuée.`)
     await api(`/tables/${T.participations}/records`, {
       method: 'PATCH', body: JSON.stringify([{ Id: recordId, statut: nouveau }]),
     })
-    console.log(`\n  ${p.etablissement?.nom ?? id} → ${nouveau}\n`)
+    console.log(`\n  ${p.etablissement?.nom ?? id} → ${statutCandidature(nouveau).label}\n`)
   },
 
   /** Ce qui est arrive recemment — a defaut de notification par mail. */
@@ -248,7 +259,7 @@ export const commandes = {
     if (pe.length) {
       console.log('  Etablissements :')
       tableau(pe.map((x) => ({ id: x.Id, etablissement: x.etablissement?.nom ?? '?',
-                               statut: x.statut ?? '', le: x.date_candidature })),
+                               statut: statutCandidature(x.statut).label, le: x.date_candidature })),
               ['id', 'etablissement', 'statut', 'le'])
     } else console.log('  Etablissements : aucun')
     console.log()
@@ -273,7 +284,7 @@ export const commandes = {
       .map((x) => ({
         id: x.Id,
         etablissement: x.etablissement?.nom ?? '?',
-        statut: x.statut ?? '',
+        statut: statutCandidature(x.statut).label,
         depuis_jours: Math.floor((aujourdhui - new Date(x.date_candidature)) / 86400000),
       }))
       .filter((x) => x.depuis_jours >= seuil)

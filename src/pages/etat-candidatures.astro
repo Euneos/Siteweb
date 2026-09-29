@@ -3,6 +3,11 @@ import InternalLayout from '../layouts/InternalLayout.astro'
 import { readInternalIdentity } from '../lib/internal-access'
 import { jeton } from '../lib/nocodb'
 import {
+  STATUTS_CANDIDATURE,
+  estCodeStatutCandidature,
+  statutCandidature,
+} from '../lib/statut-candidature'
+import {
   lireEtatCohorte,
   selectionnerDossiers,
   dateFormationFr,
@@ -54,13 +59,16 @@ const filtre = ['bientot', 'dates', 'sans-date'].includes(
   ? Astro.url.searchParams.get('filtre')!
   : 'tous'
 const tri = Astro.url.searchParams.get('tri') === 'nom' ? 'nom' : 'debut'
-const dossiersAffiches = selectionnerDossiers(etat?.lignes ?? [], filtre, tri)
+const statutDemande = Astro.url.searchParams.get('statut') ?? ''
+const statut =
+  estCodeStatutCandidature(statutDemande) || statutDemande === 'historique' ? statutDemande : ''
+const dossiersAffiches = selectionnerDossiers(etat?.lignes ?? [], filtre, tri, statut)
 const dossiersDatesAConfirmer = selectionnerDossiers(etat?.lignes ?? [], 'dates').length
 const colonnes = [
   'Candidature reçue',
   'Accusé de réception',
   'Analyse & décision',
-  'Sélectionné',
+  'Candidature acceptée',
   'Lettre signée',
   'Fiche contact',
   'Formateur désigné',
@@ -143,6 +151,10 @@ const colonnes = [
             Les dossiers aux dates à confirmer ne sont pas comptés parmi les débuts proches ; leur
             échéance reste à vérifier.
           </p>
+          <p class="etat__legende">
+            L’analyse reste sous « Candidature reçue ». Les anciens statuts à qualifier, dont
+            « Retenu », restent visibles sans être assimilés à une candidature acceptée.
+          </p>
 
           <details class="etat__reperes">
             <summary>Établissement, dossier, codes DOS et ETAB : comment s’y retrouver ?</summary>
@@ -183,6 +195,18 @@ const colonnes = [
               </p>
             </div>
             <form class="etat__filtres" method="get" action="#formations">
+              <label>
+                Statut de candidature
+                <select name="statut">
+                  <option value="" selected={statut === ''}>Tous les statuts</option>
+                  {STATUTS_CANDIDATURE.map((s) => (
+                    <option value={s.code} selected={statut === s.code}>{s.label}</option>
+                  ))}
+                  <option value="historique" selected={statut === 'historique'}>
+                    Historiques à qualifier ou non renseignés
+                  </option>
+                </select>
+              </label>
               <label>
                 Afficher
                 <select name="filtre">
@@ -241,7 +265,7 @@ const colonnes = [
                     </div>
                     <div class="etat__badges">
                       <a class="iw-button" href={`/interne/formulaires?dossier=${ligne.id}`}>Formulaires du dossier</a>
-                      <span class="etat__badge">Candidature : {ligne.statut}</span>
+                      <span class="etat__badge">{statutCandidature(ligne.statut).label}</span>
                       {ligne.commenceBientot && (
                         <span class="etat__badge etat__badge--proche">Début dans les 30 jours</span>
                       )}

@@ -180,3 +180,35 @@ test('campagne distingue deux cohortes de même nom et isole les cohortes inconn
     log.mockRestore()
   }
 })
+
+test('campagne réunit les libellés Reçue, garde Retenu historique et ne promeut aucune acceptation', async () => {
+  const part = [
+    { Id: 1, etablissements_id: 1, cohortes_id: 2, statut: 'En cours d’analyse' },
+    { Id: 2, etablissements_id: 2, cohortes_id: 2, statut: 'Candidature recue' },
+    { Id: 3, etablissements_id: 3, cohortes_id: 2, statut: 'Candidature acceptée', fiche_contact_recue: true, lettre_interet_signee: true },
+    { Id: 4, etablissements_id: 4, cohortes_id: 2, statut: 'Retenu' },
+    { Id: 5, etablissements_id: 1, cohortes_id: 1, statut: 'Engage' },
+    { Id: 6, etablissements_id: 3, cohortes_id: 2, statut: 'Engage', fusionne_vers: 3 },
+  ]
+  const before = structuredClone(part)
+  globalThis.fetch = async (input, options) => {
+    expect(options.method ?? 'GET').toBe('GET')
+    const table = new URL(String(input)).pathname.split('/')[4]
+    const list = table === NC.tables.participations ? part
+      : table === NC.tables.cohortes ? [{ Id: 1, active: false }, { Id: 2, active: true }] : []
+    return Response.json({ list, pageInfo: { isLastPage: true } })
+  }
+  const log = spyOn(console, 'log').mockImplementation(() => {})
+  try {
+    await commandes.campagne()
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('Etablissements engages : 0 / 30')
+    expect(output).toMatch(/2\s+Candidature reçue/)
+    expect(output).toMatch(/1\s+Candidature acceptée/)
+    expect(output).toMatch(/1\s+Retenu — historique à qualifier/)
+    expect(output).not.toContain('En cours d’analyse')
+    expect(part).toEqual(before)
+  } finally {
+    log.mockRestore()
+  }
+})

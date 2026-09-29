@@ -15,6 +15,19 @@ afterEach(() => {
 })
 
 describe('Progression fondée sur des éléments renseignés', () => {
+  test.each([{}, { date_validation: '2026-09-01' }, { fiche_contact_recue: true, lettre_interet_signee: true }])(
+    'Retenu reste à qualifier, même avec des données annexes %j', (details) => {
+      const cells = progression({ Id: 1, statut: 'Retenu', ...details }, [])
+      for (const index of [2, 3]) {
+        expect(cells[index].etat).toBe('inconnu')
+        expect(cells[index].texte).toBe('Retenu — historique à qualifier')
+      }
+    },
+  )
+  test('analyse et réception partagent la même présentation de décision', () => {
+    expect(progression({ Id: 1, statut: 'En cours d’analyse' }, []))
+      .toEqual(progression({ Id: 1, statut: 'Candidature recue' }, []))
+  })
   test('une date absente et un statut avancé ne prouvent pas la réception ou l’envoi d’un email', () => {
     const cells = progression({ Id: 1, statut: 'Engage' }, [])
     expect(cells).toHaveLength(10)
@@ -40,6 +53,19 @@ describe('Progression fondée sur des éléments renseignés', () => {
     expect(cells[8].etat).toBe('en-cours')
     expect(cells[8].texte).toContain('12 adulte(s)')
   })
+})
+
+test('le filtre Reçue réunit l’ancien code analyse sans perdre le statut source ni promouvoir une acceptation', () => {
+  const rows = ['Candidature recue', 'En cours d’analyse', 'Candidature acceptée', 'Engage', 'Retenu'].map((statut, i) => ({
+    id: i + 1, statut, etablissement: `École ${i}`, dateDebutFormation: null,
+    anomaliesDates: [], provenanceInvalide: false, lettreSignee: true, ficheContactRecue: true,
+  }))
+  const before = structuredClone(rows)
+  expect(selectionnerDossiers(rows, 'tous', 'nom', 'Candidature recue').map((r) => r.id)).toEqual([1, 2])
+  expect(selectionnerDossiers(rows, 'tous', 'nom', 'Candidature acceptée').map((r) => r.id)).toEqual([3])
+  expect(selectionnerDossiers(rows, 'tous', 'nom', 'Engage').map((r) => r.id)).toEqual([4])
+  expect(selectionnerDossiers(rows, 'tous', 'nom', 'historique').map((r) => r.id)).toEqual([5])
+  expect(rows).toEqual(before)
 })
 
 describe('Lecture NocoDB', () => {

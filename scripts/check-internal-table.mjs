@@ -117,6 +117,17 @@ for (const query of ['?filtre=bientot', '?filtre=dates', '?filtre=sans-date', '?
 assert.match(filtered['?filtre=bientot'], /1 dossier\(s\) affiché\(s\)/)
 assert.match(filtered['?filtre=dates'], /1 dossier\(s\) affiché\(s\)/)
 assert.match(filtered['?filtre=sans-date'], /2 dossier\(s\) affiché\(s\)/)
+// Legacy labels, recorded decisions and supporting documents remain independent.
+const originalDossiers = structuredClone(tables.mbunbu0f1zztce4)
+Object.assign(tables.mbunbu0f1zztce4[0], { statut: 'En cours d’analyse' })
+Object.assign(tables.mbunbu0f1zztce4[1], { statut: 'Retenu', date_validation: '2026-09-01' })
+Object.assign(tables.mbunbu0f1zztce4[3], { statut: 'Candidature acceptée', fiche_contact_recue: true, lettre_interet_signee: true })
+const statusPages = {}
+for (const code of ['', 'Candidature recue', 'Candidature acceptée', 'Engage', 'Abandonne', 'Refuse', 'historique', 'Retenu']) {
+  const query = code ? `?${new URLSearchParams({ statut: code })}` : ''
+  statusPages[query] = await (await render(env, jwt, query)).text()
+}
+tables.mbunbu0f1zztce4.splice(0, tables.mbunbu0f1zztce4.length, ...originalDossiers)
 failData = true
 const errorHtml = await (await render(env, jwt)).text()
 assert.match(errorHtml, /Données momentanément indisponibles/)
@@ -128,13 +139,24 @@ globalThis.fetch = realFetch
 globalThis.Date = RealDate
 
 await writeFile(`${output}/tableau-demo.html`, html)
+const queryKey = (url) => {
+  const params = new URL(url).searchParams
+  if (params.get('tri') === 'debut') params.delete('tri')
+  if (params.get('statut') === '') params.delete('statut')
+  if (params.get('filtre') === 'tous') params.delete('filtre')
+  return params.size ? `?${params}` : ''
+}
 const server = Bun.serve({
   hostname: '127.0.0.1',
   port: 0,
   fetch(request) {
     const path = new URL(request.url).pathname
+    if (path === '/status-demo')
+      return new Response(statusPages[queryKey(request.url)] ?? statusPages[''], {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
     if (path === '/' || path === '/etat-candidatures')
-      return new Response(filtered[new URL(request.url).search.replace('&tri=debut', '')] ?? html, {
+      return new Response(filtered[queryKey(request.url)] ?? html, {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       })
     if (path.includes('..')) return new Response('not found', { status: 404 })
@@ -229,7 +251,7 @@ try {
     }
     await tab.getByRole('combobox', { name: /Afficher/ }).selectOption('bientot')
     await tab.getByRole('button', { name: 'Appliquer', exact: true }).click()
-    await tab.waitForURL('**/?filtre=bientot&tri=debut#formations')
+    await tab.waitForURL('**/?statut=&filtre=bientot&tri=debut#formations')
     // The form requests the same GET page; fixture server answers both orderings.
     assert.equal(await tab.locator('.etat__dossier').count(), 1)
     assert(
@@ -249,6 +271,39 @@ try {
     )
     console.log(`Tableau compilé : ${width}px OK`)
   }
+  await tab.setViewportSize({ width: 390, height: 1000 })
+  await tab.goto(`http://127.0.0.1:${server.port}/status-demo`)
+  const statusSelect = tab.getByRole('combobox', { name: 'Statut de candidature' })
+  assert.deepEqual(await statusSelect.locator('option').evaluateAll((options) => options.map((o) => [o.value, o.textContent.trim()])), [
+    ['', 'Tous les statuts'],
+    ['Candidature recue', 'Candidature reçue'],
+    ['Candidature acceptée', 'Candidature acceptée'],
+    ['Engage', 'Établissement engagé'],
+    ['Abandonne', 'Abandon'],
+    ['Refuse', 'Refus'],
+    ['historique', 'Historiques à qualifier ou non renseignés'],
+  ])
+  assert.deepEqual(await tab.locator('.etat__dossier .etat__badge').allTextContents(), [
+    'Candidature reçue', 'Début dans les 30 jours', 'Candidature acceptée', 'Retenu — historique à qualifier',
+  ])
+  await tab.screenshot({ path: `${output}/cinq-statuts-390.png`, fullPage: true })
+  for (const [code, expected] of [
+    ['Candidature recue', 'Candidature reçue'],
+    ['Candidature acceptée', 'Candidature acceptée'],
+    ['historique', 'Retenu — historique à qualifier'],
+    ['Engage', null], ['Abandonne', null], ['Refuse', null],
+  ]) {
+    await statusSelect.selectOption(code)
+    await tab.getByRole('button', { name: 'Appliquer', exact: true }).click()
+    await tab.waitForURL((url) => url.searchParams.get('statut') === code)
+    assert.equal(await statusSelect.inputValue(), code)
+    assert.equal(await tab.locator('.etat__dossier').count(), expected ? 1 : 0)
+    if (expected) assert.equal(await tab.locator('.etat__dossier .etat__badge').first().textContent(), expected)
+  }
+  await tab.goto(`http://127.0.0.1:${server.port}/status-demo?statut=Retenu`)
+  assert.equal(await statusSelect.inputValue(), '', 'Legacy raw code is not a new choice')
+  assert.equal(await tab.locator('.etat__dossier').count(), 3)
+  console.log('Cinq choix, analyse réunie sous Reçue, Retenu historique, acceptation sans promotion : OK')
 } finally {
   await browser.close()
   if (!process.env.KEEP_PREVIEW) server.stop()
