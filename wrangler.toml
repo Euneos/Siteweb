@@ -19,8 +19,8 @@ BREVO_LIST_ENJEUX = "9"
 CONTACT_EMAIL = "euneosequipe@gmail.com"
 INTERNAL_WORKSPACE_IMPORT_PENDING = "true"
 OPERATIONAL_FORMS_ENABLED = "true"
-# Activer seulement après les migrations NocoDB et FORM_SUBMISSIONS vérifiées.
-OPERATIONAL_YOUTH_ENABLED = "false"
+# Schémas NocoDB et FORM_SUBMISSIONS vérifiés avant activation en production.
+OPERATIONAL_YOUTH_ENABLED = "true"
 GOOGLE_FORMS_TRANSITION_ENABLED = "false"
 
 # Registre des formulaires directs : reçus techniques. Le raccord Google temporaire,
@@ -45,6 +45,7 @@ BREVO_LIST_ENJEUX = "9"
 CONTACT_EMAIL = "euneosequipe@gmail.com"
 INTERNAL_WORKSPACE_PREVIEW = "true"
 OPERATIONAL_FORMS_ENABLED = "false"
+OPERATIONAL_YOUTH_ENABLED = "false"
 GOOGLE_FORMS_TRANSITION_ENABLED = "false"
 
 [[env.preview.d1_databases]]

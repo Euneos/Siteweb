@@ -113,9 +113,13 @@ site restent sans accès à cette base.
 Avant toute publication, faire relire les deux plans, appliquer et vérifier les
 migrations sur les bases autorisées, puis vérifier les liens et parcours. Les
 formulaires 3/4 actuels émettent les nouveaux champs dès publication : leur schéma
-NocoDB doit donc être prêt avant le déploiement du site. Le n°5 est en plus fermé
-par `OPERATIONAL_YOUTH_ENABLED=false` ; son ouverture explicite requiert `true` et
-le circuit existant `OPERATIONAL_FORMS_ENABLED=true`.
+NocoDB doit donc être prêt avant le déploiement du site. Après vérification des
+prérequis, la configuration de production porte `OPERATIONAL_YOUTH_ENABLED=true`,
+avec le circuit existant `OPERATIONAL_FORMS_ENABLED=true`. La configuration de
+preview conserve explicitement les deux variables à `false`. Les aperçus de
+démonstration restent accessibles sans accès aux données réelles. Le retour de
+`OPERATIONAL_YOUTH_ENABLED` à `false` ferme les nouveaux liens et réceptions du
+n°5 sans supprimer les réponses déjà conservées.
 
 Le catalogue interne n’est pas modifié par ce lot. L’API `/api/interne/formulaires`
 renvoie `kinds` avec les types activés ; le script partagé construit le sélecteur
