@@ -507,3 +507,17 @@ réel → faux NocoDB, avec les migrations SQL réelles dans SQLite. Exécuter
 Wrangler avant livraison.
 Ces validations utilisent des données fictives et ne font aucun appel réel à
 Google, NocoDB ou Brevo.
+
+### Taille de la configuration privée
+
+Cloudflare limite chaque variable (secrète ou non) à 5 KB. Un catalogue riche
+peut être réparti entre `SOURCES`, `SOURCES_2` et `SOURCES_3` : chaque valeur est
+un tableau JSON complet, compact, inférieur à cette limite. Les tableaux sont
+concaténés dans cet ordre et validés ensemble ; les doublons entre parties et
+une partie manquante sont refusés. Conserver les onze sources de capture et leurs
+identités. Installer le code compatible avant les parties supplémentaires et
+vérifier `/check` pour les sources de chaque partie. Le récepteur a sa propre
+configuration `GOOGLE_FORMS_SYNC_SOURCES`, à compacter également ; ne jamais
+tronquer une configuration pour passer la limite.
+
+Référence : https://developers.cloudflare.com/workers/platform/limits/#environment-variables

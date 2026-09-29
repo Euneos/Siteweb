@@ -8,6 +8,7 @@ import worker, {
   parseCsv,
   run,
   validateSources,
+  configuredSources,
   type Env,
   type Source,
   type PushSnapshot,
@@ -1071,4 +1072,62 @@ test('projection flag with a capture-only catalogue cannot claim configured proj
   env.SOURCES = JSON.stringify([source()])
   await expect(poll(snapshot)).rejects.toThrow('projection_configuration_invalid')
   expect(calls).toHaveLength(0)
+})
+
+test('private source catalogue spans complete secret arrays without changing order or identity guards', () => {
+  const s1 = source(),
+    s2 = source({ spreadsheetId: 'fictional_sheet_id_00002' }),
+    s3 = source({ spreadsheetId: 'fictional_sheet_id_00003' })
+  const config = {
+    SOURCES: JSON.stringify([s1]),
+    SOURCES_2: JSON.stringify([s2]),
+    SOURCES_3: JSON.stringify([s3]),
+  }
+  expect(configuredSources(config)).toEqual([s1, s2, s3])
+  expect(configuredSources({ SOURCES: config.SOURCES })).toEqual([s1])
+  expect(() => configuredSources({ ...config, SOURCES_2: undefined })).toThrow(
+    'sources_part_missing',
+  )
+  expect(() => configuredSources({ ...config, SOURCES: '' })).toThrow('sources_part_missing')
+  expect(() => configuredSources({ ...config, SOURCES_2: config.SOURCES })).toThrow(
+    'source_duplicate',
+  )
+  expect(() => configuredSources({ ...config, SOURCES_2: '{}' })).toThrow('sources_invalid')
+})
+
+test('authenticated push accepts a source from the second private part and still journals idempotently', async () => {
+  env.INPUT_MODE = 'push'
+  const second = source({ spreadsheetId: 'fictional_sheet_id_00002' })
+  env.SOURCES_2 = JSON.stringify([second])
+  const snapshot: PushSnapshot = {
+    version: 1,
+    source: { spreadsheetId: second.spreadsheetId, sheetId: 0 },
+    headers,
+    rows: [answer()],
+  }
+  await run(
+    env,
+    {
+      fetch: fakeFetch,
+      now: () => clock,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    },
+    snapshot,
+  )
+  await run(
+    env,
+    {
+      fetch: fakeFetch,
+      now: () => clock,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    },
+    snapshot,
+  )
+  expect(remote).toHaveLength(1)
+  expect(ledger()).toHaveLength(1)
+  expect(calls.filter((c) => c.url === 'https://euneos.fr/api/hook/google-forms')).toHaveLength(0)
 })

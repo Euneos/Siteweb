@@ -29,6 +29,8 @@ database_id = "cd011a86-8198-4348-b652-aa09ca245d11"
 enabled = true
 
 # Secrets: NOCODB_TOKEN, JOURNAL_TABLE, SOURCES, RUN_SECRET,
+# Optional SOURCES_2 / SOURCES_3: complete JSON arrays, joined in this order.
+# Keep each secret below 5 KB; validate the combined catalogue before installing.
 # GOOGLE_FORMS_SYNC_SECRET (only needed when projection is enabled).
 # Optional INGEST_SECRET separates /ingest and /check from the operator secret;
 # without it they use RUN_SECRET. Never configure a Google user token here.

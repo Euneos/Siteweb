@@ -26,6 +26,8 @@ export type Env = {
   NOCODB_TOKEN: string
   JOURNAL_TABLE: string
   SOURCES: string
+  SOURCES_2?: string
+  SOURCES_3?: string
   ENABLED: string
   PROJECTION_ENABLED: string
   RUN_SECRET: string
@@ -155,6 +157,16 @@ export function validateSources(raw: string): Source[] {
     keys.add(key)
   }
   return values
+}
+/** Each secret is a complete JSON array below Cloudflare's per-variable limit.
+ * Validate the joined catalogue too: duplicated identities across parts fail. */
+export function configuredSources(env: Pick<Env, 'SOURCES' | 'SOURCES_2' | 'SOURCES_3'>): Source[] {
+  if (typeof env.SOURCES !== 'string' || !env.SOURCES) throw new Error('sources_part_missing')
+  if (env.SOURCES_3 && !env.SOURCES_2) throw new Error('sources_part_missing')
+  const parts = [env.SOURCES, env.SOURCES_2, env.SOURCES_3]
+    .filter((part): part is string => part !== undefined)
+    .map((part) => validateSources(part))
+  return validateSources(JSON.stringify(parts.flat()))
 }
 export function answerFields(headers: string[], cells: string[]) {
   if (cells.length !== headers.length) throw new Error('csv_width_invalid')
@@ -376,7 +388,7 @@ function pushSource(env: Env, value: unknown): { source: Source; snapshot: PushS
     )
   )
     throw new Error('snapshot_invalid')
-  const source = validateSources(env.SOURCES).find(
+  const source = configuredSources(env).find(
     (s) => s.spreadsheetId === p.source.spreadsheetId && s.sheetId === p.source.sheetId,
   )
   if (!source) throw new Error('source_not_allowed')
@@ -503,7 +515,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
   if (input && env.INPUT_MODE !== 'push') throw new Error('push_disabled')
   if (!/^[a-z0-9]{10,30}$/.test(env.JOURNAL_TABLE) || !env.NOCODB_TOKEN)
     throw new Error('configuration_invalid')
-  const sources = input ? [pushSource(env, input).source] : validateSources(env.SOURCES),
+  const sources = input ? [pushSource(env, input).source] : configuredSources(env),
     rt = { ...defaults, ...options },
     now = rt.now(),
     owner = crypto.randomUUID()
@@ -516,8 +528,8 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
       !env.GOOGLE_FORMS_SYNC_SECRET ||
       env.GOOGLE_FORMS_SYNC_SECRET.length < 32 ||
       env.GOOGLE_FORMS_SYNC_SECRET.length > 256 ||
-      !validateSources(env.SOURCES).some((s) => s.kind) ||
-      validateSources(env.SOURCES).some(
+      !configuredSources(env).some((s) => s.kind) ||
+      configuredSources(env).some(
         (s) =>
           s.kind &&
           (!s.mapping ||
