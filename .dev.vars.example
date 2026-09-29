@@ -23,3 +23,9 @@ INTERNAL_WORKSPACE_PREVIEW=
 # Formulaires de suivi : activés en production via wrangler.toml.
 # Les previews ne valident que des données fictives, sans écriture ni email.
 OPERATIONAL_FORMS_ENABLED="false"
+
+# Raccord temporaire Google : voir docs/google-forms-sync.md. Fermé par défaut.
+GOOGLE_FORMS_TRANSITION_ENABLED="false"
+GOOGLE_FORMS_TRANSITION_MODE="plan"
+GOOGLE_FORMS_SYNC_SECRET=
+GOOGLE_FORMS_SYNC_SOURCES=

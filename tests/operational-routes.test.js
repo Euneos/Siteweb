@@ -372,9 +372,9 @@ test('deployment without optional dates preserves previously recorded dates', as
   expect(parts[0].date_debut_formation).toBe('2026-10-01'); expect(parts[0].date_fin_formation).toBe('2027-02-01')
   expect(readContact(parts[0].notes).operationalSubmissions[0].data.formation.start).toBe('')
 })
-test('retired Google endpoints cannot access locals, credentials or a legacy payload', async () => {
+test('Google transition remains off without reading credentials or a legacy payload', async () => {
   for(const handler of [legacyGet,legacyPost]) {
-    const response=await handler(new Proxy({}, {get(){throw new Error('Legacy access')}}))
+    const response=await handler({locals: {}, request: new Proxy({}, {get(){throw new Error('Legacy access')}})})
     expect(response.status).toBe(410); expect(await response.json()).toEqual({code:'legacy_retired'})
   }
   expect(calls).toHaveLength(0)
