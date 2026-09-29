@@ -1,5 +1,6 @@
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
+import { candidatureArretee, statutCandidature } from './statut-candidature'
 
 const API = 'https://app.nocodb.com/api/v2'
 const COHORTE = { debut: 2026, fin: 2027, label: '2026–2027' } as const
@@ -356,12 +357,12 @@ const normaliser = (v: string | null | undefined) =>
 
 /** Each cell states its evidence; a later status never proves an earlier email. */
 export function progression(p: ParticipationNoco, missions: MissionNoco[]): Indicateur[] {
-  const statut = normaliser(p.statut)
-  const arret = ['abandonne', 'refuse'].includes(statut)
+  const statut = statutCandidature(p.statut)
+  const arret = candidatureArretee(p.statut)
   const inconnu = (texte = 'Non renseigné'): Indicateur => ({ etat: 'inconnu', texte })
   const fait = (texte: string): Indicateur => ({ etat: 'fait', texte })
   const encours = (texte: string): Indicateur => ({ etat: 'en-cours', texte })
-  const accepte = ['retenu', 'engage', 'candidature acceptee', 'valide'].includes(statut)
+  const accepte = statut.code === 'Candidature acceptée' || statut.code === 'Engage'
   const missionsActives = missions.filter(missionActive)
   const nombreFormes = missionsActives.reduce(
     (n, m) => n + Math.max(0, m.nb_adultes_formes ?? 0),
@@ -371,28 +372,25 @@ export function progression(p: ParticipationNoco, missions: MissionNoco[]): Indi
     p.date_candidature
       ? fait(`Reçue le ${dateFr(p.date_candidature)}`)
       : inconnu('Date non renseignée'),
-    statut === 'accuse reception'
+    normaliser(p.statut) === 'accuse reception'
       ? fait('Statut « Accusé réception »')
       : inconnu('Envoi non documenté'),
     arret
-      ? { etat: 'abandon', texte: p.statut ?? 'Arrêté' }
+      ? { etat: 'abandon', texte: statut.label }
       : accepte
         ? fait('Décision enregistrée')
-        : [
-              'en discussion',
-              'en cours d’analyse',
-              "en cours d'analyse",
-              'en qualification',
-            ].includes(statut)
-          ? encours('En cours d’analyse')
-          : inconnu('Analyse non renseignée'),
+        : statut.code === 'Candidature recue'
+          ? encours('Décision en attente')
+          : inconnu(statut.label),
     arret
-      ? { etat: 'abandon', texte: p.statut ?? 'Arrêté' }
-      : p.date_validation
-        ? fait(`Acceptée le ${dateFr(p.date_validation)}`)
-        : accepte
-          ? fait('Acceptée · date non renseignée')
-          : inconnu(),
+      ? { etat: 'abandon', texte: statut.label }
+      : accepte
+        ? fait(
+            p.date_validation
+              ? `Acceptée le ${dateFr(p.date_validation)}`
+              : 'Acceptée · date non renseignée',
+          )
+        : inconnu(statut.code ? 'Décision non renseignée' : statut.label),
     present(p.lettre_interet_signee)
       ? fait('Signée · selon le suivi')
       : inconnu('Signature non renseignée'),
@@ -568,7 +566,7 @@ export function verifierDates(
 /** Calendar days in Paris, inclusive today and day 30; no DST-dependent 24h arithmetic. */
 export function commenceDans30Jours(p: ParticipationNoco, maintenant: Date): boolean {
   if (
-    ['abandonne', 'refuse'].includes(normaliser(p.statut)) ||
+    candidatureArretee(p.statut) ||
     ['annulee', 'abandonnee', 'terminee'].includes(normaliser(p.statut_formation)) ||
     !isoDate(p.date_debut_formation)
   )
@@ -591,8 +589,15 @@ export function selectionnerDossiers(
   lignes: EtatCandidature[],
   filtre = 'tous',
   tri = 'debut',
+  statut = '',
 ): EtatCandidature[] {
   return lignes
+    .filter((l) =>
+      !statut ||
+      (statut === 'historique'
+        ? statutCandidature(l.statut).code === null
+        : statutCandidature(l.statut).code === statut),
+    )
     .filter((l) =>
       filtre === 'bientot'
         ? l.commenceBientot
