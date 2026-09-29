@@ -64,6 +64,7 @@ const defaults: Runtime = {
   fetch: (...args) => fetch(...args),
 }
 const MAX_HTTP = 48,
+  MAX_D1 = 48,
   MAX_ROWS = 10,
   MAX_INSPECTED = 100,
   MAX_SOURCES = 5
@@ -186,6 +187,40 @@ class Budget extends Error {
     super('run_budget')
   }
 }
+/** Count actual SQL executions, including failed attempts. One query is always
+ * reserved for durable run status + release; a whole row is admitted before any
+ * remote mutation so quota exhaustion cannot prevent its receipt being saved. */
+class Queries implements SubmissionDatabase {
+  count = 0
+  constructor(private readonly db: SubmissionDatabase) {}
+  ensure(cost = 1) {
+    if (this.count + cost > MAX_D1 - 1) throw new Budget()
+  }
+  private statement(sql: string, closing: boolean) {
+    const execute = async <T>(operation: () => Promise<T>): Promise<T> => {
+      if (this.count + 1 > MAX_D1 - (closing ? 0 : 1)) throw new Budget()
+      this.count++
+      return operation()
+    }
+    return {
+      bind: (...values: (string | number | null)[]) => {
+        const bound = this.db.prepare(sql).bind(...values)
+        return {
+          run: () => execute(() => bound.run()),
+          first: <T>() => execute(() => bound.first<T>()),
+          all: <T>() => execute(() => bound.all<T>()),
+        }
+      },
+    }
+  }
+  prepare(sql: string) {
+    return this.statement(sql, false)
+  }
+  finalize(sql: string) {
+    return this.statement(sql, true)
+  }
+}
+
 class Requests {
   count = 0
   constructor(
@@ -337,12 +372,16 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
       sources.some((s) => s.kind && (!s.mapping || !s.projectionFirstRow)))
   )
     throw new Error('projection_configuration_invalid')
+  const d1 = new Queries(env.STATE)
+  // Worst-case SQL cost includes error journaling and explicit-429 rollback.
+  const deliveryQueries = projecting ? 16 : 6
   // Lease exceeds the platform's 15-minute scheduled execution maximum. Every
   // release/claim is fenced by owner; an old invocation cannot unlock a new run.
-  const claimed = await env.STATE.prepare(
-    `INSERT INTO google_transition_runs(id,owner,expires_at) VALUES('poll',?,?)
+  const claimed = await d1
+    .prepare(
+      `INSERT INTO google_transition_runs(id,owner,expires_at) VALUES('poll',?,?)
     ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,expires_at=excluded.expires_at WHERE expires_at<?`,
-  )
+    )
     .bind(owner, now + 20 * 60000, now)
     .run()
   if (!claimed.meta.changes) return { state: 'busy' }
@@ -350,6 +389,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
   const result = {
     state: 'complete',
     httpRequests: 0,
+    d1Queries: 0,
     processed: 0,
     inspected: 0,
     sources: [] as { label: string; rows?: number; captured: number; error?: string }[],
@@ -373,9 +413,10 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
     if (result.state !== 'attention_required') result.state = 'catching_up'
   }
   async function ownership() {
-    const row = await env.STATE.prepare(
-      "SELECT owner FROM google_transition_runs WHERE id='poll' AND owner=? AND expires_at>?",
-    )
+    const row = await d1
+      .prepare(
+        "SELECT owner FROM google_transition_runs WHERE id='poll' AND owner=? AND expires_at>?",
+      )
       .bind(owner, rt.now())
       .first()
     if (!row) throw new Error('run_ownership_lost')
@@ -383,9 +424,10 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
   async function save(key: string, fields: Record<string, string | number | null>) {
     await ownership()
     const entries = Object.entries({ ...fields, updated_at: new Date(rt.now()).toISOString() })
-    const changed = await env.STATE.prepare(
-      `UPDATE google_transition_poller SET ${entries.map(([k]) => k + '=?').join(',')} WHERE response_key=?`,
-    )
+    const changed = await d1
+      .prepare(
+        `UPDATE google_transition_poller SET ${entries.map(([k]) => k + '=?').join(',')} WHERE response_key=?`,
+      )
       .bind(...entries.map(([, v]) => v), key)
       .run()
     if (changed.meta.changes !== 1) throw new Error('receipt_missing')
@@ -408,6 +450,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
   }
   async function deliver(r: Receipt, s: Source) {
     req.ensure(3)
+    d1.ensure(deliveryQueries + 1) // leave the current source cursor durable too
     result.processed++
     const captured = JSON.parse(r.raw_payload) as Captured,
       fields = expected(r, captured),
@@ -471,9 +514,10 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
       if (projecting && r.projection_eligible && !r.projection_complete) {
         let outcome: Outcome | null = r.projection_outcome ? JSON.parse(r.projection_outcome) : null
         if (!outcome) {
-          const latest = await env.STATE.prepare(
-            'SELECT MAX(revision) AS revision FROM google_transition_poller WHERE source_key=? AND source_row=?',
-          )
+          const latest = await d1
+            .prepare(
+              'SELECT MAX(revision) AS revision FROM google_transition_poller WHERE source_key=? AND source_row=?',
+            )
             .bind(r.source_key, r.source_row)
             .first<{ revision: number }>()
           if (latest?.revision !== r.revision)
@@ -558,22 +602,27 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
   }
   try {
     // Drain reserved source evidence even if a later export edits/removes a row.
-    const pending = await env.STATE.prepare(
-      `SELECT * FROM google_transition_poller WHERE next_attempt_at<=? AND
+    const pending = await d1
+      .prepare(
+        `SELECT * FROM google_transition_poller WHERE next_attempt_at<=? AND
       (noco_id IS NULL OR (?=1 AND projection_eligible=1 AND projection_complete=0)) ORDER BY updated_at,response_key LIMIT 10`,
-    )
+      )
       .bind(now, projecting ? 1 : 0)
       .all<Receipt>()
     const attempted = new Set<string>()
     for (const receipt of pending.results) {
       const s = sources.find((s) => sourceKey(s) === receipt.source_key)
       if (!s) continue
+      // Pending work cannot consume the budget needed to inspect fresh sources.
+      if (d1.count + deliveryQueries > 20) {
+        catchup()
+        break
+      }
       attempted.add(receipt.response_key)
       await deliver(receipt, s)
     }
-    const rotation = await env.STATE.prepare(
-      "SELECT next_source FROM google_transition_runs WHERE id='poll'",
-    )
+    const rotation = await d1
+      .prepare("SELECT next_source FROM google_transition_runs WHERE id='poll'")
       .bind()
       .first<{ next_source: number }>()
     for (let n = 0; n < Math.min(sources.length, MAX_SOURCES); n++) {
@@ -582,12 +631,12 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
         break
       }
       req.ensure(4)
+      d1.ensure(3 + 3 + deliveryQueries + 1)
       const index = ((rotation?.next_source ?? 0) + n) % sources.length,
         s = sources[index],
         key = sourceKey(s)
-      await env.STATE.prepare(
-        "UPDATE google_transition_runs SET next_source=? WHERE id='poll' AND owner=?",
-      )
+      await d1
+        .prepare("UPDATE google_transition_runs SET next_source=? WHERE id='poll' AND owner=?")
         .bind((index + 1) % sources.length, owner)
         .run()
       try {
@@ -595,85 +644,102 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
           headers = rows[0],
           summary = report(s)
         summary.rows = rows.slice(s.firstRow - 1).filter((r) => r.some(Boolean)).length
-        const cursor = await env.STATE.prepare(
-          'SELECT next_row FROM google_transition_sources WHERE source_key=?',
-        )
+        const cursor = await d1
+          .prepare('SELECT next_row FROM google_transition_sources WHERE source_key=?')
           .bind(key)
           .first<{ next_row: number }>()
         let row = Math.max(s.firstRow, cursor?.next_row ?? s.firstRow)
         if (row > rows.length) row = s.firstRow
-        const available = Math.max(0, rows.length - s.firstRow + 1)
-        for (let step = 0; step < available; step++) {
-          if (result.inspected >= MAX_INSPECTED || result.processed >= MAX_ROWS) {
-            catchup()
-            break
-          }
-          req.ensure(3)
-          const cells = rows[row - 1]
-          result.inspected++
-          if (cells.some(Boolean)) {
-            const fingerprint = await digest(JSON.stringify(answerFields(headers, cells)))
-            let receipt = await env.STATE.prepare(
-              'SELECT * FROM google_transition_poller WHERE source_key=? AND source_row=? ORDER BY revision DESC LIMIT 1',
-            )
-              .bind(key, row)
-              .first<Receipt>()
-            if (!receipt || receipt.fingerprint !== fingerprint) {
-              const revision = (receipt?.revision ?? 0) + 1,
-                responseKey = await digest(JSON.stringify([key, row, revision, fingerprint]))
-              const captured: Captured = {
-                headers,
-                cells,
-                label: s.label,
-                timestamp: timestampCell(s, headers, cells),
-                readAt: new Date(rt.now()).toISOString(),
-              }
-              let eligible = false
-              if (projecting && revision === 1 && s.kind && row >= s.projectionFirstRow!) {
-                try {
-                  eligible = Date.parse(googleTimestamp(captured.timestamp)) >= cutover
-                } catch {
-                  /* raw capture still required */
-                }
-              }
-              await ownership()
-              await env.STATE.prepare(
-                `INSERT INTO google_transition_poller(response_key,source_key,source_row,fingerprint,revision,raw_payload,projection_eligible,updated_at)
-                VALUES(?,?,?,?,?,?,?,?)`,
-              )
-                .bind(
-                  responseKey,
-                  key,
-                  row,
-                  fingerprint,
-                  revision,
-                  JSON.stringify(captured),
-                  eligible ? 1 : 0,
-                  captured.readAt,
-                )
-                .run()
-              receipt = await env.STATE.prepare(
-                'SELECT * FROM google_transition_poller WHERE response_key=?',
-              )
-                .bind(responseKey)
-                .first<Receipt>()
-              if (!receipt) throw new Error('receipt_missing')
-            }
-            if (
-              !attempted.has(receipt.response_key) &&
-              receipt.next_attempt_at <= rt.now() &&
-              (!receipt.noco_id ||
-                (projecting && receipt.projection_eligible && !receipt.projection_complete))
-            ) {
-              attempted.add(receipt.response_key)
-              await deliver(receipt, s)
-            }
-          }
-          row = row >= rows.length ? s.firstRow : row + 1
-          await env.STATE.prepare(
-            'INSERT INTO google_transition_sources(source_key,next_row) VALUES(?,?) ON CONFLICT(source_key) DO UPDATE SET next_row=excluded.next_row',
+        const available = Math.min(
+          Math.max(0, rows.length - row + 1),
+          MAX_INSPECTED - result.inspected,
+        )
+        // One bounded read for the seeded/unchanged window, rather than a query
+        // per inspected line. The UNIQUE source/row/revision index serves MAX.
+        const prior = await d1
+          .prepare(
+            `SELECT p.* FROM google_transition_poller p
+          WHERE p.source_key=? AND p.source_row>=? AND p.source_row<? AND p.revision=(
+            SELECT MAX(q.revision) FROM google_transition_poller q
+            WHERE q.source_key=p.source_key AND q.source_row=p.source_row)`,
           )
-            .bind(key, row)
+          .bind(key, row, row + available)
+          .all<Receipt>()
+        const previous = new Map(prior.results.map((receipt) => [receipt.source_row, receipt]))
+        try {
+          for (let step = 0; step < available; step++) {
+            if (result.inspected >= MAX_INSPECTED || result.processed >= MAX_ROWS) {
+              catchup()
+              break
+            }
+            req.ensure(3)
+            const cells = rows[row - 1]
+            result.inspected++
+            if (cells.some(Boolean)) {
+              const fingerprint = await digest(JSON.stringify(answerFields(headers, cells)))
+              let receipt: Receipt | null | undefined = previous.get(row)
+              if (!receipt || receipt.fingerprint !== fingerprint) {
+                d1.ensure(3 + deliveryQueries + 1) // reserve, deliver, checkpoint
+                const revision = (receipt?.revision ?? 0) + 1,
+                  responseKey = await digest(JSON.stringify([key, row, revision, fingerprint]))
+                const captured: Captured = {
+                  headers,
+                  cells,
+                  label: s.label,
+                  timestamp: timestampCell(s, headers, cells),
+                  readAt: new Date(rt.now()).toISOString(),
+                }
+                let eligible = false
+                if (projecting && revision === 1 && s.kind && row >= s.projectionFirstRow!) {
+                  try {
+                    eligible = Date.parse(googleTimestamp(captured.timestamp)) >= cutover
+                  } catch {
+                    /* raw capture still required */
+                  }
+                }
+                await ownership()
+                await d1
+                  .prepare(
+                    `INSERT INTO google_transition_poller(response_key,source_key,source_row,fingerprint,revision,raw_payload,projection_eligible,updated_at)
+                VALUES(?,?,?,?,?,?,?,?)`,
+                  )
+                  .bind(
+                    responseKey,
+                    key,
+                    row,
+                    fingerprint,
+                    revision,
+                    JSON.stringify(captured),
+                    eligible ? 1 : 0,
+                    captured.readAt,
+                  )
+                  .run()
+                receipt = await d1
+                  .prepare('SELECT * FROM google_transition_poller WHERE response_key=?')
+                  .bind(responseKey)
+                  .first<Receipt>()
+                if (!receipt) throw new Error('receipt_missing')
+              }
+              if (
+                !attempted.has(receipt.response_key) &&
+                receipt.next_attempt_at <= rt.now() &&
+                (!receipt.noco_id ||
+                  (projecting && receipt.projection_eligible && !receipt.projection_complete))
+              ) {
+                attempted.add(receipt.response_key)
+                await deliver(receipt, s)
+              }
+            }
+            row = row >= rows.length ? s.firstRow : row + 1
+          }
+        } finally {
+          // Persist progress even when a later row hits either budget. A crash
+          // before this checkpoint merely rereads already idempotent receipts.
+          await d1
+            .prepare(
+              "INSERT INTO google_transition_sources(source_key,next_row) SELECT ?,? WHERE EXISTS (SELECT 1 FROM google_transition_runs WHERE id='poll' AND owner=?) ON CONFLICT(source_key) DO UPDATE SET next_row=excluded.next_row",
+            )
+            .bind(key, row, owner)
             .run()
         }
       } catch (e) {
@@ -689,10 +755,12 @@ export async function run(env: Env, options: Partial<Runtime> = {}) {
     }
   } finally {
     result.httpRequests = req.count
+    result.d1Queries = d1.count + 1 // include the reserved final query below
     // Ownership fencing prevents a timed-out older invocation releasing a new one.
-    await env.STATE.prepare(
-      "UPDATE google_transition_runs SET last_result=?,expires_at=0 WHERE id='poll' AND owner=?",
-    )
+    await d1
+      .finalize(
+        "UPDATE google_transition_runs SET last_result=?,expires_at=0 WHERE id='poll' AND owner=?",
+      )
       .bind(JSON.stringify({ at: new Date(rt.now()).toISOString(), ...result }), owner)
       .run()
   }

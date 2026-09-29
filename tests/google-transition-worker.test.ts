@@ -11,6 +11,7 @@ import worker, {
   type Source,
 } from '../workers/google-transition/worker'
 import type { SubmissionDatabase } from '../src/lib/candidature-store'
+import { digest } from '../src/lib/google-form-sync'
 
 const source = (overrides: Partial<Source> = {}): Source => ({
   label: 'Formulaire fictif',
@@ -51,22 +52,26 @@ let sql: Database,
   sheets: Map<string, string>,
   remote: Record<string, unknown>[],
   calls: { url: string; init: RequestInit }[],
-  sleeps: number[]
+  sleeps: number[],
+  queryRuns: string[][]
 let fault: ((url: string, init: RequestInit) => Response | Promise<Response | void> | void) | null
 let storeFault: ((query: string, values: unknown[]) => void) | null
-function db(): SubmissionDatabase {
+function db(onQuery: (query: string) => void = () => {}): SubmissionDatabase {
   return {
     prepare: (query) => ({
       bind: (...values) => ({
         run: async () => {
+          onQuery(query)
           storeFault?.(query, values)
           return { meta: { changes: sql.query(query).run(...values).changes } }
         },
         first: async <T>() => {
+          onQuery(query)
           storeFault?.(query, values)
           return sql.query(query).get(...values) as T | null
         },
         all: async <T>() => {
+          onQuery(query)
           storeFault?.(query, values)
           return { results: sql.query(query).all(...values) as T[] }
         },
@@ -123,7 +128,28 @@ const runtime = () => ({
   },
   fetch: fakeFetch,
 })
-const poll = () => run(env, runtime())
+const poll = async () => {
+  // Independent instrumentation at the actual D1 boundary, scoped per invocation
+  // (including overlapping polls). Failed SQL executions count too.
+  const queries: string[] = []
+  queryRuns.push(queries)
+  try {
+    const result = await run(
+      {
+        ...env,
+        STATE: db((query) => {
+          queries.push(query)
+          if (queries.length > 50) throw new Error('free_d1_limit')
+        }),
+      },
+      runtime(),
+    )
+    if ('d1Queries' in result) expect(result.d1Queries).toBe(queries.length)
+    return result
+  } finally {
+    expect(queries.length).toBeLessThanOrEqual(48)
+  }
+}
 const ledger = () =>
   sql
     .query('SELECT * FROM google_transition_poller ORDER BY source_key,source_row,revision')
@@ -131,6 +157,36 @@ const ledger = () =>
 const writes = () =>
   calls.filter((c) => c.url.startsWith('https://app.nocodb.com') && c.init.method === 'POST')
 const hooks = () => calls.filter((c) => c.url === 'https://euneos.fr/api/hook/google-forms')
+async function seed(s: Source, rows: string[][]) {
+  // Same stable bootstrap contract as production, with entirely fictional data.
+  const key = `${s.spreadsheetId}:${s.sheetId}`
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i],
+      row = i + 1,
+      fields = answerFields(rows[0], cells),
+      fingerprint = await digest(JSON.stringify(fields)),
+      responseKey = await digest(JSON.stringify([key, row, 1, fingerprint])),
+      readAt = new Date(clock).toISOString(),
+      id = remote.length + 1
+    sql
+      .query(
+        `INSERT INTO google_transition_poller
+      (response_key,source_key,source_row,fingerprint,revision,raw_payload,capture_state,noco_id,updated_at)
+      VALUES(?,?,?,?,1,?,'complete',?,?)`,
+      )
+      .run(
+        responseKey,
+        key,
+        row,
+        fingerprint,
+        JSON.stringify({ headers: rows[0], cells, label: s.label, timestamp: cells[0], readAt }),
+        id,
+        readAt,
+      )
+    remote.push({ Id: id, cle_reponse: responseKey })
+  }
+  sheets.set(s.spreadsheetId, csv(rows))
+}
 function projection() {
   env.PROJECTION_ENABLED = 'true'
   env.PROJECTION_START_AT = '2026-09-29T06:00:00Z'
@@ -162,6 +218,7 @@ beforeEach(() => {
   remote = []
   calls = []
   sleeps = []
+  queryRuns = []
   fault = null
   storeFault = null
   env = {
@@ -467,7 +524,7 @@ test('large unchanged history is scanned with bounded cursors; later edits canno
     source().spreadsheetId,
     csv([headers, ...Array.from({ length: 150 }, (_, i) => answer('Collège ' + i))]),
   )
-  for (let n = 0; n < 18; n++) await poll()
+  for (let n = 0; n < 34; n++) await poll()
   expect(remote).toHaveLength(150)
   const initial = writes().length
   const result = await poll()
@@ -581,6 +638,104 @@ test('pending queue also obeys ten-row cap independently of fresh snapshot scann
   clock += 120000
   fault = null
   const result = await poll()
-  expect((result as { processed: number }).processed).toBe(10)
-  expect(remote).toHaveLength(10)
+  expect((result as { processed: number }).processed).toBeGreaterThan(0)
+  expect((result as { processed: number }).processed).toBeLessThanOrEqual(10)
+  expect(remote).toHaveLength((result as { processed: number }).processed)
+  for (let n = 0; n < 4; n++) await poll()
+  expect(remote).toHaveLength(21)
+  expect(new Set(remote.map((r) => r.cle_reponse)).size).toBe(21)
+})
+
+test('273 seeded receipts across 11 sources stay bounded and edits/new rows cannot starve', async () => {
+  const sources = Array.from({ length: 11 }, (_, i) =>
+    source({
+      spreadsheetId: 'fictional_seed_' + String(i).padStart(10, '0'),
+      label: 'Source fictive ' + i,
+    }),
+  )
+  env.SOURCES = JSON.stringify(sources)
+  const snapshots = sources.map((_, i) => [
+    headers,
+    ...Array.from({ length: i === 10 ? 23 : 25 }, (_, j) => answer('Collège fictif ' + j)),
+  ])
+  for (let i = 0; i < sources.length; i++) await seed(sources[i], snapshots[i])
+  expect(ledger()).toHaveLength(273)
+  for (let n = 0; n < 3; n++) await poll()
+  expect(writes()).toHaveLength(0)
+  for (const s of sources) expect(calls.some((c) => c.url.includes(s.spreadsheetId))).toBe(true)
+  // At most one read of the receipt window per source, not per row.
+  for (const queries of queryRuns) {
+    expect(queries.length).toBeLessThanOrEqual(24)
+    expect(queries.filter((q) => q.startsWith('SELECT p.*')).length).toBeLessThanOrEqual(5)
+  }
+  snapshots[0][25][8] = 'Correction historique'
+  snapshots[10].push(answer('Nouvelle réponse fictive'))
+  sheets.set(sources[0].spreadsheetId, csv(snapshots[0]))
+  sheets.set(sources[10].spreadsheetId, csv(snapshots[10]))
+  for (let n = 0; n < 4; n++) await poll()
+  expect(writes()).toHaveLength(2)
+  expect(ledger()).toHaveLength(275)
+  expect(ledger().filter((r) => r.revision === 2)).toHaveLength(1)
+  const last = sql
+    .query("SELECT last_result,expires_at FROM google_transition_runs WHERE id='poll'")
+    .get() as { last_result: string; expires_at: number }
+  expect(last.expires_at).toBe(0)
+  expect(JSON.parse(last.last_result).d1Queries).toBe(queryRuns.at(-1)!.length)
+})
+
+test('failed pending queue leaves SQL capacity for a newly arrived source', async () => {
+  sheets.set(
+    source().spreadsheetId,
+    csv([headers, ...Array.from({ length: 21 }, (_, i) => answer('Attente ' + i))]),
+  )
+  fault = (url) =>
+    url.startsWith('https://app.nocodb.com') ? new Response('', { status: 503 }) : undefined
+  for (let n = 0; n < 3; n++) await poll()
+  const pendingKeys = new Set(ledger().map((r) => r.response_key))
+  expect(pendingKeys.size).toBe(21)
+  const fresh = source({ spreadsheetId: 'fictional_fresh_sheet_00001' })
+  env.SOURCES = JSON.stringify([source(), fresh])
+  sheets.set(fresh.spreadsheetId, csv([headers, answer('Nouveau formulaire')]))
+  clock += 120000
+  fault = (url) =>
+    [...pendingKeys].some((key) => url.includes(String(key)))
+      ? new Response('', { status: 503 })
+      : undefined
+  for (let n = 0; n < 2; n++) await poll()
+  expect(remote).toHaveLength(1)
+  expect(ledger().filter((r) => r.noco_id)).toHaveLength(1)
+  expect(ledger().find((r) => r.noco_id)?.source_key).toBe(`${fresh.spreadsheetId}:0`)
+})
+
+test('projection, failed SQL and 429 rollback fit D1 budget including final release', async () => {
+  projection()
+  sheets.set(
+    source().spreadsheetId,
+    csv([headers, ...Array.from({ length: 12 }, (_, i) => answer('Projection fictive ' + i))]),
+  )
+  let failed = false
+  storeFault = (query) => {
+    if (!failed && query.startsWith('UPDATE google_transition_poller SET noco_id=')) {
+      failed = true
+      throw new Error('d1_transient')
+    }
+  }
+  await poll()
+  expect(failed).toBe(true)
+  // These are SQL failures too, and the independent counter includes them.
+  expect(ledger().some((r) => r.last_error === 'd1_transient')).toBe(true)
+  clock += 120000
+  storeFault = null
+  fault = (_url, init) =>
+    init.method === 'POST'
+      ? new Response('', { status: 429, headers: { 'retry-after': '60' } })
+      : undefined
+  await poll()
+  expect(ledger().some((r) => r.capture_state === 'pending' && r.last_error === 'noco_429')).toBe(
+    true,
+  )
+  const lease = sql
+    .query("SELECT expires_at FROM google_transition_runs WHERE id='poll'")
+    .get() as { expires_at: number }
+  expect(lease.expires_at).toBe(0)
 })

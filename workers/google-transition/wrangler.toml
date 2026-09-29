@@ -26,7 +26,9 @@ enabled = true
 # GOOGLE_FORMS_SYNC_SECRET (only needed when projection is enabled).
 # Sources and customer answers never belong in this repository.
 # Hard application budgets: 10 processed rows, 100 inspected rows, 5 sources,
-# 48 external HTTP requests INCLUDING retries/redirects, per invocation.
+# 48 external HTTP requests INCLUDING retries/redirects, plus 48 D1 queries
+# INCLUDING failed queries, cursor checkpoints and final lock release. These
+# independent budgets stay below the Free limits; no paid-plan assumption.
 # schema.sql is expanded for durable raw evidence, pending-write reconciliation,
 # run ownership and cursors. Existing prototype tables need a separately reviewed
 # migration; CREATE IF NOT EXISTS does not upgrade a previously installed schema.
