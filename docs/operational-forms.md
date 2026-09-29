@@ -35,8 +35,11 @@ formé par le simple envoi du formulaire.
 
 ## Configuration
 
-`FORM_SUBMISSIONS` conserve seulement les reçus techniques, empreintes, IDs et
-verrous ; les réponses métier restent dans NocoDB. Appliquer les migrations
+Pour les formulaires directs, `FORM_SUBMISSIONS` conserve seulement les reçus
+techniques, empreintes, IDs et verrous ; leurs réponses métier restent dans NocoDB.
+Le raccord Google temporaire décrit dans `google-forms-sync.md` ajoute une capture
+privée distincte de ses sources brutes dans cette même base, s’il est activé.
+Appliquer les migrations
 `0003_operational_links.sql` et `0004_operational_submissions.sql` sur la base
 existante avant publication. Le site utilise `NOCODB_TOKEN` et les variables
 Brevo déjà configurées. Aucun nouveau secret Google ou service externe à créer.
@@ -67,9 +70,10 @@ n'est déclenché par ces formulaires.
 
 ## Sortie de l'historique
 
-Le hook Google ajouté en PR #15 est retiré avant son activation et renvoie 410.
-Conserver les preuves historiques sans installer de nouveau déclencheur Apps Script.
-Inventorier les anciens liens distribués, reprendre les dernières réponses puis
+Le hook Google ajouté en PR #15 a été retiré avant son activation et reste à 410
+par défaut. Le raccord temporaire préparé le 29 septembre est décrit dans
+`google-forms-sync.md` ; son activation est distincte du circuit direct.
+Inventorier les anciens liens distribués, conserver les réponses récentes puis
 fermer chaque ancienne collecte seulement lorsque son remplacement est vérifié.
 Les messages déjà reçus ne peuvent pas être réécrits. Les formulaires historiques
 fermés doivent indiquer comment obtenir le nouveau lien personnel auprès d'EUNEOS.
