@@ -577,11 +577,15 @@ try {
   assert.equal(linkPosts.length, 0, 'Viewing an existing link does not create/renew it')
   const catalog = page.locator('#form-catalog')
   const badges = catalog.locator('[data-operational-state]')
-  await expect(badges).toHaveCount(3)
-  for (const badge of await badges.all()) await expect(badge).toHaveText('Actif · lien personnel')
+  await expect(badges).toHaveCount(4)
+  const legacyKinds = ['contact', 'deploiement', 'participants']
+  const allKinds = [...legacyKinds, 'activites-jeunes']
+  for (const key of legacyKinds) await expect(catalog.locator(`[data-operational-state=${key}]`)).toHaveText('Actif · lien personnel')
   const youth = catalog.locator('[data-catalog-kind=activites-jeunes]')
   await expect(youth.locator('.fc-status')).toHaveText('À préparer')
-  await expect(youth.locator('a,button,input,textarea,select')).toHaveCount(0)
+  await expect(youth.locator('button')).toBeDisabled()
+  await expect(youth.locator('a,input,textarea,select')).toHaveCount(0)
+  await expect(linkForm.locator('[name=kind] option[value=activites-jeunes]')).toHaveCount(0)
   await expect(catalog.locator('[data-catalog-document=lettre] a')).toHaveCount(0)
   await expect(catalog.locator('a[href*="/suivi/"],form')).toHaveCount(0)
   const example = catalog.locator('[data-catalog-kind=contact] details')
@@ -650,38 +654,82 @@ try {
   await expect(page.locator('#link-result')).toBeHidden()
   failRead = false
 
+  // The backend kinds list is authoritative, including removal after an enabled session.
+  internalResponse = { ...fixture, kinds: allKinds }
+  await page.locator('#links-refresh').click()
+  await expect(youth.locator('.fc-status')).toHaveText('Actif · lien personnel')
+  await expect(youth.locator('button')).toBeEnabled()
+  await expect(youth.locator('[data-kind-note]')).not.toContainText('pas encore ouvert')
+  await youth.locator('button').click()
+  await expect(linkForm.locator('[name=kind]')).toHaveValue('activites-jeunes')
+  assert.equal(linkPosts.length, 2, 'Selecting newly enabled youth kind does not create a link')
+  await linkSubmit.click()
+  await expect(page.locator('#link-result')).toBeVisible()
+  assert.deepEqual(linkPosts.at(-1), { participationId: 902, kind: 'activites-jeunes' })
+  await expect(page.locator('#link-url')).toHaveValue(`${origin}/suivi/activites-jeunes?t=${'a'.repeat(64)}`)
+  for (const advertised of [legacyKinds, undefined]) {
+    internalResponse = { ...fixture, kinds: advertised }
+    await page.locator('#links-refresh').click()
+    await expect(youth.locator('.fc-status')).toHaveText('À préparer')
+    await expect(youth.locator('button')).toBeDisabled()
+    await expect(youth.locator('[data-kind-note]')).toContainText('pas encore ouvert')
+    await expect(linkForm.locator('[name=kind] option[value=activites-jeunes]')).toHaveCount(0)
+    await expect(page.locator('#link-url')).not.toHaveValue(/activites-jeunes/)
+    // Stale/programmatic choices cannot bypass the advertised kinds.
+    await linkForm.locator('[name=kind]').evaluate((node) => {
+      node.add(new Option('Stale option', 'activites-jeunes'))
+      node.value = 'activites-jeunes'
+      node.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await linkForm.dispatchEvent('submit')
+    await expect(page.locator('#link-result')).toBeHidden()
+    assert.equal(linkPosts.length, 3, 'Disabled youth kind never issues another link')
+  }
+
   // Availability is separate from having eligible dossiers. Preview never exposes them.
   for (const [response, label, message] of [
     [{ enabled: true, dossiers: [], submissions: [] }, 'Actif · lien personnel', 'Aucun dossier disponible'],
+    [{ enabled: true, kinds: allKinds, dossiers: [], submissions: [] }, 'Actif · lien personnel', 'Aucun dossier disponible'],
+    [{ enabled: true, kinds: [], dossiers: [], submissions: [] }, 'À préparer', 'Aucun formulaire disponible'],
     [{ enabled: false, dossiers: [], submissions: [] }, 'Indisponible', 'momentanément indisponible'],
+    [{ enabled: false, kinds: allKinds, dossiers: [], submissions: [] }, 'Indisponible', 'momentanément indisponible'],
     [{ enabled: false, dossiers: [], submissions: [], preview: true }, 'Aperçu · création désactivée', 'Aperçu du catalogue'],
+    [{ enabled: false, kinds: allKinds, dossiers: [], submissions: [], preview: true }, 'Aperçu · création désactivée', 'Aperçu du catalogue'],
     [{ ...fixture, preview: true }, 'État non vérifié', 'n’ont pas pu être lus'],
+    [{ ...fixture, kinds: null }, 'État non vérifié', 'n’ont pas pu être lus'],
+    [{ ...fixture, kinds: ['activites-jeunes', 'unknown'] }, 'État non vérifié', 'n’ont pas pu être lus'],
   ]) {
     internalResponse = response
     await page.locator('#links-refresh').click()
     await expect(page.locator('#link-feedback')).toContainText(message)
-    for (const badge of await badges.all()) await expect(badge).toHaveText(label)
+    for (const badge of await badges.all()) {
+      const key = await badge.getAttribute('data-operational-state')
+      const expected = label === 'Actif · lien personnel' && !(response.kinds ?? legacyKinds).includes(key) ? 'À préparer' : label
+      await expect(badge).toHaveText(expected)
+    }
     for (const button of await catalog.locator('[data-prepare-kind]').all()) await expect(button).toBeDisabled()
     await expect(linkSubmit).toBeDisabled()
     await expect(page.locator('#link-result')).toBeHidden()
     await expect(page.locator('#link-url')).toHaveValue('')
     await expect(linkForm.locator('[name=participationId]')).not.toContainText('École de démonstration')
-    await expect(youth.locator('.fc-status')).toHaveText('À préparer')
     // Examples and public URLs stay usable when the private API is unavailable.
     await example.locator('summary').click()
     await expect(example.locator('dl')).toBeVisible()
     await example.locator('summary').click()
   }
   internalResponse = undefined
-  assert.equal(linkPosts.length, 2, 'No implicit mutations from catalog or refresh states')
+  assert.equal(linkPosts.length, 3, 'No implicit mutations from catalog or refresh states')
 
   // Real viewport checks on all four compiled pages, not CSS emulation.
   for (const width of [320, 390, 680, 681, 760, 761, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const route of [...routes, 'internal']) {
       if (route === 'internal') {
+        // Exercise both states at mobile and desktop widths.
+        internalResponse = { ...fixture, kinds: [390, 761, 1440].includes(width) ? allKinds : legacyKinds }
         await page.goto(`${origin}/interne/formulaires?dossier=902`)
         await expect(linkSubmit).toBeEnabled()
+        await expect(youth.locator('.fc-status')).toHaveText(internalResponse.kinds.includes('activites-jeunes') ? 'Actif · lien personnel' : 'À préparer')
         await expect(
           page
             .getByRole('navigation', { name: 'Espace interne' })
@@ -784,6 +832,7 @@ try {
       'catalog examples keyboard accessible; no POST from selection or public URL copy',
       'catalog runtime availability, disabled and preview states, no personal data in preview',
       'youth form and letter have no misleading generic link',
+      'youth availability follows backend kinds; removal and malformed lists fail closed',
       'open catalog examples and 44px targets across ten viewport widths',
     ],
   }

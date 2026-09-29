@@ -47,17 +47,21 @@ exemple, choisir un formulaire ou copier un lien existant ne crée aucun lien et
 n'envoie aucun email. Les exemples simplifiés ne remplacent pas le formulaire
 complet et ne contiennent ni jeton ni donnée de dossier.
 
-Les cartes 3 (préparer le contact), 4 (formation adultes) et le complément
-participants lisent leur disponibilité dans le GET interne existant. Une erreur
-donne « État non vérifié », une preview « création désactivée ». La disponibilité
-du service ne certifie pas l'enregistrement de toutes les réponses historiques.
+Les cartes 3 (contact), 4 (formation adultes), 5 (activités jeunes) et le complément
+participants suivent `enabled` et la liste `kinds` du GET interne. Un type absent
+reste « À préparer » et son bouton est désactivé. Le sélecteur n'offre que les types
+annoncés ; une actualisation qui retire un type masque aussi son ancien lien.
+Une erreur donne « État non vérifié », une preview « création désactivée ».
+La disponibilité du service ne certifie pas la reprise des réponses historiques.
 
-Le n°5 reste « À préparer » et n'offre ni URL ni génération. La clé proposée pour
-son raccordement est `activites-jeunes` (route future `/suivi/activites-jeunes`),
-à coordonner avec le chantier serveur. Ne l'activer qu'après validation du contrat,
-du stockage, du rattachement au dossier et du parcours de bout en bout. La lettre
-d'intérêt reste un document à obtenir auprès de l'équipe ; les questionnaires
-adultes pré/post/suivi/bilan n'ont pas de remplacement annoncé dans ce catalogue.
+Le n°5 devient disponible uniquement lorsque l'API annonce `activites-jeunes`
+avec `enabled: true` (route `/suivi/activites-jeunes`). Le catalogue ne modifie aucun
+flag. Sans propriété `kinds`, la compatibilité avec l'ancienne API se limite aux
+trois types `contact`, `deploiement`, `participants` ; une liste vide n'active rien
+et une liste malformée bloque la génération. L'activation serveur du n°5 reste
+conditionnée à sa recette de bout en bout. La lettre d'intérêt reste un document
+à obtenir auprès de l'équipe ; les questionnaires adultes pré/post/suivi/bilan
+n'ont pas de remplacement annoncé dans ce catalogue.
 
 La recette `bun run test:operational` vérifie le catalogue compilé, ses interactions,
 les états actif/indisponible/preview/erreur et les dix largeurs d'écran, avec des

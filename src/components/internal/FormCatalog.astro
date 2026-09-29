@@ -45,7 +45,6 @@ const personalForms = [
       ['Groupes concernés', 'Informations collectives, sans noms de jeunes'],
       ['Évaluation', 'Modalités à confirmer avec l’équipe'],
     ],
-    planned: true,
   },
   {
     key: 'participants',
@@ -111,7 +110,7 @@ const publicForms = [
       {
         personalForms.map((item) => (
           <article
-            class:list={['fc-card', { 'fc-card--planned': item.planned }]}
+            class="fc-card"
             data-catalog-kind={item.key}
             aria-labelledby={`catalog-${item.key}-title`}
           >
@@ -122,12 +121,8 @@ const publicForms = [
               >
                 {item.number}
               </span>
-              <span
-                class="fc-status"
-                data-operational-state={item.planned ? undefined : item.key}
-                data-state={item.planned ? 'planned' : 'unknown'}
-              >
-                {item.planned ? 'À préparer' : 'État à vérifier'}
+              <span class="fc-status" data-operational-state={item.key} data-state="unknown">
+                État à vérifier
               </span>
             </div>
             <div class="fc-heading">
@@ -146,9 +141,8 @@ const publicForms = [
               </summary>
               <div class="fc-example-body">
                 <p class="fc-example-note">
-                  {item.planned
-                    ? 'Aperçu du besoin, à valider. Aucun formulaire actif ici.'
-                    : 'Aperçu simplifié, avec des informations fictives. Les champs complets figurent dans le formulaire personnel.'}
+                  Aperçu simplifié, avec des informations fictives. Les champs complets figurent
+                  dans le formulaire personnel.
                 </p>
                 <dl>
                   {item.example.map(([label, value]) => (
@@ -163,26 +157,17 @@ const publicForms = [
                 </p>
               </div>
             </details>
-            {item.planned ? (
-              <p class="fc-footnote">
-                Le parcours complet reste à vérifier avant ouverture. Aucun lien à diffuser pour le
-                moment.
-              </p>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  class="iw-button iw-button--primary"
-                  data-prepare-kind={item.key}
-                  disabled
-                >
-                  Préparer un lien personnel<span class="fc-sr-only"> : {item.name}</span>
-                </button>
-                <p class="fc-footnote">
-                  Puis choisissez le dossier ci-dessous. Ce bouton ne crée ni ne renouvelle de lien.
-                </p>
-              </>
-            )}
+            <button
+              type="button"
+              class="iw-button iw-button--primary"
+              data-prepare-kind={item.key}
+              disabled
+            >
+              Préparer un lien personnel<span class="fc-sr-only"> : {item.name}</span>
+            </button>
+            <p class="fc-footnote" data-kind-note>
+              La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.
+            </p>
           </article>
         ))
       }
