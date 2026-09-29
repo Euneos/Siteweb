@@ -19,10 +19,10 @@ function harness(count = 2) {
     ['29/09/2026 10:00:00', '  texte é è  ', 'Citation "oui"\nligne', ''],
   ]
   const props = {
-    ENDPOINT: 'https://worker.invalid',
-    SECRET: 'fictional-gas-secret-over-32-characters',
-    SOURCES: JSON.stringify(sources),
-    ENABLED: 'false',
+    EUNEOS_RAW_ENDPOINT: 'https://worker.invalid',
+    EUNEOS_RAW_SECRET: 'fictional-gas-secret-over-32-characters',
+    EUNEOS_RAW_SOURCES: JSON.stringify(sources),
+    EUNEOS_RAW_ENABLED: 'false',
     OLD_PROPERTY: 'untouched',
   }
   const writes = [],
@@ -91,7 +91,7 @@ function harness(count = 2) {
         expect(held).toBe(false)
         calls.push({ url, options, body: JSON.parse(options.payload) })
         expect(options.followRedirects).toBe(false)
-        expect(options.headers).toEqual({ Authorization: 'Bearer ' + props.SECRET })
+        expect(options.headers).toEqual({ Authorization: 'Bearer ' + props.EUNEOS_RAW_SECRET })
         const result = response(url, JSON.parse(options.payload))
         return {
           getResponseCode: () => result.http ?? 200,
@@ -175,12 +175,13 @@ test('GAS dry check reads all display strings, emits exact CSV-compatible hashes
   expect(h.created).toEqual([])
   expect(h.locks()).toBe(0)
   expect(h.logs.join('')).not.toContain(h.values[1][1])
-  expect(h.logs.join('')).not.toContain(h.props.SECRET)
+  expect(h.logs.join('')).not.toContain(h.props.EUNEOS_RAW_SECRET)
 })
 test('GAS disabled/busy sweep does no Google read, request, trigger or property write', () => {
   const h = harness()
+  h.props.ENABLED = 'true' // an unrelated legacy flag must not enable this sender
   expect(h.api.euneosRawSweep().state).toBe('disabled')
-  h.props.ENABLED = 'true'
+  h.props.EUNEOS_RAW_ENABLED = 'true'
   h.setBusy()
   expect(() => h.api.euneosRawSweep()).toThrow('busy')
   expect(h.reads).toEqual([])
@@ -190,7 +191,7 @@ test('GAS disabled/busy sweep does no Google read, request, trigger or property 
 test('GAS install is explicit, requires dry readiness and leaves all old triggers intact', () => {
   const h = harness()
   expect(() => h.api.euneosRawInstallTrigger()).toThrow('disabled')
-  h.props.ENABLED = 'true'
+  h.props.EUNEOS_RAW_ENABLED = 'true'
   h.respond(() => ({
     state: 'checked',
     inputMode: 'push',
@@ -222,7 +223,7 @@ test('GAS install is explicit, requires dry readiness and leaves all old trigger
 })
 test('GAS sweep sends at most three sources, rotates past failures and stores no answers', () => {
   const h = harness(11)
-  h.props.ENABLED = 'true'
+  h.props.EUNEOS_RAW_ENABLED = 'true'
   h.respond((_url, body) => (body.source.sheetId === 0 ? { http: 401 } : { state: 'complete' }))
   expect(() => h.api.euneosRawSweep()).toThrow('source_failed_1')
   expect(h.calls).toHaveLength(3)
@@ -235,7 +236,7 @@ test('GAS sweep sends at most three sources, rotates past failures and stores no
 })
 test('GAS time budget admits one slow source at a time without starving the next source', () => {
   const h = harness(6)
-  h.props.ENABLED = 'true'
+  h.props.EUNEOS_RAW_ENABLED = 'true'
   h.respond(() => {
     h.advance(160000)
     return { state: 'complete' }
@@ -257,6 +258,6 @@ test('GAS rejects too-large snapshots and unencrypted endpoints before transmiss
   h.values[1][1] = 'é'.repeat(500000)
   expect(() => h.api.euneosRawCheckDry()).toThrow('snapshot_too_large')
   expect(h.calls).toEqual([])
-  h.props.ENDPOINT = 'http://worker.invalid'
+  h.props.EUNEOS_RAW_ENDPOINT = 'http://worker.invalid'
   expect(() => h.api.euneosRawCheckDry()).toThrow('configuration_invalid')
 })

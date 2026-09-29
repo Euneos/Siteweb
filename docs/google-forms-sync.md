@@ -170,9 +170,10 @@ actif donne `busy`. C'est le contrôle de compatibilité entre les anciens CSV e
 chaînes de `SpreadsheetApp.getDisplayValues()` ; tout écart historique doit être
 examiné **avant** ingestion, jamais corrigé par une normalisation silencieuse.
 
-Le script GAS utilise quatre propriétés privées de configuration : `ENDPOINT` (origine
-HTTPS du Worker, sans chemin), `SECRET` (secret du pont), `SOURCES` (tableau du
-catalogue autorisé), `ENABLED` (chaîne `true` pour l'envoi). Aucun jeton NocoDB ou
+Le script GAS utilise quatre propriétés privées de configuration : `EUNEOS_RAW_ENDPOINT` (origine
+HTTPS du Worker, sans chemin), `EUNEOS_RAW_SECRET` (secret du pont),
+`EUNEOS_RAW_SOURCES` (tableau du
+catalogue autorisé), `EUNEOS_RAW_ENABLED` (chaîne `true` pour l'envoi). Aucun jeton NocoDB ou
 Google utilisateur ne lui est transmis ou exporté. Fonctions à utiliser :
 
 1. `euneosRawCheckDry()` : autorisation Google puis lecture des sources et comparaison
@@ -180,7 +181,7 @@ Google utilisateur ne lui est transmis ou exporté. Fonctions à utiliser :
    Elle affiche seulement des compteurs et numéros de lignes. Examiner tous les
    écarts avec le bootstrap avant la suite.
 2. `euneosRawSweep()` : exécution manuelle de recette une fois l'ingestion autorisée
-   et les deux `ENABLED=true`. Maximum trois sources par passage, rotation durable
+   avec `ENABLED=true` côté Worker et `EUNEOS_RAW_ENABLED=true` côté GAS. Maximum trois sources par passage, rotation durable
    dans `EUNEOS_RAW_NEXT_SOURCE`, budget d'admission de 150 secondes. Une source en
    erreur n'empêche pas le passage aux suivantes. Le journal reste « À rapprocher ».
    Le verrou GAS est limité à la réservation du curseur ; aucune lecture Google

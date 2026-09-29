@@ -1,15 +1,15 @@
 /** Google-authenticated, journal-only transport. Installing this file does not
  * create a trigger. Never run legacy business handlers or copy a Google token.
- * Script Properties: ENDPOINT (Worker origin), SECRET (ingestion bridge secret),
- * SOURCES (private JSON allowlist), ENABLED (exactly "true" to send to /ingest).
+ * Script Properties: EUNEOS_RAW_ENDPOINT (Worker origin), EUNEOS_RAW_SECRET (ingestion bridge secret),
+ * EUNEOS_RAW_SOURCES (private JSON allowlist), EUNEOS_RAW_ENABLED (exactly "true" to send to /ingest).
  * Google permissions remain in Google; no NocoDB credentials are needed here.
  */
 function euneosRawConfig_() {
   var props = PropertiesService.getScriptProperties();
-  var endpoint = (props.getProperty('ENDPOINT') || '').replace(/\/$/, '');
-  var secret = props.getProperty('SECRET') || '';
+  var endpoint = (props.getProperty('EUNEOS_RAW_ENDPOINT') || '').replace(/\/$/, '');
+  var secret = props.getProperty('EUNEOS_RAW_SECRET') || '';
   var sources;
-  try { sources = JSON.parse(props.getProperty('SOURCES') || 'null'); }
+  try { sources = JSON.parse(props.getProperty('EUNEOS_RAW_SOURCES') || 'null'); }
   catch (_) { throw new Error('sources_invalid'); }
   if (!/^https:\/\/[a-z0-9.-]+(?::443)?$/i.test(endpoint) || secret.length < 32 || secret.length > 256 ||
       !Array.isArray(sources) || !sources.length || sources.length > 30) throw new Error('configuration_invalid');
@@ -22,7 +22,7 @@ function euneosRawConfig_() {
     seen[key] = true;
   });
   return { props: props, endpoint: endpoint, secret: secret, sources: sources,
-    enabled: props.getProperty('ENABLED') === 'true' };
+    enabled: props.getProperty('EUNEOS_RAW_ENABLED') === 'true' };
 }
 function euneosRawSnapshot_(source) {
   var book = SpreadsheetApp.openById(source.spreadsheetId);
@@ -94,7 +94,7 @@ function euneosRawInstallTrigger() {
  */
 function euneosRawSweep() {
   // Disabled must not ask for Google access or make any network request.
-  if (PropertiesService.getScriptProperties().getProperty('ENABLED') !== 'true') return { state: 'disabled' };
+  if (PropertiesService.getScriptProperties().getProperty('EUNEOS_RAW_ENABLED') !== 'true') return { state: 'disabled' };
   var config = euneosRawConfig_(), deadline = Date.now() + 150000;
   var failures = [], processed = 0;
   for (var n = 0; n < Math.min(3, config.sources.length) && Date.now() < deadline; n++) {
