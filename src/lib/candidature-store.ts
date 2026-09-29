@@ -58,6 +58,9 @@ export async function enregistrerCandidature(input: {
   kind: FormType
   identity: Record<string, unknown>
   application: Record<string, unknown>
+  // Optional durable AR preparation, invoked only for a newly created dossier.
+  // No delivery is allowed here: the receipt is still processing.
+  beforeComplete?: (receipt: { submissionKey: string; participationId: number; schoolId: number; cohortId: number }) => Promise<void>
 }): Promise<{ duplicate: boolean }> {
   const { db, token, kind, identity, application } = input
   const school = kind === 'etablissement'
@@ -96,9 +99,9 @@ export async function enregistrerCandidature(input: {
   let parentId: number | null = null
   let recordId: number | null = null
   async function trace(phase: string, state = 'processing') {
-    const changed = await db.prepare(`UPDATE form_submissions SET phase = ?, state = ?, parent_id = ?, record_id = ?, updated_at = CURRENT_TIMESTAMP WHERE submission_key = ?`)
-      .bind(phase, state, parentId, recordId, key).run()
-    if (changed.meta.changes !== 1) throw new Error('Missing application receipt')
+    const changed = await db.prepare(`UPDATE form_submissions SET phase = ?, state = ?, parent_id = ?, record_id = ?, updated_at = CURRENT_TIMESTAMP WHERE submission_key = ? RETURNING submission_key`)
+      .bind(phase, state, parentId, recordId, key).first<{ submission_key: string }>()
+    if (changed?.submission_key !== key) throw new Error('Missing application receipt')
   }
 
   try {
@@ -213,6 +216,7 @@ export async function enregistrerCandidature(input: {
     if (saved.Id !== recordId || saved[parentField] !== parentId || saved.cohortes_id !== cohort) {
       throw new Error('Application links were not persisted')
     }
+    if (school && input.beforeComplete) await input.beforeComplete({ submissionKey: key, participationId: recordId!, schoolId: parentId!, cohortId: cohort })
     await trace('saved', 'complete')
     return { duplicate: false }
   } catch (error) {
