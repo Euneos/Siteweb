@@ -1,0 +1,104 @@
+---
+import Base from '../../layouts/Base.astro'
+import Field from '../../components/OperationalField.astro'
+import { modeApercu } from '../../lib/forms'
+import '../../styles/operational-forms.css'
+export const prerender = false
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+Astro.response.headers.set('Referrer-Policy', 'no-referrer')
+// A proposal only: the live site has no personal link or verified receiver for form 5 yet.
+if (!modeApercu(Astro.request)) return new Response('Introuvable', { status: 404 })
+---
+<Base
+  title="Organisation des activités avec les jeunes — aperçu WISE-UP"
+  description="Aperçu du formulaire WISE-UP pour organiser les activités avec les jeunes."
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP · Formulaire n° 5</p>
+      <h1>Organisation des activités avec les jeunes</h1>
+      <p>Recensez les jeunes concernés par les activités issues de la formation WISE-UP. Si votre établissement participe à l’évaluation scientifique, proposez les groupes et les dates de questionnaires pour validation par l’équipe EUNEOS.</p>
+    </div>
+    <div class="of-stack">
+      <aside class="of-feedback" role="status"><strong>Aperçu de démonstration.</strong> Ce formulaire ne transmet ni ne conserve aucune réponse. Utilisez uniquement des informations fictives.</aside>
+      <div class="of-context" aria-label="Dossier concerné">
+        <strong>Collège Exemple</strong><span>Ville Exemple</span><span>Cohorte 2026–2027</span>
+        <span>Sur le formulaire final, votre établissement et votre cohorte seront identifiés par votre lien personnel.</span>
+      </div>
+      <div class="of-panel">
+        <p class="of-note">Les champs marqués d’un astérisque seront obligatoires sur le formulaire final. Aucun nom ni code d’élève n’est demandé.</p>
+        <form class="of-stack" id="young-activities-preview" novalidate>
+          <fieldset class="of-section">
+            <legend>Établissement et référent</legend>
+            <p class="of-note">L’établissement est rattaché automatiquement au dossier. Son nom ne doit pas être ressaisi.</p>
+            <div class="of-grid">
+              <Field name="referentName" label="Nom et prénom du référent principal" required maxLength={300} />
+              <Field name="referentEmail" label="E-mail du référent principal" type="email" required maxLength={254} />
+            </div>
+          </fieldset>
+          <fieldset class="of-section">
+            <legend>Jeunes concernés</legend>
+            <div class="of-grid">
+              <Field name="totalClasses" label="Nombre total de classes ou groupes concernés" type="number" min={1} max={1000} required />
+              <Field name="totalStudents" label="Nombre total d’élèves bénéficiaires concernés" type="number" min={1} max={100000} required />
+            </div>
+            <Field name="levels" label="Niveaux concernés" required maxLength={500} />
+            <p class="of-note">Ces effectifs couvrent toutes les activités WISE-UP de l’établissement, y compris hors évaluation scientifique.</p>
+          </fieldset>
+          <fieldset class="of-section">
+            <legend>Évaluation scientifique (facultative)</legend>
+            <label class="of-field">Votre établissement souhaite-t-il proposer des groupes pour l’évaluation scientifique ?
+              <select id="young-evaluation" name="evaluation" aria-controls="young-evaluation-details">
+                <option value="no">Non</option><option value="yes">Oui</option>
+              </select>
+            </label>
+            <div id="young-evaluation-details" class="of-stack" hidden>
+              <p class="of-note">Proposez les classes participantes et les classes témoins. L’équipe EUNEOS vérifiera et confirmera la répartition avant tout questionnaire. Les deux groupes répondent à T1 et T2 ; seul le groupe actif reçoit les ateliers. Chaque questionnaire dure environ 30 minutes.</p>
+              <Field name="activeClasses" label="Classes proposées pour le groupe actif" type="textarea" maxLength={5000} hint="Une classe par ligne : classe ; niveau ; nombre d’élèves ; enseignant responsable ; format des ateliers. Exemple fictif : 4A ; 4e ; 28 ; M. Exemple ; 2 × 2 h." />
+              <Field name="controlClasses" label="Classes proposées pour le groupe contrôle" type="textarea" maxLength={5000} hint="Une classe par ligne : classe ; niveau ; nombre d’élèves ; enseignant responsable. Aucun atelier n’est prévu pour ce groupe." />
+              <div class="of-grid">
+                <Field name="activeCount" label="Nombre total d’élèves du groupe actif" type="number" min={1} max={100000} />
+                <Field name="controlCount" label="Nombre total d’élèves du groupe contrôle" type="number" min={1} max={100000} />
+              </div>
+              <div class="of-grid">
+                <Field name="activeT1" label="Questionnaire T1 — groupe actif" type="date" />
+                <Field name="activeT2" label="Questionnaire T2 — groupe actif" type="date" />
+                <Field name="controlT1" label="Questionnaire T1 — groupe contrôle" type="date" />
+                <Field name="controlT2" label="Questionnaire T2 — groupe contrôle" type="date" />
+              </div>
+              <p class="of-note">Aucun code anonyme d’élève n’est généré lors de cet aperçu. L’équipe EUNEOS définira et validera la remise des codes avant la passation.</p>
+            </div>
+          </fieldset>
+          <fieldset class="of-section">
+            <legend>Ateliers avec les jeunes (facultatif)</legend>
+            <Field name="workshopCount" label="Nombre total d’ateliers prévus" type="number" min={0} max={10000} />
+            <Field name="workshopSchedule" label="Planning détaillé des ateliers" type="textarea" maxLength={10000} hint="Un atelier par ligne : groupe ou classe ; date ; début ; fin ; durée ; remarque." />
+          </fieldset>
+          <label class="of-consent"><input type="checkbox" name="organizationConfirmed" /><span>Je confirme que ces informations correspondent à l’organisation retenue dans l’établissement. *</span></label>
+          <label class="of-consent"><input type="checkbox" name="changesAcknowledged" /><span>Je comprends que toute modification ultérieure doit être signalée pour mettre à jour le suivi. *</span></label>
+          <p class="of-note">Les informations sont destinées au suivi du programme par EUNEOS. <a href="/politique-de-confidentialite">Consulter la politique de confidentialité</a>.</p>
+          <div class="of-actions"><button type="button" class="cta cta--sm s-vert" disabled title="La réception du formulaire n’est pas encore activée">Transmission disponible après validation du raccordement</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+  <script>
+    const evaluation = document.querySelector<HTMLSelectElement>('#young-evaluation')
+    const details = document.querySelector<HTMLElement>('#young-evaluation-details')
+    if (evaluation && details) {
+      const update = () => {
+        details.hidden = evaluation.value !== 'yes'
+        details.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea').forEach((field) => {
+          field.disabled = details.hidden
+          field.required = !details.hidden && ['activeClasses', 'controlClasses', 'activeCount', 'controlCount'].includes(field.name)
+        })
+      }
+      evaluation.addEventListener('change', update)
+      update()
+    }
+  </script>
+</Base>
