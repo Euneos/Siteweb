@@ -1,0 +1,32 @@
+name = "euneos-google-transition"
+main = "worker.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+ENABLED = "false"
+PROJECTION_ENABLED = "false"
+# Future projection requires an explicit ISO cutover AND projectionFirstRow per
+# contact/deploiement source. Previously captured rows and all revisions >1 stay
+# capture-only. Never enable the projection flag merely to replay the backlog.
+# PROJECTION_START_AT = "..."
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[d1_databases]]
+binding = "STATE"
+database_name = "euneos-form-submissions"
+database_id = "cd011a86-8198-4348-b652-aa09ca245d11"
+
+[observability]
+enabled = true
+
+# Secrets: NOCODB_TOKEN, JOURNAL_TABLE, SOURCES, RUN_SECRET,
+# GOOGLE_FORMS_SYNC_SECRET (only needed when projection is enabled).
+# Sources and customer answers never belong in this repository.
+# Hard application budgets: 10 processed rows, 100 inspected rows, 5 sources,
+# 48 external HTTP requests INCLUDING retries/redirects, per invocation.
+# schema.sql is expanded for durable raw evidence, pending-write reconciliation,
+# run ownership and cursors. Existing prototype tables need a separately reviewed
+# migration; CREATE IF NOT EXISTS does not upgrade a previously installed schema.
