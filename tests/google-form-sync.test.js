@@ -719,6 +719,8 @@ for (const scenario of [
   'scientific choice',
   'preformation',
   'closed',
+  'canonical abandonment',
+  'canonical refusal',
   'cohort inactive',
   'cohort ambiguous',
 ]) {
@@ -734,6 +736,8 @@ for (const scenario of [
     if (scenario === 'scientific choice') targets[0].intention_evaluation_scientifique = 'Oui'
     if (scenario === 'preformation') targets[0].preformation_questionnaire = 'Oui'
     if (scenario === 'closed') targets[0].statut = 'Abandonné'
+    if (scenario === 'canonical abandonment') targets[0].statut = 'Abandon'
+    if (scenario === 'canonical refusal') targets[0].statut = 'Refus'
     if (scenario === 'cohort inactive') cohorts[0].active = false
     if (scenario === 'cohort ambiguous') cohorts.push({ Id: 3, active: true })
     const before = structuredClone(targets)

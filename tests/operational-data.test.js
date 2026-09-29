@@ -297,6 +297,8 @@ test.each([
   'cohort mismatch',
   'school mismatch',
   'abandoned',
+  'canonical abandonment',
+  'canonical refusal',
   'cancelled',
   'inactive cohort',
   'missing cohort years',
@@ -306,6 +308,8 @@ test.each([
   if (condition === 'cohort mismatch') s.participation.cohortes_id = 3
   if (condition === 'school mismatch') s.participation.etablissements_id = 3
   if (condition === 'abandoned') s.participation.statut = ' Abandonné '
+  if (condition === 'canonical abandonment') s.participation.statut = 'Abandon'
+  if (condition === 'canonical refusal') s.participation.statut = 'Refus'
   if (condition === 'cancelled') s.participation.statut = 'Annulée'
   if (condition === 'inactive cohort') s.cohort.active = false
   if (condition === 'missing cohort years') delete s.cohort.annee_debut

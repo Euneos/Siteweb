@@ -74,6 +74,14 @@ describe('Implantations : commune sans point école supposé', () => {
   })
 })
 describe('Fidélité à toutes les participations NocoDB', () => {
+  test('la carte expose un ancien Retenu à qualifier sans récupérer une ancienne acceptation', () => {
+    const data = buildMapData(cohorts, [
+      { Id: 1, etablissements_id: 1, cohortes_id: 2, statut: null, statut_origine: 'Retenu' },
+      { Id: 2, etablissements_id: 2, cohortes_id: 2, statut: null, statut_origine: 'Engage' },
+    ], establishments)
+    expect(data.groups.flatMap(g => g.participations).find(p => p.id === 1).status).toBe('Retenu')
+    expect(data.groups.flatMap(g => g.participations).find(p => p.id === 2).status).toBe('Non renseigné')
+  })
   test('regroupe par établissement ET cohorte, conserve statuts divergents et chaque ID', () => {
     const result = buildMapData(cohorts, participations, establishments)
     expect(result.totals).toEqual({

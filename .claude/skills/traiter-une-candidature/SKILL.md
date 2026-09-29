@@ -22,13 +22,19 @@ bun scripts/base.mjs etablissement <id>
 ## Faire avancer un dossier
 
 ```
-bun scripts/base.mjs statut <id> "Accuse reception"
+bun scripts/base.mjs statut <id> "Candidature acceptée"
 ```
 
-Les statuts, dans l'ordre du parcours :
-`Candidature recue` → `En cours d’analyse` → `Candidature acceptée` → `Engage`.
-Les anciens états `Accuse reception`, `Invite`, `En discussion`, `Retenu` restent possibles selon le dossier. Lire les choix du schéma avant une écriture ; ne pas inventer une progression automatique
-Deux sorties : `Refuse`, `Abandonne`.
+Un seul champ `statut` porte la décision actuelle, avec cinq choix :
+`Candidature reçue`, `Candidature acceptée`, `Établissement engagé`, `Abandon`, `Refus`.
+Un accusé de réception ou une relance est un événement de communication, pas une décision.
+`Établissement engagé` exige une fiche contact reçue et une lettre d’intérêt signée.
+La présence des deux pièces ne change jamais automatiquement la décision.
+
+`statut_origine` conserve le libellé avant l’harmonisation ; ne pas le modifier ni le
+traiter comme un deuxième statut actuel. Un dossier sans décision actuelle dont l’ancien
+état était ambigu reste « historique à qualifier ». Ne pas interpréter `Retenu` comme une
+acceptation. Lire les choix du schéma avant une écriture ; ne pas recréer les anciens choix.
 
 ## Identité et dossiers regroupés
 

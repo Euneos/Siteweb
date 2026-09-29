@@ -24,6 +24,11 @@ describe('Progression fondée sur des éléments renseignés', () => {
       }
     },
   )
+  test('un statut courant vide conserve la qualification historique après migration', () => {
+    const cells = progression({ Id: 1, statut: null, statut_origine: 'Retenu', fiche_contact_recue: true, lettre_interet_signee: true }, [])
+    expect(cells[3].etat).toBe('inconnu')
+    expect(cells[3].texte).toBe('Retenu — historique à qualifier')
+  })
   test('analyse et réception partagent la même présentation de décision', () => {
     expect(progression({ Id: 1, statut: 'En cours d’analyse' }, []))
       .toEqual(progression({ Id: 1, statut: 'Candidature recue' }, []))

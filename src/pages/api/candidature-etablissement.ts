@@ -107,7 +107,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
         referent_telephone: vider(d.referent_telephone),
       },
       application: {
-        statut: 'Candidature recue',
+        statut: 'Candidature reçue',
         date_candidature: new Date().toISOString().slice(0, 10),
         enjeux: enjeux.join(','),
         besoin_partage: d.besoin_partage,

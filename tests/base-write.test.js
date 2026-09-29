@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test'
 import { commandes } from '../scripts/base.mjs'
 import { NC } from '../src/lib/nocodb'
+import { valeurStatutCandidature } from '../src/lib/statut-candidature'
 
 const originalFetch = globalThis.fetch
 const originalToken = process.env.NOCODB_TOKEN
@@ -23,6 +24,7 @@ beforeEach(() => {
     expect(url.pathname).toContain(`/tables/${NC.tables.participations}/records`)
     if (method === 'PATCH') {
       patches.push(JSON.parse(options.body))
+      for (const patch of patches.at(-1)) Object.assign(rows.find((r) => r.Id === patch.Id), patch)
       return Response.json(patches.at(-1))
     }
     expect(method).toBe('GET')
@@ -59,17 +61,18 @@ test('statut refuse une archive, indique le canonique et ne PATCH aucun des deux
   expect(requests.every((r) => r.method === 'GET')).toBe(true)
 })
 
-test.each(['Candidature recue', 'Candidature acceptée', 'Engage', 'Abandonne', 'Refuse'])(
+test.each(['Candidature recue', 'Candidature reçue', 'Candidature acceptée', 'Engage', 'Établissement engagé', 'Abandonne', 'Abandon', 'Refuse', 'Refus'])(
   'un dossier canonique unique accepte le statut %s sans toucher son archive', async (statut) => {
     rows[1].statut = 'Retenu'
     rows[1].fiche_contact_recue = true
     rows[1].lettre_interet_signee = true
     await commandes.statut('2', statut)
-    expect(patches).toEqual([[{ Id: 2, statut }]])
+    expect(patches).toEqual([[{ Id: 2, statut: valeurStatutCandidature(statut) }]])
     expect(rows[0].statut).toBe('Candidature recue')
     expect(requests.filter((r) => r.url.searchParams.has('offset')).map((r) => r.url.searchParams.get('offset'))).toEqual(['0', '1'])
-    expect(requests.at(-2).url.pathname).toEndWith('/records/2')
-    expect(requests.at(-1).method).toBe('PATCH')
+    expect(requests.at(-3).url.pathname).toEndWith('/records/2')
+    expect(requests.at(-2).method).toBe('PATCH')
+    expect(requests.at(-1).method).toBe('GET')
   },
 )
 
@@ -123,7 +126,7 @@ test('un statut inconnu ne provoque aucune requête', async () => {
   expect(requests).toEqual([])
 })
 
-test.each(['En cours d’analyse', 'Retenu', 'Accuse reception', 'Invite', 'En discussion', 'Établissement engagé'])(
+test.each(['En cours d’analyse', 'Retenu', 'Accuse reception', 'Invite', 'En discussion'])(
   'le choix ancien ou le libellé %s ne crée pas une nouvelle valeur stockée', async (statut) => {
     await expect(commandes.statut('2', statut)).rejects.toThrow('Statut inconnu ou historique')
     expect(requests).toEqual([])
@@ -154,4 +157,16 @@ test.each(['Candidature acceptée', 'Engage'])('rechoisir %s ne réécrit pas le
   await commandes.statut('2', statut)
   expect(patches).toEqual([])
   expect(log.mock.calls.flat().join('\n')).toContain('déjà enregistré, aucune modification')
+})
+
+test('un accusé HTTP de PATCH ne suffit pas si le statut relu est différent', async () => {
+  reread = { ...rows[1] }
+  await expect(commandes.statut('2', 'Candidature acceptée')).rejects.toThrow('pas confirmé par la relecture')
+  expect(patches).toHaveLength(1)
+})
+
+test('un ancien code équivalent au statut canonique est sans effet', async () => {
+  rows[1].statut = 'Établissement engagé'
+  await commandes.statut('2', 'Engage')
+  expect(patches).toHaveLength(0)
 })
