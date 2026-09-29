@@ -1,9 +1,11 @@
 # Emails des candidatures établissements
 
-Ce lot prépare un **service et une API interne**, pas un nouvel écran de décision.
-Il ajoute un registre durable dans le binding D1 existant `FORM_SUBMISSIONS`.
-Il ne migre aucun statut, ne crée aucun hook NocoDB, ne modifie pas GAS et ne
-rattrape aucun ancien accusé ou ancienne décision.
+Ce lot ajoute l’écran privé **Décision et emails**, accessible depuis chaque dossier
+du suivi, et son registre durable dans le binding D1 `FORM_SUBMISSIONS`.
+Une décision future exige un aperçu et une confirmation explicite ; le responsable
+choisit de l’enregistrer sans email ou de prévenir le référent avec un modèle validé.
+Ce lot ne migre aucun statut historique, ne crée aucun hook NocoDB, ne modifie pas
+GAS et ne rattrape aucun ancien accusé ou ancienne décision.
 
 ## Sources et contenus
 
@@ -47,39 +49,37 @@ uniquement pour un déploiement progressif. Une fois le registre activé, une
 panne ne rebascule jamais sur l'ancien envoi. Pour suspendre ensuite les emails,
 mettre **SEND_ENABLED=false et laisser REGISTRY_ENABLED=true**.
 
-## Décision future : contrat avec le parcours de statut
+## Décision future : aperçu, confirmation et journal
 
-Le service importe `statutCandidature()` : lecture compatible des codes anciens
-et des cinq libellés actuels. Il ne PATCH jamais NocoDB et ne dépend pas du seul
-`UpdatedAt` pour déduire une décision.
+L’écran `/interne/decision-candidature?dossier=<id>` est accessible depuis le suivi
+privé des établissements. Le responsable prépare une acceptation ou un refus,
+relit le dossier, le destinataire et le message, puis confirme explicitement
+« Enregistrer sans email » ou « Enregistrer et envoyer ».
 
-1. Avant le changement métier, le responsable prépare un aperçu (`prepare`).
-   Le serveur vérifie la campagne active, les liens et l'absence d'archive,
-   prend le destinataire référent de l'établissement et génère son propre UUID.
-   Le dossier doit encore être « Candidature reçue » via le mapping partagé.
-   `Retenu`, un statut vide/à qualifier, une ancienne acceptation ou un refus
-   ne sont jamais convertis en nouvelle décision. Aucun backfill.
-2. Le parcours de statut du parent fait confirmer et enregistre la décision
-   dans NocoDB. C'est **le seul rédacteur du statut**, hors de ce module.
-3. La même personne appelle `confirm`, avec UUID, empreinte de l'aperçu et
-   `confirm:true`. Dans les 15 minutes suivant la préparation, le serveur relit
-   les coordonnées, le modèle approuvé et le statut cible. Il enregistre alors
-   la confirmation dans le registre. Un changement de statut seul ne fait rien.
-4. `dispatch` tente l'envoi de l'entrée confirmée ; relecture du statut,
-   destinataire, cohorte et modèle avant le transport. Le parent peut appeler
-   ce service immédiatement après la confirmation. Une entrée mise en attente
-   n'est pas envoyée par un nouveau cron indépendant.
+Le serveur vérifie la campagne active, les liens et l’absence d’archive ou de
+participation concurrente pour le même établissement et la même cohorte. Il fige
+un aperçu valable quinze minutes, avec l’identité de son auteur. Seuls les
+dossiers « Candidature reçue » peuvent suivre ce parcours : aucune ancienne
+acceptation, aucun refus et aucun statut « à qualifier » n’est rejoué.
 
-**Intégration restante pour le parent** : relier ces étapes au parcours/écran de
-statut. Sans cette intégration, une modification manuelle dans NocoDB ou par
-`scripts/base.mjs` n'envoie volontairement rien. Le service permet déjà une
-recette avec des objets fictifs et des transports simulés.
+`candidature-decision.ts` réserve l’opération dans D1, relit le dossier et ne
+modifie que son statut dans NocoDB. Il vérifie ensuite le statut et les autres
+champs avant de confirmer puis tenter l’envoi demandé. Le service mail ne
+modifie jamais NocoDB. Une édition manuelle dans NocoDB ou par `scripts/base.mjs`
+ne déclenche aucun email.
 
-Un brouillon périmé peut être annulé par son auteur puis préparé à nouveau tant
-que le dossier n'a pas changé d'étape. Si la décision est déjà enregistrée et
-le brouillon a expiré, il faut une vérification humaine : pas de retour de
-statut artificiel pour contourner la garde. Un email confirmé mais devenu
-incompatible reste bloqué, sans modification silencieuse du contenu.
+Les écritures exigent `CANDIDATURE_DECISIONS_ENABLED=true`,
+`CANDIDATURE_DECISION_WRITE_OWNER=site` et une référence d’examen du périmètre
+concurrent dans `CANDIDATURE_DECISION_CONCURRENCY_REVIEW`. Le verrou D1 coordonne
+le site et la passerelle Google ; il ne verrouille pas les utilisateurs externes
+NocoDB. Vérifier les autres rédacteurs avant activation et conserver cette limite
+dans le compte rendu d’exploitation.
+
+Une écriture distante incertaine reste à vérifier : pas de nouvelle tentative ni
+d’email automatique. L’historique distingue la décision enregistrée de l’état du
+message. Un brouillon non appliqué peut être annulé par son auteur, puis préparé
+à nouveau si le dossier n’a pas changé d’étape. Un email confirmé mais devenu
+incompatible reste bloqué ; aucun contenu n’est remplacé silencieusement.
 
 ## API interne
 
@@ -91,23 +91,24 @@ Ni clé API navigateur, ni nouveau secret de hook. Réponses privées, non mises
 - GET `?participationId=7` : journal de ce dossier, contenu figé et preuve fournisseur.
 - POST `{"action":"prepare","participationId":7,"kind":"accepted"}`
   (ou `refused`) : crée un aperçu, sans modifier le statut ni envoyer.
-- POST `{"action":"confirm","id":"UUID","previewHash":"EMPREINTE","confirm":true}` :
+- POST `{"action":"confirm","id":"identifiant","previewHash":"EMPREINTE","confirm":true}` :
   exige le statut décidé et relu, puis met en attente, **sans envoyer**.
 - POST `{"action":"dispatch","id":"ID","confirm":true}` : tentative d'envoi.
 - POST `{"action":"reconcile","id":"ID"}` : lit les preuves Brevo et met à jour
   le journal ; aucun envoi. `not_found` n'autorise jamais un renvoi.
 - POST `{"action":"retry-rejected","id":"ID","confirm":true}` : remet en attente
   un **rejet explicite** seulement ; il faut ensuite `dispatch`.
-- POST `{"action":"cancel","id":"UUID"}` : annule un brouillon non envoyé de son auteur.
+- POST `{"action":"cancel","id":"identifiant"}` : annule un brouillon non envoyé de son auteur.
 
-Les UUID, dates, auteurs, source et contenus sont fixés côté serveur. Une charge
+Les identifiant, dates, auteurs, source et contenus sont fixés côté serveur. Une charge
 NocoDB `data.rows`/migration n'est pas une commande acceptée. Une préparation
 concurrente de décisions opposées est refusée. Pour un dossier, un même type
 d'email non annulé ne peut pas être recréé avec une autre clé.
 
 ## Preuves et limites de livraison
 
-Trois tables : `candidature_mails` (intention + contenu + IDs),
+Quatre tables : `candidature_decisions` (aperçu et résultat de décision),
+`candidature_mails` (intention + contenu + IDs),
 `candidature_mail_attempts` (chaque tentative) et `candidature_mail_events`
 (événements fournisseur dédupliqués). Le contenu et le destinataire sont privés.
 Cela étend le registre technique D1 antérieur : le journal email y contient
@@ -139,13 +140,17 @@ manuelle. C'est pourquoi la propriété exclusive du transport doit être régl�
 avant activation. La consultation Brevo est limitée à la fenêtre du fournisseur
 (maximum 90 jours) ; au-delà, rapprochement manuel, jamais renvoi automatique.
 
-## Installation et activation — réservées au parent
+## Installation et activation
 
 1. Examiner le diff, les propositions de texte et l'intégration au parcours de
-   statut. Aucun de ces points n'est une autorisation d'envoyer à de vrais candidats.
-2. Sauvegarder D1. Appliquer `0007_candidature_mails.sql` via le circuit de
-   migrations `FORM_SUBMISSIONS` **avant le code** ; preview puis production.
-   Aucun backfill. Vérifier l'absence d'autres migrations utilisant ce numéro.
+   statut. L’activation des envois doit rester conforme aux contenus et au périmètre validés.
+2. Sauvegarder D1 et préparer l’application contrôlée de
+   `0007_candidature_mails.sql` et `0008_candidature_decisions.sql` avant activation.
+   Le pipeline actuel migre **TEAM_WORKSPACE uniquement**. FORM_SUBMISSIONS est
+   actuellement commun aux previews et à la production : aucune séparation
+   preview/production ni application automatique de ces deux SQL n’est acquise.
+   Répéter les migrations sur une copie locale et vérifier les versions distantes
+   avant toute intervention ; aucun backfill ni rejeu aveugle.
 3. Publier le code avec les nouveaux flags absents/false. Le site garde alors
    son ancien AR ; les nouvelles routes restent désactivées. Le SQL seul ne
    crée aucun email. Les modes de preview restent sans envoi.
@@ -153,10 +158,11 @@ avant activation. La consultation Brevo est limitée à la fenêtre du fournisse
    `onEditEtabsCandidats`, `sendTemplate('accuse_etab',…)`, `viderFileEmails`,
    `checkRelances`), leurs éléments déjà en attente et les notifications NocoDB.
    Arrêter/vider ou exclure les envois candidats transférés avec leurs propriétaires.
-   Le hook **after insert vers l'équipe** est distinct et reste au parent.
+   Le hook **after insert vers l'équipe** est distinct et reste à l’équipe.
 5. Activer en un déploiement coordonné :
    `CANDIDATURE_MAIL_REGISTRY_ENABLED=true`, `CANDIDATURE_MAIL_SEND_ENABLED=false`,
-   `CANDIDATURE_MAIL_OWNER=site`. Les nouveaux dépôts préparent alors le seul AR
+   `CANDIDATURE_MAIL_OWNER=site`. Garder `CANDIDATURE_DECISION_SEND_ENABLED=false`
+   jusqu’à la validation des modèles. Les nouveaux dépôts préparent alors le seul AR
    géré par le site, sans POST Brevo. Vérifier un parcours de recette autorisé.
 6. Configurer `CANDIDATURE_DECISION_TEMPLATES` si les deux contenus sont approuvés.
    JSON objet `accepted`/`refused`, chacun avec `version`, `approvalRef`, `subject`,
@@ -164,7 +170,9 @@ avant activation. La consultation Brevo est limitée à la fenêtre du fournisse
    Une entrée absente reste une proposition non envoyable. Le registre doit être
    activé dans le runtime déployé, pas seulement dans une configuration non publiée.
 7. Après validation du propriétaire unique et d'un destinataire de recette,
-   activer `CANDIDATURE_MAIL_SEND_ENABLED=true` et vérifier `messageId` puis
+   activer `CANDIDATURE_MAIL_SEND_ENABLED=true` pour les nouveaux accusés et
+   `CANDIDATURE_DECISION_SEND_ENABLED=true` pour les décisions explicitement
+   confirmées, puis vérifier `messageId` puis
    l'événement `delivered`. La recette réelle est distincte des mocks.
    Les lignes `queued` préexistantes exigent une lecture avant `dispatch` ; aucune
    ancienne acceptation ni accusé sans preuve ne doit être mis artificiellement en file.
@@ -183,6 +191,7 @@ bun test tests/candidature-mail.test.ts tests/candidature-mail-routes.test.ts
 bun scripts/check-candidature-mails-d1.mjs
 bun run test
 bun run build
+bun scripts/check-candidature-decisions-ui.mjs
 ```
 
 Le script D1 refuse les arguments ; base fictive temporaire, `--local` explicite,

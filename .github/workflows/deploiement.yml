@@ -63,6 +63,9 @@ jobs:
       - name: Vérifier le lot transactionnel sur D1 local
         run: bun scripts/check-internal-migrations-d1.mjs
 
+      - name: Vérifier le registre des emails sur D1 local
+        run: bun scripts/check-candidature-mails-d1.mjs
+
       - name: Construire le site
         run: bun run build
 
@@ -73,6 +76,7 @@ jobs:
           bun scripts/check-internal-workspace.mjs
           bun scripts/check-implantations.mjs
           bun run test:operational
+          bun scripts/check-candidature-decisions-ui.mjs
           bunx wrangler pages dev dist --port 4321 --ip 127.0.0.1 > /tmp/euneos-layout.log 2>&1 &
           layout_server_pid=$!
           trap 'kill "$layout_server_pid" 2>/dev/null || true' EXIT

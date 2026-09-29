@@ -54,7 +54,7 @@ function wrap(database: Database): SubmissionDatabase {
 }
 beforeEach(() => {
   sql = new Database(':memory:')
-  for (const f of ['0001_form_submissions.sql', '0007_candidature_mails.sql'])
+  for (const f of ['0001_form_submissions.sql', '0002_google_form_sync.sql', '0004_operational_submissions.sql', '0007_candidature_mails.sql', '0008_candidature_decisions.sql'])
     sql.exec(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))
   db = wrap(sql)
   parts = [
@@ -77,6 +77,7 @@ beforeEach(() => {
   ]
   env = {
     CANDIDATURE_MAIL_REGISTRY_ENABLED: 'true',
+    CANDIDATURE_DECISION_SEND_ENABLED: 'true',
     CANDIDATURE_MAIL_OWNER: 'site',
     CANDIDATURE_MAIL_SEND_ENABLED: 'true',
     BREVO_API_KEY: 'fictive-key',
@@ -115,6 +116,9 @@ beforeEach(() => {
       return Response.json(
         id ? rows.find((r) => r.Id === Number(id)) : { list: rows, pageInfo: { isLastPage: true } },
       )
+    if (init.method === 'PATCH' && table === NC.tables.participations) {
+      const body=JSON.parse(String(init.body)); for(const patch of body) Object.assign(parts.find(p=>p.Id===patch.Id),patch); return Response.json(body)
+    }
     if (init.method === 'POST') {
       const data = JSON.parse(String(init.body))
       if (operation === 'links') {
@@ -487,4 +491,97 @@ test('template variables and multiple recipients are refused', () => {
   expect(() =>
     acknowledgementPayload('School', 'first@example.invalid,second@example.invalid'),
   ).toThrow()
+})
+
+// Real prospective decision workflow; every remote operation remains mocked.
+import { prepareDecisionScreen, executeDecision, decisionView } from '../src/lib/candidature-decision'
+const screenCtx=()=>({...ctx(),env:{...env,CANDIDATURE_DECISIONS_ENABLED:'true',CANDIDATURE_DECISION_WRITE_OWNER:'site',CANDIDATURE_DECISION_CONCURRENCY_REVIEW:'TEST_ONLY_EXCLUSIVE_WRITER'}})
+const screen=()=>prepareDecisionScreen({...screenCtx(),participationId:7,kind:'accepted',actor})
+const execute=(p:any,withEmail=false)=>executeDecision({...screenCtx(),id:p.id,actor,previewHash:p.previewHash,confirm:true,withEmail})
+const patches=()=>calls.filter(c=>c.method==='PATCH')
+test('screen records only the canonical status then sends the exact approved preview',async()=>{
+  parts[0].statut='Candidature reçue';parts[0].notes='KEEP';parts[0].statut_origine='Candidature recue'
+  const p=await screen();expect(p.statusAfter).toBe('Candidature acceptée')
+  const result=await execute(p,true)
+  expect(result.decision).toBe('saved');expect(result.mail?.state).toBe('accepted')
+  expect(patches()).toHaveLength(1);expect(patches()[0].body).toEqual([{Id:7,statut:'Candidature acceptée'}])
+  expect(parts[0].notes).toBe('KEEP');expect(parts[0].statut_origine).toBe('Candidature recue')
+  expect(posts()[0].body.to).toEqual([{email:p.payload.to}]);expect(posts()[0].body.textContent).toBe(p.payload.text)
+  expect(sql.query('SELECT * FROM operational_submission_locks').all()).toHaveLength(0)
+})
+test('unapproved template permits explicit decision without mail, never an implicit send',async()=>{
+  delete env.CANDIDATURE_DECISION_TEMPLATES
+  const p=await screen();expect(p.approved).toBe(false)
+  await expect(execute(p,true)).rejects.toThrow('envoi n’est pas disponible')
+  expect(patches()).toHaveLength(0)
+  const result=await execute(p,false);expect(result.decision).toBe('saved');expect(result.mail?.state).toBe('cancelled')
+  expect(posts()).toHaveLength(0)
+})
+test('unknown external concurrency keeps decision disabled, including no-mail decision',async()=>{
+  const p=await screen()
+  await expect(executeDecision({...ctx(),id:p.id,actor,previewHash:p.previewHash,confirm:true,withEmail:false})).rejects.toThrow('lecture seule')
+  expect(patches()).toHaveLength(0);expect(posts()).toHaveLength(0)
+})
+test('concurrent decision calls and replays never repeat PATCH or POST',async()=>{
+  const p=await screen()
+  const outcomes=await Promise.allSettled([execute(p,true),execute(p,true)])
+  expect(outcomes.filter(r=>r.status==='fulfilled')).toHaveLength(1)
+  const replay=await execute(p,true);expect(replay.replayed).toBe(true)
+  expect(patches()).toHaveLength(1);expect(posts()).toHaveLength(1)
+  await expect(execute(p,false)).rejects.toThrow('autre choix')
+})
+test('full dossier, school and cohort reads prevent stale preview write',async()=>{
+  const p=await screen();parts[0].notes='concurrent external change'
+  await expect(execute(p,false)).rejects.toThrow('changé');expect(patches()).toHaveLength(0)
+  expect(sql.query('SELECT state FROM candidature_decisions').get()).toEqual({state:'cancelled'})
+})
+test('a same-version template change prevents any status mutation',async()=>{
+  const p=await screen();env.CANDIDATURE_DECISION_TEMPLATES=JSON.stringify({...templates,accepted:{...templates.accepted,text:'Changed'}})
+  await expect(execute(p,true)).rejects.toThrow('modèle a changé');expect(patches()).toHaveLength(0)
+})
+for(const legacy of [false,true])test(`existing ${legacy?'legacy Google':'shared site'} lock blocks before mutation`,async()=>{
+  const p=await screen()
+  if(legacy)sql.run("INSERT INTO google_form_locks(target_id,event_key) VALUES(7,'historical')")
+  else sql.run("INSERT INTO operational_submission_locks(target_id,link_hash) VALUES(7,'other-writer')")
+  await expect(execute(p,false)).rejects.toThrow();expect(patches()).toHaveLength(0);expect(posts()).toHaveLength(0)
+})
+test('NocoDB request committed then response lost remains review with lock and no email',async()=>{
+  const p=await screen()
+  hook=async(u,init)=>{if(init?.method==='PATCH'){parts[0].statut='Candidature acceptée';throw new Error('response lost')}}
+  const result=await execute(p,true);expect(result.decision).toBe('review');expect(posts()).toHaveLength(0)
+  expect(sql.query('SELECT write_started,state FROM candidature_decisions').get()).toEqual({write_started:1,state:'review'})
+  expect(sql.query('SELECT * FROM operational_submission_locks').all()).toHaveLength(1)
+  await expect(execute(p,true)).rejects.toThrow('vérifier');expect(patches()).toHaveLength(1)
+})
+test('readback mismatch in an unrelated field blocks sending and retains the lock',async()=>{
+  const p=await screen();hook=async(u,init)=>{if(init?.method==='PATCH')parts[0].notes='concurrent mutation'}
+  const result=await execute(p,true);expect(result.decision).toBe('review');expect(posts()).toHaveLength(0)
+})
+test('mail failure after saved status is reported independently, never repeats decision',async()=>{
+  const p=await screen();provider=async()=>{throw new Error('mail timeout')}
+  const result=await execute(p,true);expect(result.decision).toBe('saved');expect(result.mail?.state).toBe('uncertain')
+  await execute(p,true);expect(patches()).toHaveLength(1);expect(posts()).toHaveLength(1)
+})
+test('an unresolved historic Retenu is visible but never offered as received',async()=>{
+  parts[0].statut=null;parts[0].statut_origine='Retenu'
+  const view=await decisionView(screenCtx(),7);expect(view.dossier.status).toContain('qualifier');expect(view.canPrepare).toBe(false)
+  await expect(screen()).rejects.toThrow('avant la décision')
+})
+
+test('AR sending flag does not activate acceptance or refusal emails',async()=>{
+  const id=await queueDecision();delete env.CANDIDATURE_DECISION_SEND_ENABLED
+  await expect(send(id)).rejects.toThrow('périmètre distinct');expect(posts()).toHaveLength(0)
+})
+test('a second canonical dossier for the same school and cohort blocks any decision',async()=>{
+  const p=await screen();parts.push({...parts[0],Id:8})
+  await expect(execute(p,true)).rejects.toThrow('ambigu');expect(patches()).toHaveLength(0);expect(posts()).toHaveLength(0)
+})
+test('archive appearing between preview and last full recheck never triggers a PATCH',async()=>{
+  const p=await screen();let reads=0
+  hook=async(u,init)=>{if(u.pathname.endsWith('/records/7') && (!init?.method||init.method==='GET') && ++reads===2){parts.push({...parts[0],Id:8});parts[0].fusionne_vers=8}}
+  await expect(execute(p,true)).rejects.toThrow('archivé');expect(patches()).toHaveLength(0);expect(posts()).toHaveLength(0)
+})
+test('one opaque tag is used for unambiguous provider correlation',async()=>{
+  const id=await queueAR();const result=await send(id)
+  expect(posts()[0].body.tags).toEqual([`candidate-${result.attempt_id}`])
 })

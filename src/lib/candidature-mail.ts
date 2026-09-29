@@ -1,6 +1,6 @@
 import type { BrevoEnv } from './brevo'
 import type { SubmissionDatabase } from './candidature-store'
-import { cohorteActive, lireEnregistrement } from './nocodb'
+import { cohorteActive, lireEnregistrement, lireToutes } from './nocodb'
 import { statutCandidature } from './statut-candidature'
 import {
   acknowledgementPayload,
@@ -15,6 +15,7 @@ export interface CandidatureMailEnv extends BrevoEnv {
   CANDIDATURE_MAIL_REGISTRY_ENABLED?: string
   CANDIDATURE_MAIL_SEND_ENABLED?: string
   CANDIDATURE_MAIL_OWNER?: string
+  CANDIDATURE_DECISION_SEND_ENABLED?: string
   CANDIDATURE_DECISION_TEMPLATES?: string
 }
 export class CandidatureMailError extends Error {
@@ -145,7 +146,7 @@ export async function prepareAcknowledgement(input: {
     .run()
   return id
 }
-async function readDossier(token: string, id: number) {
+export async function readDossier(token: string, id: number) {
   if (!positiveId(id)) return fail(400, 'Dossier invalide.')
   const part = await lireEnregistrement(token, 'participations', id)
   if (
@@ -155,6 +156,9 @@ async function readDossier(token: string, id: number) {
     !positiveId(part.cohortes_id)
   )
     return fail(409, 'Le dossier est archivé ou ses liens sont incomplets.')
+  const activeDossiers = await lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers')
+  const sameDossier = activeDossiers.filter(row => row.etablissements_id === part.etablissements_id && row.cohortes_id === part.cohortes_id)
+  if (sameDossier.length !== 1 || sameDossier[0].Id !== id) return fail(409, 'Le dossier courant est ambigu ou a été archivé. Aucune décision possible.')
   if ((await cohorteActive(token)) !== part.cohortes_id)
     return fail(409, 'Ce dossier n’appartient pas à la campagne active.')
   const school = await lireEnregistrement(token, 'etablissements', part.etablissements_id)
@@ -368,6 +372,7 @@ export async function dispatchCandidatureMail(ctx: Context & { id: string }) {
   if (!ctx.env.BREVO_API_KEY) return fail(503, 'Le transport email n’est pas configuré.')
   const m = await getCandidatureMail(ctx.db, ctx.id)
   if (m.state !== 'queued') return m
+  if (m.kind !== 'ar' && ctx.env.CANDIDATURE_DECISION_SEND_ENABLED !== 'true') return fail(503, 'Les emails de décision ne sont pas activés ; les accusés ont un périmètre distinct.')
   const payload = await validateDispatch(ctx, m)
   const attempt = crypto.randomUUID(),
     started = now()
@@ -391,7 +396,7 @@ export async function dispatchCandidatureMail(ctx: Context & { id: string }) {
         to: [{ email: payload.to }],
         subject: payload.subject,
         textContent: payload.text,
-        tags: ['euneos-candidature', `candidate-${attempt}`],
+        tags: [`candidate-${attempt}`],
       }),
       signal: AbortSignal.timeout(12_000),
     })

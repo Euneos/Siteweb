@@ -21,6 +21,8 @@ import {
   retryRejectedMail,
   type CandidatureMailEnv,
 } from '../../../lib/candidature-mail'
+import { decisionView, prepareDecisionScreen, executeDecision, cancelDecisionScreen } from '../../../lib/candidature-decision'
+
 export const prerender = false
 const errorResponse = (error: unknown) =>
   error instanceof CandidatureMailError
@@ -41,7 +43,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (modeApercu(request)) return privateJson({ enabled: false, preview: true, mails: [] })
     const ctx = context(locals)
     const id = Number(new URL(request.url).searchParams.get('participationId'))
-    return privateJson({ enabled: true, mails: await listCandidatureMails(ctx.db, id) })
+    return privateJson({ enabled: true, ...(await decisionView(ctx, id)) })
   } catch (error) {
     return errorResponse(error)
   }
@@ -57,6 +59,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return privateJson({ error: 'Aucun email réel depuis un aperçu.' }, 409)
     const ctx = context(locals),
       actor = auth.identity.email
+    if (body.action === 'decision-preview') {
+      if (body.kind !== 'accepted' && body.kind !== 'refused') throw new CandidatureMailError(400, 'Décision invalide.')
+      return privateJson(await prepareDecisionScreen({ ...ctx, participationId: body.participationId as number, kind: body.kind, actor }), 201)
+    }
     if (body.action === 'prepare') {
       if (body.kind !== 'accepted' && body.kind !== 'refused')
         throw new CandidatureMailError(400, 'Décision invalide.')
@@ -72,6 +78,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     if (typeof body.id !== 'string' || body.id.length > 150)
       throw new CandidatureMailError(400, 'Identifiant invalide.')
+    if (body.action === 'decide') {
+      if (typeof body.withEmail !== 'boolean') throw new CandidatureMailError(400, 'Précisez si un email doit être envoyé.')
+      return privateJson(await executeDecision({ ...ctx, id: body.id, previewHash: String(body.previewHash ?? ''), actor, confirm: body.confirm === true, withEmail: body.withEmail }))
+    }
+    if (body.action === 'cancel-decision') {
+      await cancelDecisionScreen({ ...ctx, id: body.id, actor }); return privateJson({ cancelled: true })
+    }
+    if (body.action === 'confirm' || body.action === 'cancel') {
+      const linked = await ctx.db.prepare('SELECT id FROM candidature_decisions WHERE id=?').bind(body.id).first()
+      if (linked) throw new CandidatureMailError(409, 'Utilisez la confirmation de la décision dans son écran.')
+    }
     if (body.action === 'confirm')
       return privateJson(
         await confirmDecisionMail({

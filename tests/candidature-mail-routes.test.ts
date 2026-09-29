@@ -12,7 +12,7 @@ const originalFetch = globalThis.fetch
 let sql: Database, env: any, calls: any[], parts: any[], schools: any[]
 beforeEach(() => {
   sql = new Database(':memory:')
-  for (const f of ['0001_form_submissions.sql', '0007_candidature_mails.sql'])
+  for (const f of ['0001_form_submissions.sql', '0007_candidature_mails.sql', '0008_candidature_decisions.sql'])
     sql.exec(readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))
   const db = {
     prepare: (q: string) => ({

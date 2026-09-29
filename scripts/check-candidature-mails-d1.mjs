@@ -1,5 +1,5 @@
 // Local-only schema/trigger smoke test. Never accepts a remote argument.
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -43,11 +43,12 @@ try {
   const schema = join(scratch, 'schema.sql')
   writeFileSync(
     schema,
-    ['0001_form_submissions.sql', '0007_candidature_mails.sql']
+    readdirSync(new URL('../migrations/', import.meta.url)).filter(name => /^\d.*\.sql$/.test(name)).sort()
       .map((f) => readFileSync(new URL('../migrations/' + f, import.meta.url), 'utf8'))
       .join('\n'),
   )
   run(['--file', schema])
+  assert.deepEqual(run(['--command', 'SELECT count(*) AS n FROM candidature_decisions'])[0].results, [{ n: 0 }])
   const fixture = join(scratch, 'fixture.sql')
   writeFileSync(
     fixture,
