@@ -91,6 +91,46 @@ exports, les mappings réels et les valeurs de secrets restent dans les document
 privés d'exploitation, hors Git. Ce document décrit le code livré et ses
 prérequis ; il ne constitue pas une preuve d'activation distante.
 
+### Accès Google à valider depuis le transport réel
+
+La recette réelle a rencontré des réponses **401** depuis Cloudflare alors que
+les mêmes exports étaient lisibles depuis un poste local. Cette observation
+invalide l'activation du polling anonyme ; elle ne démontre pas la cause du refus.
+La collecte doit rester désactivée jusqu'à validation d'un transport autorisé.
+Un test local, le partage par lien ou le succès de la CI ne prouve pas les droits
+effectifs de l'environnement qui exécutera la collecte. Les détails de recette
+et les preuves source par source restent privés.
+
+Pour chaque source, vérifier l'identité Google qui lit, ses droits réels sur le
+document et l'onglet, puis une lecture complète depuis le transport retenu. Une
+réponse 401/403 est un refus à traiter, jamais une feuille vide ni un motif de
+suppression des reçus. Ne pas changer le User-Agent ou utiliser un proxy pour
+contourner ce refus ; ne pas transférer de cookie, jeton OAuth utilisateur ou
+refresh token Google dans Cloudflare. Ne pas publier les réponses personnelles
+sur le web pour rendre le CSV accessible.
+
+Deux transports authentifiés peuvent être préparés séparément :
+
+- **Push Apps Script depuis le projet Google existant** : lecture sous un compte
+  ayant accès aux sources, autorisations accordées dans l'interface Google, puis
+  envoi HTTPS authentifié avec le secret du pont. Les déclencheurs installables
+  s'exécutent sous le compte de leur créateur ; les droits Google restent dans
+  Google. Voir les [autorisations Apps Script](https://developers.google.com/apps-script/guides/services/authorization)
+  et les [déclencheurs installables](https://developers.google.com/apps-script/guides/triggers/installable).
+- **API Google avec identité de service dédiée** : droits de lecture explicitement
+  accordés aux documents concernés et authentification serveur adaptée. Le rôle
+  Google Cloud du compte de service ne remplace pas les permissions Drive sur les
+  fichiers. Voir les [rôles Drive](https://developers.google.com/workspace/drive/api/guides/ref-roles)
+  et l'[authentification serveur](https://developers.google.com/identity/protocols/oauth2/service-account).
+
+Ces adaptations de transport ne sont pas implémentées par le poller CSV actuel.
+Le récepteur v1 peut recevoir un push pour les deux types métier, mais ne remplace
+pas le journal générique. Le `POST` opérateur du Worker lance un cycle de lecture :
+ce n'est **pas** un endpoint d'ingestion de réponses. Un futur push de toutes les
+sources doit conserver le contrat de clés/révisions et la livraison durable au
+journal, avant toute activation. Une preview du site réussie ne valide donc pas
+encore le raccord Google en exploitation.
+
 ## Protocole v1 du récepteur
 
 `GET` authentifié renvoie `{version:1,ready:true,mode,cohortId:2,sources:n}` après
