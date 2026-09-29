@@ -1,27 +1,35 @@
-# Raccord Google temporaire — préparation du 29 septembre 2026
+# Raccord Google temporaire — récepteur et collecte brute
 
-Le retrait de la PR #16 reste le comportement par défaut (`410 legacy_retired`).
-La décision du 29 septembre autorise la préparation d'un raccord temporaire pour
-les liens Google encore distribués, jusqu'à la date choisie par l'équipe. Ce patch
-ne déploie rien, ne configure aucun secret, n'installe aucun script ni déclencheur,
-ne lit pas de secret local et ne modifie aucune donnée distante.
+Le raccord conserve les réponses reçues via les liens Google encore distribués,
+jusqu'à la date de fermeture choisie par l'équipe. Deux composants sont livrés :
+un Worker de collecte brute et un récepteur métier limité à deux types de
+formulaires. Leurs flags sont **désactivés par défaut**. Publier le site ou
+déployer le Worker ne suffit pas à activer la collecte ou la projection.
 
 ## Périmètre livré
 
-Récepteur `GET/POST /api/hook/google-forms`, contact et déploiement, cohorte **2**.
-Le v1 historique est repris avec une capture privée intégrale et une promotion
+Le Worker livré dans `workers/google-transition/` lit les exports CSV des sources
+explicitement autorisées. Le catalogue opérationnel comprend **11 sources**, dont
+la configuration reste privée : aucune liste de sources réelles n'est codée dans
+le dépôt. La collecte générique conserve toutes les colonnes dans un journal brut
+NocoDB, même sans mapping métier. Ces réponses portent le statut **À rapprocher**.
+La capture D1 précède la livraison NocoDB et le reçu n'est acquitté qu'après
+vérification de la ligne distante. Apps Script n'est pas requis.
+
+Le récepteur `GET/POST /api/hook/google-forms` accepte uniquement **contact** et
+**déploiement**, cohorte **2**. Il reste à `410 legacy_retired` tant que son flag
+est inactif. Le v1 historique est repris avec une capture privée intégrale et une promotion
 strictement additive. Aucun service d'email n'est appelé, même au premier passage.
 Aucun établissement, adulte, groupe ou mission n'est créé ; aucun lien distribué,
 statut de candidature ou contact maître n'est modifié.
 
-Le transport est indépendant de Google : un Worker Cloudflare planifié peut lire
-les deux exports CSV autorisés puis envoyer les événements en HTTPS. Apps Script
-n'est pas requis. Le poller, ses permissions, sa planification et la vérification
-continue de l'accessibilité des CSV restent hors de ce patch. Une absence de
-réponse CSV, un HTML de connexion, une troncature ou un en-tête ambigu doivent
-produire un incident visible et ne jamais être interprétés comme des effacements.
+La collecte brute fonctionne indépendamment du récepteur. Le Worker ne lui envoie
+des événements que si la projection est activée séparément et si la source possède
+un mapping contact ou déploiement validé. Une absence de réponse CSV, un HTML de
+connexion, une troncature ou un en-tête ambigu produit un incident visible ; ce
+n'est jamais une demande d'effacement.
 
-## Configuration future, non appliquée
+## Configuration du récepteur
 
 | Variable / binding | Prérequis |
 | --- | --- |
@@ -53,7 +61,37 @@ schoolId, expected: {name,city,postcode}}]` ; la fiche actuelle doit encore
 correspondre exactement aux coordonnées attendues. Un email seul ne suffit pas.
 Une ville fournie contradictoire interdit le rapprochement automatique.
 
-## Protocole v1
+## Configuration et activation du Worker
+
+`workers/google-transition/wrangler.toml` définit une exécution toutes les
+15 minutes. Avec `ENABLED=false`, chaque exécution sort sans lire D1 ni les
+sources. L'activation du Worker se fait séparément de la publication du site.
+
+| Variable / binding | Prérequis |
+| --- | --- |
+| `ENABLED` | `true` active la collecte brute ; valeur versionnée `false` |
+| `PROJECTION_ENABLED` | `true` autorise la projection ciblée ; valeur versionnée `false`, indépendante de la collecte |
+| `STATE` | tables dédiées de `workers/google-transition/schema.sql`, reçus et curseurs conservés |
+| `SOURCES` | JSON privé du catalogue : libellé, Sheet, onglet et première ligne ; mapping facultatif pour les deux types métier |
+| `JOURNAL_TABLE`, `NOCODB_TOKEN` | journal brut privé et accès NocoDB, fournis hors dépôt |
+| `RUN_SECRET` | authentification des commandes opérateur `GET` (état) et `POST` (exécution), header `Authorization: Bearer …` |
+| `PROJECTION_START_AT` | date de coupure ISO explicite, obligatoire uniquement pour la projection |
+| `GOOGLE_FORMS_SYNC_SECRET` | secret partagé avec le récepteur, obligatoire uniquement pour la projection |
+
+Chaque source métier exige aussi `projectionFirstRow` lors de la future activation
+de la projection : seule une **nouvelle réponse de révision 1**, découverte pendant
+cette activation, à partir de cette ligne et après la date de coupure est éligible.
+Activer la projection ne reprend donc pas automatiquement les captures historiques
+ni leurs corrections. Le mode `apply` du récepteur reste une décision distincte.
+
+La mise en service exige un schéma D1 compatible, le journal NocoDB, les secrets
+et l'accès aux exports validés. `CREATE TABLE IF NOT EXISTS` ne met pas à niveau
+un ancien schéma prototype. Les preuves de ces opérations, le catalogue, les
+exports, les mappings réels et les valeurs de secrets restent dans les documents
+privés d'exploitation, hors Git. Ce document décrit le code livré et ses
+prérequis ; il ne constitue pas une preuve d'activation distante.
+
+## Protocole v1 du récepteur
 
 `GET` authentifié renvoie `{version:1,ready:true,mode,cohortId:2,sources:n}` après
 vérification des tables locales ; aucune requête NocoDB ni écriture. `POST` accepte
@@ -101,11 +139,13 @@ Un mapping choisit des libellés normalisés, jamais les positions de colonnes :
 Pour un doublon, `{label:'Confirmation',occurrence:2}` désigne explicitement la
 seconde occurrence ; sans occurrence une ambiguïté est refusée. Les libellés
 réels doivent être inventoriés et validés, sans deviner la signification d'une
-colonne. Les dates `jj/mm/aaaa` de formation sont normalisées ; l'horodatage CSV
-exige une conversion indépendante avec fuseau vérifié. Le snapshot garde les
+colonne. Les dates `jj/mm/aaaa` de formation sont normalisées. Le Worker convertit
+l'horodatage Google local avec le fuseau `Europe/Paris`, sans le remplacer par
+l'heure de lecture ; les heures inexistantes ou ambiguës au changement d'heure
+restent à vérifier et ne sont pas projetées. Le snapshot garde les
 cellules originales, espaces, sauts de ligne, colonnes historiques et doublons.
 
-## Révisions et traitement des retours
+## Révisions et traitement des retours du récepteur
 
 Identité de réponse : `(spreadsheetId,sheetId,row)`. Le poller doit conserver un
 compteur durable par réponse, réservé **avant** chaque envoi. Changement de contenu
@@ -139,7 +179,7 @@ jamais l'élever. Un reçu `captured`, `identity_unresolved` ou `notes_invalid` 
 automatique d'une écriture incertaine. Arrêter le pont = flag false et, après
 vérification, arrêt du poller à la date décidée par l'équipe ; aucun TTL inventé.
 
-## Conservation et promotion
+## Conservation et promotion par le récepteur
 
 - `plan` : lectures NocoDB et plan avant/après, sans D1 ni mutation. La réponse
   peut contenir des données privées : consultation opérateur seulement.
@@ -167,28 +207,46 @@ pas ici de PATCH conditionnel atomique : avant `apply`, prévoir un créneau san
 édition manuelle concurrente des dossiers concernés. La capture reste utilisable
 pendant l'activité normale de l'équipe.
 
-## Audit du parent et périmètre encore ouvert
+## Journal brut générique et reprise du Worker
 
-L'audit du 29 septembre signale une définition du contact modifiée alors que le
-Sheet garde les anciennes dates/participants. Le mapper lit le **Sheet complet**,
-sans prendre les questions actuelles du Form comme schéma de la réponse passée.
-L'export déploiement actuel comporte 45 colonnes, dont des confirmations dupliquées
-et des colonnes nouvelles en fin de feuille. Leurs valeurs restent séparées et
-non interprétées avant validation du mapping. Les cas nominatifs, leurs preuves
-et les arbitrages restent dans le dossier privé du parent, hors dépôt de code.
+La collecte de toutes les sources autorisées et leur livraison au journal NocoDB
+sont **livrées dans ce lot**. Le journal utilise dix champs : `cle_reponse`,
+`formulaire`, `horodatage_source`, `ligne_source`, `revision`, `reponses`,
+`source_url`, `statut_reprise`, `date_reprise` et `detail_reprise`. `reponses`
+conserve chaque colonne sous la forme `{column, question, answer}`, dans son ordre
+d'origine, y compris les libellés dupliqués et les réponses vides. Le Sheet complet
+fait foi pour cette capture, même si les questions du Form ont changé.
 
-**Tous les formulaires / journal brut NocoDB : non livré dans ce lot.** Les autres
-familles reçoivent un refus explicite, jamais un succès silencieux. Ce lot ne crée
-pas de protocole universel ni de nouvelle table métier NocoDB. Pour atteindre la
-cible « toutes les sources présentes dans NocoDB même non projetées », convenir
-ensuite d'une table privée de réponses sources : clé stable de réponse + révision
-+ empreinte, source, contenu intégral, statut de projection, reçu de livraison.
-Prévoir un relais D1 → NocoDB avec déduplication vérifiée et reprise après réponse
-perdue, une file de revue visible et un schéma validé avant toute création. La clé
-unique NocoDB et la stratégie de création après timeout doivent être démontrées,
-pas supposées. D1 est actuellement la capture durable, **pas** la preuve d'une
-livraison NocoDB. Les journaux contiennent des données personnelles : accès privé,
-aucun export public/log de contenu ; rétention à décider avant activation.
+Le contrat de clé est stable, notamment pour une initialisation du registre :
+
+```text
+sourceKey = spreadsheetId + ':' + sheetId
+fingerprint = SHA256(JSON.stringify(answerFields(headers, cells)))
+response_key = SHA256(JSON.stringify([sourceKey, row, revision, fingerprint]))
+```
+
+La révision augmente à chaque changement observé, y compris A → B → A. Le contenu
+brut est réservé en D1 avant livraison. Les écritures NocoDB perdues sont
+rapprochées par leur clé, puis vérifiées ; une écriture au résultat incertain n'est
+jamais recréée automatiquement sur la seule base d'une recherche vide. Les réponses
+429 sont temporisées, les reprises sont séquentielles et le résultat de projection
+est conservé avant la mise à jour du statut du journal.
+
+Chaque invocation est bornée à **48 requêtes HTTP externes**, redirections et
+reprises comprises, et **48 requêtes D1**, erreurs comprises. Une requête D1 reste
+réservée au statut final et à la libération du verrou. Maximum : 10 lignes
+traitées, 100 inspectées et 5 sources. La lecture groupée des reçus, les curseurs
+durables et la rotation des sources permettent de parcourir les captures déjà
+initialisées sans empêcher la détection des nouvelles réponses. Le statut
+authentifié expose ces compteurs et les incidents ; un dépassement du budget
+reprend à l'exécution suivante.
+
+Une livraison au journal brut ne signifie pas qu'un dossier métier a été modifié.
+Les sources sans mapping restent **À rapprocher** ; une projection qui demande
+une revue porte le statut **À vérifier**. Le récepteur métier conserve son refus
+explicite des types autres que contact et déploiement. Les preuves nominatives et
+les décisions de rapprochement restent privées, hors dépôt. Les journaux doivent
+rester à accès privé, sans export public ni log de contenu.
 
 ## Validation locale
 
@@ -197,5 +255,12 @@ utilise les migrations SQL réelles dans SQLite et un faux serveur NocoDB. Les
 appels réseau inattendus, emails, créations et liens font échouer les tests.
 La suite vérifie aussi concurrence/rejeu, corrections, pertes de réponse,
 conflits, conservation des projections existantes, colonnes déplacées/dupliquées,
-champs supprimés, capture intégrale et flags/authentification/modes. Validation locale effectuée : **643 tests réussis, 0 échec** (`bun test tests`)
-et `bun run build` réussi. Aucun appel réel à Google, NocoDB ou Brevo.
+champs supprimés, capture intégrale et flags/authentification/modes.
+
+`bun test tests/google-transition-worker.test.ts` couvre aussi les budgets HTTP et
+D1 réels par invocation, les SQL échouées, les 429, les reprises, les verrous,
+les horodatages et un bootstrap fictif de 273 réponses réparties sur 11 sources.
+Validation locale effectuée : **683 tests réussis, 0 échec**, dont 40 tests Worker,
+avec `bun run test` ; `bun run build` et le dry-run Wrangler du Worker réussissent.
+Ces validations utilisent des données fictives et ne font aucun appel réel à
+Google, NocoDB ou Brevo.
