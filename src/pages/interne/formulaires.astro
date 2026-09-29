@@ -1,4 +1,6 @@
 ---
+import FormCatalog from '../../components/internal/FormCatalog.astro'
+import '../../styles/form-catalog.css'
 import InternalLayout from '../../layouts/InternalLayout.astro'
 import { getInternalContext, privateHeaders } from '../../lib/internal-context'
 import '../../styles/operational-forms.css'
@@ -9,18 +11,13 @@ const access = await getInternalContext(Astro.request, Astro.locals, false)
 if (access instanceof Response) return access
 ---
 
-<InternalLayout
-  title="Formulaires des établissements"
-  current="formulaires"
-  identity={access.identity}
->
+<InternalLayout title="Catalogue des formulaires" current="formulaires" identity={access.identity}>
   <div class="iw-intro">
     <div class="iw-intro__text">
       <p class="iw-eyebrow">Suivi des établissements</p>
-      <h1>Formulaires des établissements</h1>
+      <h1>Catalogue des formulaires</h1>
       <p>
-        Préparez le lien personnel d’un dossier, puis transmettez-le à la personne qui doit le
-        compléter.
+        Repérez le bon formulaire, consultez son exemple et retrouvez le lien adapté à son usage.
       </p>
     </div><a class="iw-button" href="/etat-candidatures">Retour au suivi</a>
   </div>
@@ -30,31 +27,9 @@ if (access instanceof Response) return access
         Activez JavaScript pour consulter les réceptions et préparer un lien.
       </p></noscript
     >
-    <section class="iw-panel of-panel" aria-labelledby="forms-purpose-title">
-      <h2 id="forms-purpose-title">Quel formulaire choisir ?</h2>
-      <p class="of-note">
-        Chaque lien rattache les réponses à l’établissement et à sa cohorte, pour compléter le bon
-        dossier sans mélanger les années.
-      </p>
-      <ul class="of-stack of-note" role="list">
-        <li><strong>Fiche contact</strong> — coordonnées et premières dates prévisionnelles.</li>
-        <li>
-          <strong>Organisation de la formation</strong> — organisation retenue et dates, si elles sont
-          connues. La formation devient « Programmée » si les dates sont renseignées et qu’aucun point
-          du dossier ne reste à vérifier.
-        </li>
-        <li>
-          <strong>Participants adultes</strong> — liste des adultes de cette cohorte, sans les déclarer
-          formés.
-        </li>
-      </ul>
-      <p class="of-note">
-        Recevoir une fiche contact ne confirme pas les dates. Un changement de dates déjà
-        enregistrées est signalé à l’équipe pour vérification.
-      </p>
-    </section>
-    <section class="iw-panel of-panel" aria-labelledby="link-title">
-      <h2 id="link-title">Préparer un lien</h2>
+    <FormCatalog />
+    <section id="preparer-lien" class="iw-panel of-panel" aria-labelledby="link-title">
+      <h2 id="link-title">Préparer un lien pour un dossier</h2>
       <p>
         Un lien concerne un seul établissement, une cohorte et un formulaire. Il reste valable 90
         jours et permet une seule validation. Aucun e-mail n’est envoyé depuis cette page. Le lien

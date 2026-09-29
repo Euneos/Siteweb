@@ -1,0 +1,287 @@
+---
+const personalForms = [
+  {
+    key: 'contact',
+    number: '3',
+    name: 'Fiche contact',
+    purpose: 'Préparer le contact',
+    description:
+      'Identifier l’établissement, son référent et sa direction pour préparer les échanges avec EUNEOS.',
+    fields: ['Établissement', 'Référent et direction', 'Regroupement et format'],
+    example: [
+      ['Établissement', 'Collège Exemple'],
+      ['Référent', 'Prénom Nom · referent@example.test'],
+      ['Direction', 'direction@example.test'],
+      ['Regroupement d’établissements', 'Non'],
+      ['Format souhaité', 'Présentiel'],
+    ],
+  },
+  {
+    key: 'deploiement',
+    number: '4',
+    name: 'Organisation de la formation adultes',
+    purpose: 'Préparer les dates et les personnes',
+    description:
+      'Préciser le calendrier, les modalités et les formateurs de la formation des adultes.',
+    fields: ['Dates et séances', 'Modalités', 'Formateurs'],
+    example: [
+      ['Référent', 'Prénom Nom · referent@example.test'],
+      ['Dates de formation', 'À préciser avec l’équipe'],
+      ['Modalités', 'Présentiel'],
+      ['Planning des séances', 'Jour · horaires · durée'],
+      ['Formateurs', 'Prénom Nom'],
+    ],
+  },
+  {
+    key: 'activites-jeunes',
+    number: '5',
+    name: 'Organisation des activités avec les jeunes',
+    purpose: 'Préparer les activités et l’évaluation',
+    description:
+      'Organiser les activités après la formation des adultes et préciser le volet évaluation.',
+    fields: ['Organisation des activités', 'Groupes concernés', 'Évaluation'],
+    example: [
+      ['Activités', 'Organisation à préciser'],
+      ['Groupes concernés', 'Informations collectives, sans noms de jeunes'],
+      ['Évaluation', 'Modalités à confirmer avec l’équipe'],
+    ],
+  },
+  {
+    key: 'participants',
+    number: '+',
+    name: 'Participants adultes',
+    purpose: 'Compléter la liste du dossier',
+    description:
+      'Rattacher les adultes participants à la bonne cohorte. Une inscription ne signifie pas que la personne est formée.',
+    fields: ['Référent', 'Adultes participants', 'Vérification de la liste'],
+    example: [
+      ['Référent', 'Prénom Nom · referent@example.test'],
+      ['Participant adulte', 'Prénom Nom · adulte@example.test'],
+      ['Liste', 'À vérifier avant de transmettre'],
+    ],
+  },
+]
+const publicForms = [
+  {
+    key: 'candidature-etablissement',
+    name: 'Candidature d’un établissement',
+    path: '/candidater/etablissement',
+    description: 'Faire connaître un établissement et son intérêt pour le programme.',
+  },
+  {
+    key: 'candidature-formateur',
+    name: 'Candidature d’un formateur',
+    path: '/candidater/formateur',
+    description: 'Présenter son profil pour devenir formateur ou formatrice.',
+  },
+  {
+    key: 'contact-public',
+    name: 'Contacter EUNEOS',
+    path: '/contact',
+    description: 'Adresser une demande générale à l’équipe.',
+  },
+  {
+    key: 'newsletter',
+    name: 'Inscription à la newsletter',
+    path: '/newsletter',
+    description: 'Choisir son profil et demander à recevoir les nouvelles d’EUNEOS.',
+  },
+]
+---
+
+<div id="form-catalog" class="fc-stack">
+  <nav class="fc-nav" aria-label="Rubriques du catalogue">
+    <a href="#catalog-personal">Formulaires du dossier</a>
+    <a href="#catalog-public">Liens publics</a>
+    <a href="#catalog-pending">Autres documents et questionnaires</a>
+    <a href="#preparer-lien">Préparer un lien personnel</a>
+  </nav>
+
+  <section id="catalog-personal" class="fc-section" aria-labelledby="catalog-personal-title">
+    <header class="fc-heading">
+      <p class="fc-eyebrow">Le parcours d’un établissement</p>
+      <h2 id="catalog-personal-title">Les formulaires du dossier</h2>
+      <p>
+        Les numéros 3, 4 et 5 reprennent les repères des guides. Chaque lien personnel concerne un
+        établissement et une cohorte.
+      </p>
+    </header>
+    <div class="fc-grid">
+      {
+        personalForms.map((item) => (
+          <article
+            class="fc-card"
+            data-catalog-kind={item.key}
+            aria-labelledby={`catalog-${item.key}-title`}
+          >
+            <div class="fc-card-top">
+              <span
+                class="fc-number"
+                aria-label={item.number === '+' ? 'Complément' : `Formulaire ${item.number}`}
+              >
+                {item.number}
+              </span>
+              <span class="fc-status" data-operational-state={item.key} data-state="unknown">
+                État à vérifier
+              </span>
+            </div>
+            <div class="fc-heading">
+              <p class="fc-eyebrow">{item.purpose}</p>
+              <h3 id={`catalog-${item.key}-title`}>{item.name}</h3>
+              <p>{item.description}</p>
+            </div>
+            <ul class="fc-fields" aria-label="Repères du formulaire">
+              {item.fields.map((field) => (
+                <li>{field}</li>
+              ))}
+            </ul>
+            <details class="fc-example">
+              <summary>
+                Consulter l’exemple<span class="fc-sr-only"> : {item.name}</span>
+              </summary>
+              <div class="fc-example-body">
+                <p class="fc-example-note">
+                  Aperçu simplifié, avec des informations fictives. Les champs complets figurent
+                  dans le formulaire personnel.
+                </p>
+                <dl>
+                  {item.example.map(([label, value]) => (
+                    <div>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p class="fc-example-note">
+                  Consultation uniquement : aucune réponse ne peut être envoyée depuis cet exemple.
+                </p>
+              </div>
+            </details>
+            <button
+              type="button"
+              class="iw-button iw-button--primary"
+              data-prepare-kind={item.key}
+              disabled
+            >
+              Préparer un lien personnel<span class="fc-sr-only"> : {item.name}</span>
+            </button>
+            <p class="fc-footnote" data-kind-note>
+              La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.
+            </p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <aside class="fc-guide" aria-labelledby="catalog-guide-title">
+    <h2 id="catalog-guide-title">Quels liens mettre dans les guides ?</h2>
+    <p>
+      Les <strong>liens publics</strong> ci-dessous peuvent être repris dans Canva. Les formulaires d’un
+      dossier nécessitent un <strong>lien personnel</strong>, à transmettre uniquement à son
+      destinataire.
+    </p>
+    <p>
+      Dans un guide partagé, indiquez « Demandez votre lien à l’équipe EUNEOS ». Un exemple sert à
+      reconnaître le formulaire ; il ne permet pas de répondre.
+    </p>
+  </aside>
+
+  <section id="catalog-public" class="fc-section" aria-labelledby="catalog-public-title">
+    <header class="fc-heading">
+      <p class="fc-eyebrow">Sans lien personnel</p>
+      <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
+      <p>
+        Ces pages sont accessibles à tous. Elles ne remplacent pas les formulaires 3, 4 ou 5 d’un
+        dossier.
+      </p>
+    </header>
+    <div class="fc-grid">
+      {
+        publicForms.map((item) => (
+          <article
+            class="fc-card fc-card--public"
+            data-public-form={item.key}
+            aria-labelledby={`catalog-${item.key}-title`}
+          >
+            <span class="fc-status">Page publique</span>
+            <div class="fc-heading">
+              <h3 id={`catalog-${item.key}-title`}>{item.name}</h3>
+              <p>{item.description}</p>
+            </div>
+            <label class="of-field">
+              URL pour les guides
+              <input
+                type="text"
+                readonly
+                value={`https://euneos.fr${item.path}`}
+                aria-label={`URL publique : ${item.name}`}
+                data-public-url
+              />
+            </label>
+            <div class="fc-actions">
+              <a
+                class="iw-button"
+                href={`https://euneos.fr${item.path}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Voir le formulaire<span class="fc-sr-only"> : {item.name} (nouvel onglet)</span> ↗
+              </a>
+              <button type="button" class="iw-button" data-copy-public disabled>
+                Copier l’URL<span class="fc-sr-only"> : {item.name}</span>
+              </button>
+            </div>
+            <p
+              class="fc-copy-feedback"
+              data-public-copy-feedback
+              role="status"
+              aria-live="polite"
+            />
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="catalog-pending" class="fc-section" aria-labelledby="catalog-pending-title">
+    <header class="fc-heading">
+      <h2 id="catalog-pending-title">Autres documents et questionnaires</h2>
+      <p>
+        Leur remplacement sur le site reste à préparer. Ne remplacez pas leurs liens Google par
+        l’une des URL ci-dessus.
+      </p>
+    </header>
+    <div class="fc-grid">
+      <article
+        class="fc-card fc-card--planned"
+        data-catalog-document="lettre"
+        aria-labelledby="catalog-letter-title"
+      >
+        <span class="fc-status" data-state="planned">Document à signer</span>
+        <h3 id="catalog-letter-title">Lettre d’intérêt</h3>
+        <p>
+          Retrouvez auprès de l’équipe la lettre et les consignes de retour correspondant au
+          dossier. Aucun formulaire de signature en ligne n’est proposé ici.
+        </p>
+        <p class="fc-footnote">Pas d’URL générique à copier dans un guide.</p>
+      </article>
+      <article
+        class="fc-card fc-card--planned"
+        data-catalog-document="questionnaires"
+        aria-labelledby="catalog-questionnaires-title"
+      >
+        <span class="fc-status" data-state="planned">À préparer sur le site</span>
+        <h3 id="catalog-questionnaires-title">Questionnaires adultes</h3>
+        <p>
+          Pré-formation, post-formation, suivi et bilan : les questionnaires historiques restent des
+          parcours distincts. Leur collecte ne signifie pas que leur remplacement sur le site est
+          ouvert.
+        </p>
+        <p class="fc-footnote">
+          Les nouveaux liens seront ajoutés après vérification de chaque parcours.
+        </p>
+      </article>
+    </div>
+  </section>
+</div>

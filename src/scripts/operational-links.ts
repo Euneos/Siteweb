@@ -21,6 +21,8 @@ const kinds: Record<Kind, string> = {
   participants: 'Participants adultes',
   'activites-jeunes': 'Organisation des activités avec les jeunes',
 }
+// Only these kinds existed before the API advertised its per-kind availability.
+const legacyKinds: Kind[] = ['contact', 'deploiement', 'participants']
 const reviewReasons: Record<string, string> = {
   youth_declaration_conflict:
     'Les effectifs déclarés diffèrent du dossier. La réponse détaillée est conservée pour vérification.',
@@ -69,10 +71,29 @@ if (app) {
   const receptionFeedback = app.querySelector<HTMLElement>('#submissions-feedback')!
   const list = app.querySelector<HTMLElement>('#submissions-list')!
   const refresh = app.querySelector<HTMLButtonElement>('#links-refresh')!
+  const choices = app.querySelectorAll<HTMLButtonElement>('[data-prepare-kind]')
+  const catalogState = (state: string, label: string) => {
+    for (const badge of app.querySelectorAll<HTMLElement>('[data-operational-state]')) {
+      const isPlanned =
+        state === 'active' && !availableKinds.includes(badge.dataset.operationalState as Kind)
+      badge.dataset.state = isPlanned ? 'planned' : state
+      badge.textContent = isPlanned ? 'À préparer' : label
+      const card = badge.closest<HTMLElement>('[data-catalog-kind]')!
+      card.classList.toggle('fc-card--planned', isPlanned)
+      card.querySelector<HTMLElement>('[data-kind-note]')!.textContent = isPlanned
+        ? 'Ce formulaire n’est pas encore ouvert. Aucun lien à diffuser pour le moment.'
+        : state === 'active'
+          ? 'Puis choisissez le dossier ci-dessous. Ce bouton ne crée ni ne renouvelle de lien.'
+          : state === 'preview'
+            ? 'Les liens personnels se préparent depuis le site en production.'
+            : 'La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.'
+    }
+  }
   let pending = false,
     loading = false,
     enabled = false
   let dossiers: Dossier[] = []
+  let availableKinds: Kind[] = []
   const setMessage = (target: HTMLElement, message: string, error = false) => {
     target.textContent = message
     target.setAttribute('role', error ? 'alert' : 'status')
@@ -86,6 +107,12 @@ if (app) {
     }).format(new Date(value))
   const lock = () => {
     dossier.disabled = kind.disabled = submit.disabled = pending || loading || !enabled
+    for (const button of choices)
+      button.disabled =
+        pending ||
+        loading ||
+        !enabled ||
+        !availableKinds.includes(button.dataset.prepareKind as Kind)
   }
   function linkUrl(value: PersonalLink, chosenKind: Kind) {
     if (
@@ -111,6 +138,7 @@ if (app) {
     urlInput.value = ''
     copyFeedback.textContent = ''
     submit.textContent = 'Créer le lien'
+    if (!enabled || !availableKinds.includes(kind.value as Kind)) return
     const current = dossiers.find((d) => String(d.participationId) === dossier.value)?.links?.[
       kind.value as Kind
     ]
@@ -133,6 +161,8 @@ if (app) {
     if (loading || pending) return
     loading = true
     enabled = false
+    availableKinds = []
+    catalogState('unknown', 'Vérification en cours…')
     lock()
     refresh.disabled = true
     list.hidden = true
@@ -169,13 +199,23 @@ if (app) {
         )
       )
         throw new Error('invalid response')
+      if (
+        data.kinds !== undefined &&
+        (!Array.isArray(data.kinds) ||
+          !data.kinds.every((key: unknown) => typeof key === 'string' && Object.hasOwn(kinds, key)))
+      )
+        throw new Error('invalid kinds')
+      // A preview must never display a production dossier or a personal token.
+      if (
+        data.preview === true &&
+        (data.enabled || data.dossiers.length || data.submissions.length)
+      )
+        throw new Error('invalid preview response')
       dossiers = data.dossiers
-      // Shared interface for the catalogue: advertise only enabled kinds.
-      const selectedKind = kind.value
-      if (Array.isArray(data.kinds) && data.kinds.every((k: string) => Object.hasOwn(kinds, k))) {
-        kind.replaceChildren(...data.kinds.map((k: Kind) => new Option(kinds[k], k)))
-        if (data.kinds.includes(selectedKind)) kind.value = selectedKind
-      }
+      availableKinds = data.kinds === undefined ? legacyKinds : [...new Set<Kind>(data.kinds)]
+      const selectedKind = kind.value as Kind
+      kind.replaceChildren(...availableKinds.map((key) => new Option(kinds[key], key)))
+      if (availableKinds.includes(selectedKind)) kind.value = selectedKind
       for (const d of dossiers)
         for (const key of Object.keys(kinds) as Kind[]) {
           if (d.links?.[key]) linkUrl(d.links[key]!, key)
@@ -190,14 +230,26 @@ if (app) {
           ),
         )
       dossier.value = dossiers.some((d) => String(d.participationId) === selected) ? selected : ''
-      enabled = data.enabled && dossiers.length > 0
+      enabled = data.enabled && dossiers.length > 0 && availableKinds.length > 0
+      catalogState(
+        data.preview ? 'preview' : data.enabled ? 'active' : 'unavailable',
+        data.preview
+          ? 'Aperçu · création désactivée'
+          : data.enabled
+            ? 'Actif · lien personnel'
+            : 'Indisponible',
+      )
       setMessage(
         feedback,
-        !data.enabled
-          ? 'La création des liens est momentanément indisponible. Les réponses déjà reçues restent consultables.'
-          : dossiers.length
-            ? 'Choisissez le dossier et le formulaire à transmettre.'
-            : 'Aucun dossier disponible pour créer un lien.',
+        data.preview
+          ? 'Aperçu du catalogue : les liens personnels se préparent depuis le site en production.'
+          : !data.enabled
+            ? 'La création des liens est momentanément indisponible. Les réponses déjà reçues restent consultables.'
+            : !availableKinds.length
+              ? 'Aucun formulaire disponible pour créer un lien.'
+              : dossiers.length
+                ? 'Choisissez le dossier et le formulaire à transmettre.'
+                : 'Aucun dossier disponible pour créer un lien.',
       )
       list.replaceChildren()
       const submissions = [...data.submissions] as Submission[]
@@ -241,6 +293,12 @@ if (app) {
       list.hidden = submissions.length === 0
       if (enabled) showExisting()
     } catch {
+      enabled = false
+      availableKinds = []
+      dossiers = []
+      dossier.replaceChildren(new Option('Dossiers indisponibles', ''))
+      kind.replaceChildren()
+      catalogState('unknown', 'État non vérifié')
       setMessage(feedback, 'Les dossiers n’ont pas pu être lus. Actualisez pour réessayer.', true)
       setMessage(
         receptionFeedback,
@@ -260,7 +318,7 @@ if (app) {
       chosenKind = kind.value as Kind
     if (
       !dossiers.some((d) => d.participationId === participationId) ||
-      !Object.hasOwn(kinds, chosenKind)
+      !availableKinds.includes(chosenKind)
     )
       return
     pending = true
@@ -317,6 +375,32 @@ if (app) {
       copyFeedback.textContent = 'Sélectionnez puis copiez le lien ci-dessus.'
     }
   })
+  for (const button of choices) {
+    button.addEventListener('click', () => {
+      const chosenKind = button.dataset.prepareKind!
+      if (pending || loading || !enabled || !availableKinds.includes(chosenKind as Kind)) return
+      kind.value = chosenKind
+      showExisting()
+      document.querySelector('#preparer-lien')?.scrollIntoView({ block: 'start' })
+      dossier.focus({ preventScroll: true })
+    })
+  }
+  for (const card of app.querySelectorAll<HTMLElement>('[data-public-form]')) {
+    const input = card.querySelector<HTMLInputElement>('[data-public-url]')!
+    const button = card.querySelector<HTMLButtonElement>('[data-copy-public]')!
+    const status = card.querySelector<HTMLElement>('[data-public-copy-feedback]')!
+    button.disabled = false
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(input.value)
+        status.textContent = 'URL publique copiée. Elle peut être utilisée dans un guide partagé.'
+      } catch {
+        input.focus()
+        input.select()
+        status.textContent = 'Sélectionnez puis copiez l’URL publique ci-dessus.'
+      }
+    })
+  }
   form.addEventListener('change', showExisting)
   refresh.addEventListener('click', () => {
     void load()
