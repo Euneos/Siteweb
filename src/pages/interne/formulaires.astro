@@ -1,12 +1,14 @@
 ---
 import InternalLayout from '../../layouts/InternalLayout.astro'
 import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+import { modeApercu } from '../../lib/forms'
 import '../../styles/operational-forms.css'
 export const prerender = false
 for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
 Astro.response.headers.set('Referrer-Policy', 'no-referrer')
 const access = await getInternalContext(Astro.request, Astro.locals, false)
 if (access instanceof Response) return access
+const preview = modeApercu(Astro.request)
 ---
 
 <InternalLayout
@@ -43,6 +45,13 @@ if (access instanceof Response) return access
           connues. La formation devient « Programmée » si les dates sont renseignées et qu’aucun point
           du dossier ne reste à vérifier.
         </li>
+        {preview && (
+          <li>
+            <strong>5. Organisation des activités avec les jeunes (aperçu)</strong> — effectifs globaux,
+            groupes proposés pour l’évaluation et calendrier des ateliers. <a href="/suivi/activites-jeunes-apercu">Voir la maquette</a>.
+            Aucune réponse n’est transmise depuis l’aperçu.
+          </li>
+        )}
         <li>
           <strong>Participants adultes</strong> — liste des adultes de cette cohorte, sans les déclarer
           formés.
