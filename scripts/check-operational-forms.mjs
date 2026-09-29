@@ -132,6 +132,8 @@ try {
   assert.match(response.headers.get('Cache-Control'), /no-store/)
   assert.match(response.headers.get('X-Robots-Tag'), /noindex/)
   html.internal = await response.text()
+  assert.doesNotMatch(html.internal, /href="[^"]*[?&]t=|value="[^"]*[?&]t=/, 'Catalogue SSR contains no personal link')
+  assert.match(html.internal, /État à vérifier/, 'SSR does not claim runtime availability')
 } finally {
   globalThis.fetch = realFetch
 }
@@ -193,6 +195,7 @@ let publicPosts = [],
   linkPosts = [],
   apiResponses = []
 let releasePublic, releaseLink
+let internalResponse
 const server = Bun.serve({
   hostname: '127.0.0.1',
   port: 0,
@@ -225,7 +228,7 @@ const server = Bun.serve({
       if (request.method === 'GET')
         return failRead
           ? Response.json({ message: 'INTERNAL-DETAIL-NOT-FOR-UI' }, { status: 503 })
-          : Response.json(fixture)
+          : Response.json(internalResponse ?? fixture)
       const payload = await request.json()
       linkPosts.push(payload)
       if (releaseLink) await releaseLink
@@ -572,6 +575,41 @@ try {
   await expect(page.locator('#link-result')).toBeVisible()
   await expect(linkSubmit).toHaveText('Renouveler le lien')
   assert.equal(linkPosts.length, 0, 'Viewing an existing link does not create/renew it')
+  const catalog = page.locator('#form-catalog')
+  const badges = catalog.locator('[data-operational-state]')
+  await expect(badges).toHaveCount(3)
+  for (const badge of await badges.all()) await expect(badge).toHaveText('Actif · lien personnel')
+  const youth = catalog.locator('[data-catalog-kind=activites-jeunes]')
+  await expect(youth.locator('.fc-status')).toHaveText('À préparer')
+  await expect(youth.locator('a,button,input,textarea,select')).toHaveCount(0)
+  await expect(catalog.locator('[data-catalog-document=lettre] a')).toHaveCount(0)
+  await expect(catalog.locator('a[href*="/suivi/"],form')).toHaveCount(0)
+  const example = catalog.locator('[data-catalog-kind=contact] details')
+  await example.locator('summary').focus()
+  await page.keyboard.press('Enter')
+  await expect(example).toHaveAttribute('open', '')
+  await expect(example).toContainText('informations fictives')
+  await expect(example.locator('input,textarea,button,form')).toHaveCount(0)
+  await page.keyboard.press('Enter')
+  await expect(example).not.toHaveAttribute('open', '')
+  const publicPaths = ['/candidater/etablissement', '/candidater/formateur', '/contact', '/newsletter']
+  for (const [i, card] of (await catalog.locator('[data-public-form]').all()).entries()) {
+    const expected = `https://euneos.fr${publicPaths[i]}`
+    await expect(card.locator('[data-public-url]')).toHaveValue(expected)
+    await expect(card.locator('a')).toHaveAttribute('href', expected)
+    await expect(card.locator('a')).toHaveAttribute('rel', 'noopener noreferrer')
+    await card.locator('[data-copy-public]').click()
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), expected)
+    await expect(card.locator('[data-public-copy-feedback]')).toContainText('URL publique copiée')
+  }
+  for (const chosenKind of ['deploiement', 'participants', 'contact']) {
+    await catalog.locator(`[data-prepare-kind=${chosenKind}]`).click()
+    await expect(linkForm.locator('[name=kind]')).toHaveValue(chosenKind)
+    await expect(linkForm.locator('[name=participationId]')).toHaveValue('902')
+    await expect(linkForm.locator('[name=participationId]')).toBeFocused()
+  }
+  assert.equal(linkPosts.length, 0, 'Examples, public copies and dossier selection never issue a link')
+  await expect(page.locator('#link-url')).toHaveValue(fixture.dossiers[1].links.contact.url)
   await linkForm.locator('[name=kind]').selectOption('participants')
   await expect(linkSubmit).toHaveText('Créer le lien')
   releaseLink = new Promise((resolve) => {
@@ -579,6 +617,7 @@ try {
   })
   await linkSubmit.click()
   await expect(linkSubmit).toBeDisabled()
+  for (const button of await catalog.locator('[data-prepare-kind]').all()) await expect(button).toBeDisabled()
   await linkForm.dispatchEvent('submit')
   unlock()
   await expect(page.locator('#link-result')).toBeVisible()
@@ -606,10 +645,38 @@ try {
   )
   await expect(linkSubmit).toBeDisabled()
   await expect(page.locator('#submissions-list')).toBeHidden()
+  for (const badge of await badges.all()) await expect(badge).toHaveText('État non vérifié')
+  for (const button of await catalog.locator('[data-prepare-kind]').all()) await expect(button).toBeDisabled()
+  await expect(page.locator('#link-result')).toBeHidden()
   failRead = false
 
+  // Availability is separate from having eligible dossiers. Preview never exposes them.
+  for (const [response, label, message] of [
+    [{ enabled: true, dossiers: [], submissions: [] }, 'Actif · lien personnel', 'Aucun dossier disponible'],
+    [{ enabled: false, dossiers: [], submissions: [] }, 'Indisponible', 'momentanément indisponible'],
+    [{ enabled: false, dossiers: [], submissions: [], preview: true }, 'Aperçu · création désactivée', 'Aperçu du catalogue'],
+    [{ ...fixture, preview: true }, 'État non vérifié', 'n’ont pas pu être lus'],
+  ]) {
+    internalResponse = response
+    await page.locator('#links-refresh').click()
+    await expect(page.locator('#link-feedback')).toContainText(message)
+    for (const badge of await badges.all()) await expect(badge).toHaveText(label)
+    for (const button of await catalog.locator('[data-prepare-kind]').all()) await expect(button).toBeDisabled()
+    await expect(linkSubmit).toBeDisabled()
+    await expect(page.locator('#link-result')).toBeHidden()
+    await expect(page.locator('#link-url')).toHaveValue('')
+    await expect(linkForm.locator('[name=participationId]')).not.toContainText('École de démonstration')
+    await expect(youth.locator('.fc-status')).toHaveText('À préparer')
+    // Examples and public URLs stay usable when the private API is unavailable.
+    await example.locator('summary').click()
+    await expect(example.locator('dl')).toBeVisible()
+    await example.locator('summary').click()
+  }
+  internalResponse = undefined
+  assert.equal(linkPosts.length, 2, 'No implicit mutations from catalog or refresh states')
+
   // Real viewport checks on all four compiled pages, not CSS emulation.
-  for (const width of [320, 390, 680, 681, 768, 1024, 1440, 1920]) {
+  for (const width of [320, 390, 680, 681, 760, 761, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const route of [...routes, 'internal']) {
       if (route === 'internal') {
@@ -659,8 +726,20 @@ try {
             .map((node) => node.getAttribute('name')),
         )
       assert.deepEqual(badFields, [], `${route}: accessible input bounds at ${width}`)
+      if (route === 'internal') {
+        for (const summary of await catalog.locator('summary').all()) await summary.click()
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Open examples fit at ${width}`)
+        const smallTargets = await catalog.locator('button,a,summary').evaluateAll((nodes) => nodes.filter((node) => node.getBoundingClientRect().height < 44).map((node) => node.textContent))
+        assert.deepEqual(smallTargets, [], `Catalog tap targets at ${width}`)
+      }
       measures.push({ route, ...dimensions })
       if ([390, 1440].includes(width)) {
+        if (route === 'internal') {
+          const subject = width === 390 ? catalog.locator('[data-catalog-kind=contact]') : page.locator('#catalog-personal')
+          await subject.screenshot({ path: `${output}/catalog-${width}-examples.png` })
+          for (const summary of await catalog.locator('summary').all()) await summary.click()
+          await page.locator('#catalog-personal').screenshot({ path: `${output}/catalog-${width}-closed.png` })
+        }
         await page.evaluate(() => scrollTo(0, 0))
         await page.screenshot({ path: `${output}/${route}-${width}-top.png` })
         await page.screenshot({ path: `${output}/${route}-${width}-full.png`, fullPage: true })
@@ -702,6 +781,10 @@ try {
       'canonical euneos.fr links usable from another staff origin',
       'staff retryable label, date and actionable review reasons',
       'mobile/desktop header and field bounds',
+      'catalog examples keyboard accessible; no POST from selection or public URL copy',
+      'catalog runtime availability, disabled and preview states, no personal data in preview',
+      'youth form and letter have no misleading generic link',
+      'open catalog examples and 44px targets across ten viewport widths',
     ],
   }
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2))

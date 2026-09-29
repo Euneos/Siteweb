@@ -39,6 +39,30 @@ identifiables sont ajoutées sans supprimer les personnes déjà inscrites. Un n
 de formateur déclaré ne crée pas une mission et aucun participant n'est réputé
 formé par le simple envoi du formulaire.
 
+## Catalogue interne
+
+`/interne/formulaires` sépare les exemples fictifs, les quatre URL publiques
+réutilisables dans les guides et les liens personnels du dossier. Consulter un
+exemple, choisir un formulaire ou copier un lien existant ne crée aucun lien et
+n'envoie aucun email. Les exemples simplifiés ne remplacent pas le formulaire
+complet et ne contiennent ni jeton ni donnée de dossier.
+
+Les cartes 3 (préparer le contact), 4 (formation adultes) et le complément
+participants lisent leur disponibilité dans le GET interne existant. Une erreur
+donne « État non vérifié », une preview « création désactivée ». La disponibilité
+du service ne certifie pas l'enregistrement de toutes les réponses historiques.
+
+Le n°5 reste « À préparer » et n'offre ni URL ni génération. La clé proposée pour
+son raccordement est `activites-jeunes` (route future `/suivi/activites-jeunes`),
+à coordonner avec le chantier serveur. Ne l'activer qu'après validation du contrat,
+du stockage, du rattachement au dossier et du parcours de bout en bout. La lettre
+d'intérêt reste un document à obtenir auprès de l'équipe ; les questionnaires
+adultes pré/post/suivi/bilan n'ont pas de remplacement annoncé dans ce catalogue.
+
+La recette `bun run test:operational` vérifie le catalogue compilé, ses interactions,
+les états actif/indisponible/preview/erreur et les dix largeurs d'écran, avec des
+dossiers fictifs et des transports simulés uniquement.
+
 ## Configuration
 
 Pour les formulaires directs, `FORM_SUBMISSIONS` conserve seulement les reçus

@@ -69,6 +69,13 @@ if (app) {
   const receptionFeedback = app.querySelector<HTMLElement>('#submissions-feedback')!
   const list = app.querySelector<HTMLElement>('#submissions-list')!
   const refresh = app.querySelector<HTMLButtonElement>('#links-refresh')!
+  const choices = app.querySelectorAll<HTMLButtonElement>('[data-prepare-kind]')
+  const catalogState = (state: string, label: string) => {
+    for (const badge of app.querySelectorAll<HTMLElement>('[data-operational-state]')) {
+      badge.dataset.state = state
+      badge.textContent = label
+    }
+  }
   let pending = false,
     loading = false,
     enabled = false
@@ -86,6 +93,7 @@ if (app) {
     }).format(new Date(value))
   const lock = () => {
     dossier.disabled = kind.disabled = submit.disabled = pending || loading || !enabled
+    for (const button of choices) button.disabled = pending || loading || !enabled
   }
   function linkUrl(value: PersonalLink, chosenKind: Kind) {
     if (
@@ -133,6 +141,7 @@ if (app) {
     if (loading || pending) return
     loading = true
     enabled = false
+    catalogState('unknown', 'Vérification en cours…')
     lock()
     refresh.disabled = true
     list.hidden = true
@@ -169,6 +178,12 @@ if (app) {
         )
       )
         throw new Error('invalid response')
+      // A preview must never display a production dossier or a personal token.
+      if (
+        data.preview === true &&
+        (data.enabled || data.dossiers.length || data.submissions.length)
+      )
+        throw new Error('invalid preview response')
       dossiers = data.dossiers
       // Shared interface for the catalogue: advertise only enabled kinds.
       const selectedKind = kind.value
@@ -191,13 +206,23 @@ if (app) {
         )
       dossier.value = dossiers.some((d) => String(d.participationId) === selected) ? selected : ''
       enabled = data.enabled && dossiers.length > 0
+      catalogState(
+        data.preview ? 'preview' : data.enabled ? 'active' : 'unavailable',
+        data.preview
+          ? 'Aperçu · création désactivée'
+          : data.enabled
+            ? 'Actif · lien personnel'
+            : 'Indisponible',
+      )
       setMessage(
         feedback,
-        !data.enabled
-          ? 'La création des liens est momentanément indisponible. Les réponses déjà reçues restent consultables.'
-          : dossiers.length
-            ? 'Choisissez le dossier et le formulaire à transmettre.'
-            : 'Aucun dossier disponible pour créer un lien.',
+        data.preview
+          ? 'Aperçu du catalogue : les liens personnels se préparent depuis le site en production.'
+          : !data.enabled
+            ? 'La création des liens est momentanément indisponible. Les réponses déjà reçues restent consultables.'
+            : dossiers.length
+              ? 'Choisissez le dossier et le formulaire à transmettre.'
+              : 'Aucun dossier disponible pour créer un lien.',
       )
       list.replaceChildren()
       const submissions = [...data.submissions] as Submission[]
@@ -241,6 +266,10 @@ if (app) {
       list.hidden = submissions.length === 0
       if (enabled) showExisting()
     } catch {
+      enabled = false
+      dossiers = []
+      dossier.replaceChildren(new Option('Dossiers indisponibles', ''))
+      catalogState('unknown', 'État non vérifié')
       setMessage(feedback, 'Les dossiers n’ont pas pu être lus. Actualisez pour réessayer.', true)
       setMessage(
         receptionFeedback,
@@ -317,6 +346,32 @@ if (app) {
       copyFeedback.textContent = 'Sélectionnez puis copiez le lien ci-dessus.'
     }
   })
+  for (const button of choices) {
+    button.addEventListener('click', () => {
+      const chosenKind = button.dataset.prepareKind!
+      if (pending || loading || !enabled || !Object.hasOwn(kinds, chosenKind)) return
+      kind.value = chosenKind
+      showExisting()
+      document.querySelector('#preparer-lien')?.scrollIntoView({ block: 'start' })
+      dossier.focus({ preventScroll: true })
+    })
+  }
+  for (const card of app.querySelectorAll<HTMLElement>('[data-public-form]')) {
+    const input = card.querySelector<HTMLInputElement>('[data-public-url]')!
+    const button = card.querySelector<HTMLButtonElement>('[data-copy-public]')!
+    const status = card.querySelector<HTMLElement>('[data-public-copy-feedback]')!
+    button.disabled = false
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(input.value)
+        status.textContent = 'URL publique copiée. Elle peut être utilisée dans un guide partagé.'
+      } catch {
+        input.focus()
+        input.select()
+        status.textContent = 'Sélectionnez puis copiez l’URL publique ci-dessus.'
+      }
+    })
+  }
   form.addEventListener('change', showExisting)
   refresh.addEventListener('click', () => {
     void load()
