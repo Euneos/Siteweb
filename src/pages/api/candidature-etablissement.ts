@@ -4,6 +4,8 @@ import { aucunTexteTropLong, champsDansLesLimites, choixAutorises, donneesTexte,
 import { jeton } from '../../lib/nocodb'
 import { CandidatureError, enregistrerCandidature, submissionDatabase } from '../../lib/candidature-store'
 
+import { dispatchCandidatureMail, prepareAcknowledgement, registryEnabled, type CandidatureMailEnv } from '../../lib/candidature-mail'
+
 export const prerender = false
 
 /**
@@ -90,9 +92,15 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect(`${ROUTE}?erreur=indisponible`, 303)
   }
 
+  const mailEnv = brevoEnv(locals) as CandidatureMailEnv
+  const managedMail = registryEnabled(mailEnv) && mailEnv.CANDIDATURE_ACK_REGISTRY_ENABLED === 'true'
+  let mailId: string | undefined
   try {
     const result = await enregistrerCandidature({
       db, token, kind: 'etablissement',
+      ...(managedMail ? { beforeComplete: async (receipt: { submissionKey: string; participationId: number; schoolId: number; cohortId: number }) => {
+        mailId = await prepareAcknowledgement({ db, env: mailEnv, ...receipt, school: d.nom_etab.trim(), email: referentEmail })
+      } } : {}),
       identity: {
         nom: d.nom_etab.trim(),
         type_etab: d.type_etab,
@@ -127,13 +135,17 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
     let emailEnvoye = false
     try {
-      emailEnvoye = await envoyerEmail(brevoEnv(locals), {
+      if (managedMail) {
+        // A stopped worker leaves the durable queue available to the internal
+        // dispatch action. Never fall back to a second untracked send.
+        if (mailId) emailEnvoye = (await dispatchCandidatureMail({ db, token, env: mailEnv, id: mailId })).state === 'accepted'
+      } else emailEnvoye = await envoyerEmail(brevoEnv(locals), {
         to: referentEmail,
         subject: 'EUNEOS a bien reçu votre candidature WISE-UP',
         text: `Bonjour,\n\nLa candidature de ${d.nom_etab.trim()} au Programme WISE-UP a bien été enregistrée. Notre équipe va l’étudier et reviendra vers vous dans les prochaines semaines.\n\nEUNEOS`,
       })
     } catch (emailError) {
-      console.error('[candidature-etab-email]', emailError instanceof Error ? emailError.message : emailError)
+      console.error('[candidature-etab-email]', { managedMail, error: emailError instanceof Error ? emailError.name : 'UnknownError' })
     }
     return redirect(`${ROUTE}?ok=1${emailEnvoye ? '&email=1' : ''}`, 303)
   } catch (e) {
