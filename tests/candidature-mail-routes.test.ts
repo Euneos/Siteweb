@@ -32,6 +32,7 @@ beforeEach(() => {
     NOCODB_TOKEN: 'fake',
     BREVO_API_KEY: 'fake',
     CANDIDATURE_MAIL_REGISTRY_ENABLED: 'true',
+    CANDIDATURE_ACK_REGISTRY_ENABLED: 'true',
     CANDIDATURE_MAIL_SEND_ENABLED: 'true',
     CANDIDATURE_MAIL_OWNER: 'site',
   }
@@ -174,6 +175,18 @@ test('registry off retains old path and does not make a competing queue', async 
   expect(mailCalls()).toHaveLength(1)
   expect(sql.query('SELECT * FROM candidature_mails').all()).toHaveLength(0)
 })
+for (const acknowledgementFlag of [undefined, 'false']) {
+  test(`decision registry does not transfer acknowledgements while ACK flag is ${acknowledgementFlag}`, async () => {
+    env.CANDIDATURE_ACK_REGISTRY_ENABLED = acknowledgementFlag
+    const result = await submit()
+    expect(result.headers.get('Location')).toContain('email=1')
+    expect(mailCalls()).toHaveLength(1)
+    expect(sql.query('SELECT * FROM candidature_mails').all()).toHaveLength(0)
+    const view = await internal()
+    expect(view.status).toBe(200)
+    expect((await view.json()).enabled).toBe(true)
+  })
+}
 test('internal routes reject anonymous, trainer audience, member mutation, CSRF and preview', async () => {
   expect(
     (

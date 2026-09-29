@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   }
 
   const mailEnv = brevoEnv(locals) as CandidatureMailEnv
-  const managedMail = registryEnabled(mailEnv)
+  const managedMail = registryEnabled(mailEnv) && mailEnv.CANDIDATURE_ACK_REGISTRY_ENABLED === 'true'
   let mailId: string | undefined
   try {
     const result = await enregistrerCandidature({

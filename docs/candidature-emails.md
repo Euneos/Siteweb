@@ -28,7 +28,8 @@ par leur propriétaire ; cette livraison n'en crée aucun.
 
 ## Accusé durable
 
-Avec `CANDIDATURE_MAIL_REGISTRY_ENABLED=true`, la route publique remplace son
+Avec `CANDIDATURE_MAIL_REGISTRY_ENABLED=true` **et**
+`CANDIDATURE_ACK_REGISTRY_ENABLED=true`, la route publique remplace son
 appel Brevo direct par le registre. L'extension optionnelle `beforeComplete` du
 store prépare l'AR seulement après une **nouvelle** création NocoDB et la relecture
 de ses liens, avant de marquer le dépôt terminé. Une préparation échouée laisse
@@ -44,10 +45,10 @@ l'appel, la ligne `queued` reste reprenable par l'action interne `dispatch`.
 Si l'arrêt a lieu avant la fin du dépôt, il faut contrôler le reçu en
 `processing`/`review` et ses IDs ; aucune réparation de ces reçus n'est automatisée.
 
-La branche historique reste en place si le registre est **absent ou false**,
+La branche historique reste en place si l’un de ces deux flags est **absent ou false**,
 uniquement pour un déploiement progressif. Une fois le registre activé, une
 panne ne rebascule jamais sur l'ancien envoi. Pour suspendre ensuite les emails,
-mettre **SEND_ENABLED=false et laisser REGISTRY_ENABLED=true**.
+mettre **SEND_ENABLED=false** et laisser les deux flags du registre à **true**.
 
 ## Décision future : aperçu, confirmation et journal
 
@@ -159,7 +160,11 @@ avant activation. La consultation Brevo est limitée à la fenêtre du fournisse
    `checkRelances`), leurs éléments déjà en attente et les notifications NocoDB.
    Arrêter/vider ou exclure les envois candidats transférés avec leurs propriétaires.
    Le hook **after insert vers l'équipe** est distinct et reste à l’équipe.
-5. Activer en un déploiement coordonné :
+5. Pour livrer l’écran avant de transférer les accusés : activer
+   `CANDIDATURE_MAIL_REGISTRY_ENABLED=true` et garder
+   `CANDIDATURE_ACK_REGISTRY_ENABLED=false`. L’ancien AR du site continue.
+   Pour le transfert des nouveaux accusés, activer en un déploiement coordonné
+   `CANDIDATURE_ACK_REGISTRY_ENABLED=true`,
    `CANDIDATURE_MAIL_REGISTRY_ENABLED=true`, `CANDIDATURE_MAIL_SEND_ENABLED=false`,
    `CANDIDATURE_MAIL_OWNER=site`. Garder `CANDIDATURE_DECISION_SEND_ENABLED=false`
    jusqu’à la validation des modèles. Les nouveaux dépôts préparent alors le seul AR
@@ -176,7 +181,7 @@ avant activation. La consultation Brevo est limitée à la fenêtre du fournisse
    l'événement `delivered`. La recette réelle est distincte des mocks.
    Les lignes `queued` préexistantes exigent une lecture avant `dispatch` ; aucune
    ancienne acceptation ni accusé sans preuve ne doit être mis artificiellement en file.
-8. Suspension : SEND_ENABLED=false, garder REGISTRY_ENABLED=true et toutes les
+8. Suspension : SEND_ENABLED=false, garder REGISTRY_ENABLED=true, ACK_REGISTRY_ENABLED=true et toutes les
    tables/preuves. Ne pas revenir au code antérieur qui envoie hors registre.
    Une désactivation n'annule pas un POST fournisseur déjà parti.
 

@@ -13,6 +13,7 @@ import {
 
 export interface CandidatureMailEnv extends BrevoEnv {
   CANDIDATURE_MAIL_REGISTRY_ENABLED?: string
+  CANDIDATURE_ACK_REGISTRY_ENABLED?: string
   CANDIDATURE_MAIL_SEND_ENABLED?: string
   CANDIDATURE_MAIL_OWNER?: string
   CANDIDATURE_DECISION_SEND_ENABLED?: string
