@@ -20,8 +20,10 @@ vérification de la ligne distante. Le transport authentifié est livré dans
 
 Le récepteur `GET/POST /api/hook/google-forms` accepte uniquement **contact** et
 **déploiement**, cohorte **2**. Il reste à `410 legacy_retired` tant que son flag
-est inactif. Le v1 historique est repris avec une capture privée intégrale et une promotion
-strictement additive. Aucun service d'email n'est appelé, même au premier passage.
+est inactif. Le v1 historique reste lisible et rejouable avec ses reçus. Le v2
+permet la projection future ciblée depuis le push authentifié, après recette et
+activation distinctes. Les champs existants sont conservés ; seuls les champs
+vides compatibles peuvent être complétés. Aucun service d'email n'est appelé, même au premier passage.
 Aucun établissement, adulte, groupe ou mission n'est créé ; aucun lien distribué,
 statut de candidature ou contact maître n'est modifié.
 
@@ -42,7 +44,11 @@ n'est jamais une demande d'effacement.
 | `FORM_SUBMISSIONS` | D1 existant ; migrations `0002`, `0004`, puis nouvelle `0005_google_form_transition_captures.sql` |
 | `NOCODB_TOKEN` | nécessaire en `plan` / `apply`, inutile en `capture` |
 
-Le flag est versionné **false** dans `wrangler.toml`, production et preview.
+Le flag du récepteur est **absent de `[vars]` en production** : absence = désactivé.
+L'opérateur le gère explicitement dans l'environnement Cloudflare après recette
+(par exemple binding `secret_text` initialisé à `false`), sans valeur de production
+dans Git. La preview reste explicitement versionnée **false**. Les flags de
+collecte/projection du Worker restent également versionnés **false**.
 Les anciennes variables `GOOGLE_FORMS_SYNC_MODE=apply` ne réactivent rien.
 La preview reste interdite même avec le flag actif, car son binding historique
 pointe sur le registre de production. Recette uniquement locale avec données fictives.
@@ -56,8 +62,10 @@ Exemple fictif de sources, jamais une configuration prête à installer :
 ```
 
 Chaque couple Sheet/onglet doit être unique. Limite : 32 sources, seulement deux
-familles connues. `firstRow` définit explicitement le stock à reprendre, sans
-inférence de cohorte active ni de date de coupure. Un rapprochement validé peut
+familles connues. Cet exemple décrit le contrat historique v1. Pour la nouvelle
+projection push, chaque entrée doit utiliser le contrat v2 ci-dessous : `firstRow`
+exclut le stock, et une coupure horodatée ainsi qu’une empreinte des en-têtes sont
+obligatoires. Aucun changement automatique de cohorte. Un rapprochement validé peut
 ajouter `identityMappings: [{submitted: {name,city,postcode,referenceEmail},
 schoolId, expected: {name,city,postcode}}]` ; la fiche actuelle doit encore
 correspondre exactement aux coordonnées attendues. Un email seul ne suffit pas.
@@ -84,9 +92,10 @@ Worker se fait séparément de la publication du site.
 | `PROJECTION_START_AT` | date de coupure ISO explicite, obligatoire uniquement pour la projection |
 | `GOOGLE_FORMS_SYNC_SECRET` | secret partagé avec le récepteur, obligatoire uniquement pour la projection |
 
-Le mode push impose `PROJECTION_ENABLED=false` et refuse toute projection métier.
-Pour le transport poll uniquement, chaque source métier exige aussi `projectionFirstRow` lors de la future activation
-de la projection : seule une **nouvelle réponse de révision 1**, découverte pendant
+Le mode push accepte la projection **v2 uniquement**, avec une configuration
+explicitement validée pour chacune des deux familles. Chaque source métier exige
+`eventVersion:2`, `cohortId:2`, `mapping`, `policy` et `projectionFirstRow`.
+Seule une **nouvelle réponse de révision 1**, découverte pendant
 cette activation, à partir de cette ligne et après la date de coupure est éligible.
 Activer la projection ne reprend donc pas automatiquement les captures historiques
 ni leurs corrections. Le mode `apply` du récepteur reste une décision distincte.
@@ -132,7 +141,7 @@ Deux transports authentifiés peuvent être préparés séparément :
 
 Le push générique décrit ci-dessous est implémenté. L'alternative API avec compte
 de service ne l'est pas et n'est pas nécessaire à cette installation. Le récepteur
-v1 métier reste distinct du journal générique. En mode push, le `POST /` opérateur
+métier (v1 historique, v2 futur) reste distinct du journal générique. En mode push, le `POST /` opérateur
 est refusé : l'ingestion passe uniquement par `POST /ingest`. Une preview du site
 réussie ne valide pas à elle seule les droits Google ni le transport en exploitation.
 
@@ -156,7 +165,7 @@ n'est reformattée. Limites : 1 000 000 octets UTF-8 réellement lus, 256 colonn
 
 `POST /check` et `POST /ingest` exigent `Authorization: Bearer …` et
 `Content-Type: application/json`. Source inconnue : 403 ; corps invalide : 400 ;
-trop grand : 413 ; transport/projection incompatibles : 409. `/ingest` refuse
+trop grand : 413 ; transport incompatible : 409 ; configuration de projection incomplète : 503. `/ingest` refuse
 `ENABLED=false` avec 503. Il réutilise les reçus, curseurs, empreintes, révisions,
 reprises et verrou global existants. Aucune migration ni remise à zéro du bootstrap.
 Son budget temporel est de 45 secondes avant admission de nouveaux appels réseau,
@@ -196,7 +205,129 @@ La lecture à blanc est bornée à trois minutes pour le catalogue complet. Un d
 ou un accès refusé arrête la recette sans installer de déclencheur. Les droits et
 le fichier effectivement enregistrés dans Google restent à vérifier par l'opérateur.
 
-## Protocole v1 du récepteur
+## Projection future v2 : contrat et recette préalable
+
+Ce lot ne fournit aucune configuration réelle prête à activer. Un catalogue de
+capture sans `kind`, `mapping` et `projectionFirstRow` continue de collecter le
+brut ; il ne suffit pas à projeter. Le Worker garde ses flags **false dans Git** ;
+le récepteur de production reste **absent = désactivé**, et la preview **false**. Aucune
+migration supplémentaire n'est introduite : conserver les reçus et verrous
+existants, sans réinitialiser les tables. Le registre métier demeure limité à la
+cohorte 2, qui doit être l'unique cohorte active.
+
+Pour chaque source contact/déploiement, configurer et faire relire séparément :
+
+| Worker `SOURCES` | Récepteur `GOOGLE_FORMS_SYNC_SOURCES` |
+| --- | --- |
+| Sheet/onglet exact, `kind`, `eventVersion:2`, `cohortId:2` | mêmes identité, famille, version et cohorte |
+| `firstRow` : début de la capture brute, inchangé | `firstRow` : première **nouvelle** ligne autorisée |
+| `projectionFirstRow` : première nouvelle ligne auditée | même valeur dans `firstRow` |
+| variable `PROJECTION_START_AT` : instant ISO explicite | `projectionStartAt` : même instant |
+| `policy.headerDigest` | `headerDigest` : même empreinte |
+| `mapping`, `policy` : inventaire privé des questions | éventuels `identityMappings` privés et revus |
+
+L'empreinte est `SHA256(JSON.stringify(headers))`, en UTF-8, sur les libellés
+**exacts et ordonnés**, espaces et retours à la ligne inclus. Aucun tri ni
+normalisation pour cette empreinte. Le mapper `mapGoogleSheetRowVerified` la
+contrôle avant interprétation, puis le récepteur la vérifie indépendamment.
+Tout ajout, déplacement ou changement de libellé bloque la projection ; le
+journal brut continue de conserver les nouvelles colonnes.
+
+Un sélecteur de doublon exige libellé, occurrence **et position absolue** à partir
+de 1, par exemple `{label:"Confirmation",occurrence:2,column:16}` sur une fixture
+fictive. Aucune sélection implicite du premier/dernier doublon. Une position
+incohérente est refusée. Même avec un sélecteur explicite, des confirmations
+dupliquées contradictoires restent en revue.
+
+`policy` contient trois listes auditées, sans chevauchement :
+
+- `confirmations: [{header,answer}]` : une pour contact, deux pour déploiement ;
+  réponse publiée exacte, non vide. Une chaîne arbitrairement remplie ne vaut pas
+  confirmation.
+- `captureOnly: [header]` : questions connues conservées comme déclarations
+  brutes, sans affectation de personnes. Les colonnes remplies sont annoncées par
+  `sheetSnapshot.deferredColumns`, jamais considérées comme intégralement traitées.
+- `emptyOnly: [header]` : questions retirées. Une ancienne colonne vide est
+  compatible ; si elle contient une réponse, elle devient non mappée et bloque
+  toute projection métier. Les anciennes lignes restent hors coupure.
+
+Tout en-tête restant non mappé (même vide), absent ou ambigu bloque la promotion.
+Ne pas classer mécaniquement tous les champs inconnus en `captureOnly` pour faire
+passer le contrôle : chaque classement exige une revue métier. L'intégralité des
+cellules demeure dans le journal, y compris les participants et doublons.
+
+Le corps v2 conserve les champs du v1 et ajoute seulement `declaration` :
+
+```json
+{"version":2,"declaration":{"evaluationInterest":{"answer":"Non","level":""}}}
+```
+
+Cet extrait n'est pas un événement complet. Pour déploiement, utiliser
+`declaration: {preformation: "Oui" | "Non" | "Je vais le faire"}`. Le contact
+accepte l'intention Oui/Non/Besoin d'information selon le libellé complet du site,
+et demande le niveau uniquement sur Oui. La variante Google exacte avec
+apostrophes ASCII (`Je ne sais pas, j'ai besoin de plus d'information`) est
+convertie vers la valeur du site ; la cellule brute reste inchangée. Aucune
+normalisation approximative des choix. Un niveau fourni par Google sur Non
+reste une déclaration à revoir, sans projection de niveau. Les anciens champs de
+dates/participants du contact sont absents du mapping v2 ; aucune ancienne valeur
+NocoDB n'est effacée. Les dates du déploiement sont facultatives ensemble ; une
+paire incomplète, invalide ou hors années de cohorte reste en revue. Les modalités
+acceptées sont Présentiel/Hybride. Une combinaison de cases de préformation
+(par exemple « Oui, Non ») est refusée, sans choisir une réponse à la place du
+répondant. Les colonnes de participants retirées doivent être classées
+`emptyOnly`, même si leur ancien libellé décrit par erreur des sessions.
+
+Le rapprochement exige toujours un établissement et un dossier uniques, des
+coordonnées indépendantes du nom, une cohorte active et un dossier non clos/non
+fusionné. Une ville ou un email contradictoire ne sont jamais corrigés par
+supposition. La projection v2 peut compléter uniquement :
+
+- contact : réception de fiche, intention scientifique, niveau sur Oui ;
+- déploiement : préformation, paire de dates fournie et compatible ;
+- les champs vides de provenance formation et une entrée `googleTransitions`
+  dans les notes, en conservant les notes humaines et toutes les anciennes sources.
+
+Aucun statut de candidature/formation, adulte, mission, affectation, lien personnel
+ou contact maître n'est écrit. Les noms de formateurs et listes de participants
+restent des déclarations. Une contradiction observée sur un champ fourni bloque
+**tout** le patch ; aucun effacement ni remplacement par une valeur récente
+présumée plus fiable. Une ancienne question absente ne vaut jamais réponse vide.
+
+Le reçu d'une projection vérifiée est durable avant la mise à jour du journal.
+`complete/saved_raw_remaining` signifie que des champs sûrs ont été ajoutés, mais
+que des déclarations brutes restent à rapprocher : journal **À rapprocher**, pas
+« Repris dans le dossier ». Le même statut s'applique aux conflits/incertitudes.
+Seul `complete/saved` donne « Repris dans le dossier ». Le rejeu ne répète pas le
+PATCH métier et n'envoie aucun email.
+
+Une ligne déjà capturée avec éligibilité 0 reste inéligible après activation.
+Les corrections (révisions > 1) restent brutes. Avant toute reprise en attente,
+le Worker compare la ligne au **snapshot push courant**, même si son scan normal
+n'a pas encore découvert la modification : édition, disparition, nouvelle
+empreinte d'en-têtes ou recul hors coupure empêchent l'envoi au récepteur. Un
+payload déjà envoyé reste figé pour ses reprises exactes ; une modification du
+mapping qui changerait ce payload l'envoie en revue, sans nouvel envoi métier.
+Une écriture incertaine
+conserve le verrou partagé du dossier et nécessite une réconciliation humaine.
+
+Avant activation, relire les snapshots réels, valider chaque mapping/doublon et
+valeur de confirmation, contrôler la cohorte, faire les plans NocoDB en lecture
+seule, puis relever de nouveau l'instant de coupure et les premières lignes.
+Les bornes relevées plus tôt ne sont pas une autorisation de reprise du stock.
+Déployer/configurer séparément le récepteur en `plan`, puis organiser la bascule
+`apply` et du Worker seulement après accord opérateur. Ne pas utiliser un appel
+Worker avec projection activée comme simulation : un retour `state:plan` n'est
+pas une livraison et reste en attente. `/check` reste sans mutation et expose le
+flag réel ; le préflight GAS existant exige la projection désactivée. Le sweep
+GAS existant est compatible, sans nouvelle propriété ni modification de trigger.
+
+Arrêt de la projection : `PROJECTION_ENABLED=false` et récepteur désactivé ; la
+capture générique peut rester active. L'arrêt global de capture demeure distinct.
+Ne pas réinitialiser les reçus pour faire reprendre des réponses pendant une
+pause. Les preuves, mappings, bornes et plans réels restent hors Git.
+
+## Protocole v1 historique du récepteur
 
 `GET` authentifié renvoie `{version:1,ready:true,mode,cohortId:2,sources:n}` après
 vérification des tables locales ; aucune requête NocoDB ni écriture. `POST` accepte
@@ -239,7 +370,7 @@ source et signaler l'incident ; ne pas tronquer pour obtenir artificiellement 20
 
 `src/lib/google-form-sheet.ts` fournit un **mapper pur**, sans accès Google :
 `mapGoogleSheetRow({source,mapping,headers,values,row,revision,submittedAt,readAt})`.
-Un mapping choisit des libellés normalisés, jamais les positions de colonnes :
+En v1 historique, un mapping choisit des libellés normalisés :
 `{timestamp:'Horodateur', name:"Nom de l’établissement", start:'Début historique'}`.
 Pour un doublon, `{label:'Confirmation',occurrence:2}` désigne explicitement la
 seconde occurrence ; sans occurrence une ambiguïté est refusée. Les libellés
@@ -271,6 +402,7 @@ avec le même numéro donne `review/revision_conflict` et conserve les deux preu
 | Retour | Interprétation du sender |
 | --- | --- |
 | 200 `complete/saved` | promotion vérifiée et reçu durable ; pas de nouvel envoi |
+| 200 `complete/saved_raw_remaining` | promotion partielle vérifiée ; déclarations brutes à rapprocher, pas de nouvel envoi |
 | 200 `review/captured` | source durable en D1, **pas de promotion NocoDB** ; pas de retry automatique |
 | 200 `review/*` | preuve à traiter, conserver le reçu et remonter l'anomalie |
 | 202 `processing` | réessayer avec temporisation, même révision ; pas de reset |
@@ -291,15 +423,15 @@ vérification, arrêt du poller à la date décidée par l'équipe ; aucun TTL i
 - `capture` : stockage D1 du JSON intégral, même identité non résolue, aucun réseau
   NocoDB. `google_form_transition_captures` contient chaque contenu et son code ;
   `google_form_events` contient le reçu de la révision et le plan éventuel.
-- `apply` : même capture préalable ; rapprochement d'un unique dossier non fusionné
+- `apply`, **v1 historique** : même capture préalable ; rapprochement d'un unique dossier non fusionné
   de cohorte 2, puis promotion seulement si **aucune projection contact existante,
   aucune date, aucun statut de formation et aucune réception contact acquise**.
   La paire de dates doit être complète, valide et dans 2026–2027. Les notes humaines
   sont conservées. Le contact déclaré et les participants restent des déclarations.
 
-Une projection site, une ancienne projection Google enrichie par le site, une
-reprise manuelle ou toute valeur opérationnelle existante bloque la promotion
-entière. Elle reste byte-for-byte intacte. Une édition Google n'efface rien et ne
+En v1, une projection site, une ancienne projection Google enrichie par le site,
+une reprise manuelle ou toute valeur opérationnelle existante bloque la promotion
+entière. Le comportement v2 est décrit séparément ci-dessus. Elle reste byte-for-byte intacte. Une édition Google n'efface rien et ne
 remplace pas une donnée même plus ancienne : elle demande une revue humaine.
 Le statut HTTP 200 ne prouve donc jamais à lui seul l'intégration dans NocoDB.
 
@@ -348,7 +480,7 @@ reprend à l'exécution suivante.
 
 Une livraison au journal brut ne signifie pas qu'un dossier métier a été modifié.
 Les sources sans mapping restent **À rapprocher** ; une projection qui demande
-une revue porte le statut **À vérifier**. Le récepteur métier conserve son refus
+une revue porte également le statut **À rapprocher**. Le récepteur métier conserve son refus
 explicite des types autres que contact et déploiement. Les preuves nominatives et
 les décisions de rapprochement restent privées, hors dépôt. Les journaux doivent
 rester à accès privé, sans export public ni log de contenu.
@@ -368,8 +500,24 @@ les horodatages et un bootstrap fictif de 273 réponses réparties sur 11 source
 Le script GAS est aussi exécuté dans un bac à sable de test avec des services
 Google simulés : chaînes CSV identiques, absence de mutation au contrôle à blanc,
 rotation bornée, installation explicite et conservation des anciens déclencheurs.
-Validation locale effectuée avec le push : **699 tests réussis, 0 échec**, dont
-**56 tests Worker/GAS**,
-avec `bun run test` ; `bun run build` et le dry-run Wrangler du Worker réussissent.
+Les suites `google-form-future-sheet.test.ts` et `google-future-pipeline.test.ts`
+ajoutent la recette v2, les en-têtes figés et le parcours complet push → récepteur
+réel → faux NocoDB, avec les migrations SQL réelles dans SQLite. Exécuter
+`bun run test`, `bun run build`, le contrôle TypeScript du Worker et le dry-run
+Wrangler avant livraison.
 Ces validations utilisent des données fictives et ne font aucun appel réel à
 Google, NocoDB ou Brevo.
+
+### Taille de la configuration privée
+
+Cloudflare limite chaque variable (secrète ou non) à 5 KB. Un catalogue riche
+peut être réparti entre `SOURCES`, `SOURCES_2` et `SOURCES_3` : chaque valeur est
+un tableau JSON complet, compact, inférieur à cette limite. Les tableaux sont
+concaténés dans cet ordre et validés ensemble ; les doublons entre parties et
+une partie manquante sont refusés. Conserver les onze sources de capture et leurs
+identités. Installer le code compatible avant les parties supplémentaires et
+vérifier `/check` pour les sources de chaque partie. Le récepteur a sa propre
+configuration `GOOGLE_FORMS_SYNC_SOURCES`, à compacter également ; ne jamais
+tronquer une configuration pour passer la limite.
+
+Référence : https://developers.cloudflare.com/workers/platform/limits/#environment-variables

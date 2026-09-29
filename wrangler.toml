@@ -21,7 +21,8 @@ INTERNAL_WORKSPACE_IMPORT_PENDING = "true"
 OPERATIONAL_FORMS_ENABLED = "true"
 # Schémas NocoDB et FORM_SUBMISSIONS vérifiés avant activation en production.
 OPERATIONAL_YOUTH_ENABLED = "true"
-GOOGLE_FORMS_TRANSITION_ENABLED = "false"
+# GOOGLE_FORMS_TRANSITION_ENABLED : activation explicite via l'environnement
+# Cloudflare après recette ; absent = désactivé. Ne pas versionner la valeur prod.
 
 # Registre des formulaires directs : reçus techniques. Le raccord Google temporaire,
 # désactivé, y ajoute une capture privée des sources (docs/google-forms-sync.md).

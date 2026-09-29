@@ -8,12 +8,14 @@ import worker, {
   parseCsv,
   run,
   validateSources,
+  configuredSources,
   type Env,
   type Source,
   type PushSnapshot,
 } from '../workers/google-transition/worker'
 import type { SubmissionDatabase } from '../src/lib/candidature-store'
 import { digest } from '../src/lib/google-form-sync'
+import { futureSheet } from './fixtures/google-future'
 
 const source = (overrides: Partial<Source> = {}): Source => ({
   label: 'Formulaire fictif',
@@ -334,12 +336,14 @@ test('check is read-only while disabled, reports CSV/display differences and ref
   expect(sql.query('SELECT * FROM google_transition_runs').all()).toHaveLength(0)
   expect(calls).toHaveLength(0)
 })
-test('push requires its input mode and refuses business projection', async () => {
+test('push requires its input mode and explicit future projection configuration', async () => {
   expect((await ingest(pushed())).status).toBe(409)
   env.INPUT_MODE = 'push'
   env.PROJECTION_ENABLED = 'true'
-  expect((await ingest(pushed())).status).toBe(409)
-  expect((await ingest(pushed(), '/check')).status).toBe(409)
+  expect((await ingest(pushed())).status).toBe(503)
+  const checked = await ingest(pushed(), '/check')
+  expect(checked.status).toBe(200)
+  expect(await checked.json()).toMatchObject({ state: 'checked', projectionEnabled: true })
   expect(calls).toHaveLength(0)
   expect(ledger()).toHaveLength(0)
 })
@@ -573,7 +577,7 @@ test('projection uses actual Google timestamp, immutable payload and receipt val
   expect(event.source.readAt).not.toBe(event.source.submittedAt)
   expect(event.sheetSnapshot.headers).toEqual(headers)
   expect(event.sheetSnapshot.values).toEqual(answer())
-  expect(remote[0].statut_reprise).toBe('À vérifier')
+  expect(remote[0].statut_reprise).toBe('À rapprocher')
   expect(ledger()[0].projection_complete).toBe(1)
 })
 test('capture-first backlog, historical timestamps and corrections never become future projections', async () => {
@@ -904,4 +908,226 @@ test('projection, failed SQL and 429 rollback fit D1 budget including final rele
     .query("SELECT expires_at FROM google_transition_runs WHERE id='poll'")
     .get() as { expires_at: number }
   expect(lease.expires_at).toBe(0)
+})
+
+async function futurePush(kind: 'contact' | 'deploiement' = 'contact') {
+  const f = await futureSheet(kind)
+  projection()
+  env.INPUT_MODE = 'push'
+  const s = source({
+    kind,
+    eventVersion: 2,
+    cohortId: 2,
+    projectionFirstRow: 2,
+    mapping: f.mapping,
+    policy: f.policy,
+  })
+  env.SOURCES = JSON.stringify([s])
+  return {
+    f,
+    s,
+    snapshot: {
+      version: 1,
+      source: { spreadsheetId: s.spreadsheetId, sheetId: s.sheetId },
+      headers: f.headers,
+      rows: [f.values],
+    } as PushSnapshot,
+  }
+}
+test('authenticated v2 push projects only new rows, keeps raw status À rapprocher on partial declaration', async () => {
+  const { snapshot } = await futurePush()
+  fault = (url, init) => {
+    if (url !== 'https://euneos.fr/api/hook/google-forms') return
+    expect((init.headers as Record<string, string>)['x-google-forms-secret']).toBe(
+      env.GOOGLE_FORMS_SYNC_SECRET!,
+    )
+    const payload = JSON.parse(String(init.body))
+    expect(payload.version).toBe(2)
+    expect(payload.formation.start).toBe('')
+    expect(payload.source.submittedAt).toBe('2026-09-29T08:00:00.000Z')
+    return Response.json({
+      state: 'complete',
+      code: 'saved_raw_remaining',
+      receipt: 'a'.repeat(64),
+    })
+  }
+  expect((await ingest(snapshot)).status).toBe(200)
+  await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  expect(ledger()[0].projection_complete).toBe(1)
+  expect(remote[0].statut_reprise).toBe('À rapprocher')
+  expect(remote[0].detail_reprise).toBe('saved_raw_remaining')
+  expect(calls.every((c) => !new URL(c.url).hostname.includes('google'))).toBe(true)
+})
+test('v2 push cutover never promotes bootstrapped stock, edited stock, capture-disabled discoveries or old timestamps', async () => {
+  const { s, snapshot } = await futurePush()
+  const oldRows = Array.from({ length: 273 }, () => [...snapshot.rows[0]])
+  await seed(s, [snapshot.headers, ...oldRows])
+  s.projectionFirstRow = 275
+  env.SOURCES = JSON.stringify([s])
+  snapshot.rows = oldRows
+  snapshot.rows[0][1] = 'Historique corrigé'
+  const historical = [...oldRows[1]]
+  historical[0] = '28/09/2026 10:00:00'
+  snapshot.rows.push(historical, [...oldRows[1]])
+  for (let i = 0; i < 6; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  expect(JSON.parse(String(hooks()[0].init.body)).source.row).toBe(276)
+  expect(ledger().filter((r) => r.projection_eligible === 1)).toHaveLength(1)
+  env.PROJECTION_ENABLED = 'false'
+  snapshot.rows.push([...oldRows[1]])
+  for (let i = 0; i < 4; i++) await poll(snapshot)
+  env.PROJECTION_ENABLED = 'true'
+  for (let i = 0; i < 4; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+})
+for (const scenario of ['edited', 'deleted', 'header drift', 'later cutover', 'later first row']) {
+  test(`pending v2 snapshot evidence is rechecked before hook retry: ${scenario}`, async () => {
+    const { s, snapshot } = await futurePush()
+    fault = (url) =>
+      url === 'https://euneos.fr/api/hook/google-forms'
+        ? new Response('', { status: 503 })
+        : undefined
+    await poll(snapshot)
+    expect(hooks()).toHaveLength(1)
+    if (scenario === 'edited') snapshot.rows[0][12] = 'Oui'
+    if (scenario === 'deleted') snapshot.rows = []
+    if (scenario === 'header drift') snapshot.headers[14] = 'Question modifiée'
+    if (scenario === 'later cutover') env.PROJECTION_START_AT = '2026-09-29T09:00:00Z'
+    if (scenario === 'later first row') {
+      s.projectionFirstRow = 3
+      env.SOURCES = JSON.stringify([s])
+    }
+    clock += 120000
+    fault = null
+    await poll(snapshot)
+    expect(hooks()).toHaveLength(1)
+    expect(ledger()[0].projection_complete).toBe(1)
+    expect(JSON.parse(String(ledger()[0].projection_outcome)).state).toBe('review')
+    expect(remote[0].statut_reprise).toBe('À rapprocher')
+  })
+}
+test('v2 failed outcome persistence retries the identical request, but disabled projection stops hooks', async () => {
+  const { snapshot } = await futurePush('deploiement')
+  let failed = false
+  storeFault = (query) => {
+    if (query.startsWith('UPDATE google_transition_poller SET projection_outcome=') && !failed) {
+      failed = true
+      throw new Error('storage_unavailable')
+    }
+  }
+  await poll(snapshot)
+  const body = hooks()[0].init.body
+  expect(ledger()[0].projection_outcome).toBeNull()
+  env.PROJECTION_ENABLED = 'false'
+  clock += 120000
+  storeFault = null
+  await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  env.PROJECTION_ENABLED = 'true'
+  await poll(snapshot)
+  expect(hooks()).toHaveLength(2)
+  expect(hooks()[1].init.body).toBe(body)
+})
+test('v2 unapproved headers or populated retired field stays captured and reviewed, no hook on header drift', async () => {
+  const { snapshot } = await futurePush()
+  snapshot.headers.push('New question')
+  snapshot.rows[0].push('New answer')
+  await poll(snapshot)
+  expect(hooks()).toHaveLength(0)
+  expect(remote[0].statut_reprise).toBe('À rapprocher')
+  expect(remote[0].detail_reprise).toBe('sheet_headers_changed')
+  expect(JSON.parse(String(remote[0].reponses)).at(-1).answer).toBe('New answer')
+})
+test('push projection validates all configured business sources, not just the currently posted one', async () => {
+  const { s, snapshot } = await futurePush()
+  env.SOURCES = JSON.stringify([
+    s,
+    source({ spreadsheetId: 'fictional_other_sheet_00002', kind: 'deploiement' }),
+  ])
+  await expect(poll(snapshot)).rejects.toThrow('projection_configuration_invalid')
+  expect(calls).toHaveLength(0)
+})
+
+test('a changed private mapping cannot alter or resend a previously frozen v2 event', async () => {
+  const { s, snapshot } = await futurePush()
+  fault = (url) =>
+    url === 'https://euneos.fr/api/hook/google-forms'
+      ? new Response('', { status: 503 })
+      : undefined
+  await poll(snapshot)
+  const payload = ledger()[0].projection_payload
+  s.mapping!.contactName = 'Établissement'
+  env.SOURCES = JSON.stringify([s])
+  fault = null
+  clock += 120000
+  await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  expect(ledger()[0].projection_payload).toBe(payload)
+  expect(remote[0].detail_reprise).toBe('projection_configuration_changed')
+  expect(remote[0].statut_reprise).toBe('À rapprocher')
+})
+test('projection flag with a capture-only catalogue cannot claim configured projection', async () => {
+  const { snapshot } = await futurePush()
+  env.SOURCES = JSON.stringify([source()])
+  await expect(poll(snapshot)).rejects.toThrow('projection_configuration_invalid')
+  expect(calls).toHaveLength(0)
+})
+
+test('private source catalogue spans complete secret arrays without changing order or identity guards', () => {
+  const s1 = source(),
+    s2 = source({ spreadsheetId: 'fictional_sheet_id_00002' }),
+    s3 = source({ spreadsheetId: 'fictional_sheet_id_00003' })
+  const config = {
+    SOURCES: JSON.stringify([s1]),
+    SOURCES_2: JSON.stringify([s2]),
+    SOURCES_3: JSON.stringify([s3]),
+  }
+  expect(configuredSources(config)).toEqual([s1, s2, s3])
+  expect(configuredSources({ SOURCES: config.SOURCES })).toEqual([s1])
+  expect(() => configuredSources({ ...config, SOURCES_2: undefined })).toThrow(
+    'sources_part_missing',
+  )
+  expect(() => configuredSources({ ...config, SOURCES: '' })).toThrow('sources_part_missing')
+  expect(() => configuredSources({ ...config, SOURCES_2: config.SOURCES })).toThrow(
+    'source_duplicate',
+  )
+  expect(() => configuredSources({ ...config, SOURCES_2: '{}' })).toThrow('sources_invalid')
+})
+
+test('authenticated push accepts a source from the second private part and still journals idempotently', async () => {
+  env.INPUT_MODE = 'push'
+  const second = source({ spreadsheetId: 'fictional_sheet_id_00002' })
+  env.SOURCES_2 = JSON.stringify([second])
+  const snapshot: PushSnapshot = {
+    version: 1,
+    source: { spreadsheetId: second.spreadsheetId, sheetId: 0 },
+    headers,
+    rows: [answer()],
+  }
+  await run(
+    env,
+    {
+      fetch: fakeFetch,
+      now: () => clock,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    },
+    snapshot,
+  )
+  await run(
+    env,
+    {
+      fetch: fakeFetch,
+      now: () => clock,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    },
+    snapshot,
+  )
+  expect(remote).toHaveLength(1)
+  expect(ledger()).toHaveLength(1)
+  expect(calls.filter((c) => c.url === 'https://euneos.fr/api/hook/google-forms')).toHaveLength(0)
 })

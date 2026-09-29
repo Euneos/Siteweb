@@ -1,9 +1,11 @@
 import {
-  mapGoogleSheetRow,
+  mapGoogleSheetRowVerified,
   type SheetHeader,
   type SheetField,
+  type GoogleSheetPolicy,
 } from '../../src/lib/google-form-sheet'
 import { digest } from '../../src/lib/google-form-sync'
+import { isoTimestamp } from '../../src/lib/google-form-contact'
 import type { SubmissionDatabase } from '../../src/lib/candidature-store'
 
 export type Source = {
@@ -15,12 +17,17 @@ export type Source = {
   mapping?: Partial<Record<SheetField, SheetHeader>>
   // Audited first NEW row at future projection cutover, never the historic firstRow.
   projectionFirstRow?: number
+  eventVersion?: 2
+  cohortId?: 2
+  policy?: GoogleSheetPolicy
 }
 export type Env = {
   STATE: SubmissionDatabase
   NOCODB_TOKEN: string
   JOURNAL_TABLE: string
   SOURCES: string
+  SOURCES_2?: string
+  SOURCES_3?: string
   ENABLED: string
   PROJECTION_ENABLED: string
   RUN_SECRET: string
@@ -139,6 +146,8 @@ export function validateSources(raw: string): Source[] {
       !s.label.trim() ||
       s.label.length > 150 ||
       (s.kind !== undefined && !['contact', 'deploiement'].includes(s.kind)) ||
+      (s.eventVersion !== undefined && s.eventVersion !== 2) ||
+      (s.cohortId !== undefined && s.cohortId !== 2) ||
       (s.projectionFirstRow !== undefined &&
         (!Number.isSafeInteger(s.projectionFirstRow) || s.projectionFirstRow < s.firstRow))
     )
@@ -148,6 +157,16 @@ export function validateSources(raw: string): Source[] {
     keys.add(key)
   }
   return values
+}
+/** Each secret is a complete JSON array below Cloudflare's per-variable limit.
+ * Validate the joined catalogue too: duplicated identities across parts fail. */
+export function configuredSources(env: Pick<Env, 'SOURCES' | 'SOURCES_2' | 'SOURCES_3'>): Source[] {
+  if (typeof env.SOURCES !== 'string' || !env.SOURCES) throw new Error('sources_part_missing')
+  if (env.SOURCES_3 && !env.SOURCES_2) throw new Error('sources_part_missing')
+  const parts = [env.SOURCES, env.SOURCES_2, env.SOURCES_3]
+    .filter((part): part is string => part !== undefined)
+    .map((part) => validateSources(part))
+  return validateSources(JSON.stringify(parts.flat()))
 }
 export function answerFields(headers: string[], cells: string[]) {
   if (cells.length !== headers.length) throw new Error('csv_width_invalid')
@@ -369,7 +388,7 @@ function pushSource(env: Env, value: unknown): { source: Source; snapshot: PushS
     )
   )
     throw new Error('snapshot_invalid')
-  const source = validateSources(env.SOURCES).find(
+  const source = configuredSources(env).find(
     (s) => s.spreadsheetId === p.source.spreadsheetId && s.sheetId === p.source.sheetId,
   )
   if (!source) throw new Error('source_not_allowed')
@@ -461,7 +480,7 @@ export async function checkPush(env: Env, input: unknown, now = Date.now()) {
   return {
     state: 'checked',
     inputMode: 'push',
-    projectionEnabled: false,
+    projectionEnabled: env.PROJECTION_ENABLED === 'true',
     enabled: env.ENABLED === 'true',
     configured: !!env.NOCODB_TOKEN && /^[a-z0-9]{10,30}$/.test(env.JOURNAL_TABLE),
     matched,
@@ -494,11 +513,9 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
     throw new Error('input_mode_invalid')
   if (env.INPUT_MODE === 'push' && !input) return { state: 'push_idle' }
   if (input && env.INPUT_MODE !== 'push') throw new Error('push_disabled')
-  if (env.INPUT_MODE === 'push' && env.PROJECTION_ENABLED === 'true')
-    throw new Error('push_projection_forbidden')
   if (!/^[a-z0-9]{10,30}$/.test(env.JOURNAL_TABLE) || !env.NOCODB_TOKEN)
     throw new Error('configuration_invalid')
-  const sources = input ? [pushSource(env, input).source] : validateSources(env.SOURCES),
+  const sources = input ? [pushSource(env, input).source] : configuredSources(env),
     rt = { ...defaults, ...options },
     now = rt.now(),
     owner = crypto.randomUUID()
@@ -506,11 +523,22 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
     cutover = Date.parse(env.PROJECTION_START_AT ?? '')
   if (
     projecting &&
-    (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(env.PROJECTION_START_AT ?? '') ||
+    (!isoTimestamp(env.PROJECTION_START_AT ?? '') ||
       !Number.isFinite(cutover) ||
       !env.GOOGLE_FORMS_SYNC_SECRET ||
       env.GOOGLE_FORMS_SYNC_SECRET.length < 32 ||
-      sources.some((s) => s.kind && (!s.mapping || !s.projectionFirstRow)))
+      env.GOOGLE_FORMS_SYNC_SECRET.length > 256 ||
+      !configuredSources(env).some((s) => s.kind) ||
+      configuredSources(env).some(
+        (s) =>
+          s.kind &&
+          (!s.mapping ||
+            !s.projectionFirstRow ||
+            (env.INPUT_MODE === 'push' &&
+              (s.eventVersion !== 2 ||
+                s.cohortId !== 2 ||
+                !/^[a-f0-9]{64}$/.test(s.policy?.headerDigest ?? '')))),
+      ))
   )
     throw new Error('projection_configuration_invalid')
   const d1 = new Queries(env.STATE)
@@ -590,6 +618,23 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
       throw new Error('noco_receipt_mismatch')
     return record.Id
   }
+  async function projectionPayload(r: Receipt, s: Source, captured: Captured) {
+    const event = await mapGoogleSheetRowVerified({
+      source: { ...s, kind: s.kind!, cohortId: s.cohortId ?? 2 },
+      mapping: s.mapping!,
+      policy: s.policy,
+      headers: captured.headers,
+      values: captured.cells,
+      row: r.source_row,
+      revision: r.revision,
+      submittedAt: googleTimestamp(captured.timestamp),
+      readAt: captured.readAt,
+    })
+    const payload = JSON.stringify(event)
+    if (new TextEncoder().encode(payload).length > 32768)
+      throw new Error('projection_payload_too_large')
+    return payload
+  }
   async function deliver(r: Receipt, s: Source) {
     req.ensure(3)
     d1.ensure(deliveryQueries + 1) // leave the current source cursor durable too
@@ -656,6 +701,36 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
       if (projecting && r.projection_eligible && !r.projection_complete) {
         let outcome: Outcome | null = r.projection_outcome ? JSON.parse(r.projection_outcome) : null
         if (!outcome) {
+          if (input) {
+            // A pending receipt must agree with THIS authenticated full snapshot,
+            // before the normal scan has discovered its edit/deletion/revision.
+            const cells = input.rows[r.source_row - 2]
+            if (
+              !cells ||
+              (await digest(JSON.stringify(answerFields(input.headers, cells)))) !== r.fingerprint
+            )
+              outcome = { state: 'review', code: 'source_changed_before_projection' }
+            else if (
+              !s.kind ||
+              s.eventVersion !== 2 ||
+              s.cohortId !== 2 ||
+              r.revision !== 1 ||
+              r.source_row < s.projectionFirstRow! ||
+              Date.parse(captured.readAt) < cutover ||
+              Date.parse(googleTimestamp(captured.timestamp)) < cutover
+            )
+              outcome = { state: 'review', code: 'before_cutover' }
+            else if ((await digest(JSON.stringify(captured.headers))) !== s.policy?.headerDigest)
+              outcome = { state: 'review', code: 'sheet_headers_changed' }
+            else if (r.projection_payload) {
+              try {
+                if ((await projectionPayload(r, s, captured)) !== r.projection_payload)
+                  outcome = { state: 'review', code: 'projection_configuration_changed' }
+              } catch {
+                outcome = { state: 'review', code: 'projection_configuration_changed' }
+              }
+            }
+          }
           const latest = await d1
             .prepare(
               'SELECT MAX(revision) AS revision FROM google_transition_poller WHERE source_key=? AND source_row=?',
@@ -666,19 +741,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
             outcome = { state: 'review', code: 'source_superseded' }
           if (!outcome && !r.projection_payload) {
             try {
-              const event = mapGoogleSheetRow({
-                source: { ...s, kind: s.kind!, cohortId: 2 },
-                mapping: s.mapping!,
-                headers: captured.headers,
-                values: captured.cells,
-                row: r.source_row,
-                revision: r.revision,
-                submittedAt: googleTimestamp(captured.timestamp),
-                readAt: captured.readAt,
-              })
-              r.projection_payload = JSON.stringify(event)
-              if (new TextEncoder().encode(r.projection_payload).length > 32768)
-                throw new Error('projection_payload_too_large')
+              r.projection_payload = await projectionPayload(r, s, captured)
             } catch (e) {
               outcome = { state: 'review', code: codeOf(e) }
             }
@@ -712,7 +775,10 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
         }
         const patch = {
           Id: r.noco_id,
-          statut_reprise: outcome.state === 'complete' ? 'Repris dans le dossier' : 'À vérifier',
+          statut_reprise:
+            outcome.state === 'complete' && outcome.code === 'saved'
+              ? 'Repris dans le dossier'
+              : 'À rapprocher',
           detail_reprise: outcome.code,
         }
         await ownership()
@@ -840,7 +906,9 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
                 let eligible = false
                 if (projecting && revision === 1 && s.kind && row >= s.projectionFirstRow!) {
                   try {
-                    eligible = Date.parse(googleTimestamp(captured.timestamp)) >= cutover
+                    eligible =
+                      Date.parse(googleTimestamp(captured.timestamp)) >= cutover &&
+                      rt.now() >= cutover
                   } catch {
                     /* raw capture still required */
                   }
@@ -931,7 +999,6 @@ export async function handleRequest(request: Request, env: Env, options: Partial
   if (ingest) {
     if (request.method !== 'POST') return reply({ code: 'post_required' }, 405)
     if (env.INPUT_MODE !== 'push') return reply({ code: 'push_disabled' }, 409)
-    if (env.PROJECTION_ENABLED === 'true') return reply({ code: 'push_projection_forbidden' }, 409)
     if (path === '/ingest' && env.ENABLED !== 'true') return reply({ state: 'disabled' }, 503)
     try {
       const parsed = pushSource(env, await readPush(request)).snapshot

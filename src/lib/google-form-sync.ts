@@ -10,9 +10,13 @@ import {
 } from './google-form-contact'
 
 export interface GoogleFormEvent {
-  version: 1
+  version: 1 | 2
   kind: 'contact' | 'deploiement'
   cohortId: 2
+  declaration?: {
+    evaluationInterest?: { answer: string; level: string }
+    preformation?: string
+  }
   source: {
     spreadsheetId: string
     sheetId: number
@@ -38,6 +42,9 @@ export interface GoogleFormSource {
   kind: GoogleFormEvent['kind']
   cohortId: 2
   firstRow: number
+  eventVersion?: 2
+  projectionStartAt?: string
+  headerDigest?: string
   identityMappings?: IdentityMapping[]
 }
 export type SyncResult = {
@@ -58,6 +65,10 @@ const pick = (row: Record<string, unknown>) =>
       'date_debut_formation',
       'date_fin_formation',
       'statut_formation',
+      'statut',
+      'preformation_questionnaire',
+      'intention_evaluation_scientifique',
+      'niveau_evaluation_envisage',
       'UpdatedAt',
     ].map((k) => [k, row[k] ?? null]),
   )
@@ -68,7 +79,8 @@ export const digest = async (value: string) =>
     (x) => x.toString(16).padStart(2, '0'),
   ).join('')
 
-/** Parse the narrow v1 projection. The complete JSON is captured separately. */
+/** Legacy v1 remains replayable. V2 is a narrow Google declaration, not a site
+ * submission: unnamed/unresolved people stay raw, never inferred from a name. */
 export function parseGoogleFormEvent(value: unknown): GoogleFormEvent {
   const v = value as GoogleFormEvent
   const str = (x: unknown, max = 2000): string => {
@@ -88,7 +100,7 @@ export function parseGoogleFormEvent(value: unknown): GoogleFormEvent {
   }
   if (
     !v ||
-    v.version !== 1 ||
+    ![1, 2].includes(v.version) ||
     v.cohortId !== 2 ||
     !['contact', 'deploiement'].includes(v.kind) ||
     !v.source ||
@@ -104,9 +116,9 @@ export function parseGoogleFormEvent(value: unknown): GoogleFormEvent {
   )
     throw new Error('payload_invalid')
   const result: GoogleFormEvent = {
-    version: 1,
+    version: v.version,
     kind: v.kind,
-    cohortId: 2,
+    cohortId: v.cohortId,
     source: {
       spreadsheetId: str(v.source.spreadsheetId, 128),
       sheetId: v.source.sheetId,
@@ -142,6 +154,44 @@ export function parseGoogleFormEvent(value: unknown): GoogleFormEvent {
     Date.parse(result.source.readAt) > Date.now() + 300_000
   )
     throw new Error('payload_invalid')
+  if (v.version === 2) {
+    const d = v.declaration
+    if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('declaration_invalid')
+    if (!['Présentiel', 'Hybride'].includes(result.formation.format))
+      throw new Error('format_invalid')
+    if (v.kind === 'contact') {
+      const interest = d.evaluationInterest
+      // Exact published Google variant only; preserve its source cell/raw JSON.
+      const answer =
+        interest?.answer === "Je ne sais pas, j'ai besoin de plus d'information"
+          ? 'Je ne sais pas, j’ai besoin de plus d’information'
+          : interest?.answer
+      if (
+        Object.keys(d).some((k) => k !== 'evaluationInterest') ||
+        !interest ||
+        Object.keys(interest).some((k) => !['answer', 'level'].includes(k)) ||
+        !['Oui', 'Non', 'Je ne sais pas, j’ai besoin de plus d’information'].includes(answer ?? '')
+      )
+        throw new Error('evaluation_invalid')
+      const level = str(interest.level, 500)
+      if (answer === 'Oui' && !level) throw new Error('evaluation_level_required')
+      // Google's required "if yes" question may contain an answer even on Non.
+      // Keep it in raw evidence; no scientific meaning is inferred from it.
+      result.declaration = { evaluationInterest: { answer: answer!, level } }
+      if (result.formation.start || result.formation.end || result.participants)
+        throw new Error('removed_contact_fields')
+    } else {
+      if (
+        Object.keys(d).some((k) => k !== 'preformation') ||
+        !['Oui', 'Non', 'Je vais le faire'].includes(d.preformation ?? '')
+      )
+        throw new Error('preformation_invalid')
+      result.declaration = { preformation: d.preformation }
+      const { start, end } = result.formation
+      if (!!start !== !!end || (start && (!isoDate(start) || !isoDate(end) || end < start)))
+        throw new Error('dates_invalid')
+    }
+  }
   return result
 }
 export function parseGoogleFormSources(value: string): GoogleFormSource[] {
@@ -159,6 +209,9 @@ export function parseGoogleFormSources(value: string): GoogleFormSource[] {
         !Number.isSafeInteger(x.firstRow) ||
         x.firstRow < 2 ||
         x.cohortId !== 2 ||
+        (x.eventVersion !== undefined && x.eventVersion !== 2) ||
+        (x.eventVersion === 2 && (!x.projectionStartAt || !isoTimestamp(x.projectionStartAt))) ||
+        (x.eventVersion === 2 && !/^[a-f0-9]{64}$/.test(x.headerDigest ?? '')) ||
         !['contact', 'deploiement'].includes(x.kind),
     ) ||
     new Set(a.map((x) => `${x.spreadsheetId}:${x.sheetId}`)).size !== a.length
@@ -221,7 +274,10 @@ export function matchSchool(
     )
     if (school.length !== 1) return null
     const targets = dossiers.filter(
-      (x) => x.etablissements_id === m.schoolId && x.cohortes_id === 2 && x.fusionne_vers == null,
+      (x) =>
+        x.etablissements_id === m.schoolId &&
+        x.cohortes_id === event.cohortId &&
+        x.fusionne_vers == null,
     )
     return targets.length === 1 ? targets[0] : null
   }
@@ -235,14 +291,18 @@ export function matchSchool(
   )
   if (matches.length !== 1) return null
   const targets = dossiers.filter(
-    (x) => x.etablissements_id === matches[0].Id && x.cohortes_id === 2 && x.fusionne_vers == null,
+    (x) =>
+      x.etablissements_id === matches[0].Id &&
+      x.cohortes_id === event.cohortId &&
+      x.fusionne_vers == null,
   )
   return targets.length === 1 ? targets[0] : null
 }
 
 /** Fill an empty operational projection only. Existing site/human/Google values
  * always require review, even if a later Google revision claims to supersede them. */
-export function projectGoogleForm(event: GoogleFormEvent, target: Row) {
+export function projectGoogleForm(event: GoogleFormEvent, target: Row, cohort?: Row) {
+  if (event.version === 2) return projectFutureGoogleForm(event, target, cohort)
   if (target.notes != null && typeof target.notes !== 'string') throw new Error('notes_invalid')
   const notes = String(target.notes ?? '')
   if (notes.length > 160_000) throw new Error('notes_invalid')
@@ -312,6 +372,163 @@ export function projectGoogleForm(event: GoogleFormEvent, target: Row) {
   }
 }
 
+/** Current declarations fill empty fields only. Never promote status, people,
+ * missions or an existing source projection; retain both raw journals on review. */
+function projectFutureGoogleForm(event: GoogleFormEvent, target: Row, cohort?: Row) {
+  const issues: string[] = [],
+    patch: Record<string, unknown> = {}
+  const data = event.declaration!
+  if (
+    !cohort ||
+    cohort.Id !== event.cohortId ||
+    ![true, 1].includes(cohort.active as boolean | number)
+  )
+    return { patch, issues: ['cohort_inactive'] }
+  if (
+    /^(abandonne|abandonnee|annule|annulee|refuse|refusee|archive|archivee)$/.test(
+      normalise(target.statut),
+    )
+  )
+    return { patch, issues: ['target_inactive'] }
+  if (target.notes != null && typeof target.notes !== 'string') throw new Error('notes_invalid')
+  const notes = String(target.notes ?? '')
+  if (notes.length > 160_000) throw new Error('notes_capacity')
+  const old = readContact(notes)
+  if (
+    old?.formation.issues.length ||
+    (Array.isArray(old?.operationalReview) && old.operationalReview.length)
+  )
+    return { patch, issues: ['pending_team_review'] }
+  const projection: ContactProjection = old
+    ? structuredClone(old)
+    : {
+        version: 1,
+        source: {
+          spreadsheetId: event.source.spreadsheetId,
+          sheetId: event.source.sheetId,
+          rows: [event.source.row],
+          readAt: event.source.readAt,
+          revision: event.source.revision,
+        },
+        receivedAt: null,
+        formation: {
+          start: null,
+          end: null,
+          kind: event.kind === 'contact' ? 'previsionnelle' : 'deploiement',
+          format: '',
+          planning: '',
+          issues: [],
+        },
+        declaredTrainers: [],
+        participants: { declared: '', unresolved: [], importedCount: 0 },
+      }
+  const fill = (key: string, value: unknown) => {
+    if (value == null || value === '') return
+    const prior = target[key]
+    if (
+      prior == null ||
+      prior === '' ||
+      (key === 'fiche_contact_recue' && [false, 0].includes(prior as boolean | number))
+    )
+      patch[key] = value
+    else if (prior !== value && !(key === 'fiche_contact_recue' && prior === 1 && value === true))
+      issues.push(
+        key === 'date_debut_formation' || key === 'date_fin_formation'
+          ? 'dates_conflict'
+          : 'declaration_conflict',
+      )
+  }
+  if (event.kind === 'contact') {
+    fill('fiche_contact_recue', true)
+    fill('intention_evaluation_scientifique', data.evaluationInterest!.answer)
+    if (data.evaluationInterest!.answer === 'Oui')
+      fill('niveau_evaluation_envisage', data.evaluationInterest!.level)
+    else if (target.niveau_evaluation_envisage) issues.push('declaration_conflict')
+    projection.receivedAt ??= event.source.submittedAt
+  } else {
+    fill('preformation_questionnaire', data.preformation)
+    const { start, end } = event.formation
+    if (start || end) {
+      const years = [Number(cohort.annee_debut), Number(cohort.annee_fin)]
+      if (
+        !years.every(Number.isInteger) ||
+        years[0] < 2000 ||
+        years[1] < years[0] ||
+        [start, end].some(
+          (d) => Number(d.slice(0, 4)) < years[0] || Number(d.slice(0, 4)) > years[1],
+        )
+      )
+        issues.push('dates_outside_cohort')
+      fill('date_debut_formation', start)
+      fill('date_fin_formation', end)
+    }
+  }
+  for (const key of ['start', 'end', 'format', 'planning'] as const) {
+    const value = event.formation[key],
+      prior = projection.formation[key]
+    if (!value) continue
+    if (!prior) projection.formation[key] = value
+    else if (prior !== value)
+      issues.push(
+        key === 'start' || key === 'end' ? 'source_dates_conflict' : 'source_declaration_conflict',
+      )
+  }
+  if (issues.length) return { patch: {}, issues: [...new Set(issues)] }
+  const history = projection.googleTransitions
+  if (history !== undefined && (!Array.isArray(history) || history.length >= 50))
+    throw new Error('notes_capacity')
+  projection.googleTransitions = [
+    ...(Array.isArray(history) ? history : []),
+    {
+      version: 2,
+      kind: event.kind,
+      source: event.source,
+      declaration: data,
+      contact: event.contact,
+      formation: event.formation,
+      declaredTrainer: event.declaredTrainer,
+      participants: event.participants,
+    },
+  ]
+  // Trainer names remain declarations inside the source history, never missions.
+  patch.notes = writeContact(notes, projection)
+  if (String(patch.notes).length > 160_000) throw new Error('notes_capacity')
+  return { patch, issues }
+}
+
+/** The receiver enforces its own future boundary, independently of its caller. */
+async function futureBoundary(input: GoogleFormInput): Promise<string | null> {
+  const e = input.event,
+    s = input.sourceConfig
+  if (e.version !== 2 && s?.eventVersion !== 2) return null
+  if (
+    !s ||
+    s.eventVersion !== 2 ||
+    e.version !== 2 ||
+    !Number.isSafeInteger(s.firstRow) ||
+    s.firstRow < 2 ||
+    !s.projectionStartAt ||
+    !isoTimestamp(s.projectionStartAt) ||
+    !/^[a-f0-9]{64}$/.test(s.headerDigest ?? '') ||
+    e.cohortId !== s.cohortId ||
+    e.kind !== s.kind ||
+    e.source.spreadsheetId !== s.spreadsheetId ||
+    e.source.sheetId !== s.sheetId
+  )
+    return 'future_configuration_required'
+  if (e.source.revision !== 1) return 'edited_response'
+  if (
+    e.source.row < s.firstRow ||
+    Date.parse(e.source.submittedAt) < Date.parse(s.projectionStartAt) ||
+    Date.parse(e.source.readAt) < Date.parse(s.projectionStartAt)
+  )
+    return 'before_cutover'
+  const snapshot = JSON.parse(input.rawPayload ?? JSON.stringify(input.event)).sheetSnapshot
+  if (!snapshot || (await digest(JSON.stringify(snapshot.headers))) !== s.headerDigest)
+    return 'sheet_headers_changed'
+  return null
+}
+
 /** Stable object order, including unmapped fields; array order remains meaningful. */
 function canonical(value: unknown, depth = 0): string {
   if (depth > 64) throw new Error('payload_too_deep')
@@ -350,7 +567,8 @@ export function validateGoogleFormPayload(input: GoogleFormInput) {
   const comparable = { ...parsed, source: { ...parsed.source } }
   delete comparable.source.readAt
   const known = JSON.parse(JSON.stringify(event))
-  let sheetUnmapped = false
+  let sheetUnmapped = false,
+    deferred = false
   if (Object.hasOwn(parsed, 'sheetSnapshot')) {
     const snapshot = parsed.sheetSnapshot
     // Narrow optional evidence envelope. No business mapping is inferred here.
@@ -373,15 +591,27 @@ export function validateGoogleFormPayload(input: GoogleFormInput) {
           c <= snapshot.headers.length,
       ) ||
       !Array.isArray(snapshot.missingFields) ||
-      !snapshot.missingFields.every((f: unknown) => typeof f === 'string')
+      !snapshot.missingFields.every((f: unknown) => typeof f === 'string') ||
+      (snapshot.deferredColumns !== undefined &&
+        (event.version !== 2 ||
+          !Array.isArray(snapshot.deferredColumns) ||
+          !snapshot.deferredColumns.every(
+            (c: unknown) =>
+              typeof c === 'number' &&
+              Number.isSafeInteger(c) &&
+              c >= 1 &&
+              c <= snapshot.headers.length,
+          )))
     )
       throw new Error('sheet_snapshot_invalid')
     sheetUnmapped =
       !!snapshot.unmappedColumns.length ||
       !!snapshot.missingFields.length ||
       Object.keys(snapshot).some(
-        (k) => !['headers', 'values', 'unmappedColumns', 'missingFields'].includes(k),
+        (k) =>
+          !['headers', 'values', 'unmappedColumns', 'missingFields', 'deferredColumns'].includes(k),
       )
+    deferred = !!snapshot.deferredColumns?.length
     known.sheetSnapshot = snapshot
   }
   const extra = (o: Record<string, unknown>, reference: Record<string, unknown>): boolean =>
@@ -399,12 +629,30 @@ export function validateGoogleFormPayload(input: GoogleFormInput) {
     source,
     hashInput: canonical(comparable),
     unmapped: sheetUnmapped || extra(parsed, known),
+    deferred:
+      event.version === 2 &&
+      (deferred ||
+        !!event.declaredTrainer ||
+        !!event.participants ||
+        (event.declaration?.evaluationInterest?.answer !== 'Oui' &&
+          !!event.declaration?.evaluationInterest?.level)),
   }
 }
 
 async function resolve(token: string, event: GoogleFormEvent, sourceConfig?: GoogleFormSource) {
-  const cohorts = await lireToutes(token, 'cohortes', 'Id')
-  if (!cohorts.some((x) => x.Id === 2)) return { target: null, code: 'cohort_missing' }
+  const cohorts = await lireToutes(
+    token,
+    'cohortes',
+    event.version === 2 ? 'Id,active,annee_debut,annee_fin' : 'Id',
+  )
+  const cohort = cohorts.find((x) => x.Id === event.cohortId)
+  if (!cohort) return { target: null, code: 'cohort_missing' }
+  if (
+    event.version === 2 &&
+    (![true, 1].includes(cohort.active as boolean | number) ||
+      cohorts.filter((c) => c.active === true || c.active === 1).length !== 1)
+  )
+    return { target: null, code: 'cohort_inactive' }
   const schools = await lireToutes(token, 'etablissements', 'Id,nom,ville,cp,referent_email')
   const dossiers = await lireToutes(
     token,
@@ -412,24 +660,26 @@ async function resolve(token: string, event: GoogleFormEvent, sourceConfig?: Goo
     'Id,etablissements_id,cohortes_id,fusionne_vers',
   )
   const target = matchSchool(event, schools, dossiers, sourceConfig?.identityMappings)
-  return { target, code: target ? 'ready' : 'identity_unresolved' }
+  return { target, cohort, code: target ? 'ready' : 'identity_unresolved' }
 }
 const sameTarget = (row: Record<string, unknown>, target: Row) =>
   row.Id === target.Id &&
   row.etablissements_id === target.etablissements_id &&
-  row.cohortes_id === 2 &&
+  row.cohortes_id === target.cohortes_id &&
   row.fusionne_vers == null
 
 /** Authenticated read-only preview; no capture, receipt, lock or remote mutation. */
 export async function planGoogleForm(input: GoogleFormInput & { token: string }) {
-  const { event, unmapped } = validateGoogleFormPayload(input)
+  const { event, unmapped, deferred } = validateGoogleFormPayload(input)
+  const excluded = await futureBoundary(input)
+  if (excluded) return { state: 'plan', code: excluded }
   if (unmapped) return { state: 'plan', code: 'unmapped_fields' }
-  const { target, code } = await resolve(input.token, event, input.sourceConfig)
+  const { target, code, cohort } = await resolve(input.token, event, input.sourceConfig)
   if (!target) return { state: 'plan', code }
   const before = (await lireEnregistrement(input.token, 'participations', target.Id)) as Row
   if (!sameTarget(before, target)) return { state: 'plan', code: 'target_changed' }
   try {
-    const { patch, issues } = projectGoogleForm(event, before)
+    const { patch, issues } = projectGoogleForm(event, before, cohort)
     return {
       state: 'plan',
       code: issues[0] ?? 'ready',
@@ -437,6 +687,7 @@ export async function planGoogleForm(input: GoogleFormInput & { token: string })
       before: pick(before),
       patch,
       issues,
+      deferred,
     }
   } catch {
     return { state: 'plan', code: 'notes_invalid' }
@@ -451,7 +702,7 @@ export async function syncGoogleForm(
   },
 ): Promise<SyncResult> {
   const { db } = input
-  const { event, raw, source, hashInput, unmapped } = validateGoogleFormPayload(input)
+  const { event, raw, source, hashInput, unmapped, deferred } = validateGoogleFormPayload(input)
   const sourceKey = await digest(JSON.stringify([source.spreadsheetId, source.sheetId, source.row]))
   // Separate receipts from the retired implementation: no legacy success can
   // acknowledge a transition event without storing its complete source.
@@ -480,12 +731,21 @@ export async function syncGoogleForm(
   const changed = await db
     .prepare(
       `INSERT INTO google_form_events
-    (event_key,source_key,source_revision,payload_hash,source_at,kind,cohort_id,state,code,payload) VALUES (?,?,?,?,?,?,2,'processing','checking',?)
+    (event_key,source_key,source_revision,payload_hash,source_at,kind,cohort_id,state,code,payload) VALUES (?,?,?,?,?,?,?,'processing','checking',?)
     ON CONFLICT(event_key) DO UPDATE SET state='processing',code='checking',updated_at=CURRENT_TIMESTAMP
     WHERE google_form_events.payload_hash=excluded.payload_hash AND (google_form_events.state='retryable'
       OR (google_form_events.state='review' AND google_form_events.code IN ('captured','identity_unresolved','notes_invalid')))`,
     )
-    .bind(key, sourceKey, source.revision, payloadHash, source.submittedAt, event.kind, raw)
+    .bind(
+      key,
+      sourceKey,
+      source.revision,
+      payloadHash,
+      source.submittedAt,
+      event.kind,
+      event.cohortId,
+      raw,
+    )
     .run()
   if (!changed.meta.changes) {
     const r = await db
@@ -538,6 +798,8 @@ export async function syncGoogleForm(
     return result(state, code)
   }
   try {
+    const excluded = await futureBoundary(input)
+    if (excluded) return await finish('review', excluded)
     // Any observed newer version makes an older one ineligible, including a
     // captured/unresolved/processing revision, not only completed writes.
     const newer = await db
@@ -605,7 +867,7 @@ export async function syncGoogleForm(
     if (!sameTarget(before, target)) return await finish('review', 'target_changed')
     let plan: ReturnType<typeof projectGoogleForm>
     try {
-      plan = projectGoogleForm(event, before)
+      plan = projectGoogleForm(event, before, resolved.cohort)
     } catch {
       return await finish('review', 'notes_invalid')
     }
@@ -650,7 +912,7 @@ export async function syncGoogleForm(
       )
     )
       throw new Error('readback_failed')
-    return await finish('complete', 'saved')
+    return await finish('complete', deferred ? 'saved_raw_remaining' : 'saved')
   } catch {
     if (writing) {
       // Never retry/expire an uncertain write; site submissions share this lock.

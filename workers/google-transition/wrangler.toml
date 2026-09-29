@@ -9,9 +9,11 @@ PROJECTION_ENABLED = "false"
 INPUT_MODE = "push"
 # Set INPUT_MODE="push" for the authenticated Apps Script transport. In push
 # mode cron is inert, /ingest accepts one complete source, /check is read-only,
-# and PROJECTION_ENABLED must stay false. ENABLED still gates all ingestion.
-# Future projection requires an explicit ISO cutover AND projectionFirstRow per
-# contact/deploiement source. Previously captured rows and all revisions >1 stay
+# ENABLED still gates all ingestion. Future push projection requires eventVersion=2,
+# cohortId=2, audited mapping/policy (pinned headerDigest and duplicate columns),
+# an explicit ISO cutover AND projectionFirstRow per contact/deploiement source.
+# The receiver independently requires the same cutover, firstRow and headerDigest.
+# Previously captured rows and all revisions >1 stay
 # capture-only. Never enable the projection flag merely to replay the backlog.
 # PROJECTION_START_AT = "..."
 
@@ -27,6 +29,8 @@ database_id = "cd011a86-8198-4348-b652-aa09ca245d11"
 enabled = true
 
 # Secrets: NOCODB_TOKEN, JOURNAL_TABLE, SOURCES, RUN_SECRET,
+# Optional SOURCES_2 / SOURCES_3: complete JSON arrays, joined in this order.
+# Keep each secret below 5 KB; validate the combined catalogue before installing.
 # GOOGLE_FORMS_SYNC_SECRET (only needed when projection is enabled).
 # Optional INGEST_SECRET separates /ingest and /check from the operator secret;
 # without it they use RUN_SECRET. Never configure a Google user token here.

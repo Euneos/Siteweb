@@ -14,9 +14,21 @@ import {
   CONTACT_CLOSE,
 } from '../src/lib/google-form-contact'
 import { POST, GET } from '../src/pages/api/hook/google-forms'
+import { futureSheet } from './fixtures/google-future'
+import { mapGoogleSheetRowVerified } from '../src/lib/google-form-sheet'
 const savedFetch = globalThis.fetch
 const secret = 'fictional-local-test-secret-000000000000'
-let sql, db, schools, targets, patches, loseResponse, dropPatch, readFailure, concurrent, gets
+let sql,
+  db,
+  schools,
+  targets,
+  patches,
+  loseResponse,
+  dropPatch,
+  readFailure,
+  concurrent,
+  gets,
+  cohorts
 const event = (overrides = {}) => ({
   version: 1,
   kind: 'contact',
@@ -72,6 +84,7 @@ beforeEach(() => {
       referent_email: 'fiction@example.invalid',
     },
   ]
+  cohorts = [{ Id: 2, active: true, annee_debut: 2026, annee_fin: 2027 }]
   targets = [
     {
       Id: 7,
@@ -112,7 +125,7 @@ beforeEach(() => {
     if (readFailure) throw new Error('offline')
     const rows =
       parts[4] === NC.tables.cohortes
-        ? [{ Id: 2 }]
+        ? cohorts
         : parts[4] === NC.tables.etablissements
           ? schools
           : targets
@@ -619,4 +632,226 @@ test('invalid snapshot and pathological nesting rejected as payload error before
     (await POST({ request: request({ ...event(), unknown: nested }), locals: env() })).status,
   ).toBe(400)
   expect(captures()).toHaveLength(0)
+})
+
+async function currentInput(kind = 'contact') {
+  const f = await futureSheet(kind)
+  f.source.spreadsheetId = 'fictional_sheet_id'
+  const e = await mapGoogleSheetRowVerified(f)
+  return {
+    db,
+    token: 'fake',
+    mode: 'apply',
+    sourceConfig: f.source,
+    event: parseGoogleFormEvent(e),
+    rawPayload: JSON.stringify(e),
+  }
+}
+test('v2 contact fills scientific declaration while preserving earlier site dates, status, people and notes', async () => {
+  Object.assign(targets[0], projectGoogleForm(event(), targets[0]).patch)
+  targets[0].notes += '\nNote ajoutée par équipe'
+  targets[0].statut = 'En cours'
+  const before = structuredClone(targets[0]),
+    old = readContact(before.notes)
+  const input = await currentInput()
+  expect(await syncGoogleForm(input)).toMatchObject({ state: 'complete', code: 'saved' })
+  const p = readContact(targets[0].notes)
+  expect(p.formation).toEqual(old.formation)
+  expect(p.declaredTrainers).toEqual(old.declaredTrainers)
+  expect(p.participants).toEqual(old.participants)
+  expect(p.googleTransitions).toHaveLength(1)
+  expect(targets[0].notes.startsWith(' Note humaine\n')).toBe(true)
+  expect(targets[0].notes.endsWith('\nNote ajoutée par équipe')).toBe(true)
+  expect(targets[0].date_debut_formation).toBe(before.date_debut_formation)
+  expect(targets[0].statut_formation).toBe(before.statut_formation)
+  expect(Object.keys(patches[0]).sort()).toEqual([
+    'Id',
+    'intention_evaluation_scientifique',
+    'notes',
+  ])
+  const replay = JSON.parse(input.rawPayload)
+  replay.source.readAt = '2026-09-29T09:00:00Z'
+  expect(
+    (await syncGoogleForm({ ...input, event: replay, rawPayload: JSON.stringify(replay) })).state,
+  ).toBe('complete')
+  expect(patches).toHaveLength(1)
+})
+test('v2 deployment fills only empty dates and preformation, never training/application status', async () => {
+  const input = await currentInput('deploiement'),
+    raw = JSON.parse(input.rawPayload)
+  raw.formation.start = '2026-10-06'
+  raw.formation.end = '2026-10-07'
+  raw.declaredTrainer = 'Nom textuel ambigu'
+  raw.participants = 'Adultes non résolus'
+  input.event = raw
+  input.rawPayload = JSON.stringify(raw)
+  targets[0].statut_formation = 'Prévisionnelle'
+  expect(await syncGoogleForm(input)).toMatchObject({
+    state: 'complete',
+    code: 'saved_raw_remaining',
+  })
+  expect(targets[0].date_debut_formation).toBe('2026-10-06')
+  expect(targets[0].preformation_questionnaire).toBe('Je vais le faire')
+  expect(targets[0].fiche_contact_recue).toBe(false)
+  expect(targets[0].statut_formation).toBe('Prévisionnelle')
+  const p = readContact(targets[0].notes)
+  expect(p.declaredTrainers).toEqual([])
+  expect(p.participants.importedCount).toBe(0)
+  expect(p.googleTransitions[0].participants).toBe('Adultes non résolus')
+  expect(locks()).toHaveLength(0)
+})
+test('v2 deployment without dates preserves existing dates and projection, stores preformation', async () => {
+  Object.assign(targets[0], projectGoogleForm(event(), targets[0]).patch)
+  const input = await currentInput('deploiement')
+  // Same declared planning as the prior source; no silent source conflict.
+  const raw = JSON.parse(input.rawPayload)
+  raw.formation.planning = '5 séances'
+  input.event = raw
+  input.rawPayload = JSON.stringify(raw)
+  expect((await syncGoogleForm(input)).state).toBe('complete')
+  expect(targets[0].date_debut_formation).toBe('2026-10-01')
+  expect(targets[0].date_fin_formation).toBe('2027-01-10')
+  expect(patches[0]).not.toHaveProperty('date_debut_formation')
+  expect(targets[0].preformation_questionnaire).toBe('Je vais le faire')
+})
+for (const scenario of [
+  'date',
+  'scientific choice',
+  'preformation',
+  'closed',
+  'cohort inactive',
+  'cohort ambiguous',
+]) {
+  test(`v2 conflicting or inactive target is fully preserved: ${scenario}`, async () => {
+    const kind = ['date', 'preformation'].includes(scenario) ? 'deploiement' : 'contact'
+    const input = await currentInput(kind),
+      raw = JSON.parse(input.rawPayload)
+    if (scenario === 'date') {
+      targets[0].date_debut_formation = '2026-10-05'
+      raw.formation.start = '2026-10-06'
+      raw.formation.end = '2026-10-07'
+    }
+    if (scenario === 'scientific choice') targets[0].intention_evaluation_scientifique = 'Oui'
+    if (scenario === 'preformation') targets[0].preformation_questionnaire = 'Oui'
+    if (scenario === 'closed') targets[0].statut = 'Abandonné'
+    if (scenario === 'cohort inactive') cohorts[0].active = false
+    if (scenario === 'cohort ambiguous') cohorts.push({ Id: 3, active: true })
+    const before = structuredClone(targets)
+    expect(
+      (await syncGoogleForm({ ...input, event: raw, rawPayload: JSON.stringify(raw) })).state,
+    ).toBe('review')
+    expect(targets).toEqual(before)
+    expect(patches).toHaveLength(0)
+    expect(captures()).toHaveLength(1)
+    expect(locks()).toHaveLength(0)
+  })
+}
+for (const scenario of [
+  'missing config',
+  'before row',
+  'before date',
+  'edited',
+  'headers changed',
+]) {
+  test(`v2 receiver independently excludes ${scenario} without Noco requests`, async () => {
+    const input = await currentInput()
+    if (scenario === 'missing config') delete input.sourceConfig
+    if (scenario === 'before row') input.sourceConfig.firstRow = 3
+    if (scenario === 'before date') input.sourceConfig.projectionStartAt = '2026-09-29T09:00:00Z'
+    if (scenario === 'headers changed') input.sourceConfig.headerDigest = '0'.repeat(64)
+    if (scenario === 'edited') {
+      const raw = JSON.parse(input.rawPayload)
+      raw.source.revision = 2
+      input.event = raw
+      input.rawPayload = JSON.stringify(raw)
+    }
+    globalThis.fetch = () => {
+      throw new Error('no_network_expected')
+    }
+    const result = await syncGoogleForm(input)
+    expect(result.state).toBe('review')
+    expect(result.code).not.toBe('read_failed')
+    expect(patches).toHaveLength(0)
+    expect(locks()).toHaveLength(0)
+  })
+}
+test('v2 unknown question blocks entire business patch, known deferred question is explicit on receipt', async () => {
+  const input = await currentInput(),
+    raw = JSON.parse(input.rawPayload)
+  raw.sheetSnapshot.unmappedColumns = [15]
+  expect(
+    (await syncGoogleForm({ ...input, event: raw, rawPayload: JSON.stringify(raw) })).code,
+  ).toBe('unmapped_fields')
+  expect(patches).toHaveLength(0)
+  const next = await currentInput(),
+    other = JSON.parse(next.rawPayload)
+  other.source.row = 3
+  other.sheetSnapshot.deferredColumns = [15]
+  other.sheetSnapshot.values[14] = 'Information à rapprocher'
+  expect(
+    await syncGoogleForm({ ...next, event: other, rawPayload: JSON.stringify(other) }),
+  ).toMatchObject({ state: 'complete', code: 'saved_raw_remaining' })
+})
+test('v2 lost remote response leaves durable review lock and never repeats business PATCH', async () => {
+  const input = await currentInput()
+  loseResponse = true
+  expect(await syncGoogleForm(input)).toMatchObject({ state: 'review', code: 'write_uncertain' })
+  expect(locks()).toHaveLength(1)
+  loseResponse = false
+  expect((await syncGoogleForm(input)).code).toBe('write_uncertain')
+  expect(patches).toHaveLength(1)
+})
+test('v2 endpoint authenticated plan performs no writes and capture is never promoted by caller', async () => {
+  const input = await currentInput(),
+    locals = env()
+  locals.runtime.env.GOOGLE_FORMS_SYNC_SOURCES = JSON.stringify([input.sourceConfig])
+  locals.runtime.env.GOOGLE_FORMS_TRANSITION_MODE = 'plan'
+  const response = await POST({ request: request(JSON.parse(input.rawPayload)), locals })
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ state: 'plan', code: 'ready' })
+  expect(patches).toHaveLength(0)
+  expect(rows()).toHaveLength(0)
+  expect(captures()).toHaveLength(0)
+  locals.runtime.env.GOOGLE_FORMS_TRANSITION_MODE = 'capture'
+  expect(
+    await (await POST({ request: request(JSON.parse(input.rawPayload)), locals })).json(),
+  ).toMatchObject({ state: 'review', code: 'captured' })
+  expect(patches).toHaveLength(0)
+})
+
+test('v2 Non cannot contradict an existing scientific level or clear it', async () => {
+  const input = await currentInput()
+  targets[0].niveau_evaluation_envisage = '6e'
+  expect((await syncGoogleForm(input)).code).toBe('declaration_conflict')
+  expect(patches).toHaveLength(0)
+  expect(targets[0].niveau_evaluation_envisage).toBe('6e')
+})
+test('v2 observes shared site lock and a human change before PATCH', async () => {
+  const input = await currentInput()
+  sql
+    .query('INSERT INTO operational_submission_locks(target_id,link_hash) VALUES(?,?)')
+    .run(7, 'site-receipt')
+  expect((await syncGoogleForm(input)).code).toBe('target_busy')
+  expect(patches).toHaveLength(0)
+  sql.query('DELETE FROM operational_submission_locks WHERE target_id=?').run(7)
+  concurrent = true
+  expect((await syncGoogleForm(input)).code).toBe('concurrent_change')
+  expect(patches).toHaveLength(0)
+  expect(targets[0].notes).toBe('New human edit')
+})
+
+test('production receiver activation is external; absent stays off, preview and Worker remain explicitly off', async () => {
+  const config = Bun.TOML.parse(readFileSync(new URL('../wrangler.toml', import.meta.url), 'utf8'))
+  const workerConfig = Bun.TOML.parse(
+    readFileSync(new URL('../workers/google-transition/wrangler.toml', import.meta.url), 'utf8'),
+  )
+  expect(Object.hasOwn(config.vars, 'GOOGLE_FORMS_TRANSITION_ENABLED')).toBe(false)
+  expect(config.env.preview.vars.GOOGLE_FORMS_TRANSITION_ENABLED).toBe('false')
+  expect(workerConfig.vars.ENABLED).toBe('false')
+  expect(workerConfig.vars.PROJECTION_ENABLED).toBe('false')
+  const locals = { runtime: { env: config.vars } }
+  expect((await GET({ request: request(), locals })).status).toBe(410)
+  expect((await POST({ request: request(), locals })).status).toBe(410)
+  expect(rows()).toHaveLength(0)
+  expect(patches).toHaveLength(0)
 })
