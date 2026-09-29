@@ -5,6 +5,8 @@ import {
   estCodeStatutCandidature,
   justificatifsEngagementPresents,
   statutCandidature,
+  valeurStatutCandidature,
+  sourceStatutDossier,
 } from '../src/lib/statut-candidature'
 
 test('les cinq choix futurs gardent les codes NocoDB existants', () => {
@@ -27,6 +29,22 @@ test('les cinq choix futurs gardent les codes NocoDB existants', () => {
     expect(statutCandidature(code)).toEqual({ code, label })
     expect(statutCandidature(label)).toEqual({ code, label })
   }
+})
+
+test('les anciens codes et les cinq libellés écrivent exclusivement les valeurs canoniques', () => {
+  for (const { code, label } of STATUTS_CANDIDATURE) {
+    expect(valeurStatutCandidature(code)).toBe(label)
+    expect(valeurStatutCandidature(label)).toBe(label)
+  }
+  for (const value of ['Retenu', 'En cours d’analyse', 'Accuse reception', '', null])
+    expect(valeurStatutCandidature(value)).toBeNull()
+})
+
+test('un statut vide ne récupère jamais une ancienne décision, sauf affichage d’une ambiguïté', () => {
+  expect(sourceStatutDossier({ statut: null, statut_origine: 'Retenu' })).toBe('Retenu')
+  for (const statut_origine of ['Engage', 'Candidature acceptée', 'Abandonne', null])
+    expect(sourceStatutDossier({ statut: null, statut_origine })).toBeNull()
+  expect(sourceStatutDossier({ statut: 'Candidature reçue', statut_origine: 'Retenu' })).toBe('Candidature reçue')
 })
 
 test.each(['En cours d’analyse', "En cours d'analyse", ' Candidature reçue '])(

@@ -54,7 +54,7 @@ test('réconcilie toutes les pages avant le filtre statut, préserve sort et la 
     expect(url.searchParams.get('where')).toBeNull()
     expect(url.searchParams.get('sort')).toBe('-Id')
     expect(url.searchParams.get('fields').split(',').sort()).toEqual(
-      ['code', 'Id', 'fusionne_vers', 'etablissements_id', 'cohortes_id', 'statut'].sort(),
+      ['code', 'Id', 'fusionne_vers', 'etablissements_id', 'cohortes_id', 'statut', 'statut_origine'].sort(),
     )
     const offset = Number(url.searchParams.get('offset'))
     offsets.push(offset)

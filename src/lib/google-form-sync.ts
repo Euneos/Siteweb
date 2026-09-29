@@ -385,7 +385,7 @@ function projectFutureGoogleForm(event: GoogleFormEvent, target: Row, cohort?: R
   )
     return { patch, issues: ['cohort_inactive'] }
   if (
-    /^(abandonne|abandonnee|annule|annulee|refuse|refusee|archive|archivee)$/.test(
+    /^(abandon|abandonne|abandonnee|annule|annulee|refus|refuse|refusee|archive|archivee)$/.test(
       normalise(target.statut),
     )
   )

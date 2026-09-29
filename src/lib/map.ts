@@ -1,4 +1,5 @@
 import { lireToutes, reconcilierActifs } from './nocodb'
+import { sourceStatutDossier } from './statut-candidature'
 import reference from '../data/map-communes.json?raw'
 import projections from '../data/map-projections.json'
 
@@ -178,7 +179,7 @@ function buildActiveMapData(cohorts: Row[], participations: Row[], establishment
     group.participations.push({
       id: participation.Id,
       code: value(participation.code) || `Dossier #${participation.Id}`,
-      status: value(participation.statut) || 'Non renseigné',
+      status: sourceStatutDossier({ statut: value(participation.statut), statut_origine: value(participation.statut_origine) }) || 'Non renseigné',
     })
   }
   const result = [...groups.values()].sort(
@@ -220,7 +221,7 @@ export async function readMapData(token: string): Promise<MapData> {
   // Reuse the existing reader, including its complete pagination; only allowlisted fields.
   const [cohorts, participations, establishments] = await Promise.all([
     lireToutes(token, 'cohortes', 'Id,nom,annee_debut,annee_fin,active'),
-    lireToutes(token, 'participations', 'Id,code,statut,etablissements_id,cohortes_id'),
+    lireToutes(token, 'participations', 'Id,code,statut,statut_origine,etablissements_id,cohortes_id'),
     lireToutes(token, 'etablissements', 'Id,nom,type_etab,ville,cp'),
   ])
   return buildActiveMapData(cohorts, participations, establishments)

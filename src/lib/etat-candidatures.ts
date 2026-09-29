@@ -1,6 +1,6 @@
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
-import { candidatureArretee, statutCandidature } from './statut-candidature'
+import { candidatureArretee, statutCandidature, sourceStatutDossier } from './statut-candidature'
 
 const API = 'https://app.nocodb.com/api/v2'
 const COHORTE = { debut: 2026, fin: 2027, label: '2026–2027' } as const
@@ -23,6 +23,7 @@ interface ParticipationNoco {
   cohortes_id?: number | null
   code?: string
   statut?: string
+  statut_origine?: string | null
   date_candidature?: string | null
   date_validation?: string | null
   lettre_interet_signee?: boolean | number
@@ -190,6 +191,7 @@ export async function lireEtatCohorte(
       'Id',
       'code',
       'statut',
+      'statut_origine',
       'date_candidature',
       'date_validation',
       'lettre_interet_signee',
@@ -290,7 +292,7 @@ export async function lireEtatCohorte(
       return {
         id: participation.Id,
         code: participation.code?.trim() || 'Sans code',
-        statut: participation.statut?.trim() || 'Non renseigné',
+        statut: sourceStatutDossier(participation)?.trim() || 'Non renseigné',
         dateCandidature: participation.date_candidature ?? null,
         dateValidation: participation.date_validation ?? null,
         lettreSignee: present(participation.lettre_interet_signee),
@@ -357,7 +359,7 @@ const normaliser = (v: string | null | undefined) =>
 
 /** Each cell states its evidence; a later status never proves an earlier email. */
 export function progression(p: ParticipationNoco, missions: MissionNoco[]): Indicateur[] {
-  const statut = statutCandidature(p.statut)
+  const statut = statutCandidature(sourceStatutDossier(p))
   const arret = candidatureArretee(p.statut)
   const inconnu = (texte = 'Non renseigné'): Indicateur => ({ etat: 'inconnu', texte })
   const fait = (texte: string): Indicateur => ({ etat: 'fait', texte })

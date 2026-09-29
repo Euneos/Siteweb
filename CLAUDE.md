@@ -86,7 +86,12 @@ corriger, en ajouter.
 
 Vous n'avez pas à retenir ces commandes : demandez à l'agent en français.
 *« Où en est la campagne ? »*, *« Montre-moi les candidatures pas encore traitées »*,
-*« Passe le collège Vauban en accusé de réception »*.
+*« Passe le collège Vauban en candidature acceptée »*.
+
+Les cinq décisions de candidature sont **Candidature reçue**, **Candidature acceptée**,
+**Établissement engagé**, **Abandon** et **Refus**. L’ancien libellé est conservé dans
+`statut_origine` pour l’historique. Un dossier « à qualifier » ne doit pas être accepté
+par déduction. L’accusé de réception est suivi séparément de la décision.
 
 ### Modifier le site
 

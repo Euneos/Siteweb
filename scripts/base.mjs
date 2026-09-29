@@ -11,7 +11,7 @@
  */
 import { reconcilierActifs } from '../src/lib/nocodb.ts'
 import {
-  STATUTS_CANDIDATURE, estCodeStatutCandidature, statutCandidature,
+  STATUTS_CANDIDATURE, valeurStatutCandidature, statutCandidature, sourceStatutDossier,
   justificatifsEngagementPresents,
 } from '../src/lib/statut-candidature.ts'
 
@@ -30,7 +30,7 @@ const T = {
   groupes_jeunes: 'm9rjb4oixy04ptt',
 }
 
-const choixStatutsEtab = () => STATUTS_CANDIDATURE.map((s) => `${s.label} (code : "${s.code}")`).join(' · ')
+const choixStatutsEtab = () => STATUTS_CANDIDATURE.map((s) => `"${s.label}"`).join(' · ')
 const STATUTS_FORM = ['Candidature recue', 'Accuse reception', 'Candidature validée',
                       "Liste d'attente", 'Refuse', 'En attente confirmation formation',
                       'En cours de formation', 'Formateur en cours de validation',
@@ -68,7 +68,10 @@ function filtreStatut(where) {
   const conditions = where.split('~and').map((part) => /^\(statut,(eq|neq),([^()]*)\)$/.exec(part))
   if (conditions.some((condition) => !condition))
     throw new Error('Filtre de dossiers non pris en charge : seuls les statuts eq/neq reliés par ~and sont permis.')
-  return (row) => conditions.every(([, operation, value]) => operation === 'eq' ? row.statut === value : row.statut !== value)
+  const comparable = (value) => STATUTS_CANDIDATURE.some((s) => s.code === value || s.label === value)
+    ? statutCandidature(value).code : value
+  return (row) => conditions.every(([, operation, value]) => operation === 'eq'
+    ? comparable(row.statut) === comparable(value) : comparable(row.statut) !== comparable(value))
 }
 
 async function lirePages(table, params) {
@@ -103,9 +106,10 @@ export async function lire(table, q = '') {
   const where = params.get('where')
   const filtre = filtreStatut(where)
   params.delete('where')
-  projection(params, ['Id', 'fusionne_vers', ...liens, ...(where ? ['statut'] : [])])
+  projection(params, ['Id', 'fusionne_vers', ...liens, ...(where ? ['statut'] : []), ...(table === 'participations' ? ['statut_origine'] : [])])
   const rows = await lirePages(table, params)
-  return actifs(table, rows).filter(filtre)
+  return actifs(table, rows).filter(filtre).map((row) => table === 'participations'
+    ? { ...row, statut: sourceStatutDossier(row) } : row)
 }
 
 function dossierId(id) {
@@ -210,7 +214,8 @@ export const commandes = {
   async statut(id, nouveau) {
     if (!id || !nouveau) throw new Error('Usage : bun scripts/base.mjs statut <id> "<statut>"')
     const recordId = dossierId(id)
-    if (!estCodeStatutCandidature(nouveau)) {
+    const valeur = valeurStatutCandidature(nouveau)
+    if (!valeur) {
       throw new Error(`Statut inconnu ou historique non proposé.\nStatuts possibles : ${choixStatutsEtab()}`)
     }
     // Keep the raw snapshot for the archive diagnostic; never retarget a write.
@@ -234,15 +239,18 @@ export const commandes = {
     refuserArchive(p)
     if (p.etablissements_id !== selected.etablissements_id || p.cohortes_id !== selected.cohortes_id || p.statut !== selected.statut)
       throw new Error(`Dossier #${recordId} modifié pendant la lecture. Relire le dossier avant de réessayer.`)
-    if (p.statut === nouveau) {
+    if (statutCandidature(p.statut).code === statutCandidature(valeur).code) {
       console.log(`\n  Dossier #${recordId} : ${statutCandidature(nouveau).label} déjà enregistré, aucune modification.\n`)
       return
     }
-    if (nouveau === 'Engage' && !justificatifsEngagementPresents(p))
+    if (statutCandidature(valeur).code === 'Engage' && !justificatifsEngagementPresents(p))
       throw new Error(`Dossier #${recordId} : fiche contact reçue ET lettre d’intérêt signée doivent être renseignées avant de choisir Établissement engagé. Aucune modification effectuée.`)
     await api(`/tables/${T.participations}/records`, {
-      method: 'PATCH', body: JSON.stringify([{ Id: recordId, statut: nouveau }]),
+      method: 'PATCH', body: JSON.stringify([{ Id: recordId, statut: valeur }]),
     })
+    const relu = await api(`/tables/${T.participations}/records/${recordId}?fields=Id,statut`)
+    if (relu?.Id !== recordId || relu.statut !== valeur)
+      throw new Error('Le statut demandé n’est pas confirmé par la relecture. Ne pas répéter automatiquement la commande.')
     console.log(`\n  ${p.etablissement?.nom ?? id} → ${statutCandidature(nouveau).label}\n`)
   },
 
@@ -280,7 +288,7 @@ export const commandes = {
     const p = await lire('participations', '&fields=Id,statut,date_candidature,etablissement')
     const aujourdhui = new Date()
     const bloques = p
-      .filter((x) => !['Engage', 'Refuse', 'Abandonne'].includes(x.statut) && x.date_candidature)
+      .filter((x) => !['Engage', 'Refuse', 'Abandonne'].includes(statutCandidature(x.statut).code) && x.date_candidature)
       .map((x) => ({
         id: x.Id,
         etablissement: x.etablissement?.nom ?? '?',

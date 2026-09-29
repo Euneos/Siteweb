@@ -1,4 +1,4 @@
-/** Display contract only: these codes already exist in NocoDB. No migration. */
+/** Stable filter codes; labels are the canonical values written to NocoDB. */
 export const STATUTS_CANDIDATURE = [
   { code: 'Candidature recue', label: 'Candidature reçue' },
   { code: 'Candidature acceptée', label: 'Candidature acceptée' },
@@ -19,6 +19,20 @@ const cle = (value: string) =>
 
 export function estCodeStatutCandidature(value: unknown): value is CodeStatutCandidature {
   return STATUTS_CANDIDATURE.some((statut) => statut.code === value)
+}
+
+/** Accept only the five explicit choices (and their old API codes), not aliases
+ * used for historical display such as « En cours d’analyse ». */
+export function valeurStatutCandidature(value: unknown): string | null {
+  return STATUTS_CANDIDATURE.find((s) => s.code === value || s.label === value)?.label ?? null
+}
+
+/** A blank current decision never inherits an old acceptance or engagement.
+ * Only an unresolved historical value can be shown as « historique à qualifier ». */
+export function sourceStatutDossier(row: { statut?: string | null; statut_origine?: string | null }): string | null {
+  if (row.statut?.trim()) return row.statut
+  return row.statut_origine?.trim() && statutCandidature(row.statut_origine).code === null
+    ? row.statut_origine : null
 }
 
 /** No dates, cohort, archive or supporting documents can promote a display label. */

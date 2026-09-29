@@ -160,11 +160,13 @@ test.each(['other cohort','inactive cohort','multiple active cohorts','archive',
   await expect(issue()).rejects.toMatchObject({ status: 409 })
   expect(count('operational_links')).toBe(0)
 })
-test.each(['reparented school','reparented cohort','closed','archived'])('a valid bearer does not authorize a changed dossier: %s', async change => {
+test.each(['reparented school','reparented cohort','closed','canonical abandonment','canonical refusal','archived'])('a valid bearer does not authorize a changed dossier: %s', async change => {
   const result = await issue()
   if (change === 'reparented school') parts[0].etablissements_id = 2
   if (change === 'reparented cohort') parts[0].cohortes_id = 3
   if (change === 'closed') parts[0].statut = 'Abandonné'
+  if (change === 'canonical abandonment') parts[0].statut = 'Abandon'
+  if (change === 'canonical refusal') parts[0].statut = 'Refus'
   if (change === 'archived') parts[0].fusionne_vers = 8
   const response = await page(result)
   expect(response).toBeInstanceOf(Response); expect(response.status).toBe(409)

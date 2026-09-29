@@ -444,10 +444,12 @@ export async function readOperationalSnapshot(
   if (
     [
       'abandonne',
+      'abandon',
       'abandonnee',
       'annule',
       'annulee',
       'refuse',
+      'refus',
       'refusee',
       'archive',
       'archivee',

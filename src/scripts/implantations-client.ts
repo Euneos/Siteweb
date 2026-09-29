@@ -1,4 +1,5 @@
 import type { MapData, MapGroup } from '../lib/map'
+import { candidatureArretee, statutCandidature } from '../lib/statut-candidature'
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T
 const node = <K extends keyof HTMLElementTagNameMap>(tag: K, text = '', className = '') => {
   const e = document.createElement(tag)
@@ -14,16 +15,8 @@ const territories = [
   ['974', 'La Réunion'],
   ['976', 'Mayotte'],
 ] as const
-const stopped = (status: string) =>
-  ['abandonne', 'abandon', 'refuse'].includes(
-    status
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim(),
-  )
-const statusLabel = (status: string) =>
-  status === 'Abandonne' ? 'Abandonné' : status === 'Refuse' ? 'Refusé' : status
+const stopped = candidatureArretee
+const statusLabel = (status: string) => statutCandidature(status === 'Non renseigné' ? null : status).label
 const formatDate = (date: string) =>
   new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(date),

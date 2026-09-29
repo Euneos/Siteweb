@@ -84,7 +84,7 @@ export function operationalConfig(locals: unknown) {
 const positive = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) > 0
 export const closedDossier = (value: unknown) =>
-  /^(abandonne|annule|refuse|archive)$/.test(
+  /^(abandon|abandonne|annule|refus|refuse|archive)$/.test(
     String(value ?? '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')

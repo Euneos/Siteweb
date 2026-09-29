@@ -35,14 +35,12 @@ Ne jamais laisser croire qu'une relance est partie.
 
 ## Après l'envoi
 
-Quand l'équipe confirme avoir envoyé, faire avancer le statut :
-
-```
-bun scripts/base.mjs statut <id> "Accuse reception"
-```
+Après confirmation d’un envoi réel, conserver sa référence et sa date dans le suivi des
+communications. Ne pas changer le statut de candidature à cause d’un mail : un accusé de
+réception et une relance ne sont pas des décisions d’acceptation ou de refus.
 
 ## Ce qu'il ne faut pas faire
 
-- Relancer un dossier `Refuse` ou `Abandonne` sans demander : la décision a peut-être été
+- Relancer un dossier `Refus` ou `Abandon` sans demander : la décision a peut-être été
   prise en réunion, hors de la base.
 - Traiter une liste entière d'un coup. Proposer, laisser choisir, avancer dossier par dossier.
