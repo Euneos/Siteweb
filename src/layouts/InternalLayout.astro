@@ -11,7 +11,6 @@ interface Props {
 }
 const { title, current, identity, teamAccess = true } = Astro.props
 const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
-const importPending = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_IMPORT_PENDING === 'true'
 ---
 
 <!doctype html>
@@ -101,16 +100,6 @@ const importPending = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_IMPOR
             <strong>Espace d’essai.</strong> Les calendriers et le catalogue sont en préparation.
             Gardez les saisies réelles dans Notion jusqu’à la bascule convenue avec l’équipe. Le
             suivi des établissements et la carte consultent la base EUNEOS en lecture seule.
-          </aside>
-        )
-      }
-      {
-        !preview && importPending && (
-          <aside class="iw-feedback" aria-label="Reprise de l’historique">
-            <strong>Reprise de l’historique Notion en cours.</strong> Les fiches « Copie Notion »
-            reprennent les informations disponibles ; leurs notes précisent les manques et la
-            source. Les heures reprises restent à valider et les commentaires historiques ne sont
-            pas repris. Les nouvelles saisies sont conservées.
           </aside>
         )
       }
