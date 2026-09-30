@@ -1221,7 +1221,6 @@ function initCalendar(root: HTMLElement) {
       byId('iw-entry-audit').textContent =
         `Créée par ${selected.created_by} · Dernière modification : ${selected.updated_by} · Version ${selected.version}`
       feedback(saveFeedback, 'Fiche enregistrée. Vous pouvez poursuivre la discussion ci-dessous.')
-      feedback(byId('iw-notice'), '')
       commentForm.hidden = false
       byId('iw-comments-refresh').hidden = false
       if (!previous) void loadComments()

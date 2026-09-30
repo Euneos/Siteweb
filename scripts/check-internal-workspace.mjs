@@ -495,7 +495,7 @@ try {
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
     assert.equal(sql.query('SELECT person FROM workspace_entries WHERE id=?').get(moveId).person, 'Candice')
-    await expect(page.locator('#iw-notice')).toHaveText('')
+    await expect(page.locator('#iw-notice')).not.toContainText('enregistrée')
     await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
     await page.screenshot({ path: `${output}/publication-personne-${width}.png` })
     await page.locator('#iw-close').click()
