@@ -6,7 +6,7 @@ import {
   readInternalBody,
   entryId,
 } from '../../../lib/internal-context'
-import { listEntries, getEntry, hoursByPerson, saveEntry, deleteEntry, movePublication, WorkspaceError } from '../../../lib/internal-workspace'
+import { listFilterOptions, listEntries, getEntry, hoursByPerson, saveEntry, deleteEntry, movePublication, WorkspaceError } from '../../../lib/internal-workspace'
 export const prerender = false
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -23,7 +23,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       url.searchParams.get('month') ?? '',
       url.searchParams.get('kind') ?? '',
     )
-    return privateJson({ entries, totals: hoursByPerson(entries), identity: context.identity })
+    const filterOptions = await listFilterOptions(context.db, url.searchParams.get('kind') ?? '')
+    return privateJson({ entries, filterOptions, totals: hoursByPerson(entries), identity: context.identity })
   } catch (error) {
     return internalError(error)
   }

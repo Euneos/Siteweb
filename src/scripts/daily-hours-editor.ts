@@ -33,7 +33,7 @@ export function initDailyHours(form: HTMLFormElement) {
     const parsed = rows()
     const actual = dailyTotal(parsed, 'actual')
     total.value = actual === null ? '' : String(actual)
-    feedback.textContent = `${dailyTotal(parsed, 'planned') ?? 0} h prévues · ${actual === null ? 'Réalisé non renseigné' : `${actual} h réalisées`}. Seuls les jours renseignés apparaîtront au calendrier.`
+    feedback.textContent = `${actual === null ? 'Réalisé non renseigné' : `${actual} h réalisées`}. Seuls les jours renseignés apparaîtront au calendrier.`
   }
   function action(text: string, run: () => void) {
     const button = document.createElement('button')
@@ -85,26 +85,7 @@ export function initDailyHours(form: HTMLFormElement) {
       feedback.textContent = `${(error as Error).message} Rétablissez les dates précédentes pour conserver votre saisie.`
       return
     }
-    controls.append(
-      action('Prévoir 7 h les mardis et jeudis', () => {
-        const current = rows()
-        for (const date of dates()) {
-          if (![2, 4].includes(new Date(`${date}T12:00:00Z`).getUTCDay())) continue
-          const row = current.find((row) => row.date === date)
-          if (row) {
-            if (row.planned === null) row.planned = 7
-          } else current.push({ date, planned: 7, actual: null })
-        }
-        stored.value = JSON.stringify(current)
-        render(true)
-        notify()
-      }),
-    )
-    const instructions = document.createElement('p')
-    instructions.className = 'iw-small iw-muted'
-    instructions.textContent =
-      'Pour la demi-journée variable, utilisez « Prévoir 3 h 30 » sur le mercredi ou vendredi choisi chaque semaine. Effacez une ancienne prévision pour déplacer cette demi-journée. Les valeurs déjà saisies ne sont pas remplacées par le préremplissage.'
-    controls.append(instructions)
+
     for (const date of days) {
       const row = existing.find((row) => row.date === date)
       const group = document.createElement('div')
@@ -119,11 +100,10 @@ export function initDailyHours(form: HTMLFormElement) {
         timeZone: 'UTC',
       }).format(day)
       group.append(heading)
-      let shortcut: HTMLButtonElement | undefined
-      for (const key of ['planned', 'actual'] as const) {
+      for (const key of ['actual'] as const) {
         const label = document.createElement('label')
         label.className = 'iw-field'
-        label.textContent = key === 'planned' ? 'Heures prévues' : 'Heures réalisées'
+        label.textContent = 'Heures réalisées'
         const input = document.createElement('input')
         input.type = 'number'
         input.min = '0'
@@ -149,15 +129,7 @@ export function initDailyHours(form: HTMLFormElement) {
         })
         label.append(input)
         group.append(label)
-        if (key === 'planned' && [3, 5].includes(day.getUTCDay())) {
-          shortcut = action('Prévoir 3 h 30', () => {
-            input.value = '3.5'
-            input.dispatchEvent(new Event('input', { bubbles: true }))
-          })
-          shortcut.classList.add('iw-field--wide')
-        }
       }
-      if (shortcut) group.append(shortcut)
       target.append(group)
     }
     updateTotal()

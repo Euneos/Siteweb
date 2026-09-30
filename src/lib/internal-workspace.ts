@@ -175,6 +175,15 @@ export async function listEntries(
     .all<Entry>()
   return results
 }
+export async function listFilterOptions(db: WorkspaceDatabase, kind: string) {
+  if (!['editorial', 'equipe'].includes(kind)) throw new WorkspaceError(400, 'Calendrier inconnu.')
+  const { results } = await db.prepare('SELECT DISTINCT person, activity FROM workspace_entries WHERE kind = ?').bind(kind).all<{ person: string; activity: string }>()
+  return {
+    people: [...new Set(results.map((row) => row.person).filter(Boolean))],
+    activities: [...new Set(results.map((row) => row.activity).filter(Boolean))],
+  }
+}
+
 export async function deleteEntry(
   db: WorkspaceDatabase,
   actor: WorkspaceIdentity,

@@ -1,7 +1,7 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
 import { initDailyHours } from './daily-hours-editor'
-import { personName, isOwnPerson } from '../lib/workspace-people'
+import { personName, isOwnPerson, workspacePeople, workspaceActivities } from '../lib/workspace-people'
 
 type Kind = Entry['kind']
 type EntryInput = Pick<
@@ -24,7 +24,7 @@ type EntryInput = Pick<
 >
 type Field = Exclude<keyof EntryInput, 'kind'>
 type Total = { person: string; declared: number; approved: number }
-type CalendarData = { entries: Entry[]; totals: Total[]; identity: WorkspaceIdentity }
+type CalendarData = { entries: Entry[]; totals: Total[]; identity: WorkspaceIdentity; filterOptions?: { people: string[]; activities: string[] } }
 type Comment = { id: string; author: string; content: string; created_at: string }
 type Resource = { id: string; title: string; category: string; description: string; url: string }
 const labels: Record<Field, string> = {
@@ -256,7 +256,11 @@ function initCalendar(root: HTMLElement) {
     const control = input(field)
     // Preserve stored identities when editing existing records. Their option
     // label may be a first name, but a display change must not change ownership.
-    const text = value == null ? '' : String(value)
+    let text = value == null ? '' : String(value)
+    if (field === 'person' && editorKind === 'editorial') {
+      const name = personName(text)
+      text = workspacePeople.some((person) => person === name) ? name : ''
+    }
     if (control instanceof HTMLSelectElement && ['channel', 'status', 'person', 'activity'].includes(field)) {
       // Historical values must survive edits and conflict resolution.
       // Keep only the current record's legacy option, never add it to new records.
@@ -398,7 +402,7 @@ function initCalendar(root: HTMLElement) {
     input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
-    byId('iw-location-field').hidden = editorKind !== 'equipe'
+    byId('iw-location-field').hidden = true
     updatePermissions()
     updateLink()
   }
@@ -461,9 +465,11 @@ function initCalendar(root: HTMLElement) {
                 ...data.entries.map((entry) => entry.status),
               ]),
             ]
-          : [...new Set(data.entries.map((entry) => entry[field]).filter(Boolean))].sort((a, b) =>
-              a.localeCompare(b, 'fr'),
-            )
+          : field === 'person'
+            ? [...new Set([...workspacePeople, ...(kind === 'equipe' ? (data.filterOptions?.people ?? data.entries.map((entry) => entry.person)).map(personName) : [])])].sort((a, b) => a.localeCompare(b, 'fr'))
+            : field === 'activity'
+              ? [...new Set([...workspaceActivities, ...(data.filterOptions?.activities ?? data.entries.map((entry) => entry.activity))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'))
+              : [...new Set(data.entries.map((entry) => entry[field]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'))
       if (current && !values.includes(current)) values.push(current)
       filter.replaceChildren(first)
       values.forEach((value) =>
@@ -537,7 +543,7 @@ function initCalendar(root: HTMLElement) {
           'span',
           'iw-entry__details',
           (entry.kind === 'equipe'
-            ? [entry.activity, entry.location, attendanceLabels[entry.attendance]]
+            ? [attendanceLabels[entry.attendance], entry.activity]
             : [entry.channel]
           )
             .filter(Boolean)
@@ -545,14 +551,14 @@ function initCalendar(root: HTMLElement) {
             (entry.kind === 'equipe' ? 'Activité non renseignée' : 'Canal non renseigné'),
         ),
       )
-      const person = node('span', 'iw-entry__person', personName(entry.person))
+      const person = node('span', 'iw-entry__person', entry.kind === 'editorial' ? personName(entry.person) : '')
       if (entry.daily_hours) {
         const rows = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!
         person.append(
           node(
             'span',
             'iw-entry__details',
-            `${hours(dailyTotal(rows, 'planned') ?? 0)} prévues · ${entry.hours === null ? 'Réalisé non renseigné' : `${hours(entry.hours)} réalisées`}`,
+            `${entry.hours === null ? 'Réalisé non renseigné' : `${hours(entry.hours)} réalisées`}`,
           ),
         )
       } else if (entry.hours !== null)
@@ -662,11 +668,9 @@ function initCalendar(root: HTMLElement) {
             'span',
             'iw-event__meta',
             [
-              personName(entry.person),
+              entry.kind === 'equipe' ? attendanceLabels[entry.attendance] : personName(entry.person),
               entry.kind === 'editorial' ? statuses[entry.status] ?? entry.status : '',
               entry.kind === 'editorial' ? entry.channel : entry.activity,
-              entry.kind === 'equipe' ? attendanceLabels[entry.attendance] : '',
-              entry.kind === 'equipe' ? entry.location : '',
               entry.daily_hours
                 ? (() => {
                     const day = parseDailyHours(
@@ -675,7 +679,7 @@ function initCalendar(root: HTMLElement) {
                       entry.ends_on,
                     )!.find((row) => row.date === date)!
                     return [
-                      day.planned !== null ? `${hours(day.planned)} prévues` : '',
+
                       day.actual !== null
                         ? `${hours(day.actual)} réalisées`
                         : 'Réalisé non renseigné',
@@ -719,7 +723,7 @@ function initCalendar(root: HTMLElement) {
     const entries = data.entries
       .filter((entry) =>
         filters.every(
-          (filter) => !filter.value || entry[filter.dataset.filter as keyof Entry] === filter.value,
+          (filter) => !filter.value || (filter.dataset.filter === 'person' ? personName(entry.person) : entry[filter.dataset.filter as keyof Entry]) === filter.value,
         ),
       )
       .sort(
@@ -758,8 +762,10 @@ function initCalendar(root: HTMLElement) {
     loadController?.abort()
     const controller = new AbortController()
     loadController = controller
+    const scrollPosition = { x: window.scrollX, y: window.scrollY }
+    const keepPosition = dialog.open
     data = null
-    content.hidden = true
+    if (!keepPosition) content.hidden = true
     content.setAttribute('aria-busy', 'true')
     setMetrics(null)
     renderTotals()
@@ -800,6 +806,7 @@ function initCalendar(root: HTMLElement) {
       if (!controller.signal.aborted) {
         content.setAttribute('aria-busy', 'false')
         byId<HTMLButtonElement>('iw-refresh').disabled = false
+        if (keepPosition) window.scrollTo(scrollPosition.x, scrollPosition.y)
       }
     }
   }
@@ -823,8 +830,8 @@ function initCalendar(root: HTMLElement) {
     dialog.close()
     commentsController?.abort()
     modalGeneration++
-    if (opener?.isConnected) opener.focus()
-    else byId('iw-new').focus()
+    if (opener?.isConnected) opener.focus({ preventScroll: true })
+    else byId('iw-new').focus({ preventScroll: true })
   }
   function requestClose() {
     if (saving || commenting || comparing) {
@@ -1202,13 +1209,12 @@ function initCalendar(root: HTMLElement) {
       byId('iw-entry-audit').textContent =
         `Créée par ${selected.created_by} · Dernière modification : ${selected.updated_by} · Version ${selected.version}`
       feedback(saveFeedback, 'Fiche enregistrée. Vous pouvez poursuivre la discussion ci-dessous.')
-      feedback(byId('iw-notice'), `« ${entry.title} » a été enregistrée.`)
+      feedback(byId('iw-notice'), '')
       commentForm.hidden = false
       byId('iw-comments-refresh').hidden = false
       if (!previous) void loadComments()
-      // Stay on the saved month so a moved or newly created entry can be found.
-      if (entry.starts_on.slice(0, 7) !== month) changeMonth(entry.starts_on.slice(0, 7))
-      else void loadCalendar()
+      // Refresh in place: saving never navigates away from the current month.
+      void loadCalendar()
     } catch (error) {
       feedback(saveFeedback, `${errorText(error)} Votre saisie est conservée.`, true)
       if (error instanceof ApiError && error.status === 409) {
