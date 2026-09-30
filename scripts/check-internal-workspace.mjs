@@ -1036,6 +1036,10 @@ try {
     ),
   )
   console.log(`${checks.length} scénarios navigateur compilé réussis ; aucune erreur JavaScript.`)
+} catch (error) {
+  const detail = String(error?.stack ?? error).replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A')
+  console.error(`::error title=Recette des fiches internes::${detail}`)
+  throw error
 } finally {
   await browser.close()
   server.stop()
