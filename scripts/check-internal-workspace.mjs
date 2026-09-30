@@ -485,8 +485,9 @@ try {
     await page.setViewportSize({ width, height: 1000 })
     const card = page.locator(`[data-entry-id="${moveId}"]`).filter({ visible: true }).first()
     await card.scrollIntoViewIfNeeded()
-    const beforeOpen = await page.evaluate(() => window.scrollY)
+    await card.evaluate((element) => element.addEventListener('click', () => { window.__beforeCardScroll = window.scrollY }, { capture: true, once: true }))
     await card.click()
+    const beforeOpen = await page.evaluate(() => window.__beforeCardScroll)
     await expect(page.locator('#iw-open-link')).toHaveCount(0)
     await expect(page.locator('#iw-starts')).toHaveValue('2026-09-25')
     assert.deepEqual(await page.locator('#iw-entry-person option').allTextContents(), ['Sélectionner une personne', 'Pauline', 'Candice', 'Charlotte', 'Partenaires'])
@@ -498,7 +499,7 @@ try {
     await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
     await page.screenshot({ path: `${output}/publication-personne-${width}.png` })
     await page.locator('#iw-close').click()
-    assert(Math.abs((await page.evaluate(() => window.scrollY)) - beforeOpen) < 3, 'Closing a saved card preserves the page position')
+    await expect.poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - beforeOpen), { message: `Closing a saved card preserves the page position (${width}px, initial ${beforeOpen})` }).toBeLessThan(3)
   }
   checks.push('publication-drag-keyboard-date-persist-conflict-person-select-mobile-desktop')
   // Confirmation cancellation, errors and deletion on mobile and desktop.

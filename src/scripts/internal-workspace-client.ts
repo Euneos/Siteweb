@@ -838,7 +838,11 @@ function initCalendar(root: HTMLElement) {
     modalGeneration++
     if (opener?.isConnected) opener.focus({ preventScroll: true })
     else byId('iw-new').focus({ preventScroll: true })
-    window.scrollTo({ left: editorScroll.x, top: editorScroll.y, behavior: 'instant' })
+    const position = { ...editorScroll }
+    window.scrollTo({ left: position.x, top: position.y, behavior: 'instant' })
+    requestAnimationFrame(() => {
+      if (!dialog.open) window.scrollTo({ left: position.x, top: position.y, behavior: 'instant' })
+    })
   }
   function requestClose() {
     if (saving || commenting || comparing) {
