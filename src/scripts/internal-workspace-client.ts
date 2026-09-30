@@ -295,6 +295,7 @@ function initCalendar(root: HTMLElement) {
   let draftAtComparison = ''
   let commentsController: AbortController | null = null
   let opener: HTMLElement | null = null
+  let editorScroll = { x: 0, y: 0 }
   let modalGeneration = 0
 
   const readForm = (): EntryInput => ({
@@ -808,7 +809,10 @@ function initCalendar(root: HTMLElement) {
       if (!controller.signal.aborted) {
         content.setAttribute('aria-busy', 'false')
         byId<HTMLButtonElement>('iw-refresh').disabled = false
-        if (keepPosition) window.scrollTo(scrollPosition.x, scrollPosition.y)
+        if (keepPosition) {
+          const position = dialog.open ? scrollPosition : editorScroll
+          window.scrollTo({ left: position.x, top: position.y, behavior: 'instant' })
+        }
       }
     }
   }
@@ -834,6 +838,7 @@ function initCalendar(root: HTMLElement) {
     modalGeneration++
     if (opener?.isConnected) opener.focus({ preventScroll: true })
     else byId('iw-new').focus({ preventScroll: true })
+    window.scrollTo({ left: editorScroll.x, top: editorScroll.y, behavior: 'instant' })
   }
   function requestClose() {
     if (saving || commenting || comparing) {
@@ -851,6 +856,7 @@ function initCalendar(root: HTMLElement) {
     closeEditor()
   }
   function openEditor(entry: Entry | null) {
+    editorScroll = { x: window.scrollX, y: window.scrollY }
     opener = document.activeElement as HTMLElement
     modalGeneration++
     selected = entry ? { ...entry } : null
