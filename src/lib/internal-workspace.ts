@@ -4,6 +4,7 @@
 import { parseDailyHours, dailyTotal } from './daily-hours'
 
 export interface WorkspaceDatabase {
+  batch(statements: ReturnType<ReturnType<WorkspaceDatabase['prepare']>['bind']>[]): Promise<{ meta: { changes: number } }[]>
   prepare(sql: string): {
     bind(...values: (string | number | null)[]): {
       all<T>(): Promise<{ results: T[] }>
@@ -173,6 +174,30 @@ export async function listEntries(
     .all<Entry>()
   return results
 }
+export async function deleteEntry(
+  db: WorkspaceDatabase,
+  actor: WorkspaceIdentity,
+  id: string,
+  version: unknown,
+): Promise<void> {
+  if (!Number.isSafeInteger(version) || (version as number) < 1)
+    throw new WorkspaceError(400, 'Version de fiche absente.')
+  const entry = await getEntry(db, id)
+  if (entry.kind === 'equipe' && !actor.admin &&
+      (entry.created_by !== actor.email || entry.person.toLowerCase() !== actor.email || entry.status === 'valide'))
+    throw new WorkspaceError(403, 'Seul l’auteur ou un responsable peut supprimer cette fiche. Les heures validées sont réservées aux responsables.')
+  if (entry.version !== version)
+    throw new WorkspaceError(409, 'Cette fiche a changé. Fermez-la puis rouvrez-la avant de confirmer sa suppression.')
+  // D1 batch is transactional: children and parent are removed together, only
+  // for the version the user confirmed. A concurrent edit preserves both.
+  const results = await db.batch([
+    db.prepare('DELETE FROM workspace_comments WHERE entry_id IN (SELECT id FROM workspace_entries WHERE id=? AND version=?)').bind(id, version as number),
+    db.prepare('DELETE FROM workspace_entries WHERE id=? AND version=?').bind(id, version as number),
+  ])
+  if (results[1].meta.changes !== 1)
+    throw new WorkspaceError(409, 'Cette fiche a changé. Fermez-la puis rouvrez-la avant de confirmer sa suppression.')
+}
+
 export async function saveEntry(
   db: WorkspaceDatabase,
   actor: WorkspaceIdentity,

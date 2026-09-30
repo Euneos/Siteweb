@@ -240,6 +240,7 @@ function initCalendar(root: HTMLElement) {
   const dialog = byId<HTMLDialogElement>('iw-editor')
   const form = byId<HTMLFormElement>('iw-entry-form')
   const fieldset = byId<HTMLFieldSetElement>('iw-entry-fields')
+  const deleteButton = byId<HTMLButtonElement>('iw-delete')
   const save = byId<HTMLButtonElement>('iw-save')
   const saveFeedback = byId('iw-save-feedback')
   const commentForm = byId<HTMLFormElement>('iw-comment-form')
@@ -331,6 +332,8 @@ function initCalendar(root: HTMLElement) {
     readOnly = !canEdit(selected)
     fieldset.disabled = readOnly || saving || comparing
     save.hidden = readOnly
+    deleteButton.hidden = !selected || readOnly || (selected.kind === 'equipe' && selected.status === 'valide' && !identity.admin)
+    deleteButton.disabled = saving || commenting || comparing || conflictPending
     save.disabled = saving || conflictPending || comparing
     byId('iw-readonly').hidden = !readOnly
     const person = input('person') as HTMLInputElement
@@ -1057,6 +1060,34 @@ function initCalendar(root: HTMLElement) {
     savedSnapshot = JSON.stringify({ mergedFrom: draft })
     save.focus()
   }
+  deleteButton.addEventListener('click', async () => {
+    if (!selected || readOnly || saving || commenting || comparing || conflictPending || deleteButton.hidden) return
+    const target = { ...selected }
+    if (!window.confirm(`Supprimer définitivement « ${target.title} » et tous ses commentaires ? Les modifications non enregistrées seront perdues. Cette action est irréversible.`)) return
+    saving = true
+    updatePermissions()
+    commentSubmit.disabled = true
+    deleteButton.textContent = 'Suppression…'
+    feedback(saveFeedback, '')
+    try {
+      const result = await api<{ deleted: boolean }>('/api/interne/calendrier', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: target.id, version: target.version, confirmed: true }),
+      })
+      if (result.deleted !== true) throw new ApiError(502, 'La suppression n’a pas pu être confirmée.')
+      closeEditor()
+      selected = null
+      feedback(byId('iw-notice'), `« ${target.title} » a été supprimée.`)
+      await loadCalendar()
+    } catch (error) {
+      feedback(saveFeedback, `${errorText(error)} La suppression n’est pas confirmée.`, true)
+    } finally {
+      saving = false
+      deleteButton.textContent = 'Supprimer la fiche'
+      commentSubmit.disabled = false
+      updatePermissions()
+    }
+  })
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     if (saving || readOnly || conflictPending || comparing || !form.reportValidity()) return
@@ -1157,7 +1188,7 @@ function initCalendar(root: HTMLElement) {
   })
   commentForm.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (!selected || commenting || !commentForm.reportValidity()) return
+    if (!selected || saving || commenting || !commentForm.reportValidity()) return
     const content = commentInput.value.trim()
     if (!content) {
       feedback(byId('iw-comment-feedback'), 'Écrivez un commentaire avant de l’envoyer.', true)

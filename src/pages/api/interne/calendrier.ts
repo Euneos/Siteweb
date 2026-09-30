@@ -6,7 +6,7 @@ import {
   readInternalBody,
   entryId,
 } from '../../../lib/internal-context'
-import { listEntries, getEntry, hoursByPerson, saveEntry } from '../../../lib/internal-workspace'
+import { listEntries, getEntry, hoursByPerson, saveEntry, deleteEntry, WorkspaceError } from '../../../lib/internal-workspace'
 export const prerender = false
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -49,3 +49,16 @@ const write: APIRoute = async ({ request, locals }) => {
 }
 export const POST = write
 export const PATCH = write
+
+export const DELETE: APIRoute = async ({ request, locals }) => {
+  try {
+    const context = await getInternalContext(request, locals)
+    if (context instanceof Response) return context
+    const body = await readInternalBody(request)
+    if (body.confirmed !== true) throw new WorkspaceError(400, 'Confirmez la suppression de cette fiche.')
+    await deleteEntry(context.db, context.identity, entryId(body.id), body.version)
+    return privateJson({ deleted: true })
+  } catch (error) {
+    return internalError(error)
+  }
+}

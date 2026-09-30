@@ -19,6 +19,9 @@ for (const file of (await readdir(migrations)).filter((name) => /^\d.*\.sql$/.te
 let reads = 0,
   failDatabase = false
 const db = {
+  async batch(statements) {
+    return sql.transaction(() => statements.map((statement) => statement.execute()))()
+  },
   prepare(query) {
     if (failDatabase) throw new Error('Synthetic private database failure')
     reads++
@@ -29,6 +32,7 @@ const db = {
           all: async () => ({ results: statement.all(...values) }),
           first: async () => statement.get(...values),
           run: async () => ({ meta: { changes: statement.run(...values).changes } }),
+          execute: () => ({ meta: { changes: statement.run(...values).changes } }),
         }
       },
     }
@@ -355,6 +359,38 @@ const totals = await (
 ).json()
 assert.deepEqual(totals.totals, [{ person: 'member@example.test', declared: 6, approved: 2 }])
 assert(!('source_payload' in totals.entries[0]))
+// Deletion uses the same compiled route and real SQL, with synthetic records only.
+const deletionId = crypto.randomUUID()
+await call('/api/interne/calendrier', 'member', 'POST', { requestId: deletionId, entry: baseEntry() })
+await call('/api/interne/commentaires', 'member', 'POST', { entryId: deletionId, content: 'Commentaire fictif', requestId: crypto.randomUUID() })
+const deletionBody = { id: deletionId, version: 1, confirmed: true }
+for (const role of [null, 'trainer', 'trainerManager'])
+  assert.equal((await call('/api/interne/calendrier', role, 'DELETE', deletionBody)).status, 403)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody, { Origin: 'https://untrusted.example' })).status, 403)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, confirmed: false })).status, 400)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 0 })).status, 400)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 2 })).status, 409)
+assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 1)
+sql.query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?").run(deletionId)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody)).status, 403)
+sql.query("UPDATE workspace_entries SET created_by='member@example.test', status='valide' WHERE id=?").run(deletionId)
+assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody)).status, 403)
+// A parent deletion failure must roll back the child deletion as well.
+sql.exec("CREATE TRIGGER fail_delete BEFORE DELETE ON workspace_entries BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END")
+assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 503)
+assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 1)
+sql.exec('DROP TRIGGER fail_delete')
+assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 200)
+assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 0)
+assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(deletionId).n, 0)
+assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 404)
+for (const kind of ['equipe', 'editorial']) {
+  const ownId = crypto.randomUUID()
+  await call('/api/interne/calendrier', 'member', 'POST', { requestId: ownId, entry: baseEntry({ kind }) })
+  if (kind === 'editorial') sql.query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?").run(ownId)
+  assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { id: ownId, version: 1, confirmed: true })).status, 200)
+  assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(ownId).n, 0)
+}
 console.log(
   'Routes compilées : JWT, rôles, CSRF, SQL, versions, idempotence, auteurs et totaux OK.',
 )
@@ -407,6 +443,42 @@ try {
     if ([390, 1440].includes(width))
       await page.screenshot({ path: `${output}/calendrier-${width}.png`, fullPage: true })
     checks.push(`calendar-${width}`)
+  }
+  // Confirmation cancellation, errors and deletion on mobile and desktop.
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    const deleteTitle = `Fiche fictive à supprimer ${width}`
+    const browserDeleteId = crypto.randomUUID()
+    await call('/api/interne/calendrier', 'member', 'POST', { requestId: browserDeleteId, entry: baseEntry({ kind: 'editorial', title: deleteTitle }) })
+    await call('/api/interne/commentaires', 'member', 'POST', { entryId: browserDeleteId, content: 'Commentaire fictif', requestId: crypto.randomUUID() })
+    await page.locator('#iw-refresh').click()
+    await page.getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) }).first().click()
+    const deleteControl = page.locator('#iw-delete')
+    await expect(deleteControl).toBeVisible()
+    await deleteControl.scrollIntoViewIfNeeded()
+    const bounds = await deleteControl.boundingBox()
+    assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width)
+    await page.screenshot({ path: `${output}/supprimer-fiche-${width}.png` })
+    page.once('dialog', (dialog) => { assert.match(dialog.message(), /tous ses commentaires/); return dialog.dismiss() })
+    await deleteControl.click()
+    assert(sql.query('SELECT id FROM workspace_entries WHERE id=?').get(browserDeleteId))
+    // Failure preserves the open editor and never reports success.
+    await page.route('**/api/interne/calendrier', async (route) => {
+      if (route.request().method() === 'DELETE') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Erreur fictive' }) })
+      return route.continue()
+    })
+    page.once('dialog', (dialog) => dialog.accept())
+    await deleteControl.click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('La suppression n’est pas confirmée')
+    assert(sql.query('SELECT id FROM workspace_entries WHERE id=?').get(browserDeleteId))
+    await page.unroute('**/api/interne/calendrier')
+    page.once('dialog', (dialog) => dialog.accept())
+    await deleteControl.click()
+    await expect(page.locator('#iw-notice')).toContainText(`« ${deleteTitle} » a été supprimée.`)
+    await expect(page.getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) })).toHaveCount(0)
+    assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(browserDeleteId).n, 0)
+    assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(browserDeleteId).n, 0)
+    checks.push(`delete-confirm-cancel-error-comments-${width}`)
   }
   // PR18: editing another field must not erase a legacy free-text channel.
   // These interactions use the compiled client/API and read back the real fixture SQL.
@@ -669,6 +741,7 @@ try {
   await expect(page.locator('#iw-content')).toBeVisible()
   await expect(page.locator('#iw-content')).toBeDisabled()
   await expect(page.locator('#iw-save')).toBeHidden()
+  await expect(page.locator('#iw-delete')).toBeHidden()
   await page.locator('#iw-close').click()
   checks.push('existing-team-content-readable-editable-preserved-without-hours-or-rights')
   await page.locator('#iw-new').click()
