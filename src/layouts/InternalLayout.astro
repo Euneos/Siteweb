@@ -550,6 +550,9 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
     font-size: var(--iw-small);
     margin-bottom: 0.4rem;
   }
+  .iw-day--drop { outline: 3px solid #192f43; outline-offset: -3px; background: #fff0b2; }
+  .iw-event[draggable='true'] { cursor: grab; }
+  .iw-event[draggable='true']:active { cursor: grabbing; }
   .iw-day--today .iw-day__date {
     background: var(--vert);
     color: white;

@@ -1,6 +1,7 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
 import { initDailyHours } from './daily-hours-editor'
+import { personName, isOwnPerson, workspacePeople } from '../lib/workspace-people'
 
 type Kind = Entry['kind']
 type EntryInput = Pick<
@@ -253,18 +254,18 @@ function initCalendar(root: HTMLElement) {
     form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   const writeField = (field: Field, value: EntryInput[Field]) => {
     const control = input(field)
-    const text = value == null ? '' : String(value)
-    if ((field === 'channel' || field === 'status') && control instanceof HTMLSelectElement) {
+    const raw = value == null ? '' : String(value)
+    const text = field === 'person' && workspacePeople.some((name) => name === personName(raw)) ? personName(raw) : raw
+    if (control instanceof HTMLSelectElement && ['channel', 'status', 'person', 'activity'].includes(field)) {
       // Historical values must survive edits and conflict resolution.
       // Keep only the current record's legacy option, never add it to new records.
       control.querySelectorAll(`option[data-legacy-${field}]`).forEach((option) => option.remove())
       if (text && ![...control.options].some((option) => option.value === text)) {
-        const label =
-          field === 'status'
-            ? `${statuses[text] ?? text} (ancien statut)`
-            : `${text} (ancien canal)`
+        const label = field === 'person' ? personName(text)
+          : field === 'activity' ? `${text} (ancienne activité)`
+          : field === 'status' ? `${statuses[text] ?? text} (ancien statut)` : `${text} (ancien canal)`
         const option = new Option(label, text)
-        option.dataset[field === 'status' ? 'legacyStatus' : 'legacyChannel'] = 'true'
+        option.setAttribute(`data-legacy-${field}`, 'true')
         control.add(option)
       }
     }
@@ -320,14 +321,8 @@ function initCalendar(root: HTMLElement) {
     !entry ||
     entry.kind === 'editorial' ||
     identity.admin ||
-    (entry.created_by === identity.email && entry.person.toLowerCase() === identity.email)
-  const updateLink = () => {
-    const link = byId<HTMLAnchorElement>('iw-open-link')
-    const url = safeUrl(input('link').value.trim())
-    link.hidden = !url
-    if (url) link.href = url.href
-    else link.removeAttribute('href')
-  }
+    (entry.created_by === identity.email && isOwnPerson(entry.person, identity.email))
+  const updateLink = () => {}
   const updatePermissions = () => {
     readOnly = !canEdit(selected)
     fieldset.disabled = readOnly || saving || comparing
@@ -336,16 +331,15 @@ function initCalendar(root: HTMLElement) {
     deleteButton.disabled = saving || commenting || comparing || conflictPending
     save.disabled = saving || conflictPending || comparing
     byId('iw-readonly').hidden = !readOnly
-    const person = input('person') as HTMLInputElement
-    person.type = editorKind === 'equipe' ? 'email' : 'text'
-    person.readOnly = editorKind === 'equipe' && !identity.admin
-    // Existing values stay visible in read-only records belonging to another person.
-    if (!selected && person.readOnly) person.value = identity.email
+    const person = input('person') as HTMLSelectElement
+    person.disabled = editorKind === 'equipe' && !identity.admin
+    // Keep ownership enforced by the server, regardless of display labels.
+    if (!selected && person.disabled) writeField('person', identity.email)
     const help = byId('iw-status-help')
-    help.hidden = editorKind !== 'equipe'
+    help.hidden = true
     help.textContent = identity.admin
-      ? 'Votre accès : responsable. Vous pouvez valider les heures déclarées de l’équipe.'
-      : 'Votre accès : membre. Enregistrez vos heures avec « À valider ». Le statut « Validé » est réservé aux responsables.'
+      ? 'Vous pouvez renseigner les heures réalisées de l’équipe.'
+      : 'Vous pouvez renseigner vos heures réalisées.'
     const validated = (input('status') as HTMLSelectElement).querySelector<HTMLOptionElement>(
       'option[value="valide"]',
     )
@@ -376,6 +370,15 @@ function initCalendar(root: HTMLElement) {
       statusSelect.add(option)
     }
     for (const field of fields) writeField(field, entry[field])
+    input('title').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
+    input('title').required = editorKind !== 'equipe'
+    input('status').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
+    if (editorKind === 'equipe') {
+      input('title').value = personName(input('person').value)
+      // The old approval workflow is no longer presented. An edit returns a
+      // previously approved record to the existing unapproved storage state.
+      if (entry.status === 'valide') input('status').value = 'brouillon'
+    }
     dailyEditor.render(editorKind === 'equipe')
     form.querySelector('label[for="iw-starts"]')!.textContent =
       editorKind === 'editorial' ? 'Date de publication *' : 'Date de début *'
@@ -425,8 +428,9 @@ function initCalendar(root: HTMLElement) {
   })
   const setMetrics = (loaded: CalendarData | null) => {
     byId('iw-metric-label-1').textContent = 'Fiches du mois'
-    byId('iw-metric-label-2').textContent = kind === 'equipe' ? 'Heures déclarées' : 'À valider'
-    byId('iw-metric-label-3').textContent = kind === 'equipe' ? 'Heures validées' : 'Publiées'
+    byId('iw-metric-label-2').textContent = kind === 'equipe' ? 'Heures réalisées' : 'À valider'
+    byId('iw-metric-label-3').textContent = 'Publiées'
+    byId('iw-metric-3').parentElement!.hidden = kind === 'equipe'
     byId('iw-metric-1').textContent = loaded ? String(loaded.entries.length) : '—'
     byId('iw-metric-2').textContent = loaded
       ? kind === 'equipe'
@@ -444,7 +448,8 @@ function initCalendar(root: HTMLElement) {
     for (const filter of filters) {
       const field = filter.dataset.filter as 'person' | 'activity' | 'channel' | 'status'
       filter.closest<HTMLElement>('.iw-field')!.hidden =
-        (field === 'channel' && kind === 'equipe') || (field === 'activity' && kind === 'editorial')
+        ((field === 'channel' || field === 'status') && kind === 'equipe') || (field === 'activity' && kind === 'editorial')
+      if (field === 'status' && kind === 'equipe') filter.value = ''
       const current = filter.value
       const first = filter.options[0].cloneNode(true)
       const values =
@@ -461,21 +466,11 @@ function initCalendar(root: HTMLElement) {
       if (current && !values.includes(current)) values.push(current)
       filter.replaceChildren(first)
       values.forEach((value) =>
-        filter.add(new Option(field === 'status' ? statuses[value] : value, value)),
+        filter.add(new Option(field === 'status' ? statuses[value] : field === 'person' ? personName(value) : value, value)),
       )
       filter.value = current
     }
-    for (const [field, id] of [
-      ['person', 'iw-people-options'],
-      ['activity', 'iw-activities-options'],
-    ] as const) {
-      const list = byId(id)
-      list.replaceChildren(
-        ...[...new Set(data.entries.map((entry) => entry[field]).filter(Boolean))]
-          .sort((a, b) => a.localeCompare(b, 'fr'))
-          .map((value) => new Option(value, value)),
-      )
-    }
+
   }
   const renderTotals = () => {
     byId('iw-totals').hidden = kind !== 'equipe'
@@ -492,45 +487,31 @@ function initCalendar(root: HTMLElement) {
       return
     }
     if (!data.totals.length) {
-      target.append(node('p', 'iw-muted', 'Aucune heure déclarée pour ce mois.'))
+      target.append(node('p', 'iw-muted', 'Aucune heure réalisée renseignée pour ce mois.'))
       return
     }
     const table = node('table', 'iw-table')
-    table.append(
-      node(
-        'caption',
-        'iw-sr-only',
-        `Heures déclarées et validées en ${monthFormat.format(dateObject(`${month}-01`))}`,
-      ),
-    )
+    table.append(node('caption', 'iw-sr-only', `Heures réalisées en ${monthFormat.format(dateObject(`${month}-01`))}`))
     const head = table.createTHead().insertRow()
-    for (const label of ['Personne', 'Déclarées', 'Validées']) {
+    for (const label of ['Personne', 'Heures réalisées']) {
       const th = node('th', '', label)
       th.scope = 'col'
       head.append(th)
     }
     const body = table.createTBody()
-    data.totals
-      .slice()
-      .sort((a, b) => a.person.localeCompare(b.person, 'fr'))
-      .forEach((total) => {
-        const row = body.insertRow()
-        const name = node('th', '', total.person)
-        name.scope = 'row'
-        row.append(
-          name,
-          node('td', '', hours(total.declared)),
-          node('td', '', hours(total.approved)),
-        )
-      })
-    const foot = table.createTFoot().insertRow()
+    const totals = new Map<string, number>()
+    for (const total of data.totals) {
+      const name = personName(total.person)
+      totals.set(name, (totals.get(name) ?? 0) + total.declared)
+    }
+    for (const [person, total] of [...totals].sort(([a], [b]) => a.localeCompare(b, 'fr'))) {
+      const name = node('th', '', person)
+      name.scope = 'row'
+      body.insertRow().append(name, node('td', '', hours(total)))
+    }
     const label = node('th', '', 'Total du mois')
     label.scope = 'row'
-    foot.append(
-      label,
-      node('td', '', hours(data.totals.reduce((sum, row) => sum + row.declared, 0))),
-      node('td', '', hours(data.totals.reduce((sum, row) => sum + row.approved, 0))),
-    )
+    table.createTFoot().insertRow().append(label, node('td', '', hours(data.totals.reduce((sum, row) => sum + row.declared, 0))))
     target.append(table)
   }
   const badge = (entry: Entry) => {
@@ -547,9 +528,10 @@ function initCalendar(root: HTMLElement) {
     for (const entry of entries) {
       const item = node('li', 'iw-agenda__item')
       const open = button('', () => openEditor(entry), 'iw-entry')
+      open.dataset.entryId = entry.id
       const text = node('span')
       text.append(
-        node('span', 'iw-entry__title', entry.title),
+        node('span', 'iw-entry__title', entry.kind === 'equipe' ? personName(entry.person) : entry.title),
         node(
           'span',
           'iw-entry__details',
@@ -562,7 +544,7 @@ function initCalendar(root: HTMLElement) {
             (entry.kind === 'equipe' ? 'Activité non renseignée' : 'Canal non renseigné'),
         ),
       )
-      const person = node('span', 'iw-entry__person', entry.person)
+      const person = node('span', 'iw-entry__person', personName(entry.person))
       if (entry.daily_hours) {
         const rows = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!
         person.append(
@@ -574,15 +556,33 @@ function initCalendar(root: HTMLElement) {
         )
       } else if (entry.hours !== null)
         person.append(node('span', 'iw-entry__details', hours(entry.hours)))
-      open.append(node('span', 'iw-entry__date', dateRange(entry)), text, person, badge(entry))
+      open.append(node('span', 'iw-entry__date', dateRange(entry)), text, person)
+      if (entry.kind === 'editorial') open.append(badge(entry))
       open.setAttribute(
         'aria-label',
-        `Ouvrir ${entry.title}, ${dateRange(entry)}, ${entry.person}, ${statuses[entry.status] ?? entry.status}`,
+        `Ouvrir ${entry.kind === 'equipe' ? personName(entry.person) : entry.title}, ${dateRange(entry)}, ${personName(entry.person)}${entry.kind === 'editorial' ? `, ${statuses[entry.status] ?? entry.status}` : ''}`,
       )
       item.append(open)
       list.append(item)
     }
     return list
+  }
+  let draggedPublication: Entry | null = null
+  let moving = false
+  async function movePublication(entry: Entry, date: string) {
+    if (moving || entry.kind !== 'editorial' || entry.starts_on === date) return
+    moving = true
+    feedback(byId('iw-notice'), 'Déplacement en cours…')
+    try {
+      const result = await api<{ id: string }>('/api/interne/calendrier', {
+        method: 'PATCH', body: JSON.stringify({ action: 'move', id: entry.id, version: entry.version, date }),
+      })
+      if (result.id !== entry.id) throw new ApiError(502, 'Le déplacement n’a pas pu être confirmé.')
+      feedback(byId('iw-notice'), `Publication déplacée au ${dateFormat.format(dateObject(date))}.`)
+      await loadCalendar()
+    } catch (error) {
+      feedback(byId('iw-notice'), `${errorText(error)} Déplacement non confirmé ; actualisez le calendrier.`, true)
+    } finally { moving = false }
   }
   const monthGrid = (entries: Entry[]) => {
     const section = node('div', 'iw-month')
@@ -607,6 +607,21 @@ function initCalendar(root: HTMLElement) {
         continue
       }
       const date = `${month}-${String(day).padStart(2, '0')}`
+      cell.dataset.date = date
+      cell.addEventListener('dragover', (event) => {
+        if (!draggedPublication || moving) return
+        event.preventDefault()
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+        cell.classList.add('iw-day--drop')
+      })
+      cell.addEventListener('dragleave', () => cell.classList.remove('iw-day--drop'))
+      cell.addEventListener('drop', (event) => {
+        event.preventDefault()
+        cell.classList.remove('iw-day--drop')
+        const entry = draggedPublication
+        draggedPublication = null
+        if (entry) void movePublication(entry, date)
+      })
       if (date === localDate()) cell.classList.add('iw-day--today')
       const time = node('time', 'iw-day__date', String(day))
       time.dateTime = date
@@ -617,15 +632,37 @@ function initCalendar(root: HTMLElement) {
       const events = node('div', 'iw-day__events')
       todayEntries.forEach((entry) => {
         const event = button('', () => openEditor(entry), 'iw-event')
-        event.dataset.status = entry.status
+        event.dataset.entryId = entry.id
+        if (entry.kind === 'editorial') {
+          event.dataset.status = entry.status
+          event.draggable = true
+          event.title = 'Glissez vers un autre jour, ou utilisez Alt + flèche gauche/droite.'
+          event.addEventListener('dragstart', (drag) => {
+            if (moving) { drag.preventDefault(); return }
+            draggedPublication = entry
+            drag.dataTransfer?.setData('text/plain', entry.id)
+            if (drag.dataTransfer) drag.dataTransfer.effectAllowed = 'move'
+          })
+          event.addEventListener('dragend', () => {
+            draggedPublication = null
+            content.querySelectorAll('.iw-day--drop').forEach((day) => day.classList.remove('iw-day--drop'))
+          })
+          event.addEventListener('keydown', (key) => {
+            if (!key.altKey || !['ArrowLeft', 'ArrowRight'].includes(key.key)) return
+            key.preventDefault()
+            const next = dateObject(entry.starts_on)
+            next.setUTCDate(next.getUTCDate() + (key.key === 'ArrowLeft' ? -1 : 1))
+            void movePublication(entry, next.toISOString().slice(0, 10))
+          })
+        }
         event.append(
-          node('span', 'iw-event__title', entry.title),
+          node('span', 'iw-event__title', entry.kind === 'equipe' ? personName(entry.person) : entry.title),
           node(
             'span',
             'iw-event__meta',
             [
-              entry.person,
-              statuses[entry.status] ?? entry.status,
+              personName(entry.person),
+              entry.kind === 'editorial' ? statuses[entry.status] ?? entry.status : '',
               entry.kind === 'editorial' ? entry.channel : entry.activity,
               entry.kind === 'equipe' ? attendanceLabels[entry.attendance] : '',
               entry.kind === 'equipe' ? entry.location : '',
@@ -655,7 +692,7 @@ function initCalendar(root: HTMLElement) {
         )
         event.setAttribute(
           'aria-label',
-          `Ouvrir ${entry.title}, ${longDateFormat.format(dateObject(date))}, ${entry.person}, ${statuses[entry.status] ?? entry.status}`,
+          `Ouvrir ${entry.kind === 'equipe' ? personName(entry.person) : entry.title}, ${longDateFormat.format(dateObject(date))}, ${personName(entry.person)}${entry.kind === 'editorial' ? `, ${statuses[entry.status] ?? entry.status}` : ''}`,
         )
         events.append(event)
       })
@@ -823,7 +860,7 @@ function initCalendar(root: HTMLElement) {
     byId('iw-comment-list').replaceChildren()
     byId('iw-editor-kind').textContent =
       editorKind === 'editorial' ? 'Calendrier éditorial' : 'Équipe & heures'
-    byId('iw-editor-title').textContent = entry ? 'Détail de la fiche' : 'Nouvelle fiche'
+    byId('iw-editor-title').textContent = entry?.kind === 'equipe' ? personName(entry.person) : entry ? 'Détail de la fiche' : 'Nouvelle fiche'
     byId('iw-entry-audit').textContent = entry
       ? `Créée par ${entry.created_by} · Dernière modification : ${entry.updated_by} · Version ${entry.version}`
       : ''
@@ -1088,8 +1125,12 @@ function initCalendar(root: HTMLElement) {
       updatePermissions()
     }
   })
+  input('person').addEventListener('change', () => {
+    if (editorKind === 'equipe') input('title').value = personName(input('person').value)
+  })
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
+    if (editorKind === 'equipe') input('title').value = personName(input('person').value)
     if (saving || readOnly || conflictPending || comparing || !form.reportValidity()) return
     if (!dailyEditor.validate()) return
     const entry = readForm()
@@ -1162,7 +1203,7 @@ function initCalendar(root: HTMLElement) {
       writeField('ends_on', entry.ends_on)
       savedSnapshot = snapshot()
       byId('iw-close-warning').hidden = true
-      byId('iw-editor-title').textContent = 'Détail de la fiche'
+      byId('iw-editor-title').textContent = editorKind === 'equipe' ? personName(entry.person) : 'Détail de la fiche'
       byId('iw-entry-audit').textContent =
         `Créée par ${selected.created_by} · Dernière modification : ${selected.updated_by} · Version ${selected.version}`
       feedback(saveFeedback, 'Fiche enregistrée. Vous pouvez poursuivre la discussion ci-dessous.')
