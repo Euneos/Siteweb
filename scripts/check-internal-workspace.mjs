@@ -391,6 +391,17 @@ for (const kind of ['equipe', 'editorial']) {
   assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { id: ownId, version: 1, confirmed: true })).status, 200)
   assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(ownId).n, 0)
 }
+const moveId = crypto.randomUUID()
+await call('/api/interne/calendrier', 'member', 'POST', { requestId: moveId, entry: baseEntry({ kind: 'editorial', title: 'Publication mobile de recette', person: 'Pauline', notes: 'Texte à préserver' }) })
+const moveBody = { action: 'move', id: moveId, version: 1, date: '2026-09-23' }
+for (const role of [null, 'trainer', 'trainerManager']) assert.equal((await call('/api/interne/calendrier', role, 'PATCH', moveBody)).status, 403)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody, { Origin: 'https://untrusted.example' })).status, 403)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, date: '2026-02-30' })).status, 400)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, version: 0 })).status, 400)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, id, version: 2 })).status, 400)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody)).status, 200)
+assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody)).status, 409)
+assert.deepEqual(sql.query('SELECT starts_on,ends_on,notes,person FROM workspace_entries WHERE id=?').get(moveId), { starts_on: '2026-09-23', ends_on: '2026-09-23', notes: 'Texte à préserver', person: 'Pauline' })
 console.log(
   'Routes compilées : JWT, rôles, CSRF, SQL, versions, idempotence, auteurs et totaux OK.',
 )
@@ -444,6 +455,36 @@ try {
       await page.screenshot({ path: `${output}/calendrier-${width}.png`, fullPage: true })
     checks.push(`calendar-${width}`)
   }
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const movingCard = () => page.locator(`.iw-event[data-entry-id="${moveId}"]`)
+  await movingCard().dragTo(page.locator('.iw-day[data-date="2026-09-24"]'))
+  await expect(page.locator('#iw-notice')).toContainText('Publication déplacée')
+  await expect(page.locator(`.iw-day[data-date="2026-09-24"] [data-entry-id="${moveId}"]`)).toHaveCount(1)
+  assert.equal(sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on, '2026-09-24')
+  sql.query('UPDATE workspace_entries SET version=version+1 WHERE id=?').run(moveId)
+  await movingCard().dragTo(page.locator('.iw-day[data-date="2026-09-25"]'))
+  await expect(page.locator('#iw-notice')).toContainText('Déplacement non confirmé')
+  assert.equal(sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on, '2026-09-24')
+  await page.locator('#iw-refresh').click()
+  await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
+  await movingCard().focus()
+  await page.keyboard.press('Alt+ArrowRight')
+  await expect(page.locator('#iw-notice')).toContainText('Publication déplacée')
+  await expect(page.locator(`.iw-day[data-date="2026-09-25"] [data-entry-id="${moveId}"]`)).toHaveCount(1)
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.locator(`[data-entry-id="${moveId}"]`).filter({ visible: true }).first().click()
+    await expect(page.locator('#iw-open-link')).toHaveCount(0)
+    await expect(page.locator('#iw-starts')).toHaveValue('2026-09-25')
+    assert.deepEqual(await page.locator('#iw-entry-person option').allTextContents(), ['Sélectionner une personne', 'Pauline', 'Candice', 'Charlotte', 'Partenaires'])
+    await page.locator('#iw-entry-person').selectOption('Candice')
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    assert.equal(sql.query('SELECT person FROM workspace_entries WHERE id=?').get(moveId).person, 'Candice')
+    await page.screenshot({ path: `${output}/publication-personne-${width}.png` })
+    await page.locator('#iw-close').click()
+  }
+  checks.push('publication-drag-keyboard-date-persist-conflict-person-select-mobile-desktop')
   // Confirmation cancellation, errors and deletion on mobile and desktop.
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
@@ -693,10 +734,7 @@ try {
     201,
   )
   await page.locator('#iw-refresh').click()
-  const openTeamText = () =>
-    page
-      .getByRole('button', { name: /^Ouvrir Informations équipe historiques de recette,/ })
-      .click()
+  const openTeamText = () => page.locator(`[data-entry-id="${teamTextId}"]`).filter({ visible: true }).first().click()
   await openTeamText()
   await expect(page.getByLabel('Détails complémentaires', { exact: true })).toBeVisible()
   await expect(page.locator('#iw-content')).toBeEditable()
@@ -754,14 +792,22 @@ try {
     ['brouillon', 'a_valider', 'valide', 'annule'],
   )
   await expect(page.locator('#iw-entry-status option[value="valide"]')).toBeDisabled()
-  await expect(page.locator('#iw-status-help')).toContainText('Votre accès : membre')
+  await expect(page.locator('#iw-entry-status')).toBeHidden()
+  await expect(page.locator('#iw-status-help')).toBeHidden()
+  await expect(page.locator('#iw-title')).toBeHidden()
+  await expect(page.locator('#iw-totals-content')).not.toContainText('Validées')
+  await expect(page.locator('#iw-totals-content')).toContainText('Heures réalisées')
   await expect(page.locator('#iw-entry-activity')).toBeVisible()
+  assert.deepEqual(await page.locator('#iw-entry-activity option').allTextContents(), ['Sélectionner une activité', 'Communication', 'Direction générale', 'Coordination'])
+  await expect(page.locator('#iw-totals-content')).not.toContainText('@')
+  await expect(page.locator('#iw-calendar-content')).not.toContainText('@')
   await expect(page.locator('#iw-activity')).toBeVisible()
   await expect(page.locator('#iw-entry-channel')).toBeHidden()
   await expect(page.locator('#iw-channel')).toBeHidden()
   await expect(page.locator('#iw-content')).toBeHidden()
   await expect(page.getByLabel('Notes et contexte', { exact: true })).toBeVisible()
-  await page.locator('#iw-title').fill('Recette depuis le navigateur')
+  await page.locator('#iw-entry-activity').selectOption('Coordination')
+  await page.locator('#iw-notes').fill('Recette depuis le navigateur')
   await page.locator('#iw-starts').fill('2026-09-17')
   await page.locator('#iw-ends').fill('2026-09-17')
   await page.locator('#iw-hours').fill('1.5')
@@ -770,8 +816,10 @@ try {
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
   const uiEntry = sql
-    .query('SELECT * FROM workspace_entries WHERE title=?')
+    .query('SELECT * FROM workspace_entries WHERE notes=?')
     .get('Recette depuis le navigateur')
+  assert.equal(uiEntry.title, 'Member')
+  assert.equal(uiEntry.activity, 'Coordination')
   assert.equal(uiEntry.hours, 1.5)
   assert.equal(uiEntry.created_by, 'member@example.test')
   await page
@@ -850,11 +898,11 @@ try {
   await expect(page.locator('#iw-result-count')).toContainText('septembre 2026')
   checks.push('team-fields-permissions-and-explicit-month-no-autosave')
   await page.locator('#iw-new').click()
-  await page.locator('#iw-title').fill('Planning quotidien de recette')
+  await page.locator('#iw-notes').fill('Planning quotidien de recette')
   await page.locator('#iw-fill-month').click()
   await expect(page.locator('#iw-starts')).toHaveValue('2026-09-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-09-30')
-  await page.locator('#iw-entry-status').selectOption('a_valider')
+  await expect(page.locator('#iw-entry-status')).toBeHidden()
   await page.getByRole('button', { name: 'Saisir les heures par jour', exact: true }).click()
   await page.getByRole('button', { name: 'Prévoir 7 h les mardis et jeudis', exact: true }).click()
   await page
@@ -866,7 +914,7 @@ try {
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
   const dailyEntry = sql
-    .query('SELECT * FROM workspace_entries WHERE title=?')
+    .query('SELECT * FROM workspace_entries WHERE notes=?')
     .get('Planning quotidien de recette')
   assert.equal(dailyEntry.hours, 8)
   assert.equal(JSON.parse(dailyEntry.daily_hours).length, 10)
@@ -875,14 +923,8 @@ try {
   await page.locator('[data-kind="equipe"]').click()
   await page.locator('#iw-month').fill('2026-09')
   await page.locator('#iw-month').press('Tab')
-  await expect(
-    page.locator('.iw-event').filter({ hasText: 'Planning quotidien de recette' }),
-  ).toHaveCount(10)
-  await page
-    .locator('.iw-event')
-    .filter({ hasText: 'Planning quotidien de recette' })
-    .first()
-    .click()
+  await expect(page.locator(`.iw-event[data-entry-id="${dailyEntry.id}"]`)).toHaveCount(10)
+  await page.locator(`.iw-event[data-entry-id="${dailyEntry.id}"]`).first().click()
   await expect(
     page.getByRole('spinbutton', { name: 'Heures réalisées le mardi 1 septembre', exact: true }),
   ).toHaveValue('8')
@@ -914,7 +956,7 @@ try {
         'Planned and actual hours stay on the same desktop row',
       )
     }
-    await page.locator('#iw-status-help').scrollIntoViewIfNeeded()
+    await page.locator('#iw-entry-person').scrollIntoViewIfNeeded()
     await page.screenshot({ path: `${output}/daily-permissions-${width}.png` })
     await page.locator('#iw-daily-rows').scrollIntoViewIfNeeded()
     await page.screenshot({ path: `${output}/daily-hours-${width}.png` })

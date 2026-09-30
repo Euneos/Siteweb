@@ -6,7 +6,7 @@ import {
   readInternalBody,
   entryId,
 } from '../../../lib/internal-context'
-import { listEntries, getEntry, hoursByPerson, saveEntry, deleteEntry, WorkspaceError } from '../../../lib/internal-workspace'
+import { listEntries, getEntry, hoursByPerson, saveEntry, deleteEntry, movePublication, WorkspaceError } from '../../../lib/internal-workspace'
 export const prerender = false
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -34,6 +34,10 @@ const write: APIRoute = async ({ request, locals }) => {
     if (context instanceof Response) return context
     const body = await readInternalBody(request)
     const id = request.method === 'PATCH' ? entryId(body.id) : undefined
+    if (id && body.action === 'move') {
+      await movePublication(context.db, context.identity, id, body.version, body.date)
+      return privateJson({ id })
+    }
     const savedId = await saveEntry(
       context.db,
       context.identity,

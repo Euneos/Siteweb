@@ -2,6 +2,7 @@
  * Notion stays canonical until an audited import and an explicit cutover.
  * No live cross-system synchronization or automatic social publication. */
 import { parseDailyHours, dailyTotal } from './daily-hours'
+import { isOwnPerson } from './workspace-people'
 
 export interface WorkspaceDatabase {
   batch(statements: ReturnType<ReturnType<WorkspaceDatabase['prepare']>['bind']>[]): Promise<{ meta: { changes: number } }[]>
@@ -184,7 +185,7 @@ export async function deleteEntry(
     throw new WorkspaceError(400, 'Version de fiche absente.')
   const entry = await getEntry(db, id)
   if (entry.kind === 'equipe' && !actor.admin &&
-      (entry.created_by !== actor.email || entry.person.toLowerCase() !== actor.email || entry.status === 'valide'))
+      (entry.created_by !== actor.email || !isOwnPerson(entry.person, actor.email) || entry.status === 'valide'))
     throw new WorkspaceError(403, 'Seul l’auteur ou un responsable peut supprimer cette fiche. Les heures validées sont réservées aux responsables.')
   if (entry.version !== version)
     throw new WorkspaceError(409, 'Cette fiche a changé. Fermez-la puis rouvrez-la avant de confirmer sa suppression.')
@@ -198,6 +199,16 @@ export async function deleteEntry(
     throw new WorkspaceError(409, 'Cette fiche a changé. Fermez-la puis rouvrez-la avant de confirmer sa suppression.')
 }
 
+export async function movePublication(db: WorkspaceDatabase, actor: WorkspaceIdentity, id: string, version: unknown, date: unknown): Promise<void> {
+  if (!Number.isSafeInteger(version) || (version as number) < 1) throw new WorkspaceError(400, 'Version de fiche absente.')
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < '1900-01-01' || date > '2200-12-31' || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) throw new WorkspaceError(400, 'Date de publication invalide.')
+  const entry = await getEntry(db, id)
+  if (entry.kind !== 'editorial') throw new WorkspaceError(400, 'Seules les publications peuvent être déplacées.')
+  const result = await db.prepare("UPDATE workspace_entries SET starts_on=?, ends_on=?, updated_by=?, version=version+1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND version=?")
+    .bind(date, date, actor.email, id, version as number).run()
+  if (result.meta.changes !== 1) throw new WorkspaceError(409, 'Cette fiche a changé. Actualisez le calendrier avant de la déplacer.')
+}
+
 export async function saveEntry(
   db: WorkspaceDatabase,
   actor: WorkspaceIdentity,
@@ -207,7 +218,7 @@ export async function saveEntry(
   requestId?: string,
 ): Promise<string> {
   const entry = parseEntry(input)
-  if (entry.kind === 'equipe' && !actor.admin && entry.person.toLowerCase() !== actor.email)
+  if (entry.kind === 'equipe' && !actor.admin && !isOwnPerson(entry.person, actor.email))
     throw new WorkspaceError(403, 'Vous pouvez déclarer uniquement vos propres heures et absences.')
   const previous = id
     ? await db.prepare('SELECT * FROM workspace_entries WHERE id = ?').bind(id).first<Entry>()
