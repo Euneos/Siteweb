@@ -885,11 +885,6 @@ function initCalendar(root: HTMLElement) {
       },
     )
     savedSnapshot = snapshot()
-    if (entry?.kind === 'equipe' && entry.status === 'valide' && !identity.admin && !readOnly)
-      feedback(
-        saveFeedback,
-        'Pour modifier une fiche validée, choisissez d’abord le statut « À valider ».',
-      )
     commentForm.hidden = !entry
     byId('iw-comments-refresh').hidden = !entry
     byId('iw-comments-state').textContent = entry
@@ -1170,10 +1165,9 @@ function initCalendar(root: HTMLElement) {
     if (editorKind === 'equipe' && !identity.admin && entry.status === 'valide') {
       feedback(
         saveFeedback,
-        'Choisissez « À valider » pour soumettre cette fiche à un responsable.',
+        'Cette fiche a changé : fermez-la puis rouvrez-la avant de l’enregistrer.',
         true,
       )
-      input('status').focus()
       return
     }
     const previous = selected
@@ -1326,7 +1320,7 @@ function initCalendar(root: HTMLElement) {
       byId('iw-kind-help').textContent =
         kind === 'editorial'
           ? 'Les publications sur les réseaux restent manuelles.'
-          : 'Déclarez vos activités et vos heures. La validation revient aux responsables.'
+          : 'Renseignez vos activités et vos heures réalisées.'
       feedback(byId('iw-notice'), '')
       void loadCalendar()
     }),
