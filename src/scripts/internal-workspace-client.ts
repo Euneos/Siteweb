@@ -1,7 +1,7 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
 import { initDailyHours } from './daily-hours-editor'
-import { personName, isOwnPerson, workspacePeople } from '../lib/workspace-people'
+import { personName, isOwnPerson } from '../lib/workspace-people'
 
 type Kind = Entry['kind']
 type EntryInput = Pick<
@@ -254,8 +254,9 @@ function initCalendar(root: HTMLElement) {
     form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   const writeField = (field: Field, value: EntryInput[Field]) => {
     const control = input(field)
-    const raw = value == null ? '' : String(value)
-    const text = field === 'person' && workspacePeople.some((name) => name === personName(raw)) ? personName(raw) : raw
+    // Preserve stored identities when editing existing records. Their option
+    // label may be a first name, but a display change must not change ownership.
+    const text = value == null ? '' : String(value)
     if (control instanceof HTMLSelectElement && ['channel', 'status', 'person', 'activity'].includes(field)) {
       // Historical values must survive edits and conflict resolution.
       // Keep only the current record's legacy option, never add it to new records.
