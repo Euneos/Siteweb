@@ -38,7 +38,7 @@ const labels: Record<Field, string> = {
   location: 'Lieu',
   status: 'Statut de suivi',
   hours: 'Heures réalisées',
-  daily_hours: 'Détail quotidien (prévu et réalisé)',
+  daily_hours: 'Heures réalisées par jour',
   notes: 'Notes et inspirations',
   content: 'Texte du contenu',
   link: 'Lien associé',
@@ -257,7 +257,9 @@ function initCalendar(root: HTMLElement) {
     // Preserve stored identities when editing existing records. Their option
     // label may be a first name, but a display change must not change ownership.
     let text = value == null ? '' : String(value)
-    if (field === 'person' && editorKind === 'editorial') {
+    if (field === 'person' && editorKind === 'editorial' && control instanceof HTMLSelectElement) {
+      control.replaceChildren(new Option('Sélectionner une personne', ''))
+      for (const person of workspacePeople) control.add(new Option(person, person))
       const name = personName(text)
       text = workspacePeople.some((person) => person === name) ? name : ''
     }

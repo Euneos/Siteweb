@@ -734,9 +734,11 @@ try {
   await page.locator('#iw-person').selectOption('Alex')
   await expect(page.locator('#iw-calendar-state')).toContainText('Aucune fiche ne correspond')
   await page.locator('#iw-person').selectOption('')
+  await page.locator('[data-view="list"]').click()
   const teamPreview = page.locator('.iw-entry').first()
   await expect(teamPreview.locator('.iw-entry__details').first()).toHaveText('Présence · Formation')
   await expect(teamPreview.locator('.iw-entry__person')).not.toContainText('Member')
+  await page.locator('[data-view="month"]').click()
   // Synthetic historical text only: prose must remain accessible without
   // becoming hours, notes, or an editorial field on new team entries.
   const teamTextId = crypto.randomUUID()
