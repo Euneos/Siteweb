@@ -833,7 +833,7 @@ try {
   await expect(page.locator('#iw-entry-channel')).toBeHidden()
   await expect(page.locator('#iw-channel')).toBeHidden()
   await expect(page.locator('#iw-content')).toBeHidden()
-  await expect(page.getByLabel('Notes et contexte', { exact: true })).toBeVisible()
+  await expect(page.locator('#iw-notes')).toBeHidden()
   await page.locator('#iw-entry-activity').selectOption('Coordination')
   await page.locator('#iw-notes').fill('Recette depuis le navigateur')
   await page.locator('#iw-starts').fill('2026-09-17')

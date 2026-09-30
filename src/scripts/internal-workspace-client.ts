@@ -400,8 +400,9 @@ function initCalendar(root: HTMLElement) {
         field === 'activity' ? editorKind !== 'equipe' : editorKind !== 'editorial'
     }
     updateContentField()
-    form.querySelector('label[for="iw-notes"]')!.textContent =
-      editorKind === 'equipe' ? 'Notes et contexte' : 'Notes et inspirations'
+    const notesLabel = form.querySelector('label[for="iw-notes"]')!
+    notesLabel.textContent = 'Notes et inspirations'
+    notesLabel.parentElement!.hidden = editorKind === 'equipe'
     input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
