@@ -1,0 +1,16 @@
+{
+  "title": "reponses_formulaires_site",
+  "columns": [
+    {"title":"cle_reponse","uidt":"SingleLineText"},
+    {"title":"formulaire","uidt":"SingleLineText"},
+    {"title":"etablissement","uidt":"SingleLineText"},
+    {"title":"ville","uidt":"SingleLineText"},
+    {"title":"annee_scolaire","uidt":"SingleLineText"},
+    {"title":"referent_email","uidt":"Email"},
+    {"title":"reponses","uidt":"LongText"},
+    {"title":"source_url","uidt":"URL"},
+    {"title":"statut_reprise","uidt":"SingleLineText"},
+    {"title":"dossier_id","uidt":"Number"},
+    {"title":"detail_reprise","uidt":"LongText"}
+  ]
+}
