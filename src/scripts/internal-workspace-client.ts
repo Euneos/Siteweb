@@ -1,5 +1,6 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
+import { initEditorialImage } from './editorial-image-editor'
 import { initDailyHours } from './daily-hours-editor'
 import { personName, isOwnPerson } from '../lib/workspace-people'
 
@@ -273,6 +274,7 @@ function initCalendar(root: HTMLElement) {
     control.value = text
   }
   const dailyEditor = initDailyHours(form)
+  const imageEditor = initEditorialImage()
   let selected: Entry | null = null
   let publicationDates: Pick<EntryInput, 'starts_on' | 'ends_on'> | null = null
   let editorKind: Kind = kind
@@ -317,7 +319,8 @@ function initCalendar(root: HTMLElement) {
   // Raw values detect even whitespace edits before closing; payloads are normalized separately.
   const snapshot = () => JSON.stringify(fields.map((field) => input(field).value))
   const isDirty = () =>
-    dialog.open && (snapshot() !== savedSnapshot || commentInput.value.length > 0)
+    dialog.open &&
+    (snapshot() !== savedSnapshot || commentInput.value.length > 0 || imageEditor.isDirty())
   const canEdit = (entry: Entry | null) =>
     !entry ||
     entry.kind === 'editorial' ||
@@ -820,6 +823,7 @@ function initCalendar(root: HTMLElement) {
     changeMonth(date.toISOString().slice(0, 7))
   }
   function closeEditor() {
+    imageEditor.close()
     dialog.close()
     commentsController?.abort()
     modalGeneration++
@@ -827,7 +831,7 @@ function initCalendar(root: HTMLElement) {
     else byId('iw-new').focus()
   }
   function requestClose() {
-    if (saving || commenting || comparing) {
+    if (saving || commenting || comparing || imageEditor.isBusy()) {
       feedback(
         saveFeedback,
         'Une opération est en cours. Attendez sa confirmation avant de fermer.',
@@ -890,6 +894,7 @@ function initCalendar(root: HTMLElement) {
     byId('iw-comments-state').textContent = entry
       ? 'Chargement des commentaires…'
       : 'Enregistrez la fiche pour démarrer la discussion.'
+    imageEditor.open(entry, editorKind)
     dialog.showModal()
     if (readOnly) byId('iw-close').focus()
     else input('title').focus()
@@ -1194,6 +1199,7 @@ function initCalendar(root: HTMLElement) {
         created_by: previous?.created_by ?? identity.email,
         updated_by: identity.email,
       }
+      imageEditor.saved(selected)
       publicationDates = { starts_on: entry.starts_on, ends_on: entry.ends_on }
       writeField('ends_on', entry.ends_on)
       savedSnapshot = snapshot()
@@ -1293,7 +1299,7 @@ function initCalendar(root: HTMLElement) {
     input('title').focus()
   })
   byId('iw-discard').addEventListener('click', () => {
-    if (!saving && !commenting && !comparing) closeEditor()
+    if (!saving && !commenting && !comparing && !imageEditor.isBusy()) closeEditor()
   })
   byId('iw-compare').addEventListener('click', () => void compareVersions())
   mergeButton.addEventListener('click', applyMerge)

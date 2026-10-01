@@ -74,6 +74,7 @@ jobs:
           bunx playwright install --with-deps chromium
           bun scripts/check-internal-table.mjs
           bun scripts/check-internal-workspace.mjs
+          bun run test:editorial-images
           bun scripts/check-implantations.mjs
           bun run test:operational
           bun scripts/check-candidature-decisions-ui.mjs

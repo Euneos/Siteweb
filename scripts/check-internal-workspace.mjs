@@ -83,6 +83,7 @@ const components = [
   'interne/catalogue.astro',
   'etat-candidatures.astro',
   'api/interne/calendrier.ts',
+  'api/interne/images.ts',
   'api/interne/commentaires.ts',
   'api/interne/ressources.ts',
   'api/interne/catalogue.ts',
