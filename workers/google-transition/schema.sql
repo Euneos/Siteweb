@@ -32,3 +32,11 @@ CREATE TABLE IF NOT EXISTS google_transition_sources (
   source_key TEXT PRIMARY KEY,
   next_row INTEGER NOT NULL
 );
+
+-- Additive migration: durable cross-response guard, never expire/reset after
+-- an uncertain create. This is separate from the short-lived polling lease.
+CREATE TABLE IF NOT EXISTS google_transition_person_claims (
+  identity_key TEXT PRIMARY KEY,
+  response_key TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

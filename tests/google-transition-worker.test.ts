@@ -261,7 +261,7 @@ test('push uses bootstrap receipts, captures changed/raw fields and never fetche
   expect(calls).toHaveLength(0)
   const edited = answer()
   edited[9] = 'Ancienne colonne remplie'
-  await poll(pushed(source(), [edited, answer('Nouvelle réponse')]))
+  await poll(pushed(source(), [edited, answer('Nouvelle réponse', '29/09/2026 10:01:00')]))
   expect(writes()).toHaveLength(2)
   expect(ledger().map((r) => r.revision)).toEqual([1, 2, 1])
   expect(calls.every((c) => c.url.startsWith('https://app.nocodb.com'))).toBe(true)
@@ -307,12 +307,15 @@ test('push authentication, allowlist, complete shape, body limit and JSON encodi
 test('check is read-only while disabled, reports CSV/display differences and refuses unrelated source', async () => {
   env.INPUT_MODE = 'push'
   env.ENABLED = 'false'
-  await seed(source(), [headers, answer(), answer('Historique absent')])
+  await seed(source(), [headers, answer(), answer('Historique absent', '29/09/2026 10:01:00')])
   const before = JSON.stringify(ledger()),
     changed = answer()
   changed[0] = '29/09/2026 10:00' // formatting differences must not silently duplicate bootstrap
   const exact = await (
-    await ingest(pushed(source(), [answer(), answer('Historique absent')]), '/check')
+    await ingest(
+      pushed(source(), [answer(), answer('Historique absent', '29/09/2026 10:01:00')]),
+      '/check',
+    )
   ).json()
   expect(exact).toMatchObject({
     state: 'checked',
@@ -589,7 +592,12 @@ test('capture-first backlog, historical timestamps and corrections never become 
   edited[8] = 'Correction'
   sheets.set(
     source().spreadsheetId,
-    csv([headers, edited, answer('Ancien', '28/09/2026 16:00:00'), answer('Nouveau')]),
+    csv([
+      headers,
+      edited,
+      answer('Ancien', '28/09/2026 16:00:00'),
+      answer('Nouveau', '29/09/2026 10:01:00'),
+    ]),
   )
   await poll()
   expect(hooks()).toHaveLength(1)
@@ -956,7 +964,7 @@ test('authenticated v2 push projects only new rows, keeps raw status À rapproch
   expect(hooks()).toHaveLength(1)
   expect(ledger()[0].projection_complete).toBe(1)
   expect(remote[0].statut_reprise).toBe('À rapprocher')
-  expect(remote[0].detail_reprise).toBe('saved_raw_remaining')
+  expect(remote[0].detail_reprise).toContain('saved_raw_remaining')
   expect(calls.every((c) => !new URL(c.url).hostname.includes('google'))).toBe(true)
 })
 test('v2 push cutover never promotes bootstrapped stock, edited stock, capture-disabled discoveries or old timestamps', async () => {
@@ -969,13 +977,13 @@ test('v2 push cutover never promotes bootstrapped stock, edited stock, capture-d
   snapshot.rows[0][1] = 'Historique corrigé'
   const historical = [...oldRows[1]]
   historical[0] = '28/09/2026 10:00:00'
-  snapshot.rows.push(historical, [...oldRows[1]])
+  snapshot.rows.push(historical, ['29/09/2026 10:01:00', ...oldRows[1].slice(1)])
   for (let i = 0; i < 6; i++) await poll(snapshot)
   expect(hooks()).toHaveLength(1)
   expect(JSON.parse(String(hooks()[0].init.body)).source.row).toBe(276)
   expect(ledger().filter((r) => r.projection_eligible === 1)).toHaveLength(1)
   env.PROJECTION_ENABLED = 'false'
-  snapshot.rows.push([...oldRows[1]])
+  snapshot.rows.push(['29/09/2026 10:02:00', ...oldRows[1].slice(1)])
   for (let i = 0; i < 4; i++) await poll(snapshot)
   env.PROJECTION_ENABLED = 'true'
   for (let i = 0; i < 4; i++) await poll(snapshot)
@@ -1036,7 +1044,7 @@ test('v2 unapproved headers or populated retired field stays captured and review
   await poll(snapshot)
   expect(hooks()).toHaveLength(0)
   expect(remote[0].statut_reprise).toBe('À rapprocher')
-  expect(remote[0].detail_reprise).toBe('sheet_headers_changed')
+  expect(remote[0].detail_reprise).toContain('sheet_headers_changed')
   expect(JSON.parse(String(remote[0].reponses)).at(-1).answer).toBe('New answer')
 })
 test('push projection validates all configured business sources, not just the currently posted one', async () => {
@@ -1064,7 +1072,7 @@ test('a changed private mapping cannot alter or resend a previously frozen v2 ev
   await poll(snapshot)
   expect(hooks()).toHaveLength(1)
   expect(ledger()[0].projection_payload).toBe(payload)
-  expect(remote[0].detail_reprise).toBe('projection_configuration_changed')
+  expect(remote[0].detail_reprise).toContain('projection_configuration_changed')
   expect(remote[0].statut_reprise).toBe('À rapprocher')
 })
 test('projection flag with a capture-only catalogue cannot claim configured projection', async () => {
@@ -1131,3 +1139,682 @@ test('authenticated push accepts a source from the second private part and still
   expect(ledger()).toHaveLength(1)
   expect(calls.filter((c) => c.url === 'https://euneos.fr/api/hook/google-forms')).toHaveLength(0)
 })
+
+test('sorting forty historical responses and inserting above the cutoff keeps their receipt identities', async () => {
+  env.INPUT_MODE = 'push'
+  const rows = Array.from({ length: 40 }, (_, i) =>
+    answer(`Réponse ${i}`, `29/09/2026 10:${String(i).padStart(2, '0')}:00`),
+  )
+  await seed(source(), [headers, ...rows])
+  const before = JSON.stringify(ledger())
+  for (let i = 0; i < 4; i++) await poll(pushed(source(), [...rows].reverse()))
+  expect(JSON.stringify(ledger())).toBe(before)
+  expect(writes()).toHaveLength(0)
+  const checked = await (await ingest(pushed(source(), [...rows].reverse()), '/check')).json()
+  expect(checked).toMatchObject({ matched: 40, fresh: 0, changed: 0, missing: 0 })
+  await poll(pushed(source(), [answer('Insertion', '01/10/2026 12:00:00'), ...rows].reverse()))
+  expect(writes()).toHaveLength(1)
+  expect(ledger()).toHaveLength(41)
+})
+
+test('legacy sort-created revisions stay preserved but are not counted as new responses', async () => {
+  env.INPUT_MODE = 'push'
+  const rows = Array.from({ length: 40 }, (_, i) =>
+    answer(`Réponse ${i}`, `29/09/2026 10:${String(i).padStart(2, '0')}:00`),
+  )
+  await seed(source(), [headers, ...rows])
+  for (let i = 0; i < 4; i++) {
+    const cells = rows[39 - i],
+      fingerprint = await digest(JSON.stringify(answerFields(headers, cells)))
+    const responseKey = await digest(JSON.stringify(['legacy-sort', i, fingerprint]))
+    const raw = JSON.stringify({
+      headers,
+      cells,
+      label: source().label,
+      timestamp: cells[0],
+      readAt: new Date(clock).toISOString(),
+    })
+    sql
+      .query(
+        `INSERT INTO google_transition_poller(response_key,source_key,source_row,fingerprint,revision,raw_payload,capture_state,noco_id,updated_at) VALUES(?,?,?,?,2,?,'complete',?,?)`,
+      )
+      .run(
+        responseKey,
+        `${source().spreadsheetId}:0`,
+        i + 2,
+        fingerprint,
+        raw,
+        100 + i,
+        new Date(clock).toISOString(),
+      )
+  }
+  const before = JSON.stringify(ledger())
+  for (let i = 0; i < 4; i++) await poll(pushed(source(), [...rows].reverse()))
+  expect(JSON.stringify(ledger())).toBe(before)
+  expect(writes()).toHaveLength(0)
+  expect(
+    (await (await ingest(pushed(source(), [...rows].reverse()), '/check')).json()).matched,
+  ).toBe(40)
+  const edited = [...rows[0]]
+  edited[9] = 'Vraie édition après tri'
+  await poll(pushed(source(), [...rows.slice(1).reverse(), edited]))
+  expect(
+    ledger()
+      .filter((r) => r.source_row === 2)
+      .map((r) => r.revision),
+  ).toEqual([1, 2, 3])
+  expect(writes()).toHaveLength(1)
+})
+
+test('identical multiple responses are a multiset, not one content hash; ambiguous collision never projects', async () => {
+  const { s, snapshot } = await futurePush()
+  await seed(s, [snapshot.headers, [...snapshot.rows[0]], [...snapshot.rows[0]]])
+  s.projectionFirstRow = 4
+  env.SOURCES = JSON.stringify([s])
+  snapshot.rows = [...snapshot.rows, [...snapshot.rows[0]], [...snapshot.rows[0]]]
+  for (let i = 0; i < 4; i++) await poll(snapshot)
+  expect(ledger()).toHaveLength(3)
+  expect(writes()).toHaveLength(1)
+  expect(hooks()).toHaveLength(0)
+  expect(remote.at(-1)?.statut_reprise).toBe('À rapprocher')
+  expect(remote.at(-1)?.detail_reprise).toContain('identity_ambiguous')
+})
+
+async function personFixture(family: 'preformation_a' | 'accord_formateur' = 'preformation_a') {
+  const h = [
+    'Horodateur',
+    'Email',
+    'Nom complet',
+    'Année',
+    ...(family === 'preformation_a' ? ['École'] : ['Accord', 'Date accord']),
+  ]
+  const cells = [
+    '30/09/2026 00:15:00',
+    'alex@example.invalid',
+    'Exemple Alex',
+    '2026–2027',
+    ...(family === 'preformation_a' ? ['École fictive'] : ['Oui, accord confirmé', '29/09/2026']),
+  ]
+  const peopleTable = 'fictionalpeople00001',
+    recordsTable = 'fictionalrecords0001'
+  const person = {
+    Id: 50,
+    prenom: 'Alex',
+    nom: 'Exemple',
+    email: 'alex@example.invalid',
+    email_2: null,
+    participations_id: 7,
+    date_pre_recu: null as string | null,
+    statut: 'Inchangé',
+  }
+  const record =
+    family === 'preformation_a'
+      ? { Id: 7, cohortes_id: 2, etablissements_id: 9, fusionne_vers: null }
+      : {
+          Id: 7,
+          cohortes_id: 2,
+          formateurs_id: 50,
+          fusionne_vers: null,
+          accord_signe: false,
+          date_accord: null,
+          statut: 'À qualifier',
+        }
+  const config: NonNullable<Source['personProjection']> = {
+    family,
+    headerDigest: await digest(JSON.stringify(h)),
+    mapping: {
+      timestamp: 'Horodateur',
+      email: 'Email',
+      name: 'Nom complet',
+      cohort: 'Année',
+      ...(family === 'preformation_a'
+        ? { establishment: 'École' }
+        : { agreement: 'Accord', agreementDate: 'Date accord' }),
+    },
+    captureOnly: [],
+    tables: { people: peopleTable, records: recordsTable },
+    cohorts: [
+      {
+        id: 2,
+        answer: '2026–2027',
+        ...(family === 'preformation_a'
+          ? { establishments: [{ answer: 'École fictive', participationId: 7, schoolId: 9 }] }
+          : {}),
+      },
+    ],
+    ...(family === 'accord_formateur' ? { agreementAnswer: 'Oui, accord confirmé' } : {}),
+  }
+  const s = source({ personProjection: config, projectionFirstRow: 2 })
+  env.INPUT_MODE = 'push'
+  env.PROJECTION_ENABLED = 'true'
+  env.PROJECTION_START_AT = '2026-09-29T06:00:00Z'
+  env.SOURCES = JSON.stringify([s])
+  const baseFault = (url: string, init: RequestInit) => {
+    const table = new URL(url).pathname.split('/')[4]
+    if (![peopleTable, recordsTable].includes(table)) return
+    expect(new URL(url).origin).toBe('https://app.nocodb.com')
+    const row = table === peopleTable ? person : record
+    if (init.method === 'PATCH') {
+      Object.assign(row, JSON.parse(String(init.body)))
+      return Response.json(row)
+    }
+    expect(init.method).toBe('GET') // business creates, mail, arbitrary tools fail
+    return /\/records\/\d+$/.test(url)
+      ? Response.json(row)
+      : Response.json({ list: [row], pageInfo: { isLastPage: true } })
+  }
+  fault = baseFault
+  return {
+    s,
+    config,
+    person,
+    record,
+    baseFault,
+    peopleTable,
+    recordsTable,
+    snapshot: {
+      version: 1,
+      source: { spreadsheetId: s.spreadsheetId, sheetId: 0 },
+      headers: h,
+      rows: [cells],
+    } as PushSnapshot,
+  }
+}
+const businessPatches = () =>
+  calls.filter((c) => c.init.method === 'PATCH' && /fictional(people|records)/.test(c.url))
+for (const family of ['preformation_a', 'accord_formateur'] as const) {
+  test(`future ${family}: capture, unique exact identity/cohort, verified minimal patch, replay and journal proof`, async () => {
+    const f = await personFixture(family)
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(1)
+    if (family === 'preformation_a') {
+      expect(f.person.date_pre_recu).toBe('2026-09-30')
+      expect(f.person.statut).toBe('Inchangé')
+    } else {
+      expect(f.record).toMatchObject({
+        accord_signe: true,
+        date_accord: '2026-09-29',
+        statut: 'À qualifier',
+      })
+    }
+    expect(remote[0].statut_reprise).toBe('Repris dans le dossier')
+    expect(String(remote[0].detail_reprise)).toContain('"state":"integrated"')
+    expect(String(remote[0].detail_reprise)).toContain('"targets":[{')
+    expect(hooks()).toHaveLength(0)
+  })
+  test(`future ${family}: lost write response is reconciled, never patched twice`, async () => {
+    const f = await personFixture(family)
+    let once = true
+    fault = (url, init) => {
+      const res = f.baseFault(url, init)
+      if (once && init.method === 'PATCH' && /fictional(people|records)/.test(url)) {
+        once = false
+        throw new Error('network_lost')
+      }
+      return res
+    }
+    await poll(f.snapshot)
+    clock += 120000
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(1)
+    expect(remote[0].statut_reprise).toBe('Repris dans le dossier')
+  })
+}
+
+for (const conflict of [
+  'duplicate',
+  'name',
+  'cohort',
+  'date',
+  'school',
+  'unknown-school',
+  'unmapped',
+  'changed-headers',
+  'missing-person',
+  'year-typo',
+] as const) {
+  test(`preformation blocks ${conflict}, keeps raw evidence and explicit pending status`, async () => {
+    const f = await personFixture()
+    if (conflict === 'duplicate')
+      fault = (url, init) =>
+        url.includes('fictionalpeople') && url.includes('?')
+          ? Response.json({
+              list: [f.person, { ...f.person, Id: 51 }],
+              pageInfo: { isLastPage: true },
+            })
+          : f.baseFault(url, init)
+    if (conflict === 'name') f.snapshot.rows[0][2] = 'Autre personne'
+    if (conflict === 'cohort') f.record.cohortes_id = 1
+    if (conflict === 'date') f.person.date_pre_recu = '2026-09-12' as never
+    if (conflict === 'school') f.record.etablissements_id = 10
+    if (conflict === 'unknown-school') f.snapshot.rows[0][4] = 'École inconnue'
+    if (conflict === 'year-typo') f.snapshot.rows[0][3] = '2006–2007'
+    if (conflict === 'unmapped' || conflict === 'changed-headers') {
+      f.snapshot.headers.push('Nouvelle question')
+      f.snapshot.rows[0].push('Réponse')
+      if (conflict === 'unmapped')
+        f.config.headerDigest = await digest(JSON.stringify(f.snapshot.headers))
+    }
+    if (conflict === 'missing-person')
+      fault = (url, init) =>
+        url.includes('fictionalpeople') && url.includes('?')
+          ? Response.json({ list: [], pageInfo: { isLastPage: true } })
+          : f.baseFault(url, init)
+    env.SOURCES = JSON.stringify([f.s])
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(0)
+    expect(writes()).toHaveLength(1)
+    expect(remote[0].statut_reprise).toBe('À rapprocher')
+    expect(String(remote[0].detail_reprise)).toContain('"state":"pending"')
+  })
+}
+
+test('combined stored name is compared whole without splitting or rewriting; capture-only answers stay explicit partial', async () => {
+  const f = await personFixture()
+  f.person.prenom = ''
+  f.person.nom = 'Exemple Alex'
+  f.snapshot.headers.push('Question pédagogique')
+  f.snapshot.rows[0].push('Réponse privée fictive')
+  f.config.captureOnly.push('Question pédagogique')
+  f.config.headerDigest = await digest(JSON.stringify(f.snapshot.headers))
+  env.SOURCES = JSON.stringify([f.s])
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(businessPatches()).toHaveLength(1)
+  expect(f.person.prenom).toBe('')
+  expect(f.person.nom).toBe('Exemple Alex')
+  expect(String(remote[0].detail_reprise)).toContain('"state":"partial"')
+  expect(remote[0].statut_reprise).toBe('À rapprocher')
+})
+
+test('uncertain write without persisted result remains reviewable and is never blindly retried', async () => {
+  const f = await personFixture()
+  fault = (url, init) => {
+    if (init.method === 'PATCH' && /fictional(people|records)/.test(url))
+      throw new Error('network_lost')
+    return f.baseFault(url, init)
+  }
+  await poll(f.snapshot)
+  clock += 120000
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(businessPatches()).toHaveLength(1)
+  expect(String(remote[0].detail_reprise)).toContain('business_write_uncertain')
+  expect(f.person.date_pre_recu).toBeNull()
+})
+
+test('agreement without an explicit affirmative answer, conflicting date or wrong cohort never alters a journey', async () => {
+  for (const variation of ['no', 'date', 'cohort']) {
+    // Same source, distinct timestamps; all three must remain raw.
+    const f = await personFixture('accord_formateur')
+    f.snapshot.rows[0][0] = `30/09/2026 00:${variation === 'no' ? '16' : variation === 'date' ? '17' : '18'}:00`
+    if (variation === 'no') f.snapshot.rows[0][4] = 'Non'
+    if (variation === 'date') f.record.date_accord = '2026-01-01' as never
+    if (variation === 'cohort') f.record.cohortes_id = 1
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  }
+  expect(businessPatches()).toHaveLength(0)
+  expect(remote.every((r) => r.statut_reprise === 'À rapprocher')).toBe(true)
+})
+
+test('explicit cohort aliases accept real declared spellings without guessing an invalid year', async () => {
+  const f = await personFixture()
+  f.config.cohorts[0].answers = ['2026-2027', '2026 2027']
+  f.snapshot.rows[0][3] = '2026 2027'
+  env.SOURCES = JSON.stringify([f.s])
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(f.person.date_pre_recu).toBe('2026-09-30')
+  f.config.cohorts.push({
+    id: 3,
+    answer: '2026 2027',
+    establishments: [{ answer: 'École fictive', participationId: 8, schoolId: 9 }],
+  })
+  expect(() => validateSources(JSON.stringify([f.s]))).toThrow('person_configuration_invalid')
+})
+
+test('nullable trainer scope only selects one non-merged journey, never invents a cohort', async () => {
+  const f = await personFixture('accord_formateur')
+  delete f.config.mapping.cohort
+  f.config.captureOnly = ['Année']
+  f.config.fixedCohort = null
+  f.config.cohorts = [{ id: null }]
+  f.record.cohortes_id = null as never
+  env.SOURCES = JSON.stringify([f.s])
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(f.record).toMatchObject({ accord_signe: true, cohortes_id: null })
+  expect(businessPatches()).toHaveLength(1)
+  expect(JSON.parse(String(businessPatches()[0].init.body))).not.toHaveProperty('cohortes_id')
+})
+
+test('nullable scope with a second active journey refuses to select only the null one', async () => {
+  const f = await personFixture('accord_formateur')
+  delete f.config.mapping.cohort
+  f.config.captureOnly = ['Année']
+  f.config.fixedCohort = null
+  f.config.cohorts = [{ id: null }]
+  f.record.cohortes_id = null as never
+  fault = (url, init) =>
+    url.includes('fictionalrecords') && url.includes('?')
+      ? Response.json({
+          list: [f.record, { ...f.record, Id: 8, cohortes_id: 2 }],
+          pageInfo: { isLastPage: true },
+        })
+      : f.baseFault(url, init)
+  env.SOURCES = JSON.stringify([f.s])
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(businessPatches()).toHaveLength(0)
+  expect(String(remote[0].detail_reprise)).toContain('identity_not_unique')
+})
+
+async function createPersonFixture() {
+  const f = await personFixture()
+  f.config.createMissingAdults = true
+  env.SOURCES = JSON.stringify([f.s])
+  let created: Record<string, unknown> | null = null
+  const creationFault = (url: string, init: RequestInit) => {
+    if (url.includes('fictionalpeople')) {
+      if (init.method === 'POST') {
+        expect(created).toBeNull()
+        created = { Id: 51, ...JSON.parse(String(init.body)), prenom: null }
+        return Response.json(created)
+      }
+      expect(init.method).toBe('GET')
+      return url.includes('?')
+        ? Response.json({ list: created ? [created] : [], pageInfo: { isLastPage: true } })
+        : Response.json(created)
+    }
+    return f.baseFault(url, init)
+  }
+  fault = creationFault
+  return { ...f, creationFault, created: () => created }
+}
+const personCreates = () =>
+  calls.filter((c) => c.url.includes('fictionalpeople') && c.init.method === 'POST')
+for (const lost of [false, true])
+  test(`missing adult creates once, preserves full name and deterministic code; lost response=${lost}`, async () => {
+    const f = await createPersonFixture()
+    let once = lost
+    fault = (url, init) => {
+      const res = f.creationFault(url, init)
+      if (once && url.includes('fictionalpeople') && init.method === 'POST') {
+        once = false
+        throw new Error('lost_create_response')
+      }
+      return res
+    }
+    await poll(f.snapshot)
+    clock += 120000
+    for (let i = 0; i < 4; i++) await poll(f.snapshot)
+    expect(personCreates()).toHaveLength(1)
+    expect(f.created()).toMatchObject({
+      nom: 'Exemple Alex',
+      prenom: null,
+      email: 'alex@example.invalid',
+      participations_id: 7,
+      date_pre_recu: '2026-09-30',
+      adulte_id: 'AD-G-' + (await digest('7:alex@example.invalid')).slice(0, 12),
+    })
+    expect(f.created()).not.toHaveProperty('statut')
+    expect(remote[0].statut_reprise).toBe('Repris dans le dossier')
+    expect(String(remote[0].detail_reprise)).toContain('"id":51')
+    expect(sql.query('SELECT * FROM google_transition_person_claims').all()).toHaveLength(1)
+  })
+
+test('uncertain adult creation blocks a second response for the same email/dossier even when searches are empty', async () => {
+  const f = await createPersonFixture()
+  fault = (url, init) => {
+    if (url.includes('fictionalpeople') && init.method === 'POST')
+      throw new Error('lost_create_response')
+    return f.creationFault(url, init)
+  }
+  await poll(f.snapshot)
+  clock += 120000
+  f.snapshot.rows.push(['30/09/2026 00:16:00', ...f.snapshot.rows[0].slice(1)])
+  for (let i = 0; i < 5; i++) await poll(f.snapshot)
+  expect(personCreates()).toHaveLength(1)
+  expect(f.created()).toBeNull()
+  expect(remote).toHaveLength(2)
+  expect(remote.every((r) => r.statut_reprise === 'À rapprocher')).toBe(true)
+  expect(
+    remote.some((r) => String(r.detail_reprise).includes('person_creation_already_claimed')),
+  ).toBe(true)
+})
+
+for (const family of [
+  'postformation_b',
+  'suivi_j45',
+  'evaluation_formation',
+  'candidature_formateur',
+  'bilan_formateur',
+  'candidature_etablissement',
+  'bilan_etablissement',
+  'activites_jeunes',
+] as const) {
+  test(`${family} attaches exact identity/cohort in receipt, with no business field or status update`, async () => {
+    const school = family.includes('etablissement') || family === 'activites_jeunes'
+    const trainer = family.includes('formateur')
+    const f = await personFixture(trainer ? 'accord_formateur' : 'preformation_a')
+    f.config.family = family
+    if (trainer) {
+      delete f.config.mapping.agreement
+      delete f.config.mapping.agreementDate
+      f.config.captureOnly = ['Accord', 'Date accord']
+    }
+    if (school) {
+      Object.assign(f.person, { nom: 'École fictive', referent_email: 'alex@example.invalid' })
+      f.snapshot.rows[0][2] = 'École fictive'
+      f.record.etablissements_id = 50
+      delete f.config.mapping.establishment
+      f.config.captureOnly = ['École']
+    }
+    env.SOURCES = JSON.stringify([f.s])
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(0)
+    expect(personCreates()).toHaveLength(0)
+    expect(remote[0].statut_reprise).toBe('À rapprocher')
+    expect(String(remote[0].detail_reprise)).toContain('"state":"partial"')
+    expect(String(remote[0].detail_reprise)).toContain('linked_raw_only')
+    expect(String(remote[0].detail_reprise)).toContain('"targets":[{')
+  })
+}
+
+test('journal updates preserve human notes, prior target fields and unresolved operator annotations', async () => {
+  const f = await personFixture()
+  let injected = false
+  fault = (url, init) => {
+    if (!injected && url.includes('fictionalpeople') && init.method === 'PATCH') {
+      injected = true
+      const old = {
+        version: 1,
+        sourceKey: `${source().spreadsheetId}:0`,
+        targets: [{ table: f.peopleTable, id: 50, fields: ['telephone'] }],
+        state: 'pending',
+        reasons: ['verification_humaine'],
+        at: '2026-09-29T06:00:00Z',
+        note: 'Conserver annotation',
+      }
+      remote[0].detail_reprise =
+        'Note opératrice conservée\n[EUNEOS_GOOGLE_RECONCILIATION_V1]' +
+        JSON.stringify(old) +
+        '[/EUNEOS_GOOGLE_RECONCILIATION_V1]'
+    }
+    return f.baseFault(url, init)
+  }
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  const detail = String(remote[0].detail_reprise)
+  expect(detail).toContain('Note opératrice conservée')
+  expect(detail).toContain('Conserver annotation')
+  expect(detail).toContain('telephone')
+  expect(detail).toContain('date_pre_recu')
+  expect(detail).toContain('verification_humaine')
+  expect(detail).toContain('"state":"partial"')
+})
+
+test('changing an existing source timestamp cannot masquerade as a new auto-projectable response', async () => {
+  const { s, snapshot } = await futurePush()
+  await seed(s, [snapshot.headers, [...snapshot.rows[0]]])
+  snapshot.rows[0][0] = '30/09/2026 10:00:00'
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(0)
+  expect(ledger()).toHaveLength(2)
+  expect(String(remote.at(-1)?.detail_reprise)).toContain('identity_ambiguous')
+})
+
+for (const editOtherAnswer of [false, true])
+  test(`timestamp change plus sorting stays raw-only, including another edited answer=${editOtherAnswer}`, async () => {
+    const { s, snapshot } = await futurePush()
+    const original = [...snapshot.rows[0]]
+    const retained = [...original]
+    retained[0] = '29/09/2026 10:01:00'
+    retained[1] = 'Autre collège fictif'
+    await seed(s, [snapshot.headers, original, retained])
+    s.projectionFirstRow = 4
+    env.SOURCES = JSON.stringify([s])
+    const changed = [...original]
+    changed[0] = '30/09/2026 10:00:00'
+    if (editOtherAnswer) changed[4] = 'Référent corrigé'
+    // Original A disappears from row 2 while B moves there. A's new timestamp
+    // is now in B's old position, beyond the logical future-only cutoff.
+    snapshot.rows = [retained, changed]
+    clock = Date.parse('30 Sep 2026 10:00:00 GMT')
+    const checked = await (await ingest(snapshot, '/check')).json()
+    expect(checked).toMatchObject({ matched: 1, fresh: 1, missing: 1 })
+    expect(checked.differences).toContainEqual({ row: 3, code: 'identity_ambiguous' })
+    for (let i = 0; i < 3; i++) await poll(snapshot)
+    expect(hooks()).toHaveLength(0)
+    expect(writes()).toHaveLength(1)
+    expect(ledger()).toHaveLength(3)
+    expect(remote.at(-1)?.statut_reprise).toBe('À rapprocher')
+    expect(String(remote.at(-1)?.detail_reprise)).toContain('identity_ambiguous')
+  })
+
+test('a missing historical identity keeps later new responses pending until the source is restored', async () => {
+  const { s, snapshot } = await futurePush()
+  const original = [...snapshot.rows[0]]
+  const retained = [...original]
+  retained[0] = '29/09/2026 10:01:00'
+  retained[1] = 'Collège conservé'
+  await seed(s, [snapshot.headers, original, retained])
+  s.projectionFirstRow = 4
+  env.SOURCES = JSON.stringify([s])
+  snapshot.rows = [retained]
+  await poll(snapshot) // Observing a deletion does NOT certify that it was intended.
+  clock = Date.parse('01 Oct 2026 10:00:00 GMT')
+  const firstNew = [...original]
+  firstNew[0] = '01/10/2026 10:00:00'
+  firstNew[1] = 'Nouvelle réponse distincte'
+  snapshot.rows.push(firstNew)
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  const secondNew = [...firstNew]
+  secondNew[0] = '01/10/2026 10:01:00'
+  snapshot.rows.push(secondNew)
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(0)
+  expect(writes()).toHaveLength(2)
+  expect(ledger()).toHaveLength(4)
+  expect(
+    remote.slice(2).every((r) => String(r.detail_reprise).includes('identity_ambiguous')),
+  ).toBe(true)
+
+  // No tombstones or guessed retirement: restoring the original source removes
+  // the disappearance. Only a genuinely subsequent response can auto-project;
+  // earlier ambiguous receipts remain a human-review backlog, never promoted.
+  const thirdNew = [...firstNew]
+  thirdNew[0] = '01/10/2026 10:02:00'
+  snapshot.rows = [retained, firstNew, original, secondNew, thirdNew]
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  expect(writes()).toHaveLength(3)
+  expect(ledger()).toHaveLength(5)
+  expect(JSON.parse(String(hooks()[0].init.body)).source.submittedAt).toBe(
+    '2026-10-01T08:02:00.000Z',
+  )
+  expect(
+    remote.slice(2, 4).every((r) => String(r.detail_reprise).includes('identity_ambiguous')),
+  ).toBe(true)
+})
+
+test('adult creation refuses a same-name person in the confirmed dossier with another or missing email', async () => {
+  const f = await createPersonFixture()
+  fault = (url, init) => {
+    if (
+      url.includes('fictionalpeople') &&
+      url.includes('?') &&
+      new URL(url).searchParams.get('where')?.startsWith('(participations_id')
+    )
+      return Response.json({
+        list: [{ Id: 99, nom: 'Exemple Alex', prenom: null, email: null, participations_id: 7 }],
+        pageInfo: { isLastPage: true },
+      })
+    return f.creationFault(url, init)
+  }
+  for (let i = 0; i < 3; i++) await poll(f.snapshot)
+  expect(personCreates()).toHaveLength(0)
+  expect(String(remote[0].detail_reprise)).toContain('identity_conflict')
+})
+
+test('full family catalog supports contiguous secret parts four through twelve and refuses holes', () => {
+  const parts = Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [
+      i ? `SOURCES_${i + 1}` : 'SOURCES',
+      JSON.stringify([
+        source({ spreadsheetId: `fictional_sheet_id_${String(i).padStart(5, '0')}` }),
+      ]),
+    ]),
+  ) as Pick<Env, 'SOURCES'>
+  expect(configuredSources(parts)).toHaveLength(12)
+  delete (parts as Record<string, string>).SOURCES_7
+  expect(() => configuredSources(parts)).toThrow('sources_part_missing')
+})
+
+for (const family of ['candidature_formateur', 'suivi_j45'] as const) {
+  test(`future ${family}: businessFields extends the durable frozen plan, lost response never repeats PATCH`, async () => {
+    const f = await personFixture(family === 'suivi_j45' ? 'preformation_a' : 'accord_formateur')
+    f.config.family = family
+    if (family === 'candidature_formateur') {
+      delete f.config.mapping.agreement
+      delete f.config.mapping.agreementDate
+      delete f.config.agreementAnswer
+      f.config.captureOnly = ['Date accord']
+      f.config.businessFields = {
+        version: 1,
+        fields: [{ field: 'motivation', type: 'text', header: 'Accord' }],
+      }
+      f.snapshot.rows[0][f.snapshot.headers.indexOf('Accord')] = 'Motivation fictive vérifiée'
+      f.snapshot.rows[0][f.snapshot.headers.indexOf('Date accord')] = ''
+    } else {
+      f.config.businessFields = {
+        version: 1,
+        fields: [{ field: 'date_suivi_recu', type: 'submissionDate' }],
+      }
+    }
+    env.SOURCES = JSON.stringify([f.s])
+    let loseOnce = true
+    fault = (url, init) => {
+      const res = f.baseFault(url, init)
+      if (loseOnce && init.method === 'PATCH' && /fictional(people|records)/.test(url)) {
+        loseOnce = false
+        throw new Error('network_lost_after_business_write')
+      }
+      return res
+    }
+    await poll(f.snapshot)
+    clock += 120000
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(1)
+    if (family === 'candidature_formateur') {
+      expect(JSON.parse(String(businessPatches()[0].init.body))).toEqual({
+        Id: 7,
+        motivation: 'Motivation fictive vérifiée',
+      })
+      expect(f.record.statut).toBe('À qualifier')
+    } else {
+      expect(JSON.parse(String(businessPatches()[0].init.body))).toEqual({
+        Id: 50,
+        date_suivi_recu: '2026-09-30',
+      })
+      expect(f.person.date_pre_recu).toBeNull()
+      expect(f.person.statut).toBe('Inchangé')
+    }
+    expect(hooks()).toHaveLength(0)
+    expect(String(remote[0].detail_reprise)).toContain('"state":"integrated"')
+  })
+}
