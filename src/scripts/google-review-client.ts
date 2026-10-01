@@ -1,29 +1,57 @@
 import type { reviewView, ReviewTarget, resolveReconciliationTargets } from '../lib/google-review'
+import { matchesReviewFilter, reviewFilters } from '../lib/google-review-presentation'
 type Row = Awaited<ReturnType<typeof reviewView>> & {
   resolvedTargets?: ReturnType<typeof resolveReconciliationTargets>
   operation?: { state: string; audit_json: string } | null
 }
 const fieldLabels: Record<string, string> = {
-  adulte_id: 'Identifiant du participant', nom: 'Nom', prenom: 'Prénom', email: 'E-mail',
-  fonction: 'Fonction', participations_id: 'Dossier établissement', statut: 'Statut',
-  adultes: 'Participants adultes', date_pre_recu: 'Réception du questionnaire préformation',
+  adulte_id: 'Identifiant du participant',
+  nom: 'Nom',
+  prenom: 'Prénom',
+  email: 'E-mail',
+  fonction: 'Fonction',
+  participations_id: 'Dossier établissement',
+  statut: 'Statut',
+  adultes: 'Participants adultes',
+  date_pre_recu: 'Réception du questionnaire préformation',
   date_suivi_recu: 'Réception du questionnaire de suivi à 45 jours',
-  accord_signe: 'Accord signé', date_accord: 'Date de l’accord', notes: 'Informations du dossier',
-  fiche_contact_recue: 'Fiche contact reçue', date_candidature: 'Date de candidature',
-  enjeux: 'Enjeux identifiés', besoin_partage: 'Besoin partagé par l’équipe',
-  nb_professionnels: 'Nombre de professionnels', faisabilite: 'Faisabilité',
-  point_vigilance: 'Point de vigilance', accord_direction: 'Accord de la direction',
-  demarrage_souhaite: 'Démarrage souhaité', contrainte_calendrier: 'Contraintes de calendrier',
-  consentement: 'Consentement', apporteur_nom: 'Formateur apporteur', apporteur_email: 'E-mail du formateur apporteur',
-  formation_instructeur: 'Formation de l’instructeur', experience_animation: 'Expérience d’animation',
-  pratique_personnelle: 'Pratique personnelle', interventions_animees: 'Interventions animées',
-  annees_experience: 'Années d’expérience', motivation: 'Motivation', disponible_2026_27: 'Disponibilité 2026–2027',
-  etab_pressenti: 'Établissement pressenti', etab_pressenti_nom: 'Nom de l’établissement pressenti',
-  etab_pressenti_adresse: 'Adresse de l’établissement pressenti', etab_pressenti_type: 'Type d’établissement',
-  etab_pressenti_ville: 'Ville de l’établissement pressenti', etab_pressenti_cp: 'Code postal de l’établissement',
-  etab_pressenti_academie: 'Académie', direction_nom: 'Nom de la direction', direction_email: 'E-mail de la direction',
-  accord_principe: 'Accord de principe', contexte_complement: 'Complément de contexte',
-  bilan_recu: 'Bilan reçu', dates_respectees: 'Respect des dates prévues', difficulte: 'Difficultés signalées',
+  accord_signe: 'Accord signé',
+  date_accord: 'Date de l’accord',
+  notes: 'Informations du dossier',
+  fiche_contact_recue: 'Fiche contact reçue',
+  date_candidature: 'Date de candidature',
+  enjeux: 'Enjeux identifiés',
+  besoin_partage: 'Besoin partagé par l’équipe',
+  nb_professionnels: 'Nombre de professionnels',
+  faisabilite: 'Faisabilité',
+  point_vigilance: 'Point de vigilance',
+  accord_direction: 'Accord de la direction',
+  demarrage_souhaite: 'Démarrage souhaité',
+  contrainte_calendrier: 'Contraintes de calendrier',
+  consentement: 'Consentement',
+  apporteur_nom: 'Formateur apporteur',
+  apporteur_email: 'E-mail du formateur apporteur',
+  formation_instructeur: 'Formation de l’instructeur',
+  experience_animation: 'Expérience d’animation',
+  pratique_personnelle: 'Pratique personnelle',
+  interventions_animees: 'Interventions animées',
+  annees_experience: 'Années d’expérience',
+  motivation: 'Motivation',
+  disponible_2026_27: 'Disponibilité 2026–2027',
+  etab_pressenti: 'Établissement pressenti',
+  etab_pressenti_nom: 'Nom de l’établissement pressenti',
+  etab_pressenti_adresse: 'Adresse de l’établissement pressenti',
+  etab_pressenti_type: 'Type d’établissement',
+  etab_pressenti_ville: 'Ville de l’établissement pressenti',
+  etab_pressenti_cp: 'Code postal de l’établissement',
+  etab_pressenti_academie: 'Académie',
+  direction_nom: 'Nom de la direction',
+  direction_email: 'E-mail de la direction',
+  accord_principe: 'Accord de principe',
+  contexte_complement: 'Complément de contexte',
+  bilan_recu: 'Bilan reçu',
+  dates_respectees: 'Respect des dates prévues',
+  difficulte: 'Difficultés signalées',
 }
 const root = document.querySelector<HTMLElement>('#google-review')
 if (root) {
@@ -68,13 +96,15 @@ if (root) {
   }
   function renderList() {
     list.replaceChildren()
+    for (const option of Array.from(filter.options)) {
+      const label = reviewFilters.find((item) => item.value === option.value)?.label
+      if (label)
+        option.textContent = `${label} (${rows.filter((row) => matchesReviewFilter(row, option.value)).length})`
+    }
     const query = search.value.trim().toLocaleLowerCase('fr')
     const visible = rows.filter(
       (row) =>
-        (filter.value === 'all' ||
-          (filter.value === 'integrated'
-            ? row.state === 'integrated'
-            : row.state !== 'integrated' || row.operation?.state === 'pending')) &&
+        matchesReviewFilter(row, filter.value) &&
         JSON.stringify([
           row.form,
           row.answers,
@@ -93,7 +123,7 @@ if (root) {
       button.type = 'button'
       button.className = 'gr-row'
       const title = document.createElement('strong')
-      title.textContent = `${row.form || 'Formulaire non précisé'} · réponse #${row.id}`
+      title.textContent = `Réponse #${row.id}`
       const status = document.createElement('span')
       status.textContent = `${row.submittedAt} · ${summary(row)}`
       button.append(title, status)
@@ -106,7 +136,8 @@ if (root) {
   function open(row: Row) {
     selected = row
     detail.hidden = false
-    get('gr-title').textContent = `Réponse #${row.id} — ${row.form}`
+    get('gr-title').textContent = `Réponse #${row.id}`
+    get('gr-source-form').textContent = `Formulaire source : ${row.form || 'Non précisé'}`
     get('gr-summary').textContent = summary(row)
     get('gr-reconciliation').hidden = !row.receipt
     const resolved = get('gr-targets')

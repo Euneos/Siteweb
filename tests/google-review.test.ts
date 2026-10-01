@@ -8,7 +8,12 @@ import {
   RECONCILIATION_OPEN as OPEN,
   RECONCILIATION_CLOSE as CLOSE,
 } from '../src/lib/google-review'
-import { attachReview, reviewClient, reviewConfiguration } from '../src/lib/google-review-store'
+import {
+  attachReview,
+  listReviews,
+  reviewClient,
+  reviewConfiguration,
+} from '../src/lib/google-review-store'
 import { readInternalBody } from '../src/lib/internal-context'
 import { GET, POST } from '../src/pages/api/interne/reponses-google'
 const receipt = {
@@ -82,13 +87,13 @@ function setup() {
   let current = { ...row },
     patches: any[] = []
   const client = async (path: string, method = 'GET', body?: any) => {
-    if (method === 'PATCH') {
+    if (method !== 'GET') {
       patches.push(body)
       current = { ...current, ...body[0] }
       return body
     }
     if (path.endsWith('/records/1')) return { ...current }
-    let list: any[] = []
+    let list: any[] = path.includes('journaltest1234') ? [{ ...current }] : []
     if (path.includes('mg12klh5zv7b5n5')) list = [{ Id: 3, nom: 'École test', ville: 'Ville' }]
     if (path.includes('mbunbu0f1zztce4'))
       list = [{ Id: 7, etablissements_id: 3, cohortes_id: 2, code: 'DOS-7' }]
@@ -102,7 +107,7 @@ function setup() {
     setRow: (value: any) => (current = value),
   }
 }
-test('confirmed attachment preserves source and history, patches no business field, records audit', async () => {
+test('attachment is durable in D1 only, refresh restores it without changing receipt state', async () => {
   const { ctx, patches, sql } = setup()
   const cmd = {
     id: 1,
@@ -113,16 +118,21 @@ test('confirmed attachment preserves source and history, patches no business fie
     confirmed: true,
   }
   const result = await attachReview(ctx, cmd, 'responsable@example.test')
-  expect(patches.length).toBe(1)
-  expect(Object.keys(patches[0][0]).sort()).toEqual(['Id', 'detail_reprise'])
-  expect(patches[0][0].detail_reprise.startsWith('texte initial\n')).toBe(true)
+  expect(patches).toHaveLength(0)
+  expect(
+    sql.query('SELECT before_detail,after_detail FROM google_review_attachments').get(),
+  ).toEqual({ before_detail: row.detail_reprise, after_detail: row.detail_reprise })
+  const refreshed = (await listReviews(ctx)).rows[0]
+  expect(refreshed.attachment).toEqual(result.row.attachment)
+  expect(refreshed.detail).toBe(row.detail_reprise)
+  expect(refreshed.state).toBe('unknown')
   expect(result.row.state).toBe('unknown')
   expect(result.row.attachment?.actor).toBe('responsable@example.test')
   expect(sql.query('SELECT state FROM google_review_attachments').get()).toEqual({
     state: 'complete',
   })
   await expect(attachReview(ctx, cmd, 'autre@example.test')).rejects.toThrow()
-  expect(patches.length).toBe(1)
+  expect(patches.length).toBe(0)
 })
 test('source change and unknown target refuse before any write', async () => {
   const { ctx, patches, setRow } = setup(),
@@ -140,31 +150,125 @@ test('source change and unknown target refuse before any write', async () => {
   await expect(attachReview(ctx, { ...cmd, targetId: 999 }, 'a')).rejects.toThrow()
   expect(patches.length).toBe(0)
 })
-test('ambiguous write retains durable pending claim and cannot be retried', async () => {
-  const { ctx, sql } = setup(),
-    original = ctx.client
-  let writes = 0
+const command = async (source = row) => ({
+  id: 1,
+  version: await reviewVersion(source),
+  targetKind: 'school',
+  targetId: 7,
+  reason: 'Identité vérifiée',
+  confirmed: true,
+})
+test('collector receipt written after the final read survives attachment without a NocoDB write', async () => {
+  const { ctx, patches, setRow } = setup()
+  const original = ctx.client
+  let reads = 0
+  const updated = {
+    ...row,
+    detail_reprise: `texte initial${OPEN}${JSON.stringify(receipt)}${CLOSE}`,
+  }
   ctx.client = async (path, method = 'GET', body) => {
-    if (method === 'PATCH') {
-      writes++
-      throw Error('timeout')
-    }
+    const result = await original(path, method, body)
+    if (path.endsWith('/records/1') && ++reads === 2) setRow(updated)
+    return result
+  }
+  await attachReview(ctx, await command(), 'manager@example.test')
+  const refreshed = (await listReviews(ctx)).rows[0]
+  expect(patches).toHaveLength(0)
+  expect(refreshed.detail).toBe(updated.detail_reprise)
+  expect(refreshed.receipt?.targets).toEqual(receipt.targets)
+  expect(refreshed.state).toBe('partial')
+  expect(refreshed.attachment?.target.id).toBe(7)
+})
+test('source drift before insert leaves no claim and permits refreshed confirmation', async () => {
+  const { ctx, sql, patches, setRow } = setup()
+  const original = ctx.client
+  let reads = 0
+  const updated = { ...row, detail_reprise: 'Un reçu arrivé pendant la vérification' }
+  ctx.client = async (path, method = 'GET', body) => {
+    if (path.endsWith('/records/1') && ++reads === 2) setRow(updated)
     return original(path, method, body)
   }
-  const cmd = {
-    id: 1,
-    version: await reviewVersion(row),
-    targetKind: 'school',
-    targetId: 7,
-    reason: 'Vérifié',
-    confirmed: true,
-  }
-  await expect(attachReview(ctx, cmd, 'a')).rejects.toThrow()
-  await expect(attachReview(ctx, cmd, 'a')).rejects.toThrow()
-  expect(writes).toBe(1)
+  await expect(attachReview(ctx, await command(), 'manager@example.test')).rejects.toThrow(
+    'Aucun rattachement',
+  )
+  expect(sql.query('SELECT count(*) AS n FROM google_review_attachments').get()).toEqual({ n: 0 })
+  await attachReview(ctx, await command(updated), 'manager@example.test')
   expect(sql.query('SELECT state FROM google_review_attachments').get()).toEqual({
-    state: 'pending',
+    state: 'complete',
   })
+  expect(patches).toHaveLength(0)
+})
+test('lost D1 commit response is recovered on read and replay preserves the original audit', async () => {
+  const { ctx, sql, patches } = setup()
+  const prepare = ctx.db.prepare
+  let loseResponse = true
+  ctx.db.prepare = (query: string) => {
+    if (!query.startsWith('INSERT')) return prepare(query)
+    return {
+      bind: (...args: any[]) => {
+        const bound = prepare(query).bind(...args)
+        return {
+          ...bound,
+          run: async () => {
+            const result = await bound.run()
+            if (loseResponse) {
+              loseResponse = false
+              throw Error('D1 response lost after commit')
+            }
+            return result
+          },
+        }
+      },
+    }
+  }
+  const cmd = await command()
+  await expect(attachReview(ctx, cmd, 'first@example.test')).rejects.toThrow('response lost')
+  const saved = sql.query('SELECT * FROM google_review_attachments').get()
+  const refreshed = (await listReviews(ctx)).rows[0]
+  expect(refreshed.attachment?.actor).toBe('first@example.test')
+  expect(refreshed.operation?.state).toBe('complete')
+  await expect(attachReview(ctx, cmd, 'second@example.test')).rejects.toThrow(
+    'Un rattachement existe',
+  )
+  expect(sql.query('SELECT * FROM google_review_attachments').get()).toEqual(saved)
+  expect(patches).toHaveLength(0)
+})
+test('D1 failure before commit leaves no reservation and retry can succeed', async () => {
+  const { ctx, sql } = setup(),
+    prepare = ctx.db.prepare
+  ctx.db.prepare = (query: string) =>
+    query.startsWith('INSERT')
+      ? {
+          bind: () => ({
+            run: async () => {
+              throw Error('Unavailable before commit')
+            },
+          }),
+        }
+      : prepare(query)
+  await expect(attachReview(ctx, await command(), 'a')).rejects.toThrow()
+  expect(sql.query('SELECT count(*) AS n FROM google_review_attachments').get()).toEqual({ n: 0 })
+  ctx.db.prepare = prepare
+  await attachReview(ctx, await command(), 'a')
+  expect((await listReviews(ctx)).rows[0].attachment?.actor).toBe('a')
+})
+test('legacy pending remains blocked, malformed or foreign-source complete audit proves nothing', async () => {
+  for (const [state, sourceKey, audit] of [
+    ['pending', 'key', '{}'],
+    ['complete', 'foreign', '{}'],
+    ['complete', 'key', '{bad'],
+  ]) {
+    const { ctx, sql, patches } = setup()
+    sql
+      .query('INSERT INTO google_review_attachments VALUES (?,?,?,?,?,?)')
+      .run(1, sourceKey, state, audit, 'before', 'after')
+    const view = (await listReviews(ctx)).rows[0]
+    expect(view.attachment).toBeNull()
+    expect(view.operation?.state).toBe('pending')
+    await expect(attachReview(ctx, await command(), 'a')).rejects.toThrow()
+    expect(sql.query('SELECT state FROM google_review_attachments').get()).toEqual({ state })
+    expect(patches).toHaveLength(0)
+  }
 })
 test('configuration fails closed; CSRF rejects absent or foreign Origin', async () => {
   expect(() => reviewConfiguration({}, {} as any)).toThrow()
@@ -234,7 +338,7 @@ test('two concurrent confirmations write once and keep one audit', async () => {
     attachReview(ctx, cmd, 'b'),
   ])
   expect(result.filter((r) => r.status === 'fulfilled').length).toBe(1)
-  expect(patches.length).toBe(1)
+  expect(patches.length).toBe(0)
   expect(sql.query('SELECT count(*) AS total FROM google_review_attachments').get()).toEqual({
     total: 1,
   })

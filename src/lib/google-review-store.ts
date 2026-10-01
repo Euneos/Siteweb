@@ -9,8 +9,7 @@ import {
   positiveId,
   reviewVersion,
   reviewView,
-  REVIEW_OPEN,
-  REVIEW_CLOSE,
+  validatedManualReview,
   type GoogleRow,
   type ReviewTarget,
   type ManualReview,
@@ -153,9 +152,9 @@ export async function listReviews(ctx: Context) {
   // Fail closed until the durable audit registry has been migrated.
   const operations = (
     await ctx.db
-      .prepare('SELECT journal_id, state, audit_json FROM google_review_attachments')
+      .prepare('SELECT journal_id, source_key, state, audit_json FROM google_review_attachments')
       .bind()
-      .all<{ journal_id: number; state: string; audit_json: string }>()
+      .all<ReviewOperation>()
   ).results
   const rows = await all(ctx.client, ctx.table)
   const targets = await reviewTargets(ctx.client)
@@ -168,15 +167,39 @@ export async function listReviews(ctx: Context) {
   return {
     rows: await Promise.all(
       rows.map(async (row) => ({
-        ...(await reviewView(row)),
+        ...(await operationView(
+          row,
+          operations.find((o) => o.journal_id === row.Id),
+        )),
         resolvedTargets: resolveReconciliationTargets(reconciliation(row), targets, adults, {
           ...NC.tables,
           adults: OPERATIONAL_ADULTS_TABLE,
         }),
-        operation: operations.find((o) => o.journal_id === row.Id) ?? null,
       })),
     ),
     targets,
+  }
+}
+type ReviewOperation = { journal_id: number; source_key: string; state: string; audit_json: string }
+async function operationView(row: GoogleRow, operation?: ReviewOperation) {
+  const view = await reviewView(row)
+  let attachment = view.attachment
+  if (operation?.state === 'complete' && operation.source_key === row.cle_reponse) {
+    try {
+      attachment =
+        validatedManualReview(JSON.parse(operation.audit_json), row.cle_reponse) ?? attachment
+    } catch {
+      /* Corrupt audits remain visible for operator review, never prove attachment. */
+    }
+  }
+  // Keep an unresolvable/legacy claim visible and blocked, but never attach another source's audit.
+  const needsReview = operation && (operation.source_key !== row.cle_reponse || !attachment)
+  return {
+    ...view,
+    attachment,
+    operation: operation
+      ? { ...operation, state: needsReview ? 'pending' : operation.state }
+      : null,
   }
 }
 export async function attachReview(ctx: Context, body: Record<string, unknown>, actor: string) {
@@ -196,6 +219,13 @@ export async function attachReview(ctx: Context, body: Record<string, unknown>, 
       409,
       'Ce dossier n’est plus disponible. Actualisez et choisissez un dossier actif.',
     )
+  // No reservation before validation, and no NocoDB write: the collector owns its journal.
+  const fresh = await read(ctx.client, ctx.table, row.Id)
+  if ((await reviewVersion(fresh)) !== command.version)
+    throw new WorkspaceError(
+      409,
+      'La source a changé pendant la vérification. Aucun rattachement n’a été enregistré. Actualisez pour la relire.',
+    )
   const audit: ManualReview = {
     version: 1,
     sourceKey: row.cle_reponse,
@@ -206,44 +236,27 @@ export async function attachReview(ctx: Context, body: Record<string, unknown>, 
     action: 'attachment-only',
     id: crypto.randomUUID(),
   }
-  const previous = typeof row.detail_reprise === 'string' ? row.detail_reprise : ''
-  const detail = `${previous}\n${REVIEW_OPEN}${JSON.stringify(audit)}${REVIEW_CLOSE}`
-  if (detail.length > 90000)
-    throw new WorkspaceError(
-      409,
-      'Cet historique doit être traité par l’administrateur pour être préservé intégralement.',
-    )
+  const previous = typeof fresh.detail_reprise === 'string' ? fresh.detail_reprise : ''
+  // Both snapshots are identical: this action has no NocoDB side effect.
+  // One atomic insert publishes the audit; a lost D1 response is recovered by GET, never a second write.
   const claim = await ctx.db
     .prepare(
-      "INSERT INTO google_review_attachments(journal_id,source_key,state,audit_json,before_detail,after_detail) VALUES (?,?,'pending',?,?,?) ON CONFLICT(journal_id) DO NOTHING",
+      "INSERT INTO google_review_attachments(journal_id,source_key,state,audit_json,before_detail,after_detail) VALUES (?,?,'complete',?,?,?) ON CONFLICT(journal_id) DO NOTHING",
     )
-    .bind(row.Id, row.cle_reponse, JSON.stringify(audit), previous, detail)
+    .bind(row.Id, row.cle_reponse, JSON.stringify(audit), previous, previous)
     .run()
   if (claim.meta.changes !== 1)
     throw new WorkspaceError(
       409,
       'Un rattachement existe ou doit être vérifié. Actualisez ; ne recommencez pas la confirmation.',
     )
-  // Keep the claim after every uncertainty. Never erase an audit or retry blindly.
-  const fresh = await read(ctx.client, ctx.table, row.Id)
-  if ((await reviewVersion(fresh)) !== command.version)
-    throw new WorkspaceError(
-      409,
-      'La source a changé pendant la vérification. Le rattachement reste en attente de contrôle ; aucune donnée métier n’a été modifiée.',
-    )
-  await ctx.client(`/tables/${ctx.table}/records`, 'PATCH', [
-    { Id: row.Id, detail_reprise: detail },
-  ])
-  const verified = await read(ctx.client, ctx.table, row.Id)
-  if (verified.detail_reprise !== detail) throw unavailable()
-  await ctx.db
-    .prepare(
-      "UPDATE google_review_attachments SET state='complete' WHERE journal_id=? AND audit_json=?",
-    )
-    .bind(row.Id, JSON.stringify(audit))
-    .run()
   return {
-    row: await reviewView(verified),
+    row: await operationView(fresh, {
+      journal_id: row.Id,
+      source_key: row.cle_reponse,
+      state: 'complete',
+      audit_json: JSON.stringify(audit),
+    }),
     message:
       'Rattachement enregistré. Les données de la réponse ne sont pas intégrées aux champs du dossier par cette action.',
   }

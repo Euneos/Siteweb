@@ -32,32 +32,68 @@ bonne `cle_reponse` fait foi. Aucun statut libre historique (« Source conservé
 inclus) ne prouve l’intégration. La vue indique « Intégration non attestée » en
 l’absence de reçu valide ; elle ne prétend pas que rien n’a été importé.
 
-Le rattachement manuel est distinct : bloc `[EUNEOS_GOOGLE_REVIEW_V1]` avec
+## Contrat du rattachement et lecture par l’API / Stella
+
+Le rattachement manuel est distinct de la preuve d’intégration. Il est désormais
+conservé **uniquement dans D1 `google_review_attachments`**, pas dans le journal
+NocoDB. Le JSON `audit_json` garde le contrat version 1 :
 `version,sourceKey,target:{kind:'school'|'trainer',id,label},actor,at,reason,
-action:'attachment-only',id` puis `[/EUNEOS_GOOGLE_REVIEW_V1]`.
+action:'attachment-only',id`.
+
 L’identifiant cible est celui de la **participation annuelle** ou du **parcours
 formateur**, pas la fiche personne/établissement. La sélection montre les noms,
 la ville ou l’email, la cohorte et le code. Aucun dossier n’est préselectionné.
 
-## Garanties et limites
+`GET /api/interne/reponses-google`, avec l’authentification équipe habituelle,
+combine les preuves NocoDB et les audits D1. Chaque `rows[]` expose :
 
-Les écritures touchent uniquement `detail_reprise`. `statut_reprise` est inchangé :
-ses éventuels choix NocoDB ne sont pas supposés. Les réponses, noms, dates,
-statuts métier et liens métier ne sont jamais réécrits. L’historique complet
-précédent et la nouvelle valeur sont conservés dans le registre D1 privé.
+- `attachment` : audit D1 `complete` validé et lié à la même `sourceKey`, sinon
+  ancien marqueur NocoDB valide, sinon `null` ;
+- `operation` : état et audit du registre ; un ancien `pending`, un audit illisible
+  ou un lien source incohérent reste à contrôler et ne prouve pas un rattachement ;
+- `receipt`, `state`, `resolvedTargets` : preuves d’intégration du journal,
+  indépendantes du rattachement. Un audit D1 `complete` ne signifie jamais que
+  les champs métier ont été intégrés.
 
-Une empreinte de la source et une relecture avant écriture détectent les
-modifications depuis l’affichage. Une réservation D1 unique par réponse empêche
-les confirmations concurrentes depuis cet écran. Toute erreur après réservation
-conserve le reçu pending : pas de nouvelle tentative automatique, pas d’expiration
-silencieuse. Un contrôle opérateur doit comparer before/after et la source pour
-régler ces cas. Une correction d’un rattachement existant nécessite ce contrôle.
+Stella et les lecteurs doivent utiliser cette API authentifiée pour voir les
+nouveaux rattachements ; lire uniquement `detail_reprise` ne suffit plus.
+L’interface explique que le rattachement est conservé dans l’espace interne.
+Les anciens blocs `[EUNEOS_GOOGLE_REVIEW_V1]` restent lisibles, sans réécriture.
 
-NocoDB ne fournit pas de PATCH conditionnel ici : un autre système qui modifie
-`detail_reprise` entre la dernière relecture et le PATCH peut encore concourir.
-Coordonner les reprises historiques/collecteurs avec ce registre ; ne pas lancer
-une réécriture concurrente de la même ligne. La relecture après PATCH confirme la
-valeur enregistrée, sans transformer ce PATCH en transaction multi-système.
+## Garanties et concurrence
+
+**Aucune écriture NocoDB** : ni `detail_reprise`, ni statut, réponse ou champ métier.
+Après vérification du dossier et relecture de la version de la source, un INSERT
+D1 atomique crée directement l’audit en état `complete`. La contrainte unique par
+`journal_id` arbitre les confirmations concurrentes. Le schéma de la migration
+0005 reste inchangé et aucune migration supplémentaire n’est requise.
+
+`before_detail` et `after_detail` conservent tous deux la même dernière valeur lue
+avant l’INSERT : le journal n’est pas modifié. `audit_json` contient le nouveau
+rattachement. Ce sont des instantanés de provenance, pas des valeurs à réappliquer
+au journal. Un reçu ajouté par le collecteur pendant ou après l’enregistrement
+n’est jamais remplacé par la page. L’actualisation relit ses nouvelles preuves.
+
+Si la source change avant la dernière validation, réponse 409 sans réservation :
+l’utilisateur peut actualiser, relire et confirmer à nouveau. Si la réponse D1
+est perdue après le commit, l’actualisation retrouve l’audit ; une répétition reçoit
+409 et ne remplace pas le premier rattachement. Si D1 n’a rien enregistré, une
+nouvelle confirmation reste possible. Pas de retry automatique du POST.
+
+Les anciens `pending` issus du protocole avec PATCH NocoDB ne sont ni supprimés
+ni promus automatiquement : le résultat ancien peut être incertain. Ils restent
+bloqués jusqu’au contrôle opérateur de leurs instantanés et du journal. Une
+correction d’un rattachement enregistré nécessite également ce contrôle.
+
+## Filtres et décompte
+
+La sélection initiale « À examiner » comprend `pending`, `unknown` et toute
+opération D1 `pending`, sans doublonner une entrée. Les intégrations `partial`
+ont leur propre filtre ; elles restent aussi dans « À examiner » si leur
+confirmation est incertaine. Les deux autres choix sont « Intégrations attestées »
+et « Toutes les entrées ». Les compteurs comptent les entrées et leurs versions
+conservées, jamais les personnes ou dossiers uniques. Les titres n’affichent que
+« Réponse #ID » ; le nom brut du formulaire reste consultable dans le détail.
 
 Le client reprend la temporisation 650 ms et les reprises explicites 429 du
 collecteur, dont le client n’est pas exporté. Requêtes séquentielles, trois essais

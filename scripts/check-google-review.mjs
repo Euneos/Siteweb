@@ -131,17 +131,7 @@ globalThis.fetch = async (input, init = {}) => {
     assert(match, 'Unexpected mocked path')
     const table = match[1]
     assert(data[table], 'Unexpected mocked table')
-    if (init.method === 'PATCH') {
-      assert.equal(table, env.GOOGLE_REVIEW_JOURNAL_TABLE)
-      const patch = JSON.parse(init.body)
-      assert.equal(patch.length, 1)
-      assert.deepEqual(Object.keys(patch[0]).sort(), ['Id', 'detail_reprise'])
-      const target = rows.find((r) => r.Id === patch[0].Id)
-      assert(target)
-      Object.assign(target, patch[0])
-      mutations++
-      return Response.json(patch)
-    }
+    if (init.method !== 'GET') mutations++
     assert.equal(init.method, 'GET')
     return Response.json(
       match[2]
@@ -253,8 +243,13 @@ try {
       'aria-current',
       'page',
     )
-    await expect(page.locator('.gr-row')).toHaveCount(2)
-    await page.locator('.gr-row').filter({ hasText: 'réponse #2' }).click()
+    await expect(page.locator('.gr-row')).toHaveCount(1)
+    await expect(page.locator('#gr-state option:checked')).toHaveText('À examiner (1)')
+    await expect(page.locator('.gr-row strong')).toHaveText('Réponse #1')
+    await page.locator('#gr-state').selectOption('partial')
+    await expect(page.locator('.gr-row')).toHaveCount(1)
+    await expect(page.locator('#gr-state option:checked')).toHaveText('Intégrations partielles (1)')
+    await page.locator('.gr-row').filter({ hasText: 'Réponse #2' }).click()
     await expect(page.locator('#gr-targets')).toContainText('Camille Exemple — École de la Colline')
     await expect(page.locator('#gr-targets')).toContainText('DOS-0007')
     await expect(page.locator('#gr-reasons')).toHaveText('Fin de formation à confirmer')
@@ -273,12 +268,16 @@ try {
     await expect(page.locator('.gr-row')).toHaveCount(1)
     await page.locator('#gr-search').fill('')
     await page.locator('#gr-state').selectOption('pending')
-    await page.locator('.gr-row').filter({ hasText: 'réponse #1' }).click()
+    await page.locator('.gr-row').filter({ hasText: 'Réponse #1' }).click()
     if (width === 1440) {
       await page.locator('#gr-target').selectOption('school:7')
       await page.locator('#gr-reason').fill('École et cohorte vérifiées dans la réponse fictive')
       await page.locator('#gr-save').click()
-      assert.equal(mutations, 0, 'Checkbox required')
+      assert.equal(
+        sql.query('SELECT count(*) AS n FROM google_review_attachments').get().n,
+        0,
+        'Checkbox required',
+      )
       await page.locator('#gr-confirm').check()
       await page.locator('#gr-save').click()
       await expect(page.locator('#gr-feedback')).toContainText('Rattachement enregistré', {
@@ -286,10 +285,18 @@ try {
       })
       await expect(page.locator('#gr-form')).toBeHidden()
       await expect(page.locator('#gr-readonly')).toContainText('École de la Colline')
-      assert.equal(mutations, 1)
+      assert.equal(mutations, 0)
       assert.equal(sql.query('SELECT state FROM google_review_attachments').get().state, 'complete')
       assert.equal(rows[0].statut_reprise, base.statut_reprise)
       assert.equal(rows[0].reponses, base.reponses)
+      assert.equal(rows[0].detail_reprise, base.detail_reprise)
+      await page.locator('#gr-refresh').click()
+      await expect(page.locator('#gr-feedback')).toContainText('Réponses actualisées', {
+        timeout: 20000,
+      })
+      await page.locator('.gr-row').filter({ hasText: 'Réponse #1' }).click()
+      await expect(page.locator('#gr-form')).toBeHidden()
+      await expect(page.locator('#gr-readonly')).toContainText('École de la Colline')
       const stale = await render('/api/interne/reponses-google', 'manager', 'POST', {
         id: 1,
         version: 'a'.repeat(64),
@@ -299,7 +306,7 @@ try {
         confirmed: true,
       })
       assert.equal(stale.status, 409)
-      assert.equal(mutations, 1)
+      assert.equal(mutations, 0)
     } else await expect(page.locator('#gr-form')).toBeHidden()
     await context.close()
   }
@@ -319,7 +326,9 @@ try {
           'preview denial',
           'receipt labels',
           'adult and dossier',
-          'filter',
+          'pending and partial filters with counts',
+          'nonpersonal row titles',
+          'D1 attachment restored on refresh with no NocoDB write',
           'no overflow',
           'escaped source',
           'confirmation',

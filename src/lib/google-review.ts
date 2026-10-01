@@ -72,22 +72,29 @@ export function reconciliation(row: GoogleRow): Reconciliation | null {
 export function manualReview(row: GoogleRow): ManualReview | null {
   const values = blocks(string(row.detail_reprise), REVIEW_OPEN, REVIEW_CLOSE)
   for (const value of values.reverse()) {
-    const v = value as ManualReview
-    if (
-      v?.version === 1 &&
-      v.sourceKey === row.cle_reponse &&
-      v.action === 'attachment-only' &&
-      ['school', 'trainer'].includes(v.target?.kind) &&
-      positiveId(v.target?.id) &&
-      typeof v.target.label === 'string' &&
-      typeof v.actor === 'string' &&
-      typeof v.reason === 'string' &&
-      typeof v.id === 'string' &&
-      typeof v.at === 'string' &&
-      Number.isFinite(Date.parse(v.at))
-    )
-      return v
+    const audit = validatedManualReview(value, row.cle_reponse)
+    if (audit) return audit
   }
+  return null
+}
+export function validatedManualReview(value: unknown, sourceKey: unknown): ManualReview | null {
+  const v = value as ManualReview
+  if (
+    v?.version === 1 &&
+    typeof sourceKey === 'string' &&
+    sourceKey.length > 0 &&
+    v.sourceKey === sourceKey &&
+    v.action === 'attachment-only' &&
+    ['school', 'trainer'].includes(v.target?.kind) &&
+    positiveId(v.target?.id) &&
+    typeof v.target.label === 'string' &&
+    typeof v.actor === 'string' &&
+    typeof v.reason === 'string' &&
+    typeof v.id === 'string' &&
+    typeof v.at === 'string' &&
+    Number.isFinite(Date.parse(v.at))
+  )
+    return v
   return null
 }
 export async function reviewVersion(row: GoogleRow): Promise<string> {
