@@ -642,7 +642,7 @@ try {
   await expect(youth.locator('[data-public-access]')).toBeHidden()
   await expect(linkForm.locator('[name=kind] option[value=activites-jeunes]')).toHaveCount(0)
   await expect(catalog.locator('[data-catalog-document=lettre] a')).toHaveCount(0)
-  await expect(catalog.locator('a[href*="/suivi/"]')).toHaveCount(5)
+  await expect(catalog.locator('a[href*="/suivi/"]')).toHaveCount(6)
   await expect(catalog.locator('form')).toHaveCount(0)
   const example = catalog.locator('[data-catalog-kind=contact] details')
   await example.locator('summary').focus()
@@ -652,7 +652,7 @@ try {
   await expect(example.locator('input,textarea,button,form')).toHaveCount(0)
   await page.keyboard.press('Enter')
   await expect(example).not.toHaveAttribute('open', '')
-  const publicPaths = ['/suivi/pre-formation', '/candidater/etablissement', '/candidater/formateur', '/contact', '/newsletter']
+  const publicPaths = ['/suivi/pre-formation', '/suivi/accord-formateur', '/candidater/etablissement', '/candidater/formateur', '/contact', '/newsletter']
   for (const [i, card] of (await catalog.locator('[data-public-form]').all()).entries()) {
     const expected = `https://euneos.fr${publicPaths[i]}`
     await expect(card.locator('[data-public-url]')).toHaveValue(expected)
