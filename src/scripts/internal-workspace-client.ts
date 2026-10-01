@@ -470,7 +470,39 @@ function initCalendar(root: HTMLElement) {
       'Les heures de cette fiche sont conservées. Les heures des autres fiches sont affichées séparément et ne sont pas recopiées. Enregistrez vos nouvelles saisies.',
     )
   })
+  const totalsPanel = node('section', 'iw-panel')
+  totalsPanel.id = 'iw-person-totals'
+  totalsPanel.hidden = true
+  content.parentElement!.append(totalsPanel)
+  const renderTotals = (loaded: CalendarData | null) => {
+    totalsPanel.replaceChildren()
+    totalsPanel.hidden = kind !== 'equipe'
+    if (kind !== 'equipe') return
+    totalsPanel.append(node('h2', '', 'Heures réalisées par personne'))
+    if (!loaded) {
+      totalsPanel.append(node('p', '', 'Totaux indisponibles pendant le chargement.'))
+      return
+    }
+    totalsPanel.append(node('p', 'iw-muted', `Tout le mois de ${monthFormat.format(dateObject(`${month}-01`))}, indépendamment des filtres.`))
+    const grouped = new Map<string, number>()
+    for (const row of loaded.totals) {
+      const name = personName(row.person)
+      grouped.set(name, (grouped.get(name) ?? 0) + row.declared)
+    }
+    if (!grouped.size) {
+      totalsPanel.append(node('p', '', 'Aucune heure réalisée renseignée pour ce mois.'))
+      return
+    }
+    const list = node('dl', 'iw-totals')
+    for (const [name, total] of [...grouped].sort(([a], [b]) => a.localeCompare(b, 'fr'))) {
+      const item = node('div')
+      item.append(node('dt', '', name), node('dd', '', hours(total)))
+      list.append(item)
+    }
+    totalsPanel.append(list)
+  }
   const setMetrics = (loaded: CalendarData | null) => {
+    renderTotals(loaded)
     byId('iw-metric-label-1').textContent = 'Fiches du mois'
     byId('iw-metric-label-2').textContent = kind === 'equipe' ? 'Heures réalisées' : 'À valider'
     byId('iw-metric-label-3').textContent = 'Publiées'
