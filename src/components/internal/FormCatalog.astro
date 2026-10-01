@@ -62,6 +62,18 @@ const publicForms = [
     description: 'Renseigner la mission, son année, les documents et retours. Réponse conservée et champs vérifiés restent distincts ; aucun contrat ni facture validé automatiquement.',
   },
   {
+    key: 'post-formation',
+    name: 'Questionnaire post formation',
+    path: '/suivi/post-formation',
+    description: 'À remplir à la fin de la formation. La réponse complète est conservée et la date de réception est vérifiée sur l’adulte ; les cas incertains restent à rapprocher par l’équipe.',
+  },
+  {
+    key: 'suivi-j45',
+    name: 'Questionnaire de suivi J+45',
+    path: '/suivi/suivi-j45',
+    description: 'Partager les usages et effets observés après la formation. La réception du questionnaire ne change pas le statut de formation de l’adulte.',
+  },
+  {
     key: 'accord-formateur',
     name: 'Accord formateur WISE-UP',
     path: '/suivi/accord-formateur',
@@ -232,7 +244,7 @@ const publicForms = [
       <p class="fc-eyebrow">Sans lien personnel</p>
       <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
       <p>
-        Ces pages permettent de candidater, de remplir la préformation, de contacter l’équipe et de s’inscrire à la newsletter.
+        Ces pages permettent de candidater, de remplir les questionnaires adultes, de confirmer l’accord formateur, de contacter l’équipe et de s’inscrire à la newsletter.
       </p>
     </header>
     <div class="fc-grid">
@@ -311,9 +323,9 @@ const publicForms = [
         aria-labelledby="catalog-questionnaires-title"
       >
         <span class="fc-status" data-state="planned">À préparer sur le site</span>
-        <h3 id="catalog-questionnaires-title">Questionnaires adultes</h3>
+        <h3 id="catalog-questionnaires-title">Bilans et évaluation finale</h3>
         <p>
-          Post-formation, suivi J+45, accord formateur et bilans : les questionnaires historiques restent des
+          Les bilans et l’évaluation finale historiques restent des
           parcours distincts. Leur collecte ne signifie pas que leur remplacement sur le site est
           ouvert.
         </p>
