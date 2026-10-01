@@ -230,3 +230,26 @@ test('a stale planning owner cannot write after another owner takes its lease', 
   expect(rt.state.writes).toHaveLength(1)
   expect(rt.projection().state).toBe('review')
 })
+
+for (const i of [0, 1]) test(`${defs[i].slug}: source POST outage is visible in private catalogue without blind replay`, async () => {
+  const transport = rt.fetch
+  let attempts = 0
+  globalThis.fetch = (async (input: any, init: any) => {
+    if (init?.method === 'POST' && String(input).includes(`/tables/${rt.env.PUBLIC_FORMS_TABLE}/records`)) {
+      attempts++
+      return Response.json({ message: 'Unavailable' }, { status: 503 })
+    }
+    return transport(input, init)
+  }) as typeof fetch
+  expect((await post(i)).status).toBe(503)
+  expect((await post(i)).status).toBe(202)
+  expect(attempts).toBe(1)
+  expect(rt.state.rows).toHaveLength(0)
+  expect(rt.state.writes).toHaveLength(0)
+  const entries = await listPublicForms(rt.locals())
+  expect(entries).toHaveLength(1)
+  expect(entries[0].state).toContain('Transmission au journal non confirmée')
+  expect(entries[0].participationId).toBeNull()
+  expect(entries[0].year).toBe(finalFixtureAnswers(i).year)
+  expect(entries[0].form).toBe(i === 0 ? 'Évaluation de fin de formation' : 'Bilan établissement')
+})
