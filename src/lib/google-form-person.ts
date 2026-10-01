@@ -1,3 +1,8 @@
+import {
+  prepareGoogleApplication,
+  validateApplicationFields,
+  type ApplicationFieldsConfig,
+} from './google-form-application'
 import { digest } from './google-form-sync'
 import { isoDate } from './google-form-contact'
 import type { SheetHeader } from './google-form-sheet'
@@ -49,6 +54,7 @@ export type PersonProjectionConfig = {
   fixedCohort?: number | null
   createMissingAdults?: boolean
   agreementAnswer?: string
+  businessFields?: ApplicationFieldsConfig
 }
 export type PersonPlan = {
   family: PersonProjectionConfig['family']
@@ -91,6 +97,7 @@ const cohortAnswers = (c: PersonProjectionConfig['cohorts'][number]) =>
 const cohortId = (n: unknown, family: string) =>
   id(n) || (n === null && entityKind(family) === 'trainer')
 export function validatePersonConfig(c: PersonProjectionConfig) {
+  validateApplicationFields(c?.family, c?.businessFields)
   if (
     !c ||
     !PERSON_FAMILIES.includes(c.family) ||
@@ -201,6 +208,7 @@ export async function planGooglePerson(
   const values = Object.fromEntries(
     Object.entries(config.mapping).map(([key, value]) => [key, column(value!)]),
   )
+  const application = prepareGoogleApplication(config.family, config.businessFields, column)
   let remaining = false
   for (const selector of config.captureOnly) if (column(selector)) remaining = true
   if (used.size !== headers.length) return review('unmapped_fields')
@@ -224,6 +232,7 @@ export async function planGooglePerson(
       ? cohort.establishments!.find((e) => e.answer.trim() === values.establishment)
       : undefined
   if (entity === 'adult' && !establishment) return review('establishment_unresolved')
+  if (!Number.isFinite(Date.parse(submittedAt))) return review('date_invalid')
   const sourceDate = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Paris',
     year: 'numeric',
@@ -231,6 +240,22 @@ export async function planGooglePerson(
     day: '2-digit',
   }).format(new Date(submittedAt))
   const canonicalEmail = email(values.email)
+  const linked = (row: Row, table: string, guard: PersonPlan['guard']) =>
+    application(
+      {
+        family: config.family,
+        table,
+        id: row.Id,
+        before: {},
+        after: {},
+        guard,
+        remaining: config.businessFields ? remaining : true,
+        linkOnly: true,
+      },
+      row,
+      sourceDate,
+    )
+
   const find = async (table: string, where: string, activeOnly = false): Promise<Row[]> => {
     const result = (await read(
       `tables/${table}/records?where=${encodeURIComponent(where)}&limit=${activeOnly ? 100 : 2}`,
@@ -360,20 +385,7 @@ export async function planGooglePerson(
       id: dossier.Id,
       fields: pick(dossier, ['cohortes_id', 'etablissements_id', 'fusionne_vers']),
     })
-    if (linkOnly)
-      return {
-        state: 'planned',
-        plan: {
-          family: config.family,
-          table: config.tables.people,
-          id: person.Id,
-          before: {},
-          after: {},
-          guard,
-          remaining: true,
-          linkOnly: true,
-        },
-      }
+    if (linkOnly) return linked(person, config.tables.people, guard)
     const received = sourceDate
     if (!isoDate(received)) return review('date_invalid')
     if (!empty(person.date_pre_recu) && person.date_pre_recu !== received)
@@ -415,20 +427,7 @@ export async function planGooglePerson(
       'fusionne_vers',
     ]),
   })
-  if (linkOnly)
-    return {
-      state: 'planned',
-      plan: {
-        family: config.family,
-        table: config.tables.records,
-        id: record.Id,
-        before: {},
-        after: {},
-        guard,
-        remaining: true,
-        linkOnly: true,
-      },
-    }
+  if (linkOnly) return linked(record, config.tables.records, guard)
   if (values.agreement !== config.agreementAnswer!.trim()) return review('agreement_not_confirmed')
   const match = /^(\d{2})[/-](\d{2})[/-](\d{4})$/.exec(values.agreementDate)
   const signed = match ? `${match[3]}-${match[2]}-${match[1]}` : values.agreementDate

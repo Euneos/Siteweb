@@ -1764,3 +1764,57 @@ test('full family catalog supports contiguous secret parts four through twelve a
   delete (parts as Record<string, string>).SOURCES_7
   expect(() => configuredSources(parts)).toThrow('sources_part_missing')
 })
+
+for (const family of ['candidature_formateur', 'suivi_j45'] as const) {
+  test(`future ${family}: businessFields extends the durable frozen plan, lost response never repeats PATCH`, async () => {
+    const f = await personFixture(family === 'suivi_j45' ? 'preformation_a' : 'accord_formateur')
+    f.config.family = family
+    if (family === 'candidature_formateur') {
+      delete f.config.mapping.agreement
+      delete f.config.mapping.agreementDate
+      delete f.config.agreementAnswer
+      f.config.captureOnly = ['Date accord']
+      f.config.businessFields = {
+        version: 1,
+        fields: [{ field: 'motivation', type: 'text', header: 'Accord' }],
+      }
+      f.snapshot.rows[0][f.snapshot.headers.indexOf('Accord')] = 'Motivation fictive vérifiée'
+      f.snapshot.rows[0][f.snapshot.headers.indexOf('Date accord')] = ''
+    } else {
+      f.config.businessFields = {
+        version: 1,
+        fields: [{ field: 'date_suivi_recu', type: 'submissionDate' }],
+      }
+    }
+    env.SOURCES = JSON.stringify([f.s])
+    let loseOnce = true
+    fault = (url, init) => {
+      const res = f.baseFault(url, init)
+      if (loseOnce && init.method === 'PATCH' && /fictional(people|records)/.test(url)) {
+        loseOnce = false
+        throw new Error('network_lost_after_business_write')
+      }
+      return res
+    }
+    await poll(f.snapshot)
+    clock += 120000
+    for (let i = 0; i < 3; i++) await poll(f.snapshot)
+    expect(businessPatches()).toHaveLength(1)
+    if (family === 'candidature_formateur') {
+      expect(JSON.parse(String(businessPatches()[0].init.body))).toEqual({
+        Id: 7,
+        motivation: 'Motivation fictive vérifiée',
+      })
+      expect(f.record.statut).toBe('À qualifier')
+    } else {
+      expect(JSON.parse(String(businessPatches()[0].init.body))).toEqual({
+        Id: 50,
+        date_suivi_recu: '2026-09-30',
+      })
+      expect(f.person.date_pre_recu).toBeNull()
+      expect(f.person.statut).toBe('Inchangé')
+    }
+    expect(hooks()).toHaveLength(0)
+    expect(String(remote[0].detail_reprise)).toContain('"state":"integrated"')
+  })
+}
