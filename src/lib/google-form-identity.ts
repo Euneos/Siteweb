@@ -100,18 +100,18 @@ export async function reconcileGoogleRows<T extends IdentityReceipt>(
         ambiguous: prior.length > 0 || group.length > 1,
       })
   }
-  // A replaced timestamp at an occupied position cannot prove a new response:
-  // it may be an edited old timestamp. Preserve it, but never auto-project it.
+  // A missing lineage plus a new timestamp cannot prove a new response: the
+  // old response may have been moved AND edited (possibly beyond its timestamp).
+  // Physical positions and answer similarity are therefore not safe exceptions.
+  // Fail closed for new identities across the COMPLETE snapshot, regardless of
+  // the bounded scan window. Raw capture and matching existing receipts continue.
+  //
+  // Deliberately no timeout/one-pass amnesty: this receipt-only history cannot
+  // attest an intentional deletion. A permanent deletion keeps subsequent new
+  // identities review-only until the source is restored or a separately audited
+  // retirement mechanism is implemented. Do not delete receipts to bypass it.
   const assigned = new Set(result.filter((r) => r.previous).map((r) => r.logicalRow))
-  const disappearedPositions = new Set(
-    [...lineages.entries()]
-      .filter(([logical]) => !assigned.has(logical))
-      .map(([logical, history]) => {
-        const payload = JSON.parse(history.at(-1)!.raw_payload)
-        return typeof payload.physicalRow === 'number' ? payload.physicalRow : logical
-      }),
-  )
-  for (const row of result)
-    if (!row.previous && disappearedPositions.has(row.row)) row.ambiguous = true
+  if ([...lineages.keys()].some((logical) => !assigned.has(logical)))
+    for (const row of result) if (!row.previous) row.ambiguous = true
   return result.sort((a, b) => a.row - b.row)
 }

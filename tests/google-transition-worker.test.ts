@@ -1658,6 +1658,80 @@ test('changing an existing source timestamp cannot masquerade as a new auto-proj
   expect(String(remote.at(-1)?.detail_reprise)).toContain('identity_ambiguous')
 })
 
+for (const editOtherAnswer of [false, true])
+  test(`timestamp change plus sorting stays raw-only, including another edited answer=${editOtherAnswer}`, async () => {
+    const { s, snapshot } = await futurePush()
+    const original = [...snapshot.rows[0]]
+    const retained = [...original]
+    retained[0] = '29/09/2026 10:01:00'
+    retained[1] = 'Autre collège fictif'
+    await seed(s, [snapshot.headers, original, retained])
+    s.projectionFirstRow = 4
+    env.SOURCES = JSON.stringify([s])
+    const changed = [...original]
+    changed[0] = '30/09/2026 10:00:00'
+    if (editOtherAnswer) changed[4] = 'Référent corrigé'
+    // Original A disappears from row 2 while B moves there. A's new timestamp
+    // is now in B's old position, beyond the logical future-only cutoff.
+    snapshot.rows = [retained, changed]
+    clock = Date.parse('30 Sep 2026 10:00:00 GMT')
+    const checked = await (await ingest(snapshot, '/check')).json()
+    expect(checked).toMatchObject({ matched: 1, fresh: 1, missing: 1 })
+    expect(checked.differences).toContainEqual({ row: 3, code: 'identity_ambiguous' })
+    for (let i = 0; i < 3; i++) await poll(snapshot)
+    expect(hooks()).toHaveLength(0)
+    expect(writes()).toHaveLength(1)
+    expect(ledger()).toHaveLength(3)
+    expect(remote.at(-1)?.statut_reprise).toBe('À rapprocher')
+    expect(String(remote.at(-1)?.detail_reprise)).toContain('identity_ambiguous')
+  })
+
+test('a missing historical identity keeps later new responses pending until the source is restored', async () => {
+  const { s, snapshot } = await futurePush()
+  const original = [...snapshot.rows[0]]
+  const retained = [...original]
+  retained[0] = '29/09/2026 10:01:00'
+  retained[1] = 'Collège conservé'
+  await seed(s, [snapshot.headers, original, retained])
+  s.projectionFirstRow = 4
+  env.SOURCES = JSON.stringify([s])
+  snapshot.rows = [retained]
+  await poll(snapshot) // Observing a deletion does NOT certify that it was intended.
+  clock = Date.parse('01 Oct 2026 10:00:00 GMT')
+  const firstNew = [...original]
+  firstNew[0] = '01/10/2026 10:00:00'
+  firstNew[1] = 'Nouvelle réponse distincte'
+  snapshot.rows.push(firstNew)
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  const secondNew = [...firstNew]
+  secondNew[0] = '01/10/2026 10:01:00'
+  snapshot.rows.push(secondNew)
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(0)
+  expect(writes()).toHaveLength(2)
+  expect(ledger()).toHaveLength(4)
+  expect(
+    remote.slice(2).every((r) => String(r.detail_reprise).includes('identity_ambiguous')),
+  ).toBe(true)
+
+  // No tombstones or guessed retirement: restoring the original source removes
+  // the disappearance. Only a genuinely subsequent response can auto-project;
+  // earlier ambiguous receipts remain a human-review backlog, never promoted.
+  const thirdNew = [...firstNew]
+  thirdNew[0] = '01/10/2026 10:02:00'
+  snapshot.rows = [retained, firstNew, original, secondNew, thirdNew]
+  for (let i = 0; i < 3; i++) await poll(snapshot)
+  expect(hooks()).toHaveLength(1)
+  expect(writes()).toHaveLength(3)
+  expect(ledger()).toHaveLength(5)
+  expect(JSON.parse(String(hooks()[0].init.body)).source.submittedAt).toBe(
+    '2026-10-01T08:02:00.000Z',
+  )
+  expect(
+    remote.slice(2, 4).every((r) => String(r.detail_reprise).includes('identity_ambiguous')),
+  ).toBe(true)
+})
+
 test('adult creation refuses a same-name person in the confirmed dossier with another or missing email', async () => {
   const f = await createPersonFixture()
   fault = (url, init) => {
