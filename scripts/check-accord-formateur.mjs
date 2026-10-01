@@ -7,6 +7,9 @@ import { accordFixture, accordBody } from '../tests/fixtures/accord-formateur'
 import { accordTerms, accordQuestions } from '../src/lib/accord-formateur-definition'
 import * as pageModule from '../dist/_worker.js/pages/suivi/accord-formateur.astro.mjs'
 import * as endpointModule from '../dist/_worker.js/pages/api/questionnaires/accord-formateur.astro.mjs'
+import { NC } from '../src/lib/nocodb'
+import * as catalogueModule from '../dist/_worker.js/pages/interne/formulaires.astro.mjs'
+import * as catalogueApiModule from '../dist/_worker.js/pages/api/interne/formulaires.astro.mjs'
 import * as proofModule from '../dist/_worker.js/pages/api/interne/accords-formateurs.astro.mjs'
 // Compiled Astro + D1 SQLite + synthetic NocoDB. Never load .dev.vars or real secrets.
 const output = process.env.CHECK_SCREENSHOTS ?? '/tmp/euneos-accord-qa'
@@ -19,6 +22,8 @@ const app = new App({
   ...manifest,
   sessionConfig: undefined,
   pageMap: new Map([
+    ['src/pages/interne/formulaires.astro', async () => catalogueModule],
+    ['src/pages/api/interne/formulaires.ts', async () => catalogueApiModule],
     ['src/pages/suivi/accord-formateur.astro', async () => pageModule],
     ['src/pages/api/questionnaires/accord-formateur.ts', async () => endpointModule],
     ['src/pages/api/interne/accords-formateurs.ts', async () => proofModule],
@@ -42,10 +47,21 @@ Object.assign(fixture.env, {
 })
 const realFetch = globalThis.fetch,
   errors = []
-globalThis.fetch = async (input, init) =>
-  String(input) === `${issuer}/cdn-cgi/access/certs`
-    ? Response.json({ keys: [jwk] })
-    : fixture.fetch(input, init)
+globalThis.fetch = async (input, init) => {
+  if (String(input) === `${issuer}/cdn-cgi/access/certs`) return Response.json({ keys: [jwk] })
+  const table = new URL(String(input)).pathname.split('/')[4]
+  if ([NC.tables.etablissements, NC.tables.participations, NC.tables.cohortes].includes(table)) {
+    assert.equal(init?.method ?? 'GET', 'GET')
+    return Response.json({
+      list:
+        table === NC.tables.cohortes
+          ? [{ Id: 1, active: true, annee_debut: 2026, annee_fin: 2027 }]
+          : [],
+      pageInfo: { isLastPage: true },
+    })
+  }
+  return fixture.fetch(input, init)
+}
 const render = (path, { method = 'GET', body, authenticated = false, preview = false } = {}) =>
   app.render(
     new Request(`${preview ? 'http://localhost' : 'https://euneos.fr'}${path}`, {
@@ -69,6 +85,8 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url),
       path = url.pathname
+    if (path === '/interne/formulaires' || path === '/api/interne/formulaires')
+      return render(path, { authenticated: true })
     if (path === '/suivi/accord-formateur')
       return render(path, { preview: url.searchParams.has('demo') })
     if (path === '/api/questionnaires/accord-formateur')
@@ -183,6 +201,20 @@ try {
     await render('/api/interne/accords-formateurs', { authenticated: true })
   ).json()
   assert(reviews.responses.some((r) => r.state === 'review' && r.verifiedProjection === null))
+  await page.goto(origin + '/interne/formulaires')
+  await expect(page.locator('[data-public-form="accord-formateur"]')).toBeVisible()
+  await expect(page.locator('[data-public-form="accord-formateur"] input')).toHaveValue(
+    'https://euneos.fr/suivi/accord-formateur',
+  )
+  const catalog = await (await render('/api/interne/formulaires', { authenticated: true })).json()
+  assert.equal(catalog.publicResponses.length, 2)
+  assert(
+    catalog.publicResponses.some(
+      (r) => r.state === 'Accord vérifié dans le parcours formateur' && r.participationId === null,
+    ),
+  )
+  await page.locator('[data-public-form="accord-formateur"]').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: `${output}/accord-catalogue-mobile.png` })
   const before = fixture.calls.length
   await page.goto(origin + '/suivi/accord-formateur?demo')
   await expect(page.locator('.of-preview')).toContainText('Démonstration')

@@ -1,3 +1,4 @@
+import { accordCatalogueEntry } from './accord-formateur-catalogue'
 import { internalEnvironment } from './internal-context'
 import { lireToutes } from './nocodb'
 import { type SubmissionDatabase } from './candidature-store'
@@ -143,6 +144,8 @@ export async function listPublicForms(locals: unknown) {
         participationId: verified ? projection.participation_id : null,
       }
     }
+    const agreement = await accordCatalogueEntry(db, row, source)
+    if (agreement) return agreement
     const a = source.answers
     const details = [
       ['Référent', `${a.referrer.name} — ${a.referrer.email}`],

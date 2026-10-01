@@ -111,7 +111,9 @@ export function accordFixture() {
               : fixture.sources.find((s) => s.Id === Number(id)),
           )
         const list = fixture.sources.filter(
-          (s) => url.searchParams.get('where') === `(cle_reponse,eq,${s.cle_reponse})`,
+          (s) =>
+            !url.searchParams.has('where') ||
+            url.searchParams.get('where') === `(cle_reponse,eq,${s.cle_reponse})`,
         )
         return Response.json({
           list: fixture.behavior === 'source-duplicate' ? [...list, ...list] : list,

@@ -297,3 +297,12 @@ test('expired planning worker cannot write after owner changes', async () => {
   expect((await post()).status).toBe(202)
   expect(patches()).toHaveLength(0)
 })
+
+test('common catalogue dispatches accord before operational fallback', async () => {
+  const { listPublicForms } = await import('../src/lib/public-forms')
+  await post()
+  const entries = await listPublicForms({ runtime: { env: f.env } })
+  expect(entries).toHaveLength(1)
+  expect(entries[0].state).toBe('Accord vérifié dans le parcours formateur')
+  expect(entries[0].participationId).toBeNull()
+})

@@ -20,7 +20,7 @@ En plus de `OPERATIONAL_FORMS_ENABLED=true`, `FORM_SUBMISSIONS`, `NOCODB_TOKEN` 
 - Les sélecteurs et le digest de la source doivent passer `validatePersonConfig`; le site adapte ensuite seulement ses sélecteurs : `receivedAt`, `email`, `firstName`, `lastName`, `agreement`, `agreementDate`, et conserve `signature` sans la projeter.
 - NULL est le périmètre explicite actuel. Le titre 2026/27 n’assigne **aucune année**. Une cohorte future non NULL exige une évolution auditée du contrat et de ses tests.
 - Migration additive **`migrations/0012_accord_formateur.sql` dans FORM_SUBMISSIONS**, après 0009 ; indépendante de 0010 pré-A et 0011 B/J45. Ne pas l’appliquer à TEAM_WORKSPACE. Les pages et API refusent la collecte (503) sans configuration/schéma. Le parent applique le circuit FORM_SUBMISSIONS documenté, pas le manifest TEAM_WORKSPACE.
-- Aucun secret ni activation de production fournis par ce commit. Catalogue et liens de navigation intégrés par le parent, avec lecture de preuve ci-dessous.
+- Aucun secret ni activation de production fournis par ce commit. Lien et lecture du catalogue intégrés dans le commit de raccord ; le parent conserve les dispatchers pré-A/B/J45 lors du cherry-pick.
 
 ## Identité, preuve et reprise
 
@@ -50,11 +50,11 @@ La réponse publique est volontairement uniforme : « réponse enregistrée » a
 
 ### Hook commun obligatoire avant activation
 
-Le lot évite les fichiers réservés à Pasteur/B/J45. Le parent doit ajouter, dans `listPublicForms`, **avant** d’accéder à `source.answers.referrer`, l’appel :
+Le commit de raccord coordonné avec Pasteur ajoute dans `listPublicForms`, **avant** d’accéder à `source.answers.referrer`, l’appel :
 
 ```ts
 const agreement = await accordCatalogueEntry(db, row, source)
 if (agreement) return agreement
 ```
 
-Import depuis `./accord-formateur-catalogue` et callback asynchrone enveloppé dans `Promise.all` (déjà fait par le lot pré-A). Le helper vérifie le payload exact face à D1 avant d’afficher « Accord vérifié ». `participationId` reste toujours NULL. Ce hook et le lien catalogue sont requis avant activation : le lecteur historique de la table commune suppose sinon des réponses `OperationalInput` et ne sait pas interpréter ce questionnaire. Le GET privé dédié fonctionne indépendamment et expose le contrat complet.
+Import depuis `./accord-formateur-catalogue` et callback asynchrone enveloppé dans `Promise.all` (déjà fait par le lot pré-A). Le helper vérifie le payload exact face à D1 avant d’afficher « Accord vérifié ». `participationId` reste toujours NULL. Conserver ce hook et le lien catalogue lors de l’intégration avant activation : le lecteur historique de la table commune suppose sinon des réponses `OperationalInput` et ne sait pas interpréter ce questionnaire. Le GET privé dédié fonctionne indépendamment et expose le contrat complet.
