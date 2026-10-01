@@ -50,6 +50,12 @@ const personalForms = [
 ]
 const publicForms = [
   {
+    key: 'pre-formation',
+    name: 'Questionnaire pré formation',
+    path: '/suivi/pre-formation',
+    description: 'À remplir avant le démarrage de la formation. La réception est vérifiée sur l’adulte ; les cas incertains restent à vérifier par l’équipe.',
+  },
+  {
     key: 'candidature-etablissement',
     name: 'Candidature d’un établissement',
     path: '/candidater/etablissement',
@@ -214,7 +220,7 @@ const publicForms = [
       <p class="fc-eyebrow">Sans lien personnel</p>
       <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
       <p>
-        Ces pages permettent de candidater, de contacter l’équipe et de s’inscrire à la newsletter.
+        Ces pages permettent de candidater, de remplir la préformation, de contacter l’équipe et de s’inscrire à la newsletter.
       </p>
     </header>
     <div class="fc-grid">
@@ -295,7 +301,7 @@ const publicForms = [
         <span class="fc-status" data-state="planned">À préparer sur le site</span>
         <h3 id="catalog-questionnaires-title">Questionnaires adultes</h3>
         <p>
-          Pré-formation, post-formation, suivi et bilan : les questionnaires historiques restent des
+          Post-formation, suivi J+45, accord formateur et bilans : les questionnaires historiques restent des
           parcours distincts. Leur collecte ne signifie pas que leur remplacement sur le site est
           ouvert.
         </p>

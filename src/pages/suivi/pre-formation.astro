@@ -1,0 +1,189 @@
+---
+import Base from '../../layouts/Base.astro'
+import '../../styles/operational-forms.css'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+import { publicFormsConfig } from '../../lib/public-forms'
+import { preformationProjectionConfig } from '../../lib/preformation-projection'
+import {
+  preformationIntroduction,
+  preformationQuestions,
+  preformationTitle,
+  preformationVersion,
+} from '../../lib/preformation-definition'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+let ready = true
+if (!preview) {
+  try {
+    const { db } = publicFormsConfig(Astro.locals)
+    await preformationProjectionConfig(Astro.locals)
+    await db.prepare('SELECT receipt FROM public_form_receipts LIMIT 1').bind().first()
+    await db.prepare('SELECT receipt FROM public_preformation_projections LIMIT 1').bind().first()
+    await db.prepare('SELECT receipt FROM public_preformation_person_claims LIMIT 1').bind().first()
+  } catch {
+    ready = false
+    Astro.response.status = 503
+  }
+}
+const sections = [...new Set(preformationQuestions.map((q) => q.section))]
+---
+
+<Base
+  title={`${preformationTitle} — EUNEOS`}
+  description="Questionnaire avant le démarrage de la formation WISE-UP."
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP</p>
+      <h1>{preformationTitle}</h1>
+      {preformationIntroduction.split('\n\n').map((p) => <p class="pq-introduction">{p}</p>)}
+    </div>
+    {
+      !ready ? (
+        <p class="of-feedback" role="alert">
+          Ce formulaire est momentanément indisponible. Réessayez plus tard ou contactez l’équipe
+          EUNEOS.
+        </p>
+      ) : (
+        <div class="of-panel">
+          {preview && (
+            <aside class="of-feedback">
+              <strong>Aperçu de démonstration.</strong> Utilisez uniquement des informations
+              fictives. Aucun enregistrement dans le suivi réel et aucun e-mail ne seront effectués.
+            </aside>
+          )}
+          <p class="of-note">Les champs marqués d’un astérisque sont obligatoires.</p>
+          <noscript>
+            <p class="of-feedback" role="alert">
+              Activez JavaScript pour envoyer ce formulaire. Votre saisie restera sur cette page en
+              cas d’erreur.
+            </p>
+          </noscript>
+          <form
+            id="preformation-form"
+            class="of-stack"
+            method="post"
+            action="/api/questionnaires/pre-formation"
+            data-version={preformationVersion}
+          >
+            <div hidden aria-hidden="true">
+              <label>
+                Site web
+                <input name="website" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
+            {sections.map((section) => (
+              <fieldset class="of-section">
+                <legend>{section}</legend>
+                {preformationQuestions
+                  .filter((q) => q.section === section)
+                  .map((q) =>
+                    q.type === 'choice' ? (
+                      <fieldset class="pq-choice">
+                        <legend>
+                          {q.label}
+                          {q.required ? ' *' : ''}
+                        </legend>
+                        {q.choices.map((choice) => (
+                          <label class="pq-option">
+                            <input type="radio" name={q.key} value={choice} required={q.required} />
+                            <span>{choice}</span>
+                          </label>
+                        ))}
+                      </fieldset>
+                    ) : (
+                      <label class="of-field" for={`pq-${q.key}`}>
+                        {q.label}
+                        {q.required ? ' *' : ''}
+                        {q.description && <small id={`pq-${q.key}-help`}>{q.description}</small>}
+                        {q.type === 'textarea' ? (
+                          <textarea
+                            id={`pq-${q.key}`}
+                            name={q.key}
+                            required={q.required}
+                            maxlength={q.maxLength}
+                            rows="4"
+                          />
+                        ) : (
+                          <input
+                            id={`pq-${q.key}`}
+                            type={q.type}
+                            name={q.key}
+                            required={q.required}
+                            maxlength={q.maxLength}
+                            pattern={q.key === 'year' ? '20[0-9]{2}[-–—]20[0-9]{2}' : undefined}
+                            autocomplete={
+                              q.key === 'name' ? 'name' : q.key === 'email' ? 'email' : 'off'
+                            }
+                            aria-describedby={q.description ? `pq-${q.key}-help` : undefined}
+                          />
+                        )}
+                      </label>
+                    ),
+                  )}
+              </fieldset>
+            ))}
+            <p class="of-note">
+              <a href="/politique-de-confidentialite">Politique de confidentialité</a>
+            </p>
+            <div class="of-actions">
+              <button type="submit" class="cta s-vert cta--sm">
+                Envoyer
+              </button>
+            </div>
+            <p
+              id="preformation-feedback"
+              class="of-feedback"
+              role="status"
+              aria-live="polite"
+              tabindex="-1"
+              hidden
+            />
+          </form>
+        </div>
+      )
+    }
+  </section>
+  <script src="../../scripts/preformation.ts"></script>
+</Base>
+<style is:global>
+  .pq-introduction {
+    white-space: pre-line;
+  }
+  .pq-choice {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .pq-choice legend {
+    font-size: var(--t-note);
+    margin-bottom: 0.75rem;
+  }
+  .pq-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    font-size: var(--t-corps);
+    cursor: pointer;
+  }
+  .pq-option input {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--vert);
+  }
+  .pq-option:focus-within {
+    outline: 2px solid var(--vert);
+    outline-offset: 3px;
+  }
+</style>

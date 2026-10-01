@@ -4,6 +4,8 @@ import { type SubmissionDatabase } from './candidature-store'
 import { identityText, operationalRequest, hashOperational, type OperationalInput, type OperationalKind, type OperationalTarget } from './operational-data'
 import { closedDossier, operationalConfig, operationalPath, OperationalLinkError } from './operational-links'
 import { enregistrerOperational } from './operational-store'
+import { preformationDetails } from './preformation'
+import { readPreformationProjection, preformationPendingReason } from './preformation-projection'
 
 export const publicFormNames: Record<OperationalKind, string> = {
   contact: 'Fiche contact', deploiement: 'Organisation de la formation adultes',
@@ -128,9 +130,19 @@ export async function listPublicForms(locals: unknown) {
   const response = await operationalRequest(token, `/tables/${table}/records?limit=50&sort=-Id`) as { list: Record<string, unknown>[] }
   if (!Array.isArray(response.list)) throw new Error('Invalid public response list')
   const { results } = await db.prepare('SELECT receipt,state,code,target_id FROM public_form_receipts ORDER BY created_at DESC LIMIT 100').bind().all<Receipt>()
-  return response.list.map(row => {
+  return Promise.all(response.list.map(async row => {
     const receipt = results.find(r => r.receipt === row.cle_reponse)
     const source = JSON.parse(String(row.reponses)) as { answers: OperationalInput }
+    const questionnaire = preformationDetails(source)
+    if (questionnaire) {
+      const projection = await readPreformationProjection(db, String(row.cle_reponse))
+      const verified = projection?.state === 'complete'
+      return { school: String(row.etablissement), city: String(row.ville ?? ''), year: String(row.annee_scolaire), form: String(row.formulaire),
+        state: verified ? 'Réception préformation vérifiée sur l’adulte' : 'Réception préformation en attente — à vérifier',
+        details: [...questionnaire, ['Réception métier', verified ? `Adulte #${projection.adult_id} · réception du ${projection.date_pre} vérifiée. Réponses pédagogiques conservées au journal.` : preformationPendingReason(projection?.code ?? 'projection_pending')]],
+        participationId: verified ? projection.participation_id : null,
+      }
+    }
     const a = source.answers
     const details = [
       ['Référent', `${a.referrer.name} — ${a.referrer.email}`],
@@ -148,5 +160,5 @@ export async function listPublicForms(locals: unknown) {
       state: receipt?.state === 'complete' ? 'Reportée dans le dossier' : 'Réponse reçue — à vérifier', details,
       participationId: receipt?.target_id ?? null,
     }
-  })
+  }))
 }
