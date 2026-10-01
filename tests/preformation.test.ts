@@ -4,6 +4,12 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { POST } from '../src/pages/api/questionnaires/pre-formation'
 import { GET as teamGet } from '../src/pages/api/interne/formulaires'
 import { listPublicForms } from '../src/lib/public-forms'
+import {
+  run as runGoogle,
+  type Env as GoogleEnv,
+  type PushSnapshot,
+} from '../workers/google-transition/worker'
+import { digest } from '../src/lib/google-form-sync'
 import { parsePreformation } from '../src/lib/preformation'
 import { preformationQuestions, preformationVersion } from '../src/lib/preformation-definition'
 
@@ -15,6 +21,7 @@ import {
 } from './fixtures/preformation-person'
 
 let people: any[], dossier: any, adultWrites: any[], blockReadback: boolean
+let beforeAdultWrite: (() => Promise<void>) | null
 const projection = () =>
   sql.query('SELECT * FROM public_preformation_projections LIMIT 1').get() as any
 const realFetch = globalThis.fetch
@@ -50,12 +57,16 @@ beforeEach(() => {
   dossier = preformationDossier()
   adultWrites = []
   blockReadback = false
+  beforeAdultWrite = null
   sql = new Database(':memory:')
   const root = new URL('../migrations/', import.meta.url)
   for (const f of readdirSync(root)
     .filter((f) => /^\d.*\.sql$/.test(f))
     .sort())
     sql.exec(readFileSync(new URL(f, root), 'utf8'))
+  sql.exec(
+    readFileSync(new URL('../workers/google-transition/schema.sql', import.meta.url), 'utf8'),
+  )
   db = {
     prepare: (query: string) => ({
       bind: (...values: any[]) => ({
@@ -90,6 +101,9 @@ beforeEach(() => {
     )
       throw new Error('Unexpected transport')
     const table = url.pathname.split('/')[4]
+    // Site sends NocoDB batches, the real Worker sends individual records.
+    const payload = init?.body ? JSON.parse(init.body) : null
+    const records = payload ? (Array.isArray(payload) ? payload : [payload]) : []
     if (table !== 'publicanswerstable') {
       if (behavior === 'adult-read-failure' || blockReadback)
         throw new Error('PRIVATE_ADULT_READ_ERROR')
@@ -98,9 +112,10 @@ beforeEach(() => {
         return Response.json(dossier)
       }
       if (method !== 'GET') {
-        adultWrites.push({ method, body: JSON.parse(init.body) })
+        adultWrites.push({ method, body: payload })
+        await beforeAdultWrite?.()
         if (behavior === 'adult-lost-before-save') throw new Error('PRIVATE_ADULT_WRITE_ERROR')
-        for (const patch of JSON.parse(init.body)) {
+        for (const patch of records) {
           if (method === 'POST') people.push({ ...patch, Id: 100 + people.length })
           else
             Object.assign(
@@ -128,7 +143,7 @@ beforeEach(() => {
       })
     }
     if (method === 'PATCH') {
-      for (const patch of JSON.parse(init.body))
+      for (const patch of records)
         Object.assign(
           rows.find((r) => r.Id === patch.Id),
           patch,
@@ -138,10 +153,10 @@ beforeEach(() => {
     if (behavior === 'lookup-failure') throw new Error('PRIVATE_PROVIDER_ERROR fictive-only')
     if (method === 'POST') {
       if (behavior === 'lost-before-save') throw new Error('PRIVATE_PROVIDER_ERROR')
-      const added = JSON.parse(init.body).map((row: any) => ({ ...row, Id: rows.length + 1 }))
+      const added = records.map((row: any) => ({ ...row, Id: rows.length + 1 }))
       rows.push(...added)
       if (behavior === 'lost-after-save') throw new Error('PRIVATE_PROVIDER_ERROR')
-      return Response.json(added)
+      return Response.json(Array.isArray(payload) ? added : added[0])
     }
     if (method !== 'GET') throw new Error('Unexpected mutation')
     const id = /records\/(\d+)$/.exec(url.pathname)?.[1]
@@ -157,6 +172,7 @@ beforeEach(() => {
       : rows
     return Response.json({
       list: behavior === 'duplicate-source' ? [...matches, ...matches] : matches,
+      pageInfo: { isLastPage: true },
     })
   }) as typeof fetch
 })
@@ -502,3 +518,139 @@ test('an expired planning owner resumes, but a persisted writing marker can neve
   expect(projection().plan).toBe(frozen)
   expect(adultWrites).toHaveLength(1)
 })
+
+test('missing shared Google creation registry refuses the site before capturing answers', async () => {
+  sql.exec('DROP TABLE google_transition_person_claims')
+  expect((await post()).status).toBe(503)
+  expect(calls).toHaveLength(0)
+  expect(rows).toHaveLength(0)
+})
+
+// Exercise BOTH production runners against the same real SQL registry. Hold the
+// winning NocoDB POST before persistence so every competing lookup still sees no
+// adult: only the shared claim can prevent a duplicate across the two channels.
+for (const winner of ['google', 'site'] as const)
+  test(`${winner} creation claim prevents the other channel from POSTing while the adult is still absent`, async () => {
+    people = []
+    const headers = Object.values(preformationPersonConfig.mapping) as string[]
+    const source = {
+      label: 'Préformation fictive',
+      spreadsheetId: 'fictional_sheet_id_00001',
+      sheetId: 0,
+      firstRow: 2,
+      projectionFirstRow: 2,
+      personProjection: {
+        ...preformationPersonConfig,
+        headerDigest: await digest(JSON.stringify(headers)),
+      },
+    }
+    const googleEnv: GoogleEnv = {
+      STATE: db,
+      NOCODB_TOKEN: 'fictive-only',
+      JOURNAL_TABLE: 'publicanswerstable',
+      ENABLED: 'true',
+      PROJECTION_ENABLED: 'true',
+      INPUT_MODE: 'push',
+      RUN_SECRET: 'fictional-run-secret-over-32-characters',
+      PROJECTION_START_AT: '2026-09-29T06:00:00Z',
+      SOURCES: JSON.stringify([source]),
+    }
+    const snapshot: PushSnapshot = {
+      version: 1,
+      source: { spreadsheetId: source.spreadsheetId, sheetId: 0 },
+      headers,
+      rows: [
+        [
+          '02/10/2026 00:30:00',
+          'ADULT@EXAMPLE.INVALID',
+          'Adulte Fictif',
+          '2026-2027',
+          'École fictive',
+        ],
+      ],
+    }
+    const poll = async () => {
+      let clock = Date.now()
+      for (let i = 0; i < 4; i++) {
+        await runGoogle(
+          googleEnv,
+          {
+            now: () => clock,
+            sleep: async (ms) => {
+              clock += ms
+            },
+            fetch: globalThis.fetch,
+          },
+          snapshot,
+        )
+        clock += 120000
+      }
+    }
+    let reached!: () => void, release!: () => void
+    const atPost = new Promise<void>((resolve) => {
+      reached = resolve
+    })
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    beforeAdultWrite = async () => {
+      reached()
+      await gate
+    }
+    const winningRequest = Promise.resolve(winner === 'google' ? poll() : post())
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        atPost,
+        winningRequest.then(() => {
+          throw new Error('Winner did not attempt creation')
+        }),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Creation barrier timed out')), 3000)
+        }),
+      ])
+      const identityKey = await digest('7:adult@example.invalid')
+      const claim = sql.query('SELECT * FROM google_transition_person_claims').get() as any
+      expect(claim.identity_key).toBe(identityKey)
+      expect(claim.identity_key).toHaveLength(64)
+      expect(claim.created_at).toBeTruthy()
+      const siteReceipt = () => projection()?.receipt
+      const googleReceipt = () => sql.query('SELECT * FROM google_transition_poller').get() as any
+      expect(claim.response_key).toBe(
+        winner === 'google' ? googleReceipt().response_key : `site-preformation:${siteReceipt()}`,
+      )
+      expect(people).toHaveLength(0)
+      if (winner === 'google') {
+        expect((await post()).status).toBe(200)
+        expect(projection()).toMatchObject({
+          state: 'review',
+          code: 'person_creation_already_claimed',
+        })
+      } else {
+        await poll()
+        expect(JSON.parse(googleReceipt().projection_outcome)).toMatchObject({
+          state: 'review',
+          code: 'person_creation_already_claimed',
+        })
+      }
+      expect(people).toHaveLength(0)
+      expect(adultWrites).toHaveLength(1)
+      expect(sql.query('SELECT * FROM google_transition_person_claims').all()).toEqual([claim])
+      release()
+      await winningRequest
+      beforeAdultWrite = null
+      expect(people).toHaveLength(1)
+      expect(people[0].date_pre_recu).toBe('2026-10-02')
+      expect(rows).toHaveLength(2)
+      // Retry both channels: no claim replacement/release or second POST.
+      await post()
+      await poll()
+      expect(adultWrites).toHaveLength(1)
+      expect(sql.query('SELECT * FROM google_transition_person_claims').all()).toEqual([claim])
+    } finally {
+      clearTimeout(timeout)
+      release()
+      await winningRequest
+      beforeAdultWrite = null
+    }
+  })

@@ -106,7 +106,7 @@ export async function initializePreformationProjection(
   return (await readPreformationProjection(db, receipt))!
 }
 
-/** Execute PR38's audited planner/checker with site-owned durable claims/states.
+/** Execute PR38's audited planner/checker with durable states and shared create claims.
  * Only planning leases expire. A writing marker can ONLY be reconciled by reads,
  * never reclaimed for another write, even when the original process disappeared. */
 export async function projectPreformation(input: {
@@ -198,8 +198,29 @@ export async function projectPreformation(input: {
       .prepare('SELECT receipt FROM public_preformation_person_claims WHERE identity_key=?')
       .bind(identityKey)
       .first<{ receipt: string }>()
+    // Creation must share the Worker's FORM_SUBMISSIONS identity claim. Use the
+    // planner's full sha256(participationId + ':' + lowercaseEmail), unchanged;
+    // adulte_id is only a display code and NocoDB does not enforce uniqueness.
+    // The response owner is durable and never released, including uncertain POSTs.
+    const responseKey = `site-preformation:${receipt}`
+    let creationClaim: { response_key: string } | null = null
+    if (plan.create) {
+      await db
+        .prepare(
+          'INSERT INTO google_transition_person_claims(identity_key,response_key,created_at) VALUES(?,?,?) ON CONFLICT(identity_key) DO NOTHING',
+        )
+        .bind(plan.create.key, responseKey, row.received_at)
+        .run()
+      creationClaim = await db
+        .prepare('SELECT response_key FROM google_transition_person_claims WHERE identity_key=?')
+        .bind(plan.create.key)
+        .first<{ response_key: string }>()
+      if (!creationClaim) throw new Error('person_claim_missing')
+    }
     const actual = await checkGooglePersonPlan(plan, read)
     if (actual === 'after') return finish('complete', 'adult_receipt_verified')
+    if (creationClaim && creationClaim.response_key !== responseKey)
+      return finish('review', 'person_creation_already_claimed')
     if (writing) return finish('review', 'business_write_uncertain')
     if (claim?.receipt !== receipt) return finish('review', 'person_creation_already_claimed')
     if (actual !== 'before') return finish('review', 'existing_value_conflict')

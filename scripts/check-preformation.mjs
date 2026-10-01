@@ -37,6 +37,9 @@ const sql = new Database(':memory:')
 const migrations = new URL('../migrations/', import.meta.url)
 for (const f of (await readdir(migrations)).filter((f) => /^\d.*\.sql$/.test(f)).sort())
   sql.exec(await readFile(new URL(f, migrations), 'utf8'))
+sql.exec(
+  await readFile(new URL('../workers/google-transition/schema.sql', import.meta.url), 'utf8'),
+)
 const db = {
   prepare: (query) => ({
     bind: (...values) => ({

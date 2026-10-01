@@ -38,6 +38,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .prepare('SELECT receipt FROM public_preformation_person_claims LIMIT 1')
       .bind()
       .first()
+    await config.db
+      .prepare('SELECT response_key FROM google_transition_person_claims LIMIT 1')
+      .bind()
+      .first()
     await limitPublicForm(config.db, request)
     const result = await receivePreformation({ ...config, answers, personProjection })
     return operationalJson(result, result.state === 'processing' ? 202 : 200)

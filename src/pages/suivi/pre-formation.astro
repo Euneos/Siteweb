@@ -23,6 +23,7 @@ if (!preview) {
     await db.prepare('SELECT receipt FROM public_form_receipts LIMIT 1').bind().first()
     await db.prepare('SELECT receipt FROM public_preformation_projections LIMIT 1').bind().first()
     await db.prepare('SELECT receipt FROM public_preformation_person_claims LIMIT 1').bind().first()
+    await db.prepare('SELECT response_key FROM google_transition_person_claims LIMIT 1').bind().first()
   } catch {
     ready = false
     Astro.response.status = 503

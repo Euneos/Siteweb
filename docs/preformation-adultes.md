@@ -16,6 +16,12 @@ aucune authentification du répondant ou collecte du compte Google n'est simulé
   `PersonProjectionConfig`. Ces modules sont réutilisés sans modification.
 - Le journal `PUBLIC_FORMS_TABLE`, `NOCODB_TOKEN`, `FORM_SUBMISSIONS` et
   `OPERATIONAL_FORMS_ENABLED` restent les configurations existantes.
+- Le binding site `FORM_SUBMISSIONS` doit viser **la même base physique D1** que
+  `STATE` du Worker Google actif, avec la table existante
+  `google_transition_person_claims` de `workers/google-transition/schema.sql`.
+  Aucun reset, changement de clé ou remplacement de claim Google. La présence
+  de la table est contrôlée avant collecte ; l’identité du binding est un
+  prérequis de configuration à vérifier par le parent.
 - Migration additive `0010_preformation_projection.sql` dans `FORM_SUBMISSIONS` :
   reçus de projection et revendications d'identités. Aucune migration NocoDB.
 - Secret serveur **`PRE_FORMATION_PERSON_PROJECTION`** : copie exacte de l'objet
@@ -57,7 +63,12 @@ Aucun secret, réglage, migration distante ou déploiement n'est appliqué ici.
 5. Le plan et son digest de configuration sont figés dans D1. Une revendication
    d'identité couvre création **et** mise à jour entre réponses distinctes du site.
    Une réservation atomique protège chaque reçu ; le jeton de possession est
-   contrôlé avant de marquer l'écriture.
+   contrôlé avant de marquer l'écriture. Pour toute **création**, un second
+   claim dans la table commune `google_transition_person_claims` utilise la clé
+   complète du plan PR38 : `sha256(participationId + ':' + lowercaseEmail)`.
+   Son `response_key` vaut `site-preformation:<receipt>` et reste durable.
+   Un claim détenu par une autre réponse, Google ou site, interdit le POST ;
+   seule une réception déjà relue conforme peut terminer sans nouvelle écriture.
 6. Les identités, relations et anciennes valeurs sont relues avant écriture.
    Le marqueur `writing` est durable avant le POST/PATCH NocoDB. Une relecture
    après écriture doit vérifier la personne et la date avant le statut `complete`.
@@ -77,8 +88,13 @@ Une configuration changée depuis la capture ne redirige jamais une réponse ver
 un autre dossier. Une revendication d'identité incertaine n'est pas libérée par un
 timeout. Un cas `review` demande une décision humaine ; aucune nouvelle commande
 publique de rattachement ni nouvelle file concurrente de PR38 n'est ajoutée.
-Les revendications site ne remplacent pas celles du Worker Google, qui conserve
-son stockage et son cycle ; les deux réutilisent les contrôles avant/après de PR38.
+La création partage donc le verrou du Worker Google ; le registre local conserve
+sa protection supplémentaire entre réponses site. Pour les **mises à jour d’un
+adulte existant**, ce registre local ne sérialise pas les PATCH du Worker : les
+contrôles PR38 avant/après détectent les conflits observés, mais ne constituent
+pas un compare-and-swap NocoDB. Deux canaux écrivant des dates différentes dans
+le même intervalle peuvent encore se concurrencer ; ce correctif ne revendique
+pas leur sérialisation. Aucun verrou existant n’est expiré ou réinitialisé.
 
 Le catalogue privé montre **« Réception préformation vérifiée sur l'adulte »**
 avec la date et le dossier, ou **« Réception préformation en attente — à vérifier »**
@@ -117,6 +133,10 @@ après perte d'une réponse POST. Captures : `/tmp/euneos-preformation-qa` ou
 `CHECK_SCREENSHOTS`. Les tests ciblés couvrent aussi la création autorisée,
 concurrence, date figée malgré changement de jour, valeurs contradictoires,
 configuration modifiée, interruption après écriture et absence de configuration.
+Deux tests exécutent le vrai Worker et la vraie route site sur la même SQLite :
+le POST du gagnant est suspendu avant création, le second canal voit toujours
+l’adulte absent mais refuse son POST grâce au claim commun. Les deux ordres sont
+vérifiés ainsi que la conservation du claim après rejeu ; aucun transport réel.
 
 Le lot n'est ni poussé ni publié. Les conditions d'activation restent : intégration
 sur PR38, migration et secret serveur privé par le parent, puis recette autorisée.
