@@ -732,8 +732,16 @@ try {
   await page.locator('[data-kind="equipe"]').click()
   await expect(page.locator('#iw-person option[value="Alex"]')).toHaveCount(1)
   await expect(page.locator('#iw-activity option[value="Activité historique hors mois"]')).toHaveCount(1)
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await expect(page.locator('#iw-person-totals')).toContainText('Heures réalisées par personne')
+    await expect(page.locator('#iw-person-totals dt')).toHaveText(['Member'])
+    await expect(page.locator('#iw-person-totals dd')).toHaveText(['6 h'])
+    assert(await page.locator('#iw-person-totals').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+  }
   await page.locator('#iw-person').selectOption('Alex')
   await expect(page.locator('#iw-calendar-state')).toContainText('Aucune fiche ne correspond')
+  await expect(page.locator('#iw-person-totals dd')).toHaveText(['6 h'])
   await page.locator('#iw-person').selectOption('')
   await page.locator('[data-view="list"]').click()
   const teamPreview = page.locator('.iw-entry').first()
