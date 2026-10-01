@@ -66,6 +66,10 @@ La preuve `complete/mission_fields_verified` est limitée aux champs de `fields_
 
 Comme pour les autres runners, NocoDB ne fournit pas de CAS : une intervention manuelle entre prélecture et PATCH ne peut être verrouillée par D1. Les appels concurrents de ce formulaire sont sérialisés. Si un futur Worker projette lui aussi des bilans vers les missions, il devra reprendre le même claim/protocole avant activation ; le `linkOnly` historique n’écrit pas ces champs. Une correction manuelle d’un claim nécessite une vérification, jamais une purge automatique.
 
+## Transmission au journal non confirmée
+
+Si le POST NocoDB échoue avant de confirmer la conservation, le questionnaire intégral déjà réservé dans D1 reste visible dans le catalogue privé avec sa référence et le libellé « Transmission au journal non confirmée — à vérifier ». Il ne devient pas une réception métier. Une reprise relit le journal mais ne réémet pas un POST incertain. Les entrées déjà visibles au journal ne sont pas affichées une seconde fois. Le même contrôle couvre les accords formateurs conservés dans D1.
+
 ## Tests et livraison
 
 - `bun test tests/bilan-formateur.test.ts` : source exacte, obligatoire/facultatif/cases multiples, identité/année/dossier/mission, conflits, types, dates, zéro/false, concurrence, replay, réponse perdue, catalogue, aperçu et auth d’origine.

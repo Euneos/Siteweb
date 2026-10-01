@@ -254,3 +254,26 @@ test('lost source POST response is recovered before setting receipt once', async
   expect(f.calls.filter((c) => c.method === 'POST')).toHaveLength(1)
   expect(patches()).toHaveLength(1)
 })
+
+
+test('journal POST failing before creation remains visible privately without a second POST', async () => {
+  const transport = f.fetch
+  let attempts = 0
+  globalThis.fetch = (async (input: any, init: any) => {
+    if (init?.method === 'POST' && String(input).includes(`/tables/${f.env.PUBLIC_FORMS_TABLE}/records`)) {
+      attempts++
+      return Response.json({ message: 'Unavailable' }, { status: 503 })
+    }
+    return transport(input, init)
+  }) as typeof fetch
+  expect((await post()).status).toBe(503)
+  expect((await post()).status).toBe(202)
+  expect(attempts).toBe(1)
+  expect(f.sources).toHaveLength(0)
+  expect(patches()).toHaveLength(0)
+  const entries = await listPublicForms({ runtime: { env: f.env } })
+  expect(entries).toHaveLength(1)
+  expect(entries[0].state).toContain('Transmission au journal non confirmée')
+  expect(entries[0].participationId).toBeNull()
+  expect(entries[0].details.some(([label, value]) => label === 'Adresse e-mail' && value === 'trainer@example.invalid')).toBe(true)
+})
