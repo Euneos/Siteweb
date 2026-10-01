@@ -18,8 +18,8 @@ not revise it, and two genuinely identical responses remain two responses.
 Legacy revisions that copied another timestamp into a row during sorting remain
 stored evidence, but do not replace that row's original identity. True edits
 keep monotonically increasing revisions, including A → B → A. A timestamp
-collision without a unique remaining match, or a replaced timestamp at a
-now-missing response's position, creates raw evidence marked `identity_ambiguous`.
+collision without a unique remaining match, or a new timestamp while any prior
+response is missing from the full snapshot, creates raw evidence marked `identity_ambiguous`.
 It cannot auto-project. Sheets cannot expose the original immutable Forms response
 ID, so ambiguous cases cannot safely be inferred from export contents alone.
 
@@ -123,9 +123,12 @@ keys, not replacements for labels.
 | --- | --- | --- |
 | `preformation_a` | adults / participations | `date_pre_recu`; optional confirmed missing-adult creation |
 | `accord_formateur` | trainers / journeys | `accord_signe`, `date_accord` |
-| `postformation_b`, `suivi_j45`, `evaluation_formation` | adults / participations | Receipt linkage only; no date, survey-score or status update |
-| `candidature_formateur`, `bilan_formateur` | trainers / journeys | Receipt linkage only |
-| `candidature_etablissement`, `bilan_etablissement`, `activites_jeunes` | schools / participations | Receipt linkage only |
+| `postformation_b`, `evaluation_formation` | adults / participations | Receipt linkage only; no survey-score or status update |
+| `suivi_j45` | adults / participations | Optional audited `date_suivi_recu` projection; otherwise linkage only |
+| `candidature_formateur` | trainers / journeys | Optional audited empty candidature fields; otherwise linkage only |
+| `bilan_formateur` | trainers / journeys | Receipt linkage only |
+| `candidature_etablissement` | schools / participations | Optional audited empty candidature fields; otherwise linkage only |
+| `bilan_etablissement`, `activites_jeunes` | schools / participations | Receipt linkage only |
 | Existing `kind: contact` / `deploiement` | existing receiver mapping | Existing receiver policy unchanged |
 | No audited mapping | raw journal only | Explicit `mapping_not_configured`, remains pending |
 
@@ -143,7 +146,9 @@ Other-family linkage is `partial` / `linked_raw_only`, with explicit target IDs
 and empty `fields` lists. The substantive answers remain in the source journal.
 This does **not** report a fully integrated candidature, bilan or evaluation.
 No automatic approval, status change, participant-training validation or email
-is introduced. Substantive fields require their own reviewed projection policy.
+is introduced. The optional candidature/J45 policy and its exact allowlist are
+documented in [google-application-fields](../../docs/google-application-fields.md).
+Existing nonempty values and source questions outside that policy are preserved.
 
 ## Missing-adult creation and durability
 
