@@ -491,8 +491,9 @@ export async function checkGooglePersonPlan(
   return Object.entries(plan.before).every(([k, v]) => same(actual[k], v)) ? 'before' : 'conflict'
 }
 
+/** Bind journal evidence to cle_reponse (receipt identity), never the shared Sheet key. */
 export function googleReconciliationDetail(
-  sourceKey: string,
+  responseKey: string,
   outcome: { state: string; code: string },
   at: string,
   plan?: PersonPlan,
@@ -502,7 +503,7 @@ export function googleReconciliationDetail(
     '[EUNEOS_GOOGLE_RECONCILIATION_V1]' +
     JSON.stringify({
       version: 1,
-      sourceKey,
+      sourceKey: responseKey,
       targets:
         integrated && plan
           ? [

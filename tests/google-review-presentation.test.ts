@@ -26,3 +26,15 @@ test('uncertain operations stay examinable in any integration state, without dup
   expect(rows.filter((row) => matchesReviewFilter(row, 'integrated'))).toEqual([rows[2]])
   expect(rows.filter((row) => matchesReviewFilter(row, 'typo'))).toEqual([])
 })
+
+test('technical review reasons are readable, while human notes and unknown codes are preserved', async () => {
+  const { reviewReasonLabel } = await import('../src/lib/google-review-presentation')
+  expect(reviewReasonLabel('existing_value_conflict')).toBe(
+    'Une valeur différente existe déjà et a été conservée.',
+  )
+  expect(reviewReasonLabel('saved_raw_remaining')).toContain('restent à examiner')
+  expect(reviewReasonLabel('linked_raw_only')).toContain('champs métier non repris')
+  expect(reviewReasonLabel('Confirmer avec la coordination')).toBe('Confirmer avec la coordination')
+  expect(reviewReasonLabel('future_unknown_code')).toBe('future_unknown_code')
+  expect(reviewReasonLabel('constructor')).toBe('constructor')
+})

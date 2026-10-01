@@ -1,5 +1,9 @@
 import type { reviewView, ReviewTarget, resolveReconciliationTargets } from '../lib/google-review'
-import { matchesReviewFilter, reviewFilters } from '../lib/google-review-presentation'
+import {
+  matchesReviewFilter,
+  reviewFilters,
+  reviewReasonLabel,
+} from '../lib/google-review-presentation'
 type Row = Awaited<ReturnType<typeof reviewView>> & {
   resolvedTargets?: ReturnType<typeof resolveReconciliationTargets>
   operation?: { state: string; audit_json: string } | null
@@ -147,7 +151,7 @@ if (root) {
       li.textContent = `${item.label}${item.fields.length ? ` · Champs attestés : ${[...new Set(item.fields.map((field) => fieldLabels[field] || 'Autre information du dossier'))].join(', ')}` : ''}`
       resolved.append(li)
     }
-    get('gr-reasons').textContent = row.receipt?.reasons.join(' · ') ?? ''
+    get('gr-reasons').textContent = row.receipt?.reasons.map(reviewReasonLabel).join(' · ') ?? ''
 
     const answers = get('gr-answers')
     answers.replaceChildren()

@@ -16,6 +16,7 @@ import worker, {
 import type { SubmissionDatabase } from '../src/lib/candidature-store'
 import { digest } from '../src/lib/google-form-sync'
 import { futureSheet } from './fixtures/google-future'
+import { reviewView, type GoogleRow } from '../src/lib/google-review'
 
 const source = (overrides: Partial<Source> = {}): Source => ({
   label: 'Formulaire fictif',
@@ -1624,7 +1625,7 @@ test('journal updates preserve human notes, prior target fields and unresolved o
       injected = true
       const old = {
         version: 1,
-        sourceKey: `${source().spreadsheetId}:0`,
+        sourceKey: remote[0].cle_reponse,
         targets: [{ table: f.peopleTable, id: 50, fields: ['telephone'] }],
         state: 'pending',
         reasons: ['verification_humaine'],
@@ -1646,6 +1647,10 @@ test('journal updates preserve human notes, prior target fields and unresolved o
   expect(detail).toContain('date_pre_recu')
   expect(detail).toContain('verification_humaine')
   expect(detail).toContain('"state":"partial"')
+  const view = await reviewView(remote[0] as GoogleRow)
+  expect(view.state).toBe('partial')
+  expect(view.receipt?.sourceKey).toBe(String(remote[0].cle_reponse))
+  expect(view.receipt?.reasons).toContain('verification_humaine')
 })
 
 test('changing an existing source timestamp cannot masquerade as a new auto-projectable response', async () => {
@@ -1818,3 +1823,54 @@ for (const family of ['candidature_formateur', 'suivi_j45'] as const) {
     expect(String(remote[0].detail_reprise)).toContain('"state":"integrated"')
   })
 }
+
+test('worker receipt is readable by reviewView from initial capture through verified adult creation', async () => {
+  const f = await createPersonFixture()
+  for (let i = 0; i < 4; i++) await poll(f.snapshot)
+  const row = remote[0] as GoogleRow
+  const captured = calls
+    .filter((c) => c.init.method === 'POST')
+    .map((c) => JSON.parse(String(c.init.body)))
+    .find((body) => body.cle_reponse === row.cle_reponse)
+  expect(captured).toBeDefined()
+  const initial = await reviewView({ Id: row.Id, ...captured })
+  expect(initial.state).toBe('pending')
+  expect(initial.receipt?.sourceKey).toBe(String(row.cle_reponse))
+  expect(initial.receipt?.reasons).toEqual(['projection_pending'])
+  const view = await reviewView(row)
+  expect(view.state).toBe('integrated')
+  expect(view.receipt?.sourceKey).toBe(String(row.cle_reponse))
+  expect(view.receipt?.targets).toContainEqual({
+    table: f.peopleTable,
+    id: 51,
+    fields: expect.arrayContaining(['adulte_id', 'date_pre_recu']),
+  })
+  expect(view.receipt?.targets).toContainEqual({ table: f.recordsTable, id: 7, fields: [] })
+  expect(view.receipt?.reasons).toEqual([])
+  const before = view.version
+  await poll(f.snapshot)
+  expect((await reviewView(remote[0] as GoogleRow)).version).toBe(before)
+  expect(personCreates()).toHaveLength(1)
+})
+
+test('unmapped worker responses in the same source have distinct review-bound pending receipts', async () => {
+  sheets.set(
+    source().spreadsheetId,
+    csv([headers, answer(), answer('Autre collège', '29/09/2026 11:00:00')]),
+  )
+  for (let i = 0; i < 3; i++) await poll()
+  expect(remote).toHaveLength(2)
+  const views = await Promise.all(remote.map((row) => reviewView(row as GoogleRow)))
+  expect(new Set(views.map((v) => v.receipt?.sourceKey)).size).toBe(2)
+  for (let i = 0; i < views.length; i++) {
+    expect(views[i].state).toBe('pending')
+    expect(views[i].receipt?.sourceKey).toBe(String(remote[i].cle_reponse))
+    expect(views[i].receipt?.reasons).toContain('mapping_not_configured')
+  }
+  const foreign = await reviewView({
+    ...remote[0],
+    Id: Number(remote[0].Id),
+    detail_reprise: remote[1].detail_reprise,
+  } as GoogleRow)
+  expect(foreign.state).toBe('unknown')
+})
