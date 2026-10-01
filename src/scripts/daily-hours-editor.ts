@@ -172,10 +172,6 @@ export function initDailyHours(form: HTMLFormElement, otherHours: () => Map<stri
     feedback.textContent = ''
     total.readOnly = team && !!stored.value
     if (!team) return
-    if (!stored.value) {
-      root.hidden = true
-      return
-    }
     let days: string[], existing: DailyHours[]
     try {
       days = dates()
@@ -186,33 +182,41 @@ export function initDailyHours(form: HTMLFormElement, otherHours: () => Map<stri
     }
     const repeat = document.createElement('div')
     repeat.className = 'iw-formgrid'
-    const choices = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map((day, index) => {
-      const label = document.createElement('label')
-      label.className = 'iw-field'
-      label.textContent = `Chaque ${day.toLowerCase()}`
-      const select = document.createElement('select')
-      select.setAttribute('aria-label', `Heures réalisées chaque ${day.toLowerCase()}`)
-      select.add(new Option('Ne pas remplir', ''))
-      select.add(new Option('7 h', '7'))
-      select.add(new Option('8 h', '8'))
-      label.append(select)
-      repeat.append(label)
-      return { select, weekday: index + 1 }
+    let hours = 7
+    const hourButtons = [7, 8].map(value => {
+      const button = action(`${value} h`, () => {
+        hours = value
+        hourButtons.forEach((item, index) => item.setAttribute('aria-pressed', String(index === value - 7)))
+      })
+      button.setAttribute('aria-pressed', String(value === hours))
+      return button
     })
-    controls.append(repeat, action('Remplir les heures des jours choisis', () => {
+    const label = document.createElement('label')
+    label.className = 'iw-field'
+    label.textContent = 'Jour à préremplir'
+    const weekday = document.createElement('select')
+    weekday.setAttribute('aria-label', 'Jour à préremplir')
+    ;['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].forEach((day, index) => weekday.add(new Option(day, String(index + 1))))
+    label.append(weekday)
+    repeat.append(...hourButtons, label)
+    controls.append(repeat, action('Préremplir les jours correspondants', () => {
+      if (!stored.value) {
+        document.getElementById('iw-fill-month')!.click()
+        if (!stored.value) return
+      }
       const current = rows()
       for (const date of dates()) {
-        const choice = choices.find(({ weekday }) => weekday === new Date(`${date}T12:00:00Z`).getUTCDay())
-        if (!choice?.select.value || otherHours().has(date)) continue
+        if (Number(weekday.value) !== new Date(`${date}T12:00:00Z`).getUTCDay() || otherHours().has(date)) continue
         const row = current.find((item) => item.date === date)
         if (row) {
-          if (row.actual === null) row.actual = Number(choice.select.value)
-        } else current.push({ date, planned: null, actual: Number(choice.select.value) })
+          if (row.actual === null) row.actual = hours
+        } else current.push({ date, planned: null, actual: hours })
       }
       stored.value = JSON.stringify(current)
       render(true)
       notify()
     }))
+    if (!stored.value) return
     const monthly = field('activity').value === MONTHLY_ACTIVITY
     if (monthly) {
     const recurring = document.createElement('details')
