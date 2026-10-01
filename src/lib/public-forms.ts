@@ -1,3 +1,4 @@
+import { bilanCatalogueEntry } from './bilan-formateur-catalogue'
 import { accordCatalogueEntry } from './accord-formateur-catalogue'
 import { internalEnvironment } from './internal-context'
 import { lireToutes } from './nocodb'
@@ -144,6 +145,8 @@ export async function listPublicForms(locals: unknown) {
         participationId: verified ? projection.participation_id : null,
       }
     }
+    const bilan = await bilanCatalogueEntry(db, row, source)
+    if (bilan) return bilan
     const agreement = await accordCatalogueEntry(db, row, source)
     if (agreement) return agreement
     const a = source.answers

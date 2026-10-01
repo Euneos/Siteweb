@@ -8,7 +8,7 @@
 - `POST /api/questionnaires/accord-formateur` : même origine, JSON strict/version, limites de texte/corps, piège robot, limitation du registre public. Aperçus sans écriture ni email.
 - Source complète et contrat exact/versionné conservés, puis seuls `accord_signe` et `date_accord` peuvent être reportés sur un parcours existant. Aucun formateur/parcours créé ; statut, email, candidature et cohorte intacts.
 
-Le bilan formateur n’est **pas livré/activé** dans ce lot. Son report nécessite un contrat privé de mission audité avec égalité année + dossier + formateur, absent de ce périmètre. Ne pas utiliser le plan `bilan_formateur` linkOnly comme preuve de report métier.
+Le bilan formateur est livré dans un commit complémentaire documenté dans `docs/bilan-formateur.md`, avec contrat privé de mission audité (année + dossier + formateur). Ne pas utiliser le plan Google historique `bilan_formateur` linkOnly comme preuve de report métier.
 
 ## Configuration privée et circuit
 
