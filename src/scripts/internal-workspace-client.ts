@@ -1126,7 +1126,10 @@ function initCalendar(root: HTMLElement) {
     }
   })
   input('person').addEventListener('change', () => {
-    if (editorKind === 'equipe') input('title').value = personName(input('person').value)
+    if (editorKind === 'equipe') {
+      input('title').value = personName(input('person').value)
+      dailyEditor.render(true)
+    }
   })
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
