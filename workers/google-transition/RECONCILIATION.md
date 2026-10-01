@@ -179,10 +179,13 @@ manual concurrent edits during projection activation.
 
 ## Journal and activation
 
-Proofs reuse `detail_reprise` in the existing journal:
+Proofs reuse `detail_reprise` in the existing journal. The wire field `sourceKey`
+is the exact response identity (`response_key` in D1, `cle_reponse` in NocoDB),
+not the shared `spreadsheetId:sheetId` source key. This binds each annotation to
+one answer revision and lets the review page reject evidence from another answer:
 
 ```text
-[EUNEOS_GOOGLE_RECONCILIATION_V1]{"version":1,"sourceKey":"spreadsheet:sheetId","targets":[{"table":"tableId","id":7,"fields":["date_pre_recu"]}],"state":"integrated","reasons":[],"at":"ISO timestamp"}[/EUNEOS_GOOGLE_RECONCILIATION_V1]
+[EUNEOS_GOOGLE_RECONCILIATION_V1]{"version":1,"sourceKey":"response_key","targets":[{"table":"tableId","id":7,"fields":["date_pre_recu"]}],"state":"integrated","reasons":[],"at":"ISO timestamp"}[/EUNEOS_GOOGLE_RECONCILIATION_V1]
 ```
 
 `fields` lists actually written/verified fields; related targets can have an empty
@@ -202,3 +205,31 @@ Local verification: `bun test tests/google*.test.*`, Worker TypeScript check and
 `wrangler deploy --dry-run --config workers/google-transition/wrangler.toml`.
 Tests use only synthetic sources and NocoDB responses. No actual deployment,
 source configuration or production response submission is part of this change.
+
+### Code-only Worker fixes after source activation
+
+A receipt-annotation fix requires only new Worker code; it does not require a
+source configuration replacement, schema migration, historical replay or `/ingest`.
+Use the current production configuration, not an earlier activation manifest.
+
+Before publishing, read and privately retain the live Worker settings/deployment
+version. Check the existing `STATE` database identity, `SOURCES` through
+`SOURCES_7`, other secret names, `INPUT_MODE`, both enablement flags and the exact
+`PROJECTION_START_AT`. Do not print secret values or copy private mappings here.
+
+Prepare a temporary Wrangler configuration from the reviewed Worker TOML with an
+absolute `main` path. **Remove its entire `vars` section** and set `keep_vars=true`.
+The repository's `ENABLED=false` and `PROJECTION_ENABLED=false` are bootstrap
+values: `--keep-vars` alone does not prevent explicit local values overwriting
+production. Preserve the existing D1 binding and supply the verified account ID.
+With the pinned installed Wrangler, deploy that configuration using `--keep-vars`,
+without `--var`, `--secrets-file`, secret bulk commands or D1 commands. Existing
+source chunks, thresholds, cutover and authentication secrets must remain intact.
+
+After deployment, compare the live variable values and secret-binding names with
+the saved settings, check the deployed version, and use authenticated read-only
+health checks. Existing completed annotations are not rewritten by a code deploy;
+a separately reviewed targeted correction may repair a historical annotation.
+Never replay or clear a receipt merely to update its presentation. Reason-label
+translations are site-client code and reach users through the normal Pages release,
+independently of the Worker code-only deployment.

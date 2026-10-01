@@ -897,7 +897,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
               statut_reprise: 'À rapprocher',
               date_reprise: captured.readAt,
               detail_reprise: googleReconciliationDetail(
-                r.source_key,
+                r.response_key,
                 {
                   state: 'review',
                   code: captured.identityAmbiguous
@@ -1029,7 +1029,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
               ? 'Repris dans le dossier'
               : 'À rapprocher',
           detail_reprise: googleReconciliationDetail(
-            r.source_key,
+            r.response_key,
             outcome,
             new Date(rt.now()).toISOString(),
             personPlan,
