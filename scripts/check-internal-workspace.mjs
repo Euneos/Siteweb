@@ -931,7 +931,9 @@ try {
   await expect(page.locator('#iw-starts')).toHaveValue('2026-09-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-09-30')
   await expect(page.locator('#iw-entry-status')).toBeHidden()
-  await page.getByRole('button', { name: 'Saisir les heures par jour', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Saisir les heures par jour', exact: true })).toHaveCount(0)
+  await expect(page.locator('#iw-link')).toBeHidden()
+  await expect(page.getByRole('spinbutton', { name: 'Heures déjà enregistrées le jeudi 17 septembre', exact: true })).toHaveValue('6')
   await expect(page.getByRole('spinbutton', { name: /Heures prévues/ })).toHaveCount(0)
   await page
     .getByRole('spinbutton', { name: 'Heures réalisées le vendredi 4 septembre', exact: true })
@@ -997,7 +999,8 @@ try {
   await page.locator('#iw-month').fill('2026-10')
   await page.locator('#iw-month').press('Tab')
   await expect(page.locator('#iw-result-count')).toContainText('octobre 2026')
-  await page.locator(`.iw-event[data-entry-id="${existingMonthlyId}"]`).first().click()
+  const existingMonthlyRecord = sql.query("SELECT id FROM workspace_entries WHERE activity='Disponibilités mensuelles'").get()
+  await page.locator(`.iw-event[data-entry-id="${existingMonthlyRecord.id}"]`).first().click()
   await expect(page.locator('#iw-starts')).toHaveValue('2026-10-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-10-31')
   await expect(page.locator('#iw-entry-person')).toBeDisabled()
@@ -1082,6 +1085,37 @@ try {
   }
   await page.locator('#iw-close').click()
   checks.push('monthly-recurrence-slots-exceptions-reopen-no-duplicates-actual-preserved')
+  for (const [width, month] of [[390, '2027-03'], [1440, '2027-11']]) {
+    await page.setViewportSize({ width, height: 1000 })
+    const ownId = crypto.randomUUID(), sourceId = crypto.randomUUID()
+    for (const [requestId, day, hours] of [[ownId, '01', 2], [sourceId, '02', 6]]) {
+      assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId, entry: baseEntry({ starts_on: `${month}-${day}`, ends_on: `${month}-${day}`, hours }) })).status, 201)
+    }
+    await page.locator('#iw-month').fill(month)
+    await page.locator('#iw-month').press('Tab')
+    await page.locator(`.iw-event[data-entry-id="${ownId}"]`).first().click()
+    await expect(page.locator('#iw-link')).toBeHidden()
+    await expect(page.getByText('Cette fiche couvre toute la période.', { exact: false })).toHaveCount(0)
+    await page.locator('#iw-fill-month').click()
+    await expect(page.getByRole('spinbutton', { name: /^Heures déjà enregistrées le mardi 2 / })).toHaveValue('6')
+    await page.getByRole('combobox', { name: 'Heures réalisées chaque lundi', exact: true }).selectOption('7')
+    await page.getByRole('combobox', { name: 'Heures réalisées chaque mardi', exact: true }).selectOption('8')
+    await page.getByRole('button', { name: 'Remplir les heures des jours choisis', exact: true }).click()
+    const filled = JSON.parse(await page.locator('input[name="daily_hours"]').inputValue())
+    assert.equal(filled.find(row => row.date === `${month}-01`).actual, 2)
+    assert(!filled.some(row => row.date === `${month}-02`), 'Other fiches must never be copied')
+    assert.equal(filled.find(row => row.date === `${month}-08`).actual, 7)
+    assert.equal(filled.find(row => row.date === `${month}-09`).actual, 8)
+    assert(await page.locator('#iw-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    await page.screenshot({ path: `${output}/heures-recurrentes-${width}.png` })
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    const saved = sql.query('SELECT * FROM workspace_entries WHERE id=?').get(ownId)
+    assert.equal(saved.hours, filled.reduce((sum, row) => sum + (row.actual ?? 0), 0))
+    assert.equal(sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(sourceId).hours, 6)
+    await page.locator('#iw-close').click()
+    checks.push(`weekly-7-8-preserve-existing-no-duplicates-${width}`)
+  }
   failDatabase = true
   await page.locator('#iw-refresh').click()
   await expect(page.locator('#iw-calendar-state')).toContainText(

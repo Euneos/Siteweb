@@ -195,8 +195,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 aria-describedby="iw-month-help">Couvrir tout le mois affiché</button
               >
               <p id="iw-month-help" class="iw-small iw-muted">
-                Ce bouton remplit les dates de début et de fin. Il n’ajoute aucune heure.
-                Enregistrez ensuite la fiche.
+                Affichez les jours du mois et les heures déjà enregistrées. Complétez les jours vides avec 7 h ou 8 h, puis enregistrez.
               </p>
               <p id="iw-month-feedback" class="iw-feedback" role="status"></p>
             </div>
@@ -251,11 +250,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             </div>
             <div class="iw-field iw-field--wide" id="iw-daily-hours" hidden>
               <input type="hidden" name="daily_hours" value="" />
-              <h3>Jours et heures</h3>
-              <p class="iw-small iw-muted">
-                Choisissez les jours travaillés. Les notes ne programment pas le calendrier. Laissez
-                le réalisé vide tant que les heures ne sont pas effectuées.
-              </p>
+              <h3>Heures réalisées par jour</h3>
               <div id="iw-daily-controls"></div>
               <p id="iw-daily-feedback" class="iw-feedback" role="status"></p>
               <div id="iw-daily-rows"></div>

@@ -279,7 +279,19 @@ function initCalendar(root: HTMLElement) {
     }
     control.value = text
   }
-  const dailyEditor = initDailyHours(form)
+  const dailyEditor = initDailyHours(form, () => {
+    const result = new Map<string, number>()
+    for (const entry of data?.entries ?? []) {
+      if (entry.kind !== 'equipe' || entry.id === selected?.id || entry.status === 'annule' || personName(entry.person) !== personName(input('person').value)) continue
+      const rows = entry.daily_hours
+        ? parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on) ?? []
+        : entry.starts_on === entry.ends_on ? [{ date: entry.starts_on, actual: entry.hours }] : []
+      for (const row of rows) {
+        if (row.actual !== null) result.set(row.date, (result.get(row.date) ?? 0) + row.actual)
+      }
+    }
+    return result
+  })
   let selected: Entry | null = null
   let publicationDates: Pick<EntryInput, 'starts_on' | 'ends_on'> | null = null
   let editorKind: Kind = kind
@@ -385,6 +397,7 @@ function initCalendar(root: HTMLElement) {
     for (const field of fields) writeField(field, entry[field])
     input('title').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     input('title').required = editorKind !== 'equipe'
+    input('link').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     input('status').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     if (editorKind === 'equipe') {
       input('title').value = personName(input('person').value)
@@ -432,12 +445,20 @@ function initCalendar(root: HTMLElement) {
       )
       return
     }
+    if (!input('daily_hours').value) {
+      if (input('hours').value !== '' && (input('starts_on').value !== input('ends_on').value || input('starts_on').value < start || input('starts_on').value > end)) {
+        feedback(byId('iw-month-feedback'), 'Cette fiche contient un total sans répartition dans ce mois. Conservez-la et ouvrez une nouvelle fiche pour saisir les autres jours.', true)
+        return
+      }
+      input('daily_hours').value = JSON.stringify(input('hours').value === '' ? [] : [{ date: input('starts_on').value, planned: null, actual: Number(input('hours').value) }])
+    }
     input('starts_on').value = start
     input('ends_on').value = end
     dailyEditor.render(true)
+    byId('iw-daily-hours').scrollIntoView({ block: 'start' })
     feedback(
       byId('iw-month-feedback'),
-      'Dates remplies pour le mois affiché. Aucune heure ajoutée ; enregistrez pour conserver cette période.',
+      'Les heures de cette fiche sont conservées. Les heures des autres fiches sont affichées séparément et ne sont pas recopiées. Enregistrez vos nouvelles saisies.',
     )
   })
   const setMetrics = (loaded: CalendarData | null) => {
