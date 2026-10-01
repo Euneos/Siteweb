@@ -835,7 +835,7 @@ try {
   await expect(page.locator('#iw-content')).toBeHidden()
   await expect(page.locator('#iw-notes')).toBeHidden()
   await page.locator('#iw-entry-activity').selectOption('Coordination')
-  await page.locator('#iw-notes').fill('Recette depuis le navigateur')
+  const beforeUiIds = new Set(sql.query('SELECT id FROM workspace_entries').all().map((entry) => entry.id))
   await page.locator('#iw-starts').fill('2026-09-17')
   await page.locator('#iw-ends').fill('2026-09-17')
   await page.locator('#iw-hours').fill('1.5')
@@ -843,9 +843,10 @@ try {
   await expect(page.locator('#iw-location')).toBeHidden()
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const uiEntry = sql
-    .query('SELECT * FROM workspace_entries WHERE notes=?')
-    .get('Recette depuis le navigateur')
+  const newUiEntries = sql.query('SELECT * FROM workspace_entries').all().filter((entry) => !beforeUiIds.has(entry.id))
+  assert.equal(newUiEntries.length, 1)
+  const uiEntry = newUiEntries[0]
+  assert.equal(uiEntry.notes, '')
   assert.equal(uiEntry.title, 'Member')
   assert.equal(uiEntry.activity, 'Coordination')
   assert.equal(uiEntry.hours, 1.5)
@@ -875,17 +876,17 @@ try {
   })
   await page.locator('#iw-compare').click()
   await comparisonArrival
-  await expect(page.locator('#iw-notes')).toBeDisabled()
+  await expect(page.locator('#iw-entry-activity')).toBeDisabled()
   // Also protect a value changed outside typing (e.g. browser autofill).
-  await page.locator('#iw-notes').evaluate((element) => {
-    element.value = 'Nouvelle note à préserver'
+  await page.locator('#iw-entry-activity').evaluate((element) => {
+    element.value = 'Communication'
   })
   releaseComparison()
   comparisonGate = null
   await expect(page.locator('#iw-save-feedback')).toContainText(
     'saisie a changé pendant la comparaison',
   )
-  await expect(page.locator('#iw-notes')).toHaveValue('Nouvelle note à préserver')
+  await expect(page.locator('#iw-entry-activity')).toHaveValue('Communication')
   await page.locator('#iw-compare').click()
   await expect(page.locator('#iw-merge-hours')).toBeVisible()
   await page.locator('#iw-merge-hours').selectOption('mine')
@@ -897,10 +898,11 @@ try {
     2.5,
   )
   const reconciled = sql
-    .query('SELECT starts_on,notes FROM workspace_entries WHERE id=?')
+    .query('SELECT starts_on,notes,activity FROM workspace_entries WHERE id=?')
     .get(uiEntry.id)
   assert.equal(reconciled.starts_on, '2026-10-02')
-  assert.equal(reconciled.notes, 'Nouvelle note à préserver')
+  assert.equal(reconciled.notes, '')
+  assert.equal(reconciled.activity, 'Communication')
   checks.push('browser-create-comment-xss-conflict-merge')
   checks.push('comparison-race-and-moved-month')
   await page.locator('#iw-close').click()
@@ -926,7 +928,8 @@ try {
   await expect(page.locator('#iw-result-count')).toContainText('septembre 2026')
   checks.push('team-fields-permissions-and-explicit-month-no-autosave')
   await page.locator('#iw-new').click()
-  await page.locator('#iw-notes').fill('Planning quotidien de recette')
+  await expect(page.locator('#iw-notes')).toBeHidden()
+  const beforeDailyIds = new Set(sql.query('SELECT id FROM workspace_entries').all().map((entry) => entry.id))
   await page.locator('#iw-fill-month').click()
   await expect(page.locator('#iw-starts')).toHaveValue('2026-09-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-09-30')
@@ -941,9 +944,10 @@ try {
     .fill('8')
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const dailyEntry = sql
-    .query('SELECT * FROM workspace_entries WHERE notes=?')
-    .get('Planning quotidien de recette')
+  const newDailyEntries = sql.query('SELECT * FROM workspace_entries').all().filter((entry) => !beforeDailyIds.has(entry.id))
+  assert.equal(newDailyEntries.length, 1)
+  const dailyEntry = newDailyEntries[0]
+  assert.equal(dailyEntry.notes, '')
   assert.equal(dailyEntry.hours, 8)
   assert.equal(JSON.parse(dailyEntry.daily_hours).length, 2)
   await page.locator('#iw-close').click()
