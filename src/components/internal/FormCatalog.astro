@@ -49,11 +49,31 @@ const personalForms = [
   },
 ]
 const publicForms = [
+  { key: 'evaluation-formation', name: 'Évaluation de Fin de Formation', path: '/suivi/evaluation-formation', description: 'Veuillez prendre quelques minutes pour évaluer votre expérience de formation WISE UP.' },
+  { key: 'bilan-etablissement', name: 'Questionnaire Bilan Établissement (référent/direction)', path: '/suivi/bilan-etablissement', description: "Ce court questionnaire nous permet de recueillir le point de vue de l'établissement sur le déroulement du programme WISE-UP et ses conditions de poursuite." },
   {
     key: 'pre-formation',
     name: 'Questionnaire pré formation',
     path: '/suivi/pre-formation',
     description: 'À remplir avant le démarrage de la formation. La réception est vérifiée sur l’adulte ; les cas incertains restent à vérifier par l’équipe.',
+  },
+  {
+    key: 'bilan-formateur',
+    name: 'Bilan formateur WISE-UP',
+    path: '/suivi/bilan-formateur',
+    description: 'Renseigner la mission, son année, les documents et retours. Réponse conservée et champs vérifiés restent distincts ; aucun contrat ni facture validé automatiquement.',
+  },
+  {
+    key: 'post-formation',
+    name: 'Questionnaire post formation',
+    path: '/suivi/post-formation',
+    description: 'À remplir à la fin de la formation. La réponse complète est conservée et la date de réception est vérifiée sur l’adulte ; les cas incertains restent à rapprocher par l’équipe.',
+  },
+  {
+    key: 'suivi-j45',
+    name: 'Questionnaire de suivi J+45',
+    path: '/suivi/suivi-j45',
+    description: 'Partager les usages et effets observés après la formation. La réception du questionnaire ne change pas le statut de formation de l’adulte.',
   },
   {
     key: 'accord-formateur',
@@ -92,7 +112,7 @@ const publicForms = [
   <nav class="fc-nav" aria-label="Rubriques du catalogue">
     <a href="#catalog-personal">Formulaires du dossier</a>
     <a href="#catalog-public">Liens publics</a>
-    <a href="#catalog-pending">Autres documents et questionnaires</a>
+    <a href="#catalog-pending">Documents à signer</a>
     <a href="#preparer-lien">Liens préremplis (facultatif)</a>
   </nav>
 
@@ -226,7 +246,7 @@ const publicForms = [
       <p class="fc-eyebrow">Sans lien personnel</p>
       <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
       <p>
-        Ces pages permettent de candidater, de remplir la préformation, de contacter l’équipe et de s’inscrire à la newsletter.
+        Ces pages permettent de candidater, de remplir les questionnaires adultes, de confirmer l’accord formateur, de contacter l’équipe et de s’inscrire à la newsletter.
       </p>
     </header>
     <div class="fc-grid">
@@ -279,10 +299,9 @@ const publicForms = [
 
   <section id="catalog-pending" class="fc-section" aria-labelledby="catalog-pending-title">
     <header class="fc-heading">
-      <h2 id="catalog-pending-title">Autres documents et questionnaires</h2>
+      <h2 id="catalog-pending-title">Documents à signer</h2>
       <p>
-        Leur remplacement sur le site reste à préparer. Ne remplacez pas leurs liens Google par
-        l’une des URL ci-dessus.
+        Les documents à signer et leurs consignes de retour restent distincts des questionnaires.
       </p>
     </header>
     <div class="fc-grid">
@@ -298,22 +317,6 @@ const publicForms = [
           dossier. Aucun formulaire de signature en ligne n’est proposé ici.
         </p>
         <p class="fc-footnote">Pas d’URL générique à copier dans un guide.</p>
-      </article>
-      <article
-        class="fc-card fc-card--planned"
-        data-catalog-document="questionnaires"
-        aria-labelledby="catalog-questionnaires-title"
-      >
-        <span class="fc-status" data-state="planned">À préparer sur le site</span>
-        <h3 id="catalog-questionnaires-title">Questionnaires adultes</h3>
-        <p>
-          Post-formation, suivi J+45, accord formateur et bilans : les questionnaires historiques restent des
-          parcours distincts. Leur collecte ne signifie pas que leur remplacement sur le site est
-          ouvert.
-        </p>
-        <p class="fc-footnote">
-          Les nouveaux liens seront ajoutés après vérification de chaque parcours.
-        </p>
       </article>
     </div>
   </section>

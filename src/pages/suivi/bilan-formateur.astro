@@ -1,0 +1,159 @@
+---
+import Base from '../../layouts/Base.astro'
+import '../../styles/operational-forms.css'
+import '../../styles/accord-formateur.css'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+import { publicFormsConfig } from '../../lib/public-forms'
+import { bilanConfig } from '../../lib/bilan-formateur-plan'
+import { bilanQuestions, bilanTitle, bilanVersion } from '../../lib/bilan-formateur-definition'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+let ready = true
+if (!preview) {
+  try {
+    const { db } = publicFormsConfig(Astro.locals)
+    bilanConfig(Astro.locals)
+    for (const table of [
+      'public_form_receipts',
+      'public_bilan_formateur_projections',
+      'public_bilan_formateur_claims',
+    ])
+      await db.prepare(`SELECT receipt FROM ${table} LIMIT 1`).bind().first()
+  } catch {
+    ready = false
+    Astro.response.status = 503
+  }
+}
+const sections = [
+  { title: 'Votre mission', start: 0, end: 8 },
+  { title: 'Déroulement de la formation', start: 8, end: 13 },
+  { title: 'Documents et retours', start: 13, end: 23 },
+  { title: 'Pour la suite', start: 23, end: 28 },
+]
+---
+
+<Base
+  title={`${bilanTitle} — EUNEOS`}
+  description="Bilan de la mission du formateur WISE-UP."
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page af-page">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP</p><h1>{bilanTitle}</h1><p>
+        Renseignez le bilan de votre mission et l’année concernée. Les réponses seront vérifiées par
+        l’équipe.
+      </p>
+    </div>
+    {
+      preview && (
+        <aside class="of-preview">
+          <strong>Démonstration</strong> — Informations fictives uniquement. Aucune réponse
+          enregistrée, aucun e-mail envoyé.
+        </aside>
+      )
+    }
+    {
+      !ready ? (
+        <p class="of-panel" role="status">
+          Ce formulaire est momentanément indisponible. Contactez l’équipe EUNEOS.
+        </p>
+      ) : (
+        <div class="of-panel">
+          <p>
+            Les champs marqués d’un astérisque sont obligatoires. L’envoi de ce bilan ne valide ni
+            la facture ni le contrat et ne clôture pas automatiquement la mission.
+          </p>
+          <noscript>
+            <p>Activez JavaScript pour envoyer votre réponse sans quitter cette page.</p>
+          </noscript>
+          <form
+            id="bilan-formateur-form"
+            class="of-stack"
+            method="post"
+            action="/api/questionnaires/bilan-formateur"
+            data-version={bilanVersion}
+          >
+            <div hidden aria-hidden="true">
+              <label>
+                Site web
+                <input name="website" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
+            {sections.map((section) => (
+              <fieldset class="of-section">
+                <legend>{section.title}</legend>
+                {bilanQuestions.slice(section.start, section.end).map((q) =>
+                  q.type === 'choice' || q.type === 'checkbox' ? (
+                    <fieldset class="af-choice">
+                      <legend>
+                        {q.label}
+                        {q.required ? ' *' : ''}
+                      </legend>
+
+                      {q.choices.map((choice) => (
+                        <label class="af-option">
+                          <input
+                            type={q.type === 'checkbox' ? 'checkbox' : 'radio'}
+                            name={q.key}
+                            value={choice}
+                            required={q.type === 'choice' && q.required}
+                          />
+                          <span>{choice}</span>
+                        </label>
+                      ))}
+                      {!q.required && (
+                        <label class="af-option">
+                          <input type="radio" name={q.key} value="" />
+                          <span>Ne pas répondre</span>
+                        </label>
+                      )}
+                    </fieldset>
+                  ) : (
+                    <label class="of-field" for={`bf-${q.key}`}>
+                      {q.label}
+                      {q.required ? ' *' : ''}
+                      {q.description && <small id={`bf-${q.key}-help`}>{q.description}</small>}
+                      <input
+                        id={`bf-${q.key}`}
+                        name={q.key}
+                        type={q.type}
+                        required={q.required}
+                        maxlength={q.maxLength}
+                        min={q.type === 'number' ? '0' : undefined}
+                        step={q.type === 'number' ? '1' : undefined}
+                        inputmode={q.key === 'invoiceAmount' ? 'decimal' : undefined}
+                        autocomplete="off"
+                        aria-describedby={q.description ? `bf-${q.key}-help` : undefined}
+                      />
+                    </label>
+                  ),
+                )}
+              </fieldset>
+            ))}
+            <p class="of-note">
+              <a href="/politique-de-confidentialite">Politique de confidentialité</a>
+            </p>
+            <div class="of-actions">
+              <button type="submit" class="cta s-vert cta--sm">
+                Envoyer
+              </button>
+            </div>
+            <p
+              id="bilan-formateur-feedback"
+              class="of-feedback"
+              role="status"
+              aria-live="polite"
+              tabindex="-1"
+              hidden
+            />
+          </form>
+        </div>
+      )
+    }
+  </section><script src="../../scripts/bilan-formateur.ts"></script>
+</Base>

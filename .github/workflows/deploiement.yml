@@ -78,6 +78,9 @@ jobs:
           bun run test:operational
           bun scripts/check-preformation.mjs
           bun scripts/check-accord-formateur.mjs
+          bun scripts/check-bilan-formateur.mjs
+          bun scripts/check-postformation.mjs
+          bun scripts/check-final-questionnaires.mjs
           bun scripts/check-candidature-decisions-ui.mjs
           bunx wrangler pages dev dist --port 4321 --ip 127.0.0.1 > /tmp/euneos-layout.log 2>&1 &
           layout_server_pid=$!
