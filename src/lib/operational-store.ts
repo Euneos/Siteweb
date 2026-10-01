@@ -133,6 +133,7 @@ export async function enregistrerOperational(input: {
   target: OperationalTarget
   kind: OperationalKind
   data: OperationalInput
+  publicReceipt?: boolean
 }): Promise<OperationalResult> {
   const { db, token, linkHash, target, kind } = input
   validateOperationalTarget(target)
@@ -209,6 +210,18 @@ export async function enregistrerOperational(input: {
   let mutationStarted = false
   const createdIds: number[] = []
   async function checkCurrentGrant() {
+    if (input.publicReceipt) {
+      // A public form can only project its already-preserved source, whose
+      // target and answer hash were established server-side. It never replaces
+      // the team's personal link slot or grants access to another response.
+      const source = await db.prepare(`SELECT receipt FROM public_form_receipts
+        WHERE receipt=? AND kind=? AND answers_hash=? AND noco_id IS NOT NULL
+        AND target_id=? AND school_id=? AND cohort_id=?`).bind(
+        linkHash, kind, await hashOperational(JSON.stringify(data)), target.participationId, target.schoolId, target.cohortId,
+      ).first()
+      if (!source) throw new OperationalError('target_mismatch')
+      return
+    }
     const grant = await db
       .prepare(
         `SELECT l.token_hash,l.target_id,l.school_id,l.cohort_id,l.kind,l.expires_at

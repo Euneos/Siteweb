@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { NC } from '../src/lib/nocodb'
 import { readContact, writeContact } from '../src/lib/google-form-contact'
 import { OPERATIONAL_ADULTS_TABLE, parseOperationalInput } from '../src/lib/operational-data'
+import { deploymentV2 } from './fixtures/operational-forms-v2'
 import {
   enregistrerOperational,
   readOperationalSubmission,
@@ -453,6 +454,24 @@ test('deployment does not fabricate contact receipt', async () => {
   ).toBe('complete')
   expect(targets[0].statut_formation).toBe('Programmée')
   expect(targets[0].fiche_contact_recue).toBe(false)
+})
+test('unified deployment stores adults once and the old complement reuses them without changing training', async () => {
+  const input = { ...deploymentV2(), participants: [person()] }
+  const result = await submit(input, { kind: 'deploiement' })
+  expect(result).toMatchObject({ state: 'complete', createdAdults: 1, duplicate: false })
+  expect(adults).toHaveLength(1)
+  expect(adults[0]).toMatchObject({ participations_id: 7, statut: 'Inscrit' })
+  expect(targets[0].fiche_contact_recue).toBe(false)
+  const formationBefore = targets[0].statut_formation
+  const writesBefore = mutations.length
+  expect(await submit(input, { kind: 'deploiement' })).toMatchObject({ duplicate: true, createdAdults: 1 })
+  expect(mutations).toHaveLength(writesBefore)
+  sql.query("UPDATE operational_link_slots SET token_hash=? WHERE kind='participants'").run('b'.repeat(64))
+  const complement = await submit({ formation: null, participants: [person()] }, { kind: 'participants', linkHash: 'b'.repeat(64) })
+  expect(complement).toMatchObject({ state: 'complete', createdAdults: 0 })
+  expect(adults).toHaveLength(1)
+  expect(targets[0].statut_formation).toBe(formationBefore)
+  expect(mutations.filter((m) => m.method === 'POST')).toHaveLength(1)
 })
 test('historical contradictions persist, new declaration visible without changing dates or adults', async () => {
   targets[0].notes = writeContact('Human note', {

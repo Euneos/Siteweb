@@ -1,0 +1,50 @@
+.af-page {
+  overflow-wrap: anywhere;
+}
+.af-contract,
+.af-clause {
+  display: grid;
+  gap: var(--s-lie);
+  min-width: 0;
+}
+.af-contract {
+  gap: var(--s-titre);
+}
+.af-clause h3 {
+  font-size: var(--t-carte);
+}
+.af-clause p {
+  margin: 0;
+  font-size: var(--t-note);
+}
+.af-item {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+.af-choice {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.af-choice legend {
+  font-size: var(--t-note);
+  margin-bottom: var(--s-lie);
+}
+.af-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  cursor: pointer;
+}
+.af-option input {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--vert);
+}
+.af-option:focus-within {
+  outline: 2px solid var(--vert);
+  outline-offset: 3px;
+}

@@ -1,0 +1,89 @@
+---
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+import { modeApercu } from '../../lib/forms'
+import '../../styles/google-review.css'
+export const prerender = false
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+if (modeApercu(Astro.request))
+  return new Response('Cet écran privé est indisponible dans un aperçu public.', {
+    status: 403,
+    headers: privateHeaders,
+  })
+const auth = await getInternalContext(Astro.request, Astro.locals)
+if (auth instanceof Response) return auth
+---
+
+<InternalLayout title="Réponses Google" current="reponses-google" identity={auth.identity}>
+  <div id="google-review" class="gr" data-admin={auth.identity.admin}>
+    <a href="/interne/formulaires">← Formulaires</a>
+    <header class="gr-header">
+      <h1>Réponses Google</h1><button type="button" class="iw-button" id="gr-refresh"
+        >Actualiser</button
+      >
+    </header>
+    <p class="gr-notice">
+      Une réponse conservée n’est pas nécessairement intégrée. Le rattachement indique à quel
+      dossier elle appartient. Il est conservé dans cet espace interne, sans modifier le journal
+      NocoDB, copier de donnée dans le dossier ni changer de statut.
+    </p>
+    <p id="gr-feedback" role="status" aria-live="polite">Chargement des réponses…</p>
+    <p id="gr-pending-summary" class="gr-pending-summary" role="status" aria-live="polite" hidden>
+    </p>
+    <div class="gr-filters">
+      <label
+        >Afficher<select id="gr-state"
+          ><option value="pending">À examiner</option><option value="partial"
+            >Intégrations partielles</option
+          ><option value="integrated">Intégrations attestées</option><option value="all"
+            >Toutes les entrées</option
+          ></select
+        ></label
+      ><label
+        >Rechercher<input
+          id="gr-search"
+          type="search"
+          placeholder="N° de réponse, formulaire, nom ou établissement"
+        /></label
+      >
+    </div>
+    <div id="gr-list" class="gr-list"></div>
+    <section id="gr-detail" class="gr-card" hidden aria-labelledby="gr-title">
+      <h2 id="gr-title" tabindex="-1"></h2><p id="gr-source-form"></p><p id="gr-summary">
+      </p><section id="gr-reconciliation" hidden aria-labelledby="gr-reconciliation-title">
+        <h3 id="gr-reconciliation-title">Dossiers concernés par le reçu</h3><ul id="gr-targets">
+        </ul><p id="gr-reasons"></p>
+      </section>
+      <dl id="gr-answers"></dl>
+      <details>
+        <summary>Historique et preuves conservés</summary><pre id="gr-history"></pre>
+      </details>
+      <form id="gr-form">
+        <h3>Rattacher cette réponse</h3><label
+          >Dossier exact<select id="gr-target" required
+            ><option value="">Choisir un dossier…</option></select
+          ></label
+        ><label
+          >Justification<textarea
+            id="gr-reason"
+            required
+            maxlength="2000"
+            rows="3"
+            placeholder="Éléments vérifiés permettant ce rattachement"></textarea></label
+        ><p id="gr-choice"></p><label class="gr-check"
+          ><input id="gr-confirm" type="checkbox" required />Je confirme le dossier et la cohorte
+          affichés. Cette action ne réalise pas l’intégration des réponses.</label
+        ><button id="gr-save" class="iw-button iw-button--primary" type="submit"
+          >Confirmer le rattachement uniquement</button
+        >
+      </form>
+      <p id="gr-readonly" hidden></p>
+    </section>
+    <noscript
+      >Activez JavaScript pour consulter les réponses. Aucune modification n’a été faite.</noscript
+    >
+  </div>
+</InternalLayout>
+<script>
+  import '../../scripts/google-review-client'
+</script>

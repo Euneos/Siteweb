@@ -1,0 +1,169 @@
+---
+import Base from '../../layouts/Base.astro'
+import '../../styles/operational-forms.css'
+import '../../styles/accord-formateur.css'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+import { publicFormsConfig } from '../../lib/public-forms'
+import { accordProjectionConfig } from '../../lib/accord-formateur-projection'
+import {
+  accordTitle,
+  accordIntroduction,
+  accordTermsTitle,
+  accordTerms,
+  accordQuestions,
+  accordVersion,
+} from '../../lib/accord-formateur-definition'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+let ready = true
+if (!preview) {
+  try {
+    const { db } = publicFormsConfig(Astro.locals)
+    await accordProjectionConfig(Astro.locals)
+    for (const table of [
+      'public_form_receipts',
+      'public_accord_projections',
+      'public_accord_claims',
+    ])
+      await db.prepare(`SELECT receipt FROM ${table} LIMIT 1`).bind().first()
+  } catch {
+    ready = false
+    Astro.response.status = 503
+  }
+}
+---
+
+<Base
+  title={`${accordTitle} — EUNEOS`}
+  description="Conditions d’engagement des formateurs WISE-UP."
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page af-page">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP</p><h1>{accordTitle}</h1><p>{accordIntroduction}</p>
+    </div>
+    {
+      preview && (
+        <aside class="of-preview">
+          <strong>Démonstration</strong> — Utilisez uniquement des informations fictives. Aucun
+          accord n’est enregistré et aucun e-mail n’est envoyé.
+        </aside>
+      )
+    }
+    {
+      !ready ? (
+        <p class="of-panel" role="status">
+          Ce formulaire est momentanément indisponible. Contactez l’équipe EUNEOS.
+        </p>
+      ) : (
+        <div class="of-panel">
+          <p>
+            Les champs marqués d’un astérisque sont obligatoires. Ce formulaire doit être rempli
+            personnellement par le formateur concerné.
+          </p>
+          <noscript>
+            <p>Activez JavaScript pour envoyer votre réponse sans quitter cette page.</p>
+          </noscript>
+          <form
+            id="accord-formateur-form"
+            class="of-stack"
+            method="post"
+            action="/api/questionnaires/accord-formateur"
+            data-version={accordVersion}
+          >
+            <div hidden aria-hidden="true">
+              <label>
+                Site web
+                <input name="website" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
+            <fieldset class="of-section">
+              <legend>Vos coordonnées</legend>
+              {accordQuestions.slice(0, 3).map((q) => (
+                <label class="of-field" for={`af-${q.key}`}>
+                  {q.label} *
+                  <input
+                    id={`af-${q.key}`}
+                    name={q.key}
+                    type={q.type === 'choice' ? 'text' : q.type}
+                    required
+                    maxlength={q.maxLength}
+                    autocomplete="off"
+                  />
+                </label>
+              ))}
+            </fieldset>
+            <section class="af-contract" aria-labelledby="af-terms">
+              <h2 id="af-terms">{accordTermsTitle}</h2>
+              {accordTerms.map((section) => (
+                <section class="af-clause">
+                  <h3>{section.title}</h3>
+                  {section.blocks.map((block) =>
+                    block.type === 'item' ? (
+                      <p class="af-item">• {block.text}</p>
+                    ) : (
+                      <p>{block.text}</p>
+                    ),
+                  )}
+                </section>
+              ))}
+            </section>
+            <fieldset class="of-section">
+              <legend>Validations</legend>
+              {accordQuestions.slice(3).map((q) =>
+                q.type === 'choice' ? (
+                  <fieldset class="af-choice">
+                    <legend>{q.label} *</legend>
+                    {q.choices.map((choice) => (
+                      <label class="af-option">
+                        <input type="radio" name={q.key} value={choice} required />
+                        <span>{choice}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <label class="of-field" for={`af-${q.key}`}>
+                    {q.label} *
+                    {q.description && <small id={`af-${q.key}-help`}>{q.description}</small>}
+                    <input
+                      id={`af-${q.key}`}
+                      name={q.key}
+                      type={q.type}
+                      required
+                      maxlength={q.maxLength}
+                      autocomplete="off"
+                      aria-describedby={q.description ? `af-${q.key}-help` : undefined}
+                    />
+                  </label>
+                ),
+              )}
+            </fieldset>
+            <p class="of-note">
+              Votre réponse est conservée pour vérification par l’équipe. Un choix « Non » ne signe
+              aucun accord. <a href="/politique-de-confidentialite">Politique de confidentialité</a>
+            </p>
+            <div class="of-actions">
+              <button type="submit" class="cta s-vert cta--sm">
+                Envoyer
+              </button>
+            </div>
+            <p
+              id="accord-formateur-feedback"
+              class="of-feedback"
+              role="status"
+              aria-live="polite"
+              tabindex="-1"
+              hidden
+            />
+          </form>
+        </div>
+      )
+    }
+  </section>
+  <script src="../../scripts/accord-formateur.ts"></script>
+</Base>

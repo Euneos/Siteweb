@@ -22,14 +22,15 @@ const personalForms = [
     name: 'Organisation de la formation adultes',
     purpose: 'Préparer les dates et les personnes',
     description:
-      'Préciser le calendrier, les modalités et les formateurs de la formation des adultes.',
-    fields: ['Dates et séances', 'Modalités', 'Formateurs'],
+      'Préciser le calendrier, les modalités, les formateurs et les adultes participants dans un seul formulaire. La liste des adultes peut être complétée plus tard.',
+    fields: ['Dates et séances', 'Modalités', 'Formateurs', 'Participants adultes (facultatif)'],
     example: [
       ['Référent', 'Prénom Nom · referent@example.test'],
       ['Dates de formation', 'À préciser avec l’équipe'],
       ['Modalités', 'Présentiel'],
       ['Planning des séances', 'Jour · horaires · durée'],
       ['Formateurs', 'Prénom Nom'],
+      ['Participants adultes', 'Prénom Nom · adulte@example.test (liste facultative)'],
     ],
   },
   {
@@ -46,22 +47,40 @@ const personalForms = [
       ['Évaluation', 'Modalités à confirmer avec l’équipe'],
     ],
   },
-  {
-    key: 'participants',
-    number: '+',
-    name: 'Participants adultes',
-    purpose: 'Compléter la liste du dossier',
-    description:
-      'Rattacher les adultes participants à la bonne cohorte. Une inscription ne signifie pas que la personne est formée.',
-    fields: ['Référent', 'Adultes participants', 'Vérification de la liste'],
-    example: [
-      ['Référent', 'Prénom Nom · referent@example.test'],
-      ['Participant adulte', 'Prénom Nom · adulte@example.test'],
-      ['Liste', 'À vérifier avant de transmettre'],
-    ],
-  },
 ]
 const publicForms = [
+  { key: 'evaluation-formation', name: 'Évaluation de Fin de Formation', path: '/suivi/evaluation-formation', description: 'Veuillez prendre quelques minutes pour évaluer votre expérience de formation WISE UP.' },
+  { key: 'bilan-etablissement', name: 'Questionnaire Bilan Établissement (référent/direction)', path: '/suivi/bilan-etablissement', description: "Ce court questionnaire nous permet de recueillir le point de vue de l'établissement sur le déroulement du programme WISE-UP et ses conditions de poursuite." },
+  {
+    key: 'pre-formation',
+    name: 'Questionnaire pré formation',
+    path: '/suivi/pre-formation',
+    description: 'À remplir avant le démarrage de la formation. La réception est vérifiée sur l’adulte ; les cas incertains restent à vérifier par l’équipe.',
+  },
+  {
+    key: 'bilan-formateur',
+    name: 'Bilan formateur WISE-UP',
+    path: '/suivi/bilan-formateur',
+    description: 'Renseigner la mission, son année, les documents et retours. Réponse conservée et champs vérifiés restent distincts ; aucun contrat ni facture validé automatiquement.',
+  },
+  {
+    key: 'post-formation',
+    name: 'Questionnaire post formation',
+    path: '/suivi/post-formation',
+    description: 'À remplir à la fin de la formation. La réponse complète est conservée et la date de réception est vérifiée sur l’adulte ; les cas incertains restent à rapprocher par l’équipe.',
+  },
+  {
+    key: 'suivi-j45',
+    name: 'Questionnaire de suivi J+45',
+    path: '/suivi/suivi-j45',
+    description: 'Partager les usages et effets observés après la formation. La réception du questionnaire ne change pas le statut de formation de l’adulte.',
+  },
+  {
+    key: 'accord-formateur',
+    name: 'Accord formateur WISE-UP',
+    path: '/suivi/accord-formateur',
+    description: 'Lire les conditions complètes puis confirmer personnellement son accord, sa signature et la date. Un lien identique pour tous les formateurs ; réception et accord vérifié restent distincts.',
+  },
   {
     key: 'candidature-etablissement',
     name: 'Candidature d’un établissement',
@@ -93,8 +112,8 @@ const publicForms = [
   <nav class="fc-nav" aria-label="Rubriques du catalogue">
     <a href="#catalog-personal">Formulaires du dossier</a>
     <a href="#catalog-public">Liens publics</a>
-    <a href="#catalog-pending">Autres documents et questionnaires</a>
-    <a href="#preparer-lien">Préparer un lien personnel</a>
+    <a href="#catalog-pending">Documents à signer</a>
+    <a href="#preparer-lien">Liens préremplis (facultatif)</a>
   </nav>
 
   <section id="catalog-personal" class="fc-section" aria-labelledby="catalog-personal-title">
@@ -102,8 +121,8 @@ const publicForms = [
       <p class="fc-eyebrow">Le parcours d’un établissement</p>
       <h2 id="catalog-personal-title">Les formulaires du dossier</h2>
       <p>
-        Les numéros 3, 4 et 5 reprennent les repères des guides. Chaque lien personnel concerne un
-        établissement et une cohorte.
+        Copiez un lien dans vos guides ou vos messages. Il est identique pour tous les établissements :
+        ils renseignent leur identité, remplissent le formulaire et envoient leur réponse, sans compte ni code d’accès.
       </p>
     </header>
     <div class="fc-grid">
@@ -142,7 +161,7 @@ const publicForms = [
               <div class="fc-example-body">
                 <p class="fc-example-note">
                   Aperçu simplifié, avec des informations fictives. Les champs complets figurent
-                  dans le formulaire personnel.
+                  dans le formulaire complet.
                 </p>
                 <dl>
                   {item.example.map(([label, value]) => (
@@ -157,17 +176,54 @@ const publicForms = [
                 </p>
               </div>
             </details>
+            <div data-public-access hidden>
+            <label class="of-field">Lien à partager
+              <input type="text" readonly value={`https://euneos.fr/suivi/${item.key === 'contact' ? 'fiche-contact' : item.key}`} aria-label={`URL publique : ${item.name}`} data-public-url />
+            </label>
+            <div class="fc-actions">
+              <a class="iw-button iw-button--primary" href={`/suivi/${item.key === 'contact' ? 'fiche-contact' : item.key}`} target="_blank" rel="noopener noreferrer">Voir le formulaire ↗</a>
+              <button type="button" class="iw-button" data-copy-public disabled>Copier le lien</button>
+            </div>
+            <p class="fc-copy-feedback" data-public-copy-feedback role="status" aria-live="polite" />
+            </div>
             <button
               type="button"
-              class="iw-button iw-button--primary"
+              class="iw-button"
               data-prepare-kind={item.key}
               disabled
             >
-              Préparer un lien personnel<span class="fc-sr-only"> : {item.name}</span>
+              Lien prérempli pour un dossier<span class="fc-sr-only"> : {item.name}</span>
             </button>
             <p class="fc-footnote" data-kind-note>
               La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.
             </p>
+            {item.key === 'deploiement' && (
+              <details class="fc-example" data-participants-complement>
+                <summary>Compléter uniquement les participants plus tard</summary>
+                <div class="fc-example-body" data-catalog-kind="participants">
+                  <p>
+                    Les participants peuvent être renseignés dans le formulaire n°4 ci-dessus.
+                    Si l’organisation a déjà été envoyée, utilisez ce complément pour ajouter des
+                    adultes sans ressaisir le calendrier. Les anciens liens restent utilisables.
+                  </p>
+                  <span class="fc-status" data-operational-state="participants" data-state="unknown">
+                    État à vérifier
+                  </span>
+                  <div data-public-access hidden>
+                    <label class="of-field">Lien de complément à partager
+                      <input type="text" readonly value="https://euneos.fr/suivi/participants" aria-label="URL publique : complément de participants adultes" data-public-url />
+                    </label>
+                    <div class="fc-actions">
+                      <a class="iw-button" href="/suivi/participants" target="_blank" rel="noopener noreferrer">Voir le complément ↗</a>
+                      <button type="button" class="iw-button" data-copy-public disabled>Copier le lien de complément</button>
+                    </div>
+                    <p class="fc-copy-feedback" data-public-copy-feedback role="status" aria-live="polite" />
+                  </div>
+                  <button type="button" class="iw-button" data-prepare-kind="participants" disabled>Lien prérempli pour un dossier : participants</button>
+                  <p class="fc-footnote" data-kind-note>La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.</p>
+                </div>
+              </details>
+            )}
           </article>
         ))
       }
@@ -177,13 +233,11 @@ const publicForms = [
   <aside class="fc-guide" aria-labelledby="catalog-guide-title">
     <h2 id="catalog-guide-title">Quels liens mettre dans les guides ?</h2>
     <p>
-      Les <strong>liens publics</strong> ci-dessous peuvent être repris dans Canva. Les formulaires d’un
-      dossier nécessitent un <strong>lien personnel</strong>, à transmettre uniquement à son
-      destinataire.
+      Les <strong>liens publics</strong> des formulaires ci-dessus et des candidatures ci-dessous peuvent être repris dans Canva et envoyés à plusieurs destinataires.
     </p>
     <p>
-      Dans un guide partagé, indiquez « Demandez votre lien à l’équipe EUNEOS ». Un exemple sert à
-      reconnaître le formulaire ; il ne permet pas de répondre.
+      Chaque répondant remplit uniquement sa propre réponse. Les dossiers et les réponses des autres restent privés.
+      Les anciens liens préremplis continuent à fonctionner ; il n’est plus nécessaire d’en créer un pour chaque envoi.
     </p>
   </aside>
 
@@ -192,8 +246,7 @@ const publicForms = [
       <p class="fc-eyebrow">Sans lien personnel</p>
       <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
       <p>
-        Ces pages sont accessibles à tous. Elles ne remplacent pas les formulaires 3, 4 ou 5 d’un
-        dossier.
+        Ces pages permettent de candidater, de remplir les questionnaires adultes, de confirmer l’accord formateur, de contacter l’équipe et de s’inscrire à la newsletter.
       </p>
     </header>
     <div class="fc-grid">
@@ -246,10 +299,9 @@ const publicForms = [
 
   <section id="catalog-pending" class="fc-section" aria-labelledby="catalog-pending-title">
     <header class="fc-heading">
-      <h2 id="catalog-pending-title">Autres documents et questionnaires</h2>
+      <h2 id="catalog-pending-title">Documents à signer</h2>
       <p>
-        Leur remplacement sur le site reste à préparer. Ne remplacez pas leurs liens Google par
-        l’une des URL ci-dessus.
+        Les documents à signer et leurs consignes de retour restent distincts des questionnaires.
       </p>
     </header>
     <div class="fc-grid">
@@ -265,22 +317,6 @@ const publicForms = [
           dossier. Aucun formulaire de signature en ligne n’est proposé ici.
         </p>
         <p class="fc-footnote">Pas d’URL générique à copier dans un guide.</p>
-      </article>
-      <article
-        class="fc-card fc-card--planned"
-        data-catalog-document="questionnaires"
-        aria-labelledby="catalog-questionnaires-title"
-      >
-        <span class="fc-status" data-state="planned">À préparer sur le site</span>
-        <h3 id="catalog-questionnaires-title">Questionnaires adultes</h3>
-        <p>
-          Pré-formation, post-formation, suivi et bilan : les questionnaires historiques restent des
-          parcours distincts. Leur collecte ne signifie pas que leur remplacement sur le site est
-          ouvert.
-        </p>
-        <p class="fc-footnote">
-          Les nouveaux liens seront ajoutés après vérification de chaque parcours.
-        </p>
       </article>
     </div>
   </section>

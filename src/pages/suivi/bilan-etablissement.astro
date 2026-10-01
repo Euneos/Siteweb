@@ -1,0 +1,30 @@
+---
+import Preview from '../../components/FinalQuestionnairePreview.astro'
+import { publicFormsConfig } from '../../lib/public-forms'
+import { finalQuestionnaireDefinition } from '../../lib/final-questionnaire-definition'
+import { finalProjectionConfig, requireFinalSchema } from '../../lib/final-questionnaire-plan'
+import { requireFinalRegistry } from '../../lib/final-questionnaire-store'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+let ready = true
+if (!preview) {
+  try {
+    const { db, token } = publicFormsConfig(Astro.locals)
+    const config = finalProjectionConfig(
+      Astro.locals,
+      finalQuestionnaireDefinition('bilan-etablissement')!,
+    )
+    await requireFinalRegistry(db)
+    await requireFinalSchema(config, token)
+  } catch {
+    ready = false
+    Astro.response.status = 503
+  }
+}
+---
+
+<Preview slug="bilan-etablissement" preview={preview} ready={ready} />

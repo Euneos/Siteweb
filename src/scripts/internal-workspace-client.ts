@@ -1,6 +1,7 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
 import { initDailyHours } from './daily-hours-editor'
+import { MONTHLY_ACTIVITY, monthlyAvailabilityId } from '../lib/monthly-availability'
 import { personName, isOwnPerson, workspacePeople, workspaceActivities } from '../lib/workspace-people'
 
 type Kind = Entry['kind']
@@ -269,7 +270,7 @@ function initCalendar(root: HTMLElement) {
       control.querySelectorAll(`option[data-legacy-${field}]`).forEach((option) => option.remove())
       if (text && ![...control.options].some((option) => option.value === text)) {
         const label = field === 'person' ? personName(text)
-          : field === 'activity' ? `${text} (ancienne activité)`
+          : field === 'activity' ? text === MONTHLY_ACTIVITY ? text : `${text} (ancienne activité)`
           : field === 'status' ? `${statuses[text] ?? text} (ancien statut)` : `${text} (ancien canal)`
         const option = new Option(label, text)
         option.setAttribute(`data-legacy-${field}`, 'true')
@@ -324,7 +325,7 @@ function initCalendar(root: HTMLElement) {
   // Raw values detect even whitespace edits before closing; payloads are normalized separately.
   const snapshot = () => JSON.stringify(fields.map((field) => input(field).value))
   const isDirty = () =>
-    dialog.open && (snapshot() !== savedSnapshot || commentInput.value.length > 0)
+    dialog.open && (snapshot() !== savedSnapshot || commentInput.value.length > 0 || dailyEditor.hasPending())
   const canEdit = (entry: Entry | null) =>
     !entry ||
     entry.kind === 'editorial' ||
@@ -340,9 +341,13 @@ function initCalendar(root: HTMLElement) {
     save.disabled = saving || conflictPending || comparing
     byId('iw-readonly').hidden = !readOnly
     const person = input('person') as HTMLSelectElement
-    person.disabled = editorKind === 'equipe' && !identity.admin
+    const monthly = editorKind === 'equipe' && input('activity').value === MONTHLY_ACTIVITY
+    person.disabled = editorKind === 'equipe' && (!identity.admin || monthly)
+    input('activity').disabled = monthly
+    for (const key of ['starts_on', 'ends_on'] as const) (input(key) as HTMLInputElement).readOnly = monthly
+    byId<HTMLButtonElement>('iw-fill-month').disabled = monthly
     // Keep ownership enforced by the server, regardless of display labels.
-    if (!selected && person.disabled) writeField('person', identity.email)
+    if (!selected && person.disabled && !monthly) writeField('person', identity.email)
     const help = byId('iw-status-help')
     help.hidden = true
     help.textContent = identity.admin
@@ -683,7 +688,9 @@ function initCalendar(root: HTMLElement) {
                       entry.ends_on,
                     )!.find((row) => row.date === date)!
                     return [
-
+                      entry.activity === MONTHLY_ACTIVITY && day.slots?.length
+                        ? day.slots.map(slot => `${slot.start}–${slot.end}`).join(' / ')
+                        : '',
                       day.actual !== null
                         ? `${hours(day.actual)} réalisées`
                         : 'Réalisé non renseigné',
@@ -723,6 +730,7 @@ function initCalendar(root: HTMLElement) {
     return section
   }
   const render = () => {
+    byId('iw-monthly-action').hidden = kind !== 'equipe'
     if (!data) return
     const entries = data.entries
       .filter((entry) =>
@@ -1301,6 +1309,39 @@ function initCalendar(root: HTMLElement) {
     if (!selected && end.value < dateStart.value) end.value = dateStart.value
   })
   byId('iw-new').addEventListener('click', () => openEditor(null))
+  byId('iw-monthly').addEventListener('click', async () => {
+    const control = byId<HTMLButtonElement>('iw-monthly')
+    if (control.disabled || kind !== 'equipe') return
+    control.disabled = true
+    const requestedMonth = month
+    const person = identity.admin ? byId<HTMLSelectElement>('iw-person').value || identity.email : identity.email
+    try {
+      const current = await api<CalendarData>(`/api/interne/calendrier?month=${requestedMonth}&kind=equipe`)
+      if (month !== requestedMonth || kind !== 'equipe') return
+      const start = `${requestedMonth}-01`
+      const end = new Date(Date.UTC(Number(requestedMonth.slice(0, 4)), Number(requestedMonth.slice(5)), 0)).toISOString().slice(0, 10)
+      const id = await monthlyAvailabilityId(person, requestedMonth)
+      const candidates = current.entries.filter(e => e.person === person && e.starts_on === start && e.ends_on === end)
+      const existing = current.entries.find(e => e.id === id)
+      if (!existing && candidates.length > 1) throw new Error('Plusieurs fiches couvrent déjà ce mois pour cette personne. Ouvrez celle à corriger dans le calendrier ; aucune nouvelle fiche n’a été créée.')
+      if (existing || candidates.length === 1) {
+        openEditor(existing ?? candidates[0])
+        feedback(saveFeedback, 'La fiche existante du mois est ouverte. Corrigez-la ici pour éviter les doublons.')
+      } else {
+        openEditor(null)
+        fillForm({ ...readForm(), person, title: personName(person), starts_on: start, ends_on: end,
+          activity: MONTHLY_ACTIVITY, hours: null, daily_hours: '[]' })
+        byId('iw-editor-title').textContent = `Disponibilités · ${personName(person)} · ${monthFormat.format(dateObject(start))}`
+        savedSnapshot = snapshot()
+        feedback(saveFeedback, 'Préparez les jours récurrents, ajustez les exceptions, puis enregistrez cette fiche mensuelle.')
+      }
+      input('starts_on').focus()
+    } catch (error) {
+      feedback(byId('iw-notice'), errorText(error), true)
+    } finally {
+      control.disabled = false
+    }
+  })
   byId('iw-close').addEventListener('click', requestClose)
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault()

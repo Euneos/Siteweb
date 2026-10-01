@@ -35,6 +35,11 @@ for (const route of routes) {
   assert.match(response.headers.get('X-Robots-Tag'), /noindex/)
   assert.equal(response.headers.get('Referrer-Policy'), 'no-referrer')
   html[route] = await response.text()
+  const publicPage = await app.render(new Request(`http://localhost/suivi/${route}`), { locals: {} })
+  assert.equal(publicPage.status, 200)
+  html[`public-${route}`] = await publicPage.text()
+  assert.match(html[`public-${route}`], /name="schoolName"/)
+  assert.doesNotMatch(html[`public-${route}`], /Collège Exemple|Dossier concerné|code par email/)
   assert.match(html[route], /Collège Exemple/)
   assert.match(html[route], /Aperçu de démonstration/)
   assert.doesNotMatch(html[route], /(?:rel="canonical"[^>]*|property="og:url"[^>]*)\?t=/)
@@ -55,9 +60,8 @@ const expiredLocals = { runtime: { env: {
   OPERATIONAL_FORMS_ENABLED: 'true', FORM_SUBMISSIONS: expiredDb, NOCODB_TOKEN: 'fixture-only-link-check',
 } } }
 const linkErrors = [
-  { label: 'preview-missing', url: 'http://localhost/suivi/fiche-contact', locals: {}, status: 404 },
   { label: 'preview-invalid', url: 'http://localhost/suivi/fiche-contact?t=not-demo', locals: {}, status: 404 },
-  { label: 'missing', url: 'https://euneos.fr/suivi/fiche-contact', locals: expiredLocals, status: 403 },
+  { label: 'missing', url: 'https://euneos.fr/suivi/fiche-contact', locals: expiredLocals, status: 503 },
   { label: 'expired', url: `https://euneos.fr/suivi/fiche-contact?t=${'c'.repeat(64)}`, locals: expiredLocals, status: 403 },
   { label: 'unavailable', url: 'https://euneos.fr/suivi/participants', locals: {}, status: 503 },
   { label: 'unknown-kind', url: 'http://localhost/suivi/inconnu?t=demo', locals: {}, status: 404 },
@@ -247,7 +251,7 @@ const server = Bun.serve({
       })
     const route = path.split('/')[2]
     if (path.startsWith('/suivi/') && routes.includes(route))
-      return new Response(html[route], {
+      return new Response(html[url.searchParams.has('t') ? route : `public-${route}`], {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Referrer-Policy': 'no-referrer',
@@ -394,6 +398,7 @@ try {
       assert.equal(payload.schoolDetails.type, 'Collège')
     }
     if (route === 'deploiement') {
+      assert.equal(payload.participants.length, 0, 'Participants remain optional in form 4')
       assert.equal(payload.declaredTrainers.length, 2)
       assert.equal(payload.formation.sessions, 5)
       assert.equal(payload.preformation, 'Je vais le faire')
@@ -410,6 +415,56 @@ try {
       assert.equal(payload.youth.controlCount, 29)
       assert.equal(payload.youth.activeT1, '')
     }
+  }
+
+  // Form 4: no initial mandatory row; optional list, native validation and removal.
+  await goto('deploiement')
+  await fill('deploiement')
+  await expect(page.locator('[data-person]')).toHaveCount(0)
+  await expect(page.locator('#of-participants-count')).toContainText('facultatif')
+  await page.locator('#of-add-person').click()
+  await page.locator('[data-person-field=firstName]').fill('Camille')
+  const incompletePosts = publicPosts.length
+  await submit()
+  assert.equal(publicPosts.length, incompletePosts, 'An added adult needs both names')
+  await page.locator('[data-person-field=lastName]').fill('Exemple')
+  await page.locator('[data-person-field=email]').fill('camille@example.test')
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.deepEqual(publicPosts.at(-1).participants, [{ firstName: 'Camille', lastName: 'Exemple', email: 'camille@example.test', role: '' }])
+  await goto('deploiement')
+  await fill('deploiement')
+  await page.locator('#of-add-person').click()
+  await expect(page.locator('[data-person] [data-remove]')).toBeEnabled()
+  await page.locator('[data-person] [data-remove]').click()
+  await expect(page.locator('[data-person]')).toHaveCount(0)
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.deepEqual(publicPosts.at(-1).participants, [])
+  await goto('deploiement')
+  await page.locator('#of-add-person').evaluate((button) => { if (button instanceof HTMLButtonElement) for (let i = 0; i < 201; i++) button.click() })
+  await expect(page.locator('[data-person]')).toHaveCount(200)
+  await expect(page.locator('#of-add-person')).toBeDisabled()
+  await page.locator('[data-person]').last().locator('[data-remove]').click()
+  await expect(page.locator('[data-person]')).toHaveCount(199)
+  await expect(page.locator('#of-add-person')).toBeEnabled()
+
+  // Reusable links: no account, code or bearer token. Actual compiled preview POST.
+  for (const width of [390, 1440]) for (const route of routes) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto(`${origin}/suivi/${route}`)
+    await page.locator('[name=schoolName]').fill('Collège Exemple')
+    await page.locator('[name=city]').fill('Ville Exemple')
+    await page.locator('[name=schoolYear]').fill('2026-2027')
+    await fill(route)
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.evaluate(() => scrollTo(0, 0))
+    await page.screenshot({path:`${output}/public-${route}-${width}.png`})
+    await submit()
+    await expect(feedback).toContainText('Test terminé')
+    assert.equal(publicPosts.at(-1).access, 'public')
+    assert(!Object.hasOwn(publicPosts.at(-1), 'token'))
+    assert.equal(page.url(), `${origin}/suivi/${route}`)
   }
 
   // Contact removed questions and conditional scientific intention.
@@ -580,14 +635,15 @@ try {
   await expect(badges).toHaveCount(4)
   const legacyKinds = ['contact', 'deploiement', 'participants']
   const allKinds = [...legacyKinds, 'activites-jeunes']
-  for (const key of legacyKinds) await expect(catalog.locator(`[data-operational-state=${key}]`)).toHaveText('Actif · lien personnel')
+  for (const key of legacyKinds) await expect(catalog.locator(`[data-operational-state=${key}]`)).toHaveText('Actif · lien public')
   const youth = catalog.locator('[data-catalog-kind=activites-jeunes]')
   await expect(youth.locator('.fc-status')).toHaveText('À préparer')
-  await expect(youth.locator('button')).toBeDisabled()
-  await expect(youth.locator('a,input,textarea,select')).toHaveCount(0)
+  await expect(youth.locator('[data-prepare-kind]')).toBeDisabled()
+  await expect(youth.locator('[data-public-access]')).toBeHidden()
   await expect(linkForm.locator('[name=kind] option[value=activites-jeunes]')).toHaveCount(0)
   await expect(catalog.locator('[data-catalog-document=lettre] a')).toHaveCount(0)
-  await expect(catalog.locator('a[href*="/suivi/"],form')).toHaveCount(0)
+  await expect(catalog.locator('a[href*="/suivi/"]')).toHaveCount(11)
+  await expect(catalog.locator('form')).toHaveCount(0)
   const example = catalog.locator('[data-catalog-kind=contact] details')
   await example.locator('summary').focus()
   await page.keyboard.press('Enter')
@@ -596,7 +652,8 @@ try {
   await expect(example.locator('input,textarea,button,form')).toHaveCount(0)
   await page.keyboard.press('Enter')
   await expect(example).not.toHaveAttribute('open', '')
-  const publicPaths = ['/candidater/etablissement', '/candidater/formateur', '/contact', '/newsletter']
+  const publicPaths = ['/suivi/evaluation-formation', '/suivi/bilan-etablissement', '/suivi/pre-formation', '/suivi/bilan-formateur', '/suivi/post-formation', '/suivi/suivi-j45', '/suivi/accord-formateur', '/candidater/etablissement', '/candidater/formateur', '/contact', '/newsletter']
+  await expect(catalog.locator('[data-public-form]')).toHaveCount(publicPaths.length)
   for (const [i, card] of (await catalog.locator('[data-public-form]').all()).entries()) {
     const expected = `https://euneos.fr${publicPaths[i]}`
     await expect(card.locator('[data-public-url]')).toHaveValue(expected)
@@ -606,6 +663,13 @@ try {
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), expected)
     await expect(card.locator('[data-public-copy-feedback]')).toContainText('URL publique copiée')
   }
+  await expect(catalog.locator('#catalog-personal > .fc-grid > .fc-card')).toHaveCount(3)
+  await expect(catalog.locator('.fc-card[data-catalog-kind=participants]')).toHaveCount(0)
+  const complement = catalog.locator('[data-participants-complement]')
+  await expect(complement).not.toHaveAttribute('open', '')
+  await complement.locator('summary').click()
+  await complement.locator('[data-copy-public]').click()
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'https://euneos.fr/suivi/participants')
   for (const chosenKind of ['deploiement', 'participants', 'contact']) {
     await catalog.locator(`[data-prepare-kind=${chosenKind}]`).click()
     await expect(linkForm.locator('[name=kind]')).toHaveValue(chosenKind)
@@ -657,10 +721,10 @@ try {
   // The backend kinds list is authoritative, including removal after an enabled session.
   internalResponse = { ...fixture, kinds: allKinds }
   await page.locator('#links-refresh').click()
-  await expect(youth.locator('.fc-status')).toHaveText('Actif · lien personnel')
-  await expect(youth.locator('button')).toBeEnabled()
+  await expect(youth.locator('.fc-status')).toHaveText('Actif · lien public')
+  await expect(youth.locator('[data-prepare-kind]')).toBeEnabled()
   await expect(youth.locator('[data-kind-note]')).not.toContainText('pas encore ouvert')
-  await youth.locator('button').click()
+  await youth.locator('[data-prepare-kind]').click()
   await expect(linkForm.locator('[name=kind]')).toHaveValue('activites-jeunes')
   assert.equal(linkPosts.length, 2, 'Selecting newly enabled youth kind does not create a link')
   await linkSubmit.click()
@@ -671,7 +735,7 @@ try {
     internalResponse = { ...fixture, kinds: advertised }
     await page.locator('#links-refresh').click()
     await expect(youth.locator('.fc-status')).toHaveText('À préparer')
-    await expect(youth.locator('button')).toBeDisabled()
+    await expect(youth.locator('[data-prepare-kind]')).toBeDisabled()
     await expect(youth.locator('[data-kind-note]')).toContainText('pas encore ouvert')
     await expect(linkForm.locator('[name=kind] option[value=activites-jeunes]')).toHaveCount(0)
     await expect(page.locator('#link-url')).not.toHaveValue(/activites-jeunes/)
@@ -688,8 +752,8 @@ try {
 
   // Availability is separate from having eligible dossiers. Preview never exposes them.
   for (const [response, label, message] of [
-    [{ enabled: true, dossiers: [], submissions: [] }, 'Actif · lien personnel', 'Aucun dossier disponible'],
-    [{ enabled: true, kinds: allKinds, dossiers: [], submissions: [] }, 'Actif · lien personnel', 'Aucun dossier disponible'],
+    [{ enabled: true, dossiers: [], submissions: [] }, 'Actif · lien public', 'Aucun dossier disponible'],
+    [{ enabled: true, kinds: allKinds, dossiers: [], submissions: [] }, 'Actif · lien public', 'Aucun dossier disponible'],
     [{ enabled: true, kinds: [], dossiers: [], submissions: [] }, 'À préparer', 'Aucun formulaire disponible'],
     [{ enabled: false, dossiers: [], submissions: [] }, 'Indisponible', 'momentanément indisponible'],
     [{ enabled: false, kinds: allKinds, dossiers: [], submissions: [] }, 'Indisponible', 'momentanément indisponible'],
@@ -704,7 +768,7 @@ try {
     await expect(page.locator('#link-feedback')).toContainText(message)
     for (const badge of await badges.all()) {
       const key = await badge.getAttribute('data-operational-state')
-      const expected = label === 'Actif · lien personnel' && !(response.kinds ?? legacyKinds).includes(key) ? 'À préparer' : label
+      const expected = label === 'Actif · lien public' && !(response.kinds ?? legacyKinds).includes(key) ? 'À préparer' : label
       await expect(badge).toHaveText(expected)
     }
     for (const button of await catalog.locator('[data-prepare-kind]').all()) await expect(button).toBeDisabled()
@@ -729,7 +793,7 @@ try {
         internalResponse = { ...fixture, kinds: [390, 761, 1440].includes(width) ? allKinds : legacyKinds }
         await page.goto(`${origin}/interne/formulaires?dossier=902`)
         await expect(linkSubmit).toBeEnabled()
-        await expect(youth.locator('.fc-status')).toHaveText(internalResponse.kinds.includes('activites-jeunes') ? 'Actif · lien personnel' : 'À préparer')
+        await expect(youth.locator('.fc-status')).toHaveText(internalResponse.kinds.includes('activites-jeunes') ? 'Actif · lien public' : 'À préparer')
         await expect(
           page
             .getByRole('navigation', { name: 'Espace interne' })
@@ -737,7 +801,8 @@ try {
         ).toHaveAttribute('aria-current', 'page')
       } else {
         await goto(route)
-        if (route === 'participants') {
+        if (route === 'deploiement') await page.locator('#of-add-person').click()
+        if (route === 'participants' || route === 'deploiement') {
           await page.locator('[data-person-field=firstName]').fill('Camille')
           await page.locator('[data-person-field=lastName]').fill('Exemple')
         }
@@ -777,7 +842,7 @@ try {
       if (route === 'internal') {
         for (const summary of await catalog.locator('summary').all()) await summary.click()
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Open examples fit at ${width}`)
-        const smallTargets = await catalog.locator('button,a,summary').evaluateAll((nodes) => nodes.filter((node) => node.getBoundingClientRect().height < 44).map((node) => node.textContent))
+        const smallTargets = await catalog.locator('button,a,summary').evaluateAll((nodes) => nodes.filter((node) => node.getClientRects().length > 0 && node.getBoundingClientRect().height < 44).map((node) => node.textContent))
         assert.deepEqual(smallTargets, [], `Catalog tap targets at ${width}`)
       }
       measures.push({ route, ...dimensions })
@@ -793,7 +858,7 @@ try {
         await page.screenshot({ path: `${output}/${route}-${width}-full.png`, fullPage: true })
         if (route !== 'internal') {
           await page
-            .locator(route === 'participants' ? '#of-participants' : route === 'activites-jeunes' ? '#of-evaluation-details' : '#of-trainers')
+            .locator(['participants', 'deploiement'].includes(route) ? '#of-participants' : route === 'activites-jeunes' ? '#of-evaluation-details' : '#of-trainers')
             .scrollIntoViewIfNeeded()
           await page.screenshot({ path: `${output}/${route}-${width}-adults.png` })
         }
@@ -831,7 +896,7 @@ try {
       'mobile/desktop header and field bounds',
       'catalog examples keyboard accessible; no POST from selection or public URL copy',
       'catalog runtime availability, disabled and preview states, no personal data in preview',
-      'youth form and letter have no misleading generic link',
+      'four public links submit without token; letter is not advertised as a form',
       'youth availability follows backend kinds; removal and malformed lists fail closed',
       'open catalog examples and 44px targets across ten viewport widths',
     ],

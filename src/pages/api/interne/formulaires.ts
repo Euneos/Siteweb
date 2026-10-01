@@ -17,6 +17,7 @@ import {
   requireOperationalKindEnabled,
 } from '../../../lib/operational-links'
 import { listOperationalSubmissions } from '../../../lib/operational-store'
+import { listPublicForms } from '../../../lib/public-forms'
 export const prerender = false
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
@@ -69,6 +70,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       enabled: true,
       dossiers,
       submissions,
+      publicResponses: await listPublicForms(locals),
       kinds: Object.keys(operationalLinkColumns).filter(
         (kind) => kind !== 'activites-jeunes' || operationalYouthEnabled(locals),
       ),

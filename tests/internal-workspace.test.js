@@ -11,6 +11,8 @@ import {
   safeLink,
 } from '../src/lib/internal-workspace'
 import { readInternalBody, internalError } from '../src/lib/internal-context'
+import { MONTHLY_ACTIVITY, planMonth, monthlyAvailabilityId } from '../src/lib/monthly-availability'
+import { parseDailyHours, entryOccursOn, slotHours } from '../src/lib/daily-hours'
 
 const connections = []
 const fixture = () => {
@@ -60,6 +62,65 @@ const entry = (extra = {}) => ({
 })
 
 describe('Calendriers et commentaires persistants', () => {
+  test('disponibilités mensuelles : récurrence, créneaux, exceptions et réalisé restent distincts', () => {
+    const slots = [{ start: '09:00', end: '12:30' }, { start: '13:30', end: '17:00' }]
+    const days = planMonth('2026-10-01', '2026-10-31', [
+      { weekday: 2, slots }, { weekday: 4, slots },
+      { weekday: 5, slots: [{ start: '13:30', end: '17:00' }] },
+    ], [])
+    expect(days).toHaveLength(14)
+    expect(days.every(d => d.actual === null)).toBe(true)
+    const parsed = parseEntry(entry({ starts_on: '2026-10-01', ends_on: '2026-10-31',
+      activity: MONTHLY_ACTIVITY, hours: 42, daily_hours: JSON.stringify(days) }))
+    expect(parsed.hours).toBeNull()
+    expect(entryOccursOn(parsed, '2026-10-01')).toBe(true)
+    expect(entryOccursOn(parsed, '2026-10-03')).toBe(false)
+    const exception = days.filter(d => d.date !== '2026-10-02')
+    exception.push({ date: '2026-10-07', planned: 2.25, actual: null, slots: [{ start: '14:00', end: '16:15' }] })
+    const revised = parseEntry({ ...parsed, daily_hours: JSON.stringify(exception) })
+    expect(revised.hours).toBeNull()
+    expect(entryOccursOn(revised, '2026-10-02')).toBe(false)
+    expect(entryOccursOn(revised, '2026-10-07')).toBe(true)
+  })
+  test('un mois possède une identité durable ; concurrence, droits et correction ne créent pas de doublons', async () => {
+    const { db, sql } = fixture()
+    const slots = [{ start: '09:00', end: '12:30' }]
+    const days = planMonth('2028-02-01', '2028-02-29', [{ weekday: 2, slots }], [])
+    expect(days.map(d => d.date)).toEqual(['2028-02-01','2028-02-08','2028-02-15','2028-02-22','2028-02-29'])
+    const input = entry({ starts_on: '2028-02-01', ends_on: '2028-02-29', activity: MONTHLY_ACTIVITY,
+      hours: null, daily_hours: JSON.stringify(days) })
+    const ids = await Promise.all([saveEntry(db, actor, input, undefined, undefined, crypto.randomUUID()),
+      saveEntry(db, actor, input, undefined, undefined, crypto.randomUUID())])
+    expect(ids[0]).toBe(ids[1])
+    expect(ids[0]).toBe(await monthlyAvailabilityId(actor.email.toUpperCase(), '2028-02'))
+    expect(sql.query('SELECT COUNT(*) n FROM workspace_entries').get().n).toBe(1)
+    expect((await listEntries(db, '2028-02', 'equipe'))[0].hours).toBeNull()
+    days[0].actual = 4
+    await saveEntry(db, actor, { ...input, daily_hours: JSON.stringify(days) }, ids[0], 1)
+    const replanned = planMonth(input.starts_on, input.ends_on, [{ weekday: 4, slots }], days)
+    expect(replanned.find(d => d.date === '2028-02-01')).toEqual({ date: '2028-02-01', planned: null, actual: 4 })
+    await saveEntry(db, actor, { ...input, daily_hours: JSON.stringify(replanned) }, ids[0], 2)
+    expect(sql.query('SELECT COUNT(*) n FROM workspace_entries').get().n).toBe(1)
+    expect((await listEntries(db, '2028-02', 'equipe'))[0]).toMatchObject({ hours: 4, version: 3 })
+    await expect(saveEntry(db, actor, input, ids[0], 1)).rejects.toMatchObject({ status: 409 })
+    await expect(saveEntry(db, actor, input, undefined, undefined, crypto.randomUUID())).rejects.toMatchObject({ status: 409 })
+    await expect(saveEntry(db, actor, { ...input, person: 'other@example.test' })).rejects.toMatchObject({ status: 403 })
+    await expect(saveEntry(db, actor, { ...input, activity: 'Coordination' }, ids[0], 3)).rejects.toMatchObject({ status: 409 })
+    await expect(saveEntry(db, admin, { ...input, person: 'other@example.test' }, ids[0], 3)).rejects.toMatchObject({ status: 409 })
+    await expect(saveEntry(db, actor, { ...input, starts_on: '2028-02-02', daily_hours: '[]' })).rejects.toMatchObject({ status: 400 })
+  })
+  test('créneaux invalides ou incohérents refusés et exceptions sans réalisé ne fabriquent aucune heure', () => {
+    for (const slots of [[{ start:'12:00',end:'11:00' }], [{start:'25:00',end:'26:00'}],
+      [{start:'09:00',end:'12:00'},{start:'11:00',end:'13:00'}]]) expect(() => slotHours(slots)).toThrow()
+    expect(() => parseDailyHours(JSON.stringify([{date:'2026-10-01',planned:7,actual:null,slots:[{start:'09:00',end:'12:00'}]}]),'2026-10-01','2026-10-31')).toThrow()
+    expect(() => planMonth('2026-02-30','2026-02-31',[],[])).toThrow()
+    expect(() => planMonth('2026-10-01','2026-10-31',[{weekday:2,slots:[{start:'09:00',end:'12:00'}]},{weekday:2,slots:[{start:'13:00',end:'17:00'}]}],[])).toThrow()
+    const days = planMonth('2026-10-01','2026-10-31',[],[{date:'2026-10-01',planned:7,actual:0}])
+    expect(days).toEqual([{date:'2026-10-01',planned:null,actual:0}])
+    const e = {kind:'equipe',starts_on:'2026-10-01',ends_on:'2026-10-31',daily_hours:JSON.stringify(days)}
+    expect(entryOccursOn(e,'2026-10-01')).toBe(true)
+    expect(entryOccursOn(e,'2026-10-02')).toBe(false)
+  })
   test('Programmé reste éditorial, une ancienne fiche équipe conserve son statut sans le proposer à nouveau', async () => {
     const { db, sql } = fixture()
     await expect(saveEntry(db, actor, entry({ status: 'programme' }))).rejects.toMatchObject({
