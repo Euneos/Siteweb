@@ -15,18 +15,22 @@ import {
   resolveOperationalLink,
 } from '../../../lib/operational-links'
 import { acknowledgeOperational } from '../../../lib/operational-mail'
+import { publicFormsConfig, parsePublicIdentity, receivePublicForm, limitPublicForm } from '../../../lib/public-forms'
 export const prerender = false
 
 export const POST: APIRoute = async ({ request, locals, params }) => {
   try {
     const kind = operationalKind(params.kind)
     const body = await readOperationalBody(request)
-    const { token: submittedToken, website, ...answers } = body
+    const { token: submittedToken, website, access, identity, ...answers } = body
+    if (access !== undefined && access !== 'public') return operationalJson({ code: 'invalid_fields' }, 400)
+    if (access !== 'public' && identity !== undefined) return operationalJson({ code: 'invalid_fields' }, 400)
     if (website !== undefined && website !== '')
       return operationalJson({ code: 'invalid_fields' }, 400)
     const data = parseOperationalInput(answers, kind)
+    const publicIdentity = access === 'public' ? parsePublicIdentity(identity) : null
     if (modeApercu(request)) {
-      if (submittedToken !== 'demo')
+      if (submittedToken !== 'demo' && !publicIdentity)
         throw new OperationalLinkError(
           403,
           'apercu',
@@ -41,6 +45,12 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
       })
     }
     requireOperationalKindEnabled(locals, kind)
+    if (publicIdentity) {
+      const config = publicFormsConfig(locals)
+      await limitPublicForm(config.db, request)
+      const result = await receivePublicForm({ ...config, identity: publicIdentity, kind, data })
+      return operationalJson(result, result.state === 'processing' ? 202 : 200)
+    }
     const { db, token } = operationalConfig(locals)
     const { hash, target } = await resolveOperationalLink(db, submittedToken, kind)
     const current = await operationalTarget(token, target.participationId)

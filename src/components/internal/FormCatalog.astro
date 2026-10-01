@@ -94,7 +94,7 @@ const publicForms = [
     <a href="#catalog-personal">Formulaires du dossier</a>
     <a href="#catalog-public">Liens publics</a>
     <a href="#catalog-pending">Autres documents et questionnaires</a>
-    <a href="#preparer-lien">Préparer un lien personnel</a>
+    <a href="#preparer-lien">Liens préremplis (facultatif)</a>
   </nav>
 
   <section id="catalog-personal" class="fc-section" aria-labelledby="catalog-personal-title">
@@ -102,8 +102,8 @@ const publicForms = [
       <p class="fc-eyebrow">Le parcours d’un établissement</p>
       <h2 id="catalog-personal-title">Les formulaires du dossier</h2>
       <p>
-        Les numéros 3, 4 et 5 reprennent les repères des guides. Chaque lien personnel concerne un
-        établissement et une cohorte.
+        Copiez un lien dans vos guides ou vos messages. Il est identique pour tous les établissements :
+        ils renseignent leur identité, remplissent le formulaire et envoient leur réponse, sans compte ni code d’accès.
       </p>
     </header>
     <div class="fc-grid">
@@ -142,7 +142,7 @@ const publicForms = [
               <div class="fc-example-body">
                 <p class="fc-example-note">
                   Aperçu simplifié, avec des informations fictives. Les champs complets figurent
-                  dans le formulaire personnel.
+                  dans le formulaire complet.
                 </p>
                 <dl>
                   {item.example.map(([label, value]) => (
@@ -157,13 +157,23 @@ const publicForms = [
                 </p>
               </div>
             </details>
+            <div data-public-access hidden>
+            <label class="of-field">Lien à partager
+              <input type="text" readonly value={`https://euneos.fr/suivi/${item.key === 'contact' ? 'fiche-contact' : item.key}`} aria-label={`URL publique : ${item.name}`} data-public-url />
+            </label>
+            <div class="fc-actions">
+              <a class="iw-button iw-button--primary" href={`/suivi/${item.key === 'contact' ? 'fiche-contact' : item.key}`} target="_blank" rel="noopener noreferrer">Voir le formulaire ↗</a>
+              <button type="button" class="iw-button" data-copy-public disabled>Copier le lien</button>
+            </div>
+            <p class="fc-copy-feedback" data-public-copy-feedback role="status" aria-live="polite" />
+            </div>
             <button
               type="button"
-              class="iw-button iw-button--primary"
+              class="iw-button"
               data-prepare-kind={item.key}
               disabled
             >
-              Préparer un lien personnel<span class="fc-sr-only"> : {item.name}</span>
+              Lien prérempli pour un dossier<span class="fc-sr-only"> : {item.name}</span>
             </button>
             <p class="fc-footnote" data-kind-note>
               La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.
@@ -177,13 +187,11 @@ const publicForms = [
   <aside class="fc-guide" aria-labelledby="catalog-guide-title">
     <h2 id="catalog-guide-title">Quels liens mettre dans les guides ?</h2>
     <p>
-      Les <strong>liens publics</strong> ci-dessous peuvent être repris dans Canva. Les formulaires d’un
-      dossier nécessitent un <strong>lien personnel</strong>, à transmettre uniquement à son
-      destinataire.
+      Les <strong>liens publics</strong> des formulaires ci-dessus et des candidatures ci-dessous peuvent être repris dans Canva et envoyés à plusieurs destinataires.
     </p>
     <p>
-      Dans un guide partagé, indiquez « Demandez votre lien à l’équipe EUNEOS ». Un exemple sert à
-      reconnaître le formulaire ; il ne permet pas de répondre.
+      Chaque répondant remplit uniquement sa propre réponse. Les dossiers et les réponses des autres restent privés.
+      Les anciens liens préremplis continuent à fonctionner ; il n’est plus nécessaire d’en créer un pour chaque envoi.
     </p>
   </aside>
 
@@ -192,8 +200,7 @@ const publicForms = [
       <p class="fc-eyebrow">Sans lien personnel</p>
       <h2 id="catalog-public-title">Les liens publics à réutiliser</h2>
       <p>
-        Ces pages sont accessibles à tous. Elles ne remplacent pas les formulaires 3, 4 ou 5 d’un
-        dossier.
+        Ces pages permettent de candidater, de contacter l’équipe et de s’inscrire à la newsletter.
       </p>
     </header>
     <div class="fc-grid">

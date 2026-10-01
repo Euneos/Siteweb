@@ -202,7 +202,7 @@ if (form) {
     const str = (key: string) => String(data.get(key) ?? '').trim()
     const num = (key: string) => (str(key) === '' ? null : Number(str(key)))
     const payload: Record<string, unknown> = {
-      token: str('token'),
+      ...(form.dataset.public === 'true' ? { access: 'public', identity: { schoolName: str('schoolName'), city: str('city'), schoolYear: str('schoolYear') } } : { token: str('token') }),
       website: str('website'),
       ...(form.dataset.kind !== 'participants' ? { version: 2 } : {}),
       referrer: {
@@ -333,6 +333,8 @@ if (form) {
       }
       if (!response.ok) {
         const messages: Record<string, string> = {
+          identity: 'Indiquez le nom de votre établissement, sa ville et l’année scolaire (exemple : 2026-2027).',
+          rate_limit: 'Trop d’envois rapprochés. Conservez votre saisie et réessayez dans quelques minutes.',
           invalid_fields: 'Vérifiez les champs du formulaire. Votre saisie est conservée.',
           invalid_email: 'Vérifiez les adresses e-mail. Votre saisie est conservée.',
           invalid_text: 'Vérifiez les champs de texte obligatoires et leur longueur.',
@@ -389,11 +391,17 @@ if (form) {
       }
       if (!['complete', 'review', 'processing'].includes(result?.state))
         throw new Error('invalid response')
+      if (form.dataset.public === 'true' && result.state === 'processing') {
+        show('L’enregistrement est en cours de vérification. Conservez votre saisie et contactez l’équipe avant de renvoyer votre réponse.', true)
+        return
+      }
       terminal = true
       if (result.preview === true || form.dataset.preview === 'true')
         show(
           'Test terminé. Aucune donnée n’a été ajoutée au suivi réel et aucun e-mail n’a été envoyé.',
         )
+      else if (form.dataset.public === 'true')
+        show('Votre réponse a bien été enregistrée. Merci ! L’équipe EUNEOS pourra vous contacter si une précision est nécessaire.')
       else if (result.state === 'complete')
         show(
           result.duplicate

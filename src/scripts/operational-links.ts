@@ -80,10 +80,12 @@ if (app) {
       badge.textContent = isPlanned ? 'À préparer' : label
       const card = badge.closest<HTMLElement>('[data-catalog-kind]')!
       card.classList.toggle('fc-card--planned', isPlanned)
+      const publicAccess = card.querySelector<HTMLElement>('[data-public-access]')
+      if (publicAccess) publicAccess.hidden = state !== 'active' || isPlanned
       card.querySelector<HTMLElement>('[data-kind-note]')!.textContent = isPlanned
         ? 'Ce formulaire n’est pas encore ouvert. Aucun lien à diffuser pour le moment.'
         : state === 'active'
-          ? 'Puis choisissez le dossier ci-dessous. Ce bouton ne crée ni ne renouvelle de lien.'
+          ? 'Partagez le lien public. Le lien prérempli par dossier reste facultatif.'
           : state === 'preview'
             ? 'Les liens personnels se préparent depuis le site en production.'
             : 'La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.'
@@ -236,7 +238,7 @@ if (app) {
         data.preview
           ? 'Aperçu · création désactivée'
           : data.enabled
-            ? 'Actif · lien personnel'
+            ? 'Actif · lien public'
             : 'Indisponible',
       )
       setMessage(
@@ -290,7 +292,37 @@ if (app) {
           ? `${submissions.length} tentative(s) consultée(s), dont ${incidents} à vérifier.${submissions.length >= 100 ? ' Seules les 100 dernières sont affichées.' : ''}`
           : 'Aucune tentative de transmission dans ce suivi pour le moment.',
       )
-      list.hidden = submissions.length === 0
+      const publicResponses = Array.isArray(data.publicResponses) ? data.publicResponses : []
+      for (const response of publicResponses) {
+        const card = document.createElement('article')
+        card.className = 'of-submission'
+        const heading = document.createElement('h3')
+        heading.textContent = `${response.school} · ${response.city} · ${response.year}`
+        const state = document.createElement('p')
+        state.textContent = `${response.form} — ${response.state}`
+        const details = document.createElement('details')
+        const summary = document.createElement('summary')
+        summary.textContent = 'Lire la réponse reçue'
+        details.append(summary)
+        for (const [label, value] of response.details) {
+          const line = document.createElement('p')
+          line.style.whiteSpace = 'pre-line'
+          const title = document.createElement('strong')
+          title.textContent = `${label} : `
+          line.append(title, document.createTextNode(String(value)))
+          details.append(line)
+        }
+        card.append(heading, state, details)
+        if (Number.isSafeInteger(response.participationId) && response.participationId > 0) {
+          const link = document.createElement('a')
+          link.href = `/etat-candidatures#dossier-${response.participationId}`
+          link.textContent = 'Consulter le suivi'
+          card.append(link)
+        }
+        list.prepend(card)
+      }
+      if (publicResponses.length) receptionFeedback.textContent += ` ${publicResponses.length} réponse(s) aux liens publics affichée(s).`
+      list.hidden = submissions.length === 0 && publicResponses.length === 0
       if (enabled) showExisting()
     } catch {
       enabled = false
@@ -385,7 +417,7 @@ if (app) {
       dossier.focus({ preventScroll: true })
     })
   }
-  for (const card of app.querySelectorAll<HTMLElement>('[data-public-form]')) {
+  for (const card of app.querySelectorAll<HTMLElement>('[data-public-form],[data-catalog-kind]')) {
     const input = card.querySelector<HTMLInputElement>('[data-public-url]')!
     const button = card.querySelector<HTMLButtonElement>('[data-copy-public]')!
     const status = card.querySelector<HTMLElement>('[data-public-copy-feedback]')!
