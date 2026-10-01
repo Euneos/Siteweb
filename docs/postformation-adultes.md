@@ -1,8 +1,8 @@
 # Questionnaires B et J+45 — site vers réception adulte
 
-Ce lot est local, sans publication, données réelles ni e-mails. Il se pose après
-la préformation de Pasteur (`dd45188` puis son correctif `87389de`) et les primitives
-PR38. Il ne modifie aucun de leurs runners ni le Worker Google.
+Les deux formulaires publics utilisent le journal de réponses et les primitives
+de rapprochement de la préformation. Ils ne modifient pas le Worker Google et
+n’envoient aucun e-mail.
 
 ## Formulaires reproduits
 
@@ -59,11 +59,10 @@ libellés enregistrés. Le raccordement à `listPublicForms` est limité à un i
 un retour anticipé, compatible avec pré-A. Aucun endpoint public de lecture des
 réponses n’est ajouté. Aucun PATCH du journal : les notes humaines et annotations Google restent intactes.
 
-## Assemblage / activation par le parent
+## Activation
 
 - Migration additive `migrations/0011_postformation_projection.sql` sur
-  `FORM_SUBMISSIONS`, après la 0010 pré-A ; ne pas l’appliquer en production depuis
-  ce chantier. Aucun changement de schéma NocoDB (les deux champs Date existent
+  `FORM_SUBMISSIONS`, après la 0010 pré-A, selon le circuit de la base des formulaires. Aucun changement de schéma NocoDB (les deux champs Date existent
   dans les métadonnées privées relues localement).
 - Configuration serveur privée dédiée `POST_FORMATION_PERSON_PROJECTION` et
   `SUIVI_J45_PERSON_PROJECTION`, ou famille unique correspondante dans `SOURCES`,
@@ -73,10 +72,9 @@ réponses n’est ajouté. Aucun PATCH du journal : les notes humaines et annota
   à valider la configuration source, les sélecteurs du site sont ceux de sa version.
 - Sans configuration valide, journal ou tables techniques : GET/POST indisponibles
   (503), pas de collecte brute prétendant avoir mis à jour un adulte.
-- **Catalogue de liens laissé au parent** pour éviter les conflits avec les lots
-  accord/bilan : ajouter les deux liens génériques ci-dessus aux étapes B et C.
-  Ce commit raccorde déjà les réponses dans la liste interne ; ne pas remplacer
-  le hook pré-A lors de l’assemblage.
+- Le catalogue interne expose les deux liens génériques ci-dessus aux étapes B
+  et C. Les réponses apparaissent dans la liste privée, avec celles des autres
+  questionnaires.
 - Les formulaires ne préremplissent aucun dossier depuis l’URL et ne publient pas
   d’annuaire. Aucun lien personnel, compte répondant ou e-mail automatique requis.
 

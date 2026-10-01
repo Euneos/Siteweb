@@ -46,7 +46,7 @@ Nouvelle variable serveur `BILAN_FORMATEUR_PROJECTION`, objet JSON :
 }
 ```
 
-Toutes les valeurs d’identité ci-dessus sont **fictives**. Le parent reprend les tables et mappings année/établissement/dossier issus de l’audit privé ; ne pas publier ces mappings. `records` désigne ici les **participations établissements**, pas les parcours formateurs. Pour cette raison, le `personProjection` Google historique de famille `bilan_formateur` n’est pas utilisé implicitement : il permettait un lien vers un parcours formateur, pas une preuve de mission. Les mêmes mappings audités de cohortes/établissements peuvent être repris explicitement dans ce contrat.
+Toutes les valeurs d’identité ci-dessus sont **fictives**. La configuration reprend les tables et mappings année/établissement/dossier issus de l’audit privé ; ne pas publier ces mappings. `records` désigne ici les **participations établissements**, pas les parcours formateurs. Pour cette raison, le `personProjection` Google historique de famille `bilan_formateur` n’est pas utilisé implicitement : il permettait un lien vers un parcours formateur, pas une preuve de mission. Les mêmes mappings audités de cohortes/établissements peuvent être repris explicitement dans ce contrat.
 
 Les cinq colonnes/types de `fields` ont été confrontés à la métadonnée missions privée du 1 octobre. Un sous-ensemble est possible ; `[]` limite le report au seul accusé métier `bilan_recu`. Le mapping `receipt` est obligatoire et n’autorise que la colonne Checkbox `bilan_recu` à la valeur true. Toute colonne inconnue, type erroné, doublon ou année ambiguë bloque la configuration. Étendre la liste nécessite nouvel audit et tests, jamais un nom de colonne libre donné par le répondant.
 
@@ -72,4 +72,4 @@ Comme pour les autres runners, NocoDB ne fournit pas de CAS : une intervention m
 - `bun run build` puis `bun scripts/check-bilan-formateur.mjs` : **site et API compilés**, SQLite mémoire, NocoDB/JWT fictifs ; aucune configuration ni secret réel chargé. Rendu 320/390/768/860/861/1024/1440 px, 28 libellés, aucune présélection, reprise d’un PATCH enregistré dont la relecture a échoué, une seule écriture, catalogue privé et indisponibilité sans configuration.
 - Captures et preuve `/tmp/euneos-bilan-qa/result.json` par défaut. Tous les transports extérieurs sont simulés ; aucune donnée NocoDB réelle, aucun email, aucun déploiement.
 
-Le parent conserve les dispatchers accord/pré-A/B/J45 lors de l’intégration des quelques lignes communes de `public-forms.ts` et des cartes de `FormCatalog.astro`.
+Le catalogue et la lecture des réponses restent compatibles avec les formulaires accord, préformation, postformation et J+45.
