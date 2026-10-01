@@ -252,7 +252,7 @@ try {
   await expect(page.locator('#preformation-feedback')).toContainText('a bien été enregistrée')
   assert.equal(rows.length, 1)
   assert.equal(JSON.parse(rows[0].reponses).answers.length, 17)
-  assert.equal(rows[0].statut_reprise, 'Réception adulte vérifiée')
+  assert.equal(rows[0].statut_reprise, 'À rapprocher')
   assert.match(adults[0].date_pre_recu, /^20\d{2}-\d{2}-\d{2}$/)
   assert.equal(adults[0].statut, 'Inchangé')
   await expect(page.getByRole('button', { name: 'Réponse reçue' })).toBeDisabled()

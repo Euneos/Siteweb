@@ -135,42 +135,14 @@ export async function receivePreformation(input: {
     config: input.personProjection,
     answers,
   })
-  // The durable projection row is authoritative. Only terminal results are
-  // mirrored, so a concurrent in-progress response cannot undo a verified result.
+  // The durable projection row is authoritative. The source stays append-only:
+  // a read/merge/PATCH of journal annotations could overwrite another writer.
   if (projected.state === 'complete' || projected.state === 'review') {
     const verified = projected.state === 'complete'
     await db
       .prepare('UPDATE public_form_receipts SET state=?,code=?,target_id=? WHERE receipt=?')
       .bind(verified ? 'complete' : 'review', projected.code, projected.participation_id, receipt)
       .run()
-    try {
-      const summary = JSON.stringify({
-        kind: 'preformation_a',
-        state: verified ? 'verified' : 'pending',
-        code: projected.code,
-        adultId: projected.adult_id,
-        participationId: projected.participation_id,
-        datePre: projected.date_pre,
-        receivedAt: projected.received_at,
-        questionnaire: 'conservé au journal',
-      })
-      const previous =
-        typeof source.detail_reprise === 'string' && source.detail_reprise !== 'projection_pending'
-          ? source.detail_reprise
-          : ''
-      await operationalRequest(token, `/tables/${table}/records`, 'PATCH', [
-        {
-          Id: source.Id,
-          dossier_id: projected.participation_id,
-          statut_reprise: verified ? 'Réception adulte vérifiée' : 'À vérifier',
-          detail_reprise: previous.includes(summary)
-            ? previous
-            : [previous, summary].filter(Boolean).join('\n'),
-        },
-      ])
-    } catch {
-      /* Source + verified/pending projection stay durable and visible in D1. */
-    }
   }
   if (!['complete', 'review'].includes(projected.state))
     return { state: 'processing', code: 'processing', duplicate: claim.meta.changes !== 1 }

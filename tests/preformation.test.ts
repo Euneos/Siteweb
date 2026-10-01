@@ -187,7 +187,7 @@ test('all 17 exact questions are journaled, reread and visible with verified adu
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ state: 'complete', code: 'received', duplicate: false })
   expect(rows).toHaveLength(1)
-  expect(rows[0].statut_reprise).toBe('Réception adulte vérifiée')
+  expect(rows[0].statut_reprise).toBe('À rapprocher')
   expect(people[0].date_pre_recu).toBe('2026-10-02')
   expect(people[0].statut).toBe('Inchangé')
   const source = JSON.parse(rows[0].reponses)
@@ -402,7 +402,7 @@ for (const [scenario, code] of [
     expect(await response.json()).toEqual({ state: 'complete', code: 'received', duplicate: false })
     expect(projection().state).toBe('review')
     expect(projection().code).toBe(code)
-    expect(rows[0].statut_reprise).toBe('À vérifier')
+    expect(rows[0].statut_reprise).toBe('À rapprocher')
     expect(JSON.parse(rows[0].reponses).answers).toHaveLength(17)
     expect(JSON.stringify(people)).toBe(before)
     expect(adultWrites).toHaveLength(0)
@@ -654,3 +654,25 @@ for (const winner of ['google', 'site'] as const)
       beforeAdultWrite = null
     }
   })
+
+test('concurrent journal annotations are never overwritten by the site projection or retries', async () => {
+  const annotation = {
+    detail_reprise: 'Annotation concurrente fictive',
+    statut_reprise: 'Relecture manuelle',
+    dossier_id: 99,
+  }
+  beforeAdultWrite = async () => {
+    Object.assign(rows[0], annotation)
+  }
+  expect((await post()).status).toBe(200)
+  expect(projection().state).toBe('complete')
+  expect(rows[0]).toMatchObject(annotation)
+  await post()
+  expect(rows[0]).toMatchObject(annotation)
+  expect(
+    calls.filter((c) => c.method === 'PATCH' && c.url.includes('/tables/publicanswerstable/')),
+  ).toHaveLength(0)
+  const entry = (await listPublicForms(locals()))[0]
+  expect(entry.state).toContain('vérifiée sur l’adulte')
+  expect(entry.participationId).toBe(7)
+})

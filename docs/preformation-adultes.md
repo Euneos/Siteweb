@@ -98,10 +98,11 @@ pas leur sérialisation. Aucun verrou existant n’est expiré ou réinitialisé
 
 Le catalogue privé montre **« Réception préformation vérifiée sur l'adulte »**
 avec la date et le dossier, ou **« Réception préformation en attente — à vérifier »**
-avec un motif lisible. D1 fait foi pour ce résultat ; le journal reçoit aussi un
-résumé terminal et conserve les annotations antérieures. Une panne du miroir
-journal ne transforme pas une réception métier vérifiée en échec ni ne perd sa
-preuve. La lecture reste limitée aux 50 dernières réponses publiques existantes ;
+avec un motif lisible. D1 fait foi pour ce résultat. Le site ne modifie jamais
+la source du journal après sa création : un PATCH de résumé fondé sur une lecture
+antérieure pourrait écraser une annotation concurrente. Le statut initial du
+journal NocoDB ne constitue donc pas la preuve de projection ; celle-ci est
+conservée dans D1 et affichée par le catalogue privé. La lecture reste limitée aux 50 dernières réponses publiques existantes ;
 ce catalogue n'est pas un historique exhaustif ni une nouvelle file de décisions.
 
 La réponse publique reste uniforme et ne révèle pas si un adulte ou dossier
