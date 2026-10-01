@@ -5,7 +5,7 @@ import {
   type DailyHours,
   type TimeSlot,
 } from '../lib/daily-hours'
-import { planMonth } from '../lib/monthly-availability'
+import { MONTHLY_ACTIVITY, planMonth } from '../lib/monthly-availability'
 
 export function initDailyHours(form: HTMLFormElement) {
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement
@@ -41,7 +41,7 @@ export function initDailyHours(form: HTMLFormElement) {
     const parsed = rows()
     const actual = dailyTotal(parsed, 'actual')
     total.value = actual === null ? '' : String(actual)
-    feedback.textContent = `${dailyTotal(parsed, 'planned') ?? 0} h prévues · ${actual === null ? 'Réalisé non renseigné' : `${actual} h réalisées`}. Seuls les jours renseignés apparaîtront au calendrier.`
+    feedback.textContent = `${actual === null ? 'Réalisé non renseigné' : `${actual} h réalisées`}. Seuls les jours renseignés apparaîtront au calendrier.`
   }
   function action(text: string, run: () => void) {
     const button = document.createElement('button')
@@ -200,6 +200,8 @@ export function initDailyHours(form: HTMLFormElement) {
       feedback.textContent = `${(error as Error).message} Rétablissez les dates précédentes pour conserver votre saisie.`
       return
     }
+    const monthly = field('activity').value === MONTHLY_ACTIVITY
+    if (monthly) {
     const recurring = document.createElement('details')
     recurring.open = existing.length === 0
     const summary = document.createElement('summary')
@@ -262,6 +264,7 @@ export function initDailyHours(form: HTMLFormElement) {
     instructions.textContent =
       'Le raccourci mardi/jeudi complète seulement les prévisions vides. Pour une demi-journée variable, choisissez le mercredi ou vendredi concerné ci-dessous. Effacez l’ancienne prévision pour la déplacer.'
     controls.append(instructions)
+    }
     for (const date of days) {
       const row = existing.find((row) => row.date === date)
       const group = document.createElement('div')
@@ -276,11 +279,10 @@ export function initDailyHours(form: HTMLFormElement) {
         timeZone: 'UTC',
       }).format(day)
       group.append(heading)
-      let shortcut: HTMLButtonElement | undefined
-      for (const key of ['planned', 'actual'] as const) {
+      for (const key of ['actual'] as const) {
         const label = document.createElement('label')
         label.className = 'iw-field'
-        label.textContent = key === 'planned' ? 'Heures prévues' : 'Heures réalisées'
+        label.textContent = 'Heures réalisées'
         const input = document.createElement('input')
         input.type = 'number'
         input.min = '0'
@@ -298,7 +300,6 @@ export function initDailyHours(form: HTMLFormElement) {
             current.push(entry)
           }
           entry[key] = input.value === '' ? null : Number(input.value)
-          if (key === 'planned') delete entry.slots // A free duration no longer claims exact times.
           stored.value = JSON.stringify(
             current.filter((row) => row.planned !== null || row.actual !== null),
           )
@@ -307,15 +308,9 @@ export function initDailyHours(form: HTMLFormElement) {
         })
         label.append(input)
         group.append(label)
-        if (key === 'planned' && [3, 5].includes(day.getUTCDay())) {
-          shortcut = action('Prévoir 3 h 30', () => {
-            input.value = '3.5'
-            input.dispatchEvent(new Event('input', { bubbles: true }))
-          })
-          shortcut.classList.add('iw-field--wide')
-        }
+
       }
-      if (shortcut) group.append(shortcut)
+      if (monthly) {
       const exception = document.createElement('details')
       exception.className = 'iw-field--wide'
       const caption = document.createElement('summary')
@@ -343,6 +338,7 @@ export function initDailyHours(form: HTMLFormElement) {
         }),
       )
       group.append(exception)
+      }
       target.append(group)
     }
     updateTotal()
