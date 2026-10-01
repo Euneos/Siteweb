@@ -5,7 +5,14 @@ import { internalEnvironment } from '../lib/internal-context'
 
 interface Props {
   title: string
-  current: 'calendrier' | 'suivi' | 'ressources' | 'catalogue' | 'implantations' | 'formulaires'
+  current:
+    | 'calendrier'
+    | 'suivi'
+    | 'ressources'
+    | 'catalogue'
+    | 'implantations'
+    | 'formulaires'
+    | 'reponses-google'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
 }
@@ -74,9 +81,26 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
             </a>
           )
         }
-        {teamAccess && (
-          <a href="/interne/formulaires" aria-current={current === 'formulaires' ? 'page' : undefined}>Formulaires</a>
-        )}
+        {
+          teamAccess && (
+            <a
+              href="/interne/formulaires"
+              aria-current={current === 'formulaires' ? 'page' : undefined}
+            >
+              Formulaires
+            </a>
+          )
+        }
+        {
+          teamAccess && (
+            <a
+              href="/interne/reponses-google"
+              aria-current={current === 'reponses-google' ? 'page' : undefined}
+            >
+              Réponses Google
+            </a>
+          )
+        }
         <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
           >Ressources formateurs</a
         >
