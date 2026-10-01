@@ -1093,7 +1093,7 @@ try {
     }
     await page.locator('#iw-month').fill(month)
     await page.locator('#iw-month').press('Tab')
-    await page.locator(`.iw-event[data-entry-id="${ownId}"]`).first().click()
+    await page.locator(`.iw-event[data-entry-id="${ownId}"]:visible`).first().click()
     await expect(page.locator('#iw-link')).toBeHidden()
     await expect(page.getByText('Cette fiche couvre toute la période.', { exact: false })).toHaveCount(0)
     await page.locator('#iw-fill-month').click()
