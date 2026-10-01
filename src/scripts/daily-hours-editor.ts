@@ -7,7 +7,7 @@ import {
 } from '../lib/daily-hours'
 import { MONTHLY_ACTIVITY, planMonth } from '../lib/monthly-availability'
 
-export function initDailyHours(form: HTMLFormElement) {
+export function initDailyHours(form: HTMLFormElement, otherHours: () => Map<string, number> = () => new Map()) {
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement
   const stored = field('daily_hours')
   const total = field('hours')
@@ -173,23 +173,7 @@ export function initDailyHours(form: HTMLFormElement) {
     total.readOnly = team && !!stored.value
     if (!team) return
     if (!stored.value) {
-      feedback.textContent =
-        'Cette fiche couvre toute la période. Passez à la saisie par jour pour choisir uniquement les dates travaillées.'
-      controls.append(
-        action('Saisir les heures par jour', () => {
-          dates()
-          if (
-            total.value !== '' &&
-            !window.confirm(
-              `Cette fiche contient un total de ${total.value} h sans répartition. En passant à la saisie par jour, ce total sera remplacé par les heures réalisées que vous renseignerez. Continuer ?`,
-            )
-          )
-            return
-          stored.value = '[]'
-          render(true)
-          notify()
-        }),
-      )
+      root.hidden = true
       return
     }
     let days: string[], existing: DailyHours[]
@@ -200,6 +184,35 @@ export function initDailyHours(form: HTMLFormElement) {
       feedback.textContent = `${(error as Error).message} Rétablissez les dates précédentes pour conserver votre saisie.`
       return
     }
+    const repeat = document.createElement('div')
+    repeat.className = 'iw-formgrid'
+    const choices = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map((day, index) => {
+      const label = document.createElement('label')
+      label.className = 'iw-field'
+      label.textContent = `Chaque ${day.toLowerCase()}`
+      const select = document.createElement('select')
+      select.setAttribute('aria-label', `Heures réalisées chaque ${day.toLowerCase()}`)
+      select.add(new Option('Ne pas remplir', ''))
+      select.add(new Option('7 h', '7'))
+      select.add(new Option('8 h', '8'))
+      label.append(select)
+      repeat.append(label)
+      return { select, weekday: index + 1 }
+    })
+    controls.append(repeat, action('Remplir les heures des jours choisis', () => {
+      const current = rows()
+      for (const date of dates()) {
+        const choice = choices.find(({ weekday }) => weekday === new Date(`${date}T12:00:00Z`).getUTCDay())
+        if (!choice?.select.value || otherHours().has(date)) continue
+        const row = current.find((item) => item.date === date)
+        if (row) {
+          if (row.actual === null) row.actual = Number(choice.select.value)
+        } else current.push({ date, planned: null, actual: Number(choice.select.value) })
+      }
+      stored.value = JSON.stringify(current)
+      render(true)
+      notify()
+    }))
     const monthly = field('activity').value === MONTHLY_ACTIVITY
     if (monthly) {
     const recurring = document.createElement('details')
@@ -279,6 +292,19 @@ export function initDailyHours(form: HTMLFormElement) {
         timeZone: 'UTC',
       }).format(day)
       group.append(heading)
+      const recorded = otherHours().get(date)
+      if (recorded !== undefined) {
+        const label = document.createElement('label')
+        label.className = 'iw-field'
+        label.textContent = 'Déjà enregistrées dans les autres fiches'
+        const recordedInput = document.createElement('input')
+        recordedInput.type = 'number'
+        recordedInput.readOnly = true
+        recordedInput.value = String(recorded)
+        recordedInput.setAttribute('aria-label', `Heures déjà enregistrées le ${heading.textContent}`)
+        label.append(recordedInput)
+        group.append(label)
+      }
       for (const key of ['actual'] as const) {
         const label = document.createElement('label')
         label.className = 'iw-field'

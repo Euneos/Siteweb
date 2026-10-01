@@ -1,7 +1,7 @@
 import type { Entry, WorkspaceIdentity } from '../lib/internal-workspace'
 import { entryOccursOn, parseDailyHours, dailyTotal } from '../lib/daily-hours'
 import { initDailyHours } from './daily-hours-editor'
-import { MONTHLY_ACTIVITY, monthlyAvailabilityId } from '../lib/monthly-availability'
+import { MONTHLY_ACTIVITY } from '../lib/monthly-availability'
 import { personName, isOwnPerson, workspacePeople, workspaceActivities } from '../lib/workspace-people'
 
 type Kind = Entry['kind']
@@ -279,7 +279,19 @@ function initCalendar(root: HTMLElement) {
     }
     control.value = text
   }
-  const dailyEditor = initDailyHours(form)
+  const dailyEditor = initDailyHours(form, () => {
+    const result = new Map<string, number>()
+    for (const entry of data?.entries ?? []) {
+      if (entry.kind !== 'equipe' || entry.id === selected?.id || entry.status === 'annule' || personName(entry.person) !== personName(input('person').value)) continue
+      const rows = entry.daily_hours
+        ? parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on) ?? []
+        : entry.starts_on === entry.ends_on ? [{ date: entry.starts_on, actual: entry.hours }] : []
+      for (const row of rows) {
+        if (row.actual !== null) result.set(row.date, (result.get(row.date) ?? 0) + row.actual)
+      }
+    }
+    return result
+  })
   let selected: Entry | null = null
   let publicationDates: Pick<EntryInput, 'starts_on' | 'ends_on'> | null = null
   let editorKind: Kind = kind
@@ -385,6 +397,7 @@ function initCalendar(root: HTMLElement) {
     for (const field of fields) writeField(field, entry[field])
     input('title').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     input('title').required = editorKind !== 'equipe'
+    input('link').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     input('status').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
     if (editorKind === 'equipe') {
       input('title').value = personName(input('person').value)
@@ -432,12 +445,20 @@ function initCalendar(root: HTMLElement) {
       )
       return
     }
+    if (!input('daily_hours').value) {
+      if (input('hours').value !== '' && (input('starts_on').value !== input('ends_on').value || input('starts_on').value < start || input('starts_on').value > end)) {
+        feedback(byId('iw-month-feedback'), 'Cette fiche contient un total sans répartition dans ce mois. Conservez-la et ouvrez une nouvelle fiche pour saisir les autres jours.', true)
+        return
+      }
+      input('daily_hours').value = JSON.stringify(input('hours').value === '' ? [] : [{ date: input('starts_on').value, planned: null, actual: Number(input('hours').value) }])
+    }
     input('starts_on').value = start
     input('ends_on').value = end
     dailyEditor.render(true)
+    byId('iw-daily-hours').scrollIntoView({ block: 'start' })
     feedback(
       byId('iw-month-feedback'),
-      'Dates remplies pour le mois affiché. Aucune heure ajoutée ; enregistrez pour conserver cette période.',
+      'Les heures de cette fiche sont conservées. Les heures des autres fiches sont affichées séparément et ne sont pas recopiées. Enregistrez vos nouvelles saisies.',
     )
   })
   const setMetrics = (loaded: CalendarData | null) => {
@@ -487,48 +508,6 @@ function initCalendar(root: HTMLElement) {
       filter.value = current
     }
 
-  }
-  const renderTotals = () => {
-    byId('iw-totals').hidden = kind !== 'equipe'
-    const target = byId('iw-totals-content')
-    target.replaceChildren()
-    if (!data) {
-      target.append(
-        node(
-          'p',
-          'iw-muted',
-          'Totaux indisponibles tant que les données du mois ne sont pas chargées.',
-        ),
-      )
-      return
-    }
-    if (!data.totals.length) {
-      target.append(node('p', 'iw-muted', 'Aucune heure réalisée renseignée pour ce mois.'))
-      return
-    }
-    const table = node('table', 'iw-table')
-    table.append(node('caption', 'iw-sr-only', `Heures réalisées en ${monthFormat.format(dateObject(`${month}-01`))}`))
-    const head = table.createTHead().insertRow()
-    for (const label of ['Personne', 'Heures réalisées']) {
-      const th = node('th', '', label)
-      th.scope = 'col'
-      head.append(th)
-    }
-    const body = table.createTBody()
-    const totals = new Map<string, number>()
-    for (const total of data.totals) {
-      const name = personName(total.person)
-      totals.set(name, (totals.get(name) ?? 0) + total.declared)
-    }
-    for (const [person, total] of [...totals].sort(([a], [b]) => a.localeCompare(b, 'fr'))) {
-      const name = node('th', '', person)
-      name.scope = 'row'
-      body.insertRow().append(name, node('td', '', hours(total)))
-    }
-    const label = node('th', '', 'Total du mois')
-    label.scope = 'row'
-    table.createTFoot().insertRow().append(label, node('td', '', hours(data.totals.reduce((sum, row) => sum + row.declared, 0))))
-    target.append(table)
   }
   const badge = (entry: Entry) => {
     const element = node('span', 'iw-badge', statuses[entry.status] ?? entry.status)
@@ -730,7 +709,6 @@ function initCalendar(root: HTMLElement) {
     return section
   }
   const render = () => {
-    byId('iw-monthly-action').hidden = kind !== 'equipe'
     if (!data) return
     const entries = data.entries
       .filter((entry) =>
@@ -780,7 +758,6 @@ function initCalendar(root: HTMLElement) {
     if (!keepPosition) content.hidden = true
     content.setAttribute('aria-busy', 'true')
     setMetrics(null)
-    renderTotals()
     byId('iw-result-count').textContent = 'Chargement du calendrier…'
     byId('iw-updated').textContent = ''
     byId<HTMLButtonElement>('iw-refresh').disabled = true
@@ -800,8 +777,7 @@ function initCalendar(root: HTMLElement) {
       identity = response.identity
       setMetrics(data)
       fillFilters()
-      renderTotals()
-      render()
+        render()
       updated(byId('iw-updated'))
       byId('iw-comment-author').textContent = identity.email
       if (dialog.open) updatePermissions()
@@ -1150,7 +1126,10 @@ function initCalendar(root: HTMLElement) {
     }
   })
   input('person').addEventListener('change', () => {
-    if (editorKind === 'equipe') input('title').value = personName(input('person').value)
+    if (editorKind === 'equipe') {
+      input('title').value = personName(input('person').value)
+      dailyEditor.render(true)
+    }
   })
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
@@ -1309,39 +1288,6 @@ function initCalendar(root: HTMLElement) {
     if (!selected && end.value < dateStart.value) end.value = dateStart.value
   })
   byId('iw-new').addEventListener('click', () => openEditor(null))
-  byId('iw-monthly').addEventListener('click', async () => {
-    const control = byId<HTMLButtonElement>('iw-monthly')
-    if (control.disabled || kind !== 'equipe') return
-    control.disabled = true
-    const requestedMonth = month
-    const person = identity.admin ? byId<HTMLSelectElement>('iw-person').value || identity.email : identity.email
-    try {
-      const current = await api<CalendarData>(`/api/interne/calendrier?month=${requestedMonth}&kind=equipe`)
-      if (month !== requestedMonth || kind !== 'equipe') return
-      const start = `${requestedMonth}-01`
-      const end = new Date(Date.UTC(Number(requestedMonth.slice(0, 4)), Number(requestedMonth.slice(5)), 0)).toISOString().slice(0, 10)
-      const id = await monthlyAvailabilityId(person, requestedMonth)
-      const candidates = current.entries.filter(e => e.person === person && e.starts_on === start && e.ends_on === end)
-      const existing = current.entries.find(e => e.id === id)
-      if (!existing && candidates.length > 1) throw new Error('Plusieurs fiches couvrent déjà ce mois pour cette personne. Ouvrez celle à corriger dans le calendrier ; aucune nouvelle fiche n’a été créée.')
-      if (existing || candidates.length === 1) {
-        openEditor(existing ?? candidates[0])
-        feedback(saveFeedback, 'La fiche existante du mois est ouverte. Corrigez-la ici pour éviter les doublons.')
-      } else {
-        openEditor(null)
-        fillForm({ ...readForm(), person, title: personName(person), starts_on: start, ends_on: end,
-          activity: MONTHLY_ACTIVITY, hours: null, daily_hours: '[]' })
-        byId('iw-editor-title').textContent = `Disponibilités · ${personName(person)} · ${monthFormat.format(dateObject(start))}`
-        savedSnapshot = snapshot()
-        feedback(saveFeedback, 'Préparez les jours récurrents, ajustez les exceptions, puis enregistrez cette fiche mensuelle.')
-      }
-      input('starts_on').focus()
-    } catch (error) {
-      feedback(byId('iw-notice'), errorText(error), true)
-    } finally {
-      control.disabled = false
-    }
-  })
   byId('iw-close').addEventListener('click', requestClose)
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault()

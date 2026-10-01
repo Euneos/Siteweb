@@ -22,10 +22,6 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         ><span aria-hidden="true">＋</span> Nouvelle fiche</button
       >
     </div>
-    <div id="iw-monthly-action" class="iw-panel" hidden>
-      <button type="button" id="iw-monthly" class="iw-button iw-button--primary">Disponibilités du mois</button>
-      <p class="iw-small iw-muted">Choisissez le mois affiché. Ce bouton ouvre votre fiche mensuelle existante ou en prépare une nouvelle. Les responsables peuvent choisir une autre personne dans le filtre Personne. Les fiches historiques restent conservées.</p>
-    </div>
     <noscript
       ><p class="iw-feedback">
         Activez JavaScript pour consulter les calendriers et enregistrer vos fiches.
@@ -125,22 +121,6 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       </div>
       <div id="iw-calendar-content" aria-busy="true" hidden></div>
     </section>
-    <section id="iw-totals" class="iw-panel iw-totals" aria-labelledby="iw-totals-heading" hidden>
-      <div class="iw-sectionhead">
-        <div>
-          <h2 id="iw-totals-heading">Les heures, personne par personne</h2><p class="iw-muted">
-            Tout le mois affiché, indépendamment des filtres.
-          </p>
-        </div><span class="iw-badge">Suivi mensuel</span>
-      </div><div id="iw-totals-content"></div><p class="iw-footnote">
-        Les totaux reprennent les heures réalisées renseignées dans les fiches.
-        Les anciennes fiches annulées restent exclues des totaux.
-      </p>
-    </section>
-    <p class="iw-footnote">
-      Une fiche annulée reste consultable. Les calendriers ne déclenchent aucune publication sur les
-      réseaux sociaux.
-    </p>
   </div>
 
   <dialog
@@ -215,8 +195,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
                 aria-describedby="iw-month-help">Couvrir tout le mois affiché</button
               >
               <p id="iw-month-help" class="iw-small iw-muted">
-                Ce bouton remplit les dates de début et de fin. Il n’ajoute aucune heure.
-                Enregistrez ensuite la fiche.
+                Affichez les jours du mois et les heures déjà enregistrées. Complétez les jours vides avec 7 h ou 8 h, puis enregistrez.
               </p>
               <p id="iw-month-feedback" class="iw-feedback" role="status"></p>
             </div>
@@ -271,11 +250,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             </div>
             <div class="iw-field iw-field--wide" id="iw-daily-hours" hidden>
               <input type="hidden" name="daily_hours" value="" />
-              <h3>Jours et heures</h3>
-              <p class="iw-small iw-muted">
-                Choisissez les jours travaillés. Les notes ne programment pas le calendrier. Laissez
-                le réalisé vide tant que les heures ne sont pas effectuées.
-              </p>
+              <h3>Heures réalisées par jour</h3>
               <div id="iw-daily-controls"></div>
               <p id="iw-daily-feedback" class="iw-feedback" role="status"></p>
               <div id="iw-daily-rows"></div>
