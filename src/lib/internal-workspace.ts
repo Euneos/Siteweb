@@ -3,6 +3,7 @@
  * No live cross-system synchronization or automatic social publication. */
 import { parseDailyHours, dailyTotal } from './daily-hours'
 import { isOwnPerson } from './workspace-people'
+import { MONTHLY_ACTIVITY, monthlyAvailabilityId } from './monthly-availability'
 
 export interface WorkspaceDatabase {
   batch(statements: ReturnType<ReturnType<WorkspaceDatabase['prepare']>['bind']>[]): Promise<{ meta: { changes: number } }[]>
@@ -218,12 +219,24 @@ export async function saveEntry(
   requestId?: string,
 ): Promise<string> {
   const entry = parseEntry(input)
+  const monthly = entry.kind === 'equipe' && entry.activity === MONTHLY_ACTIVITY
+  let monthlyId: string | undefined
+  if (monthly) {
+    const bounds = monthBounds(entry.starts_on.slice(0, 7))
+    if (entry.starts_on !== bounds.start || entry.ends_on !== bounds.end || !entry.daily_hours)
+      throw new WorkspaceError(400, 'Les disponibilités mensuelles doivent couvrir le mois entier avec un détail quotidien.')
+    monthlyId = await monthlyAvailabilityId(entry.person, entry.starts_on.slice(0, 7))
+    if (id && id !== monthlyId)
+      throw new WorkspaceError(409, 'Le mois et la personne de cette fiche mensuelle ne peuvent pas changer. Ouvrez les disponibilités du mois souhaité.')
+  }
   if (entry.kind === 'equipe' && !actor.admin && !isOwnPerson(entry.person, actor.email))
     throw new WorkspaceError(403, 'Vous pouvez déclarer uniquement vos propres heures et absences.')
   const previous = id
     ? await db.prepare('SELECT * FROM workspace_entries WHERE id = ?').bind(id).first<Entry>()
     : null
   if (id && !previous) throw new WorkspaceError(404, 'Fiche introuvable.')
+  if (previous?.activity === MONTHLY_ACTIVITY && !monthly)
+    throw new WorkspaceError(409, 'Conservez le type de cette fiche mensuelle.')
   // Keep existing historical statuses editable, without creating new team
   // entries with an editorial publication status.
   if (entry.kind === 'equipe' && entry.status === 'programme' && previous?.status !== 'programme')
@@ -288,7 +301,7 @@ export async function saveEntry(
       )
     return id
   }
-  const newId = requestId ?? crypto.randomUUID()
+  const newId = monthlyId ?? requestId ?? crypto.randomUUID()
   const inserted = await db
     .prepare(
       `INSERT INTO workspace_entries (id,kind,title,starts_on,ends_on,person,activity,channel,attendance,location,status,hours,daily_hours,notes,content,link,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
