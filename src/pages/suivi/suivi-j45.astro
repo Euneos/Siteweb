@@ -1,0 +1,21 @@
+---
+import PostformationPage from '../../components/PostformationPage.astro'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+import { postformationReady } from '../../lib/postformation-route'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+let ready = true
+if (!preview) {
+  try {
+    await postformationReady(Astro.locals, 'suivi-j45')
+  } catch {
+    ready = false
+    Astro.response.status = 503
+  }
+}
+---
+
+<PostformationPage slug="suivi-j45" ready={ready} preview={preview} />

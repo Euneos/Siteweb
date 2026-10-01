@@ -7,6 +7,7 @@ import { identityText, operationalRequest, hashOperational, type OperationalInpu
 import { closedDossier, operationalConfig, operationalPath, OperationalLinkError } from './operational-links'
 import { enregistrerOperational } from './operational-store'
 import { preformationDetails } from './preformation'
+import { postformationPublicEntry } from './postformation'
 import { readPreformationProjection, preformationPendingReason } from './preformation-projection'
 
 export const publicFormNames: Record<OperationalKind, string> = {
@@ -135,6 +136,8 @@ export async function listPublicForms(locals: unknown) {
   return Promise.all(response.list.map(async row => {
     const receipt = results.find(r => r.receipt === row.cle_reponse)
     const source = JSON.parse(String(row.reponses)) as { answers: OperationalInput }
+    const postformation = await postformationPublicEntry(db, row, source)
+    if (postformation) return postformation
     const questionnaire = preformationDetails(source)
     if (questionnaire) {
       const projection = await readPreformationProjection(db, String(row.cle_reponse))
