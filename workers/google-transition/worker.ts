@@ -6,6 +6,17 @@ import {
 } from '../../src/lib/google-form-sheet'
 import { digest } from '../../src/lib/google-form-sync'
 import { isoTimestamp } from '../../src/lib/google-form-contact'
+import {
+  planGooglePerson,
+  checkGooglePersonPlan,
+  validatePersonConfig,
+  googleReconciliationDetail,
+  mergeGoogleReconciliationDetail,
+  hasPendingGoogleReconciliation,
+  type PersonPlan,
+  type PersonProjectionConfig,
+} from '../../src/lib/google-form-person'
+import { reconcileGoogleRows } from '../../src/lib/google-form-identity'
 import type { SubmissionDatabase } from '../../src/lib/candidature-store'
 
 export type Source = {
@@ -20,6 +31,7 @@ export type Source = {
   eventVersion?: 2
   cohortId?: 2
   policy?: GoogleSheetPolicy
+  personProjection?: PersonProjectionConfig
 }
 export type Env = {
   STATE: SubmissionDatabase
@@ -28,6 +40,15 @@ export type Env = {
   SOURCES: string
   SOURCES_2?: string
   SOURCES_3?: string
+  SOURCES_4?: string
+  SOURCES_5?: string
+  SOURCES_6?: string
+  SOURCES_7?: string
+  SOURCES_8?: string
+  SOURCES_9?: string
+  SOURCES_10?: string
+  SOURCES_11?: string
+  SOURCES_12?: string
   ENABLED: string
   PROJECTION_ENABLED: string
   RUN_SECRET: string
@@ -60,6 +81,8 @@ type Captured = {
   label: string
   timestamp: string
   readAt: string
+  physicalRow?: number
+  identityAmbiguous?: boolean
 }
 export type PushSnapshot = {
   version: 1
@@ -152,6 +175,10 @@ export function validateSources(raw: string): Source[] {
         (!Number.isSafeInteger(s.projectionFirstRow) || s.projectionFirstRow < s.firstRow))
     )
       throw new Error('source_invalid')
+    if (s.personProjection) {
+      if (s.kind) throw new Error('source_projection_ambiguous')
+      validatePersonConfig(s.personProjection)
+    }
     const key = `${s.spreadsheetId}:${s.sheetId}`
     if (keys.has(key)) throw new Error('source_duplicate')
     keys.add(key)
@@ -160,14 +187,35 @@ export function validateSources(raw: string): Source[] {
 }
 /** Each secret is a complete JSON array below Cloudflare's per-variable limit.
  * Validate the joined catalogue too: duplicated identities across parts fail. */
-export function configuredSources(env: Pick<Env, 'SOURCES' | 'SOURCES_2' | 'SOURCES_3'>): Source[] {
+const SOURCE_PARTS = [
+  'SOURCES',
+  'SOURCES_2',
+  'SOURCES_3',
+  'SOURCES_4',
+  'SOURCES_5',
+  'SOURCES_6',
+  'SOURCES_7',
+  'SOURCES_8',
+  'SOURCES_9',
+  'SOURCES_10',
+  'SOURCES_11',
+  'SOURCES_12',
+] as const
+export function configuredSources(env: Pick<Env, (typeof SOURCE_PARTS)[number]>): Source[] {
   if (typeof env.SOURCES !== 'string' || !env.SOURCES) throw new Error('sources_part_missing')
-  if (env.SOURCES_3 && !env.SOURCES_2) throw new Error('sources_part_missing')
-  const parts = [env.SOURCES, env.SOURCES_2, env.SOURCES_3]
-    .filter((part): part is string => part !== undefined)
-    .map((part) => validateSources(part))
+  const parts: Source[][] = []
+  let missing = false
+  for (const key of SOURCE_PARTS) {
+    if (env[key] === undefined) {
+      missing = true
+      continue
+    }
+    if (missing) throw new Error('sources_part_missing')
+    parts.push(validateSources(env[key]!))
+  }
   return validateSources(JSON.stringify(parts.flat()))
 }
+
 export function answerFields(headers: string[], cells: string[]) {
   if (cells.length !== headers.length) throw new Error('csv_width_invalid')
   // Blank values and duplicate labels are part of the source, never filtered out.
@@ -442,41 +490,48 @@ export async function checkPush(env: Env, input: unknown, now = Date.now()) {
     .first<{ expires_at: number }>()
   if (active && active.expires_at > now) return { state: 'busy' }
   const prior = await env.STATE.prepare(
-    `SELECT p.source_row,p.fingerprint,p.noco_id,p.capture_state
-    FROM google_transition_poller p WHERE p.source_key=? AND p.revision=(
-      SELECT MAX(q.revision) FROM google_transition_poller q
-      WHERE q.source_key=p.source_key AND q.source_row=p.source_row)`,
+    'SELECT * FROM google_transition_poller WHERE source_key=? ORDER BY source_row,revision LIMIT 20001',
   )
     .bind(key)
-    .all<Pick<Receipt, 'source_row' | 'fingerprint' | 'noco_id' | 'capture_state'>>()
-  const existing = new Map(prior.results.map((r) => [r.source_row, r]))
+    .all<Receipt>()
+  if (prior.results.length > 20000) throw new Error('identity_history_limit')
+  const reconciled = await reconcileGoogleRows(
+    p.rows.flatMap((cells, i) =>
+      i + 2 >= s.firstRow && cells.some(Boolean)
+        ? [
+            {
+              row: i + 2,
+              timestamp: timestampCell(s, p.headers, cells),
+              fields: answerFields(p.headers, cells),
+            },
+          ]
+        : [],
+    ),
+    prior.results,
+    s.firstRow,
+  )
   let matched = 0,
     fresh = 0,
     changed = 0,
     pending = 0
-  const differences: { row: number; code: string }[] = [],
-    seen = new Set<number>()
-  for (let i = s.firstRow - 2; i < p.rows.length; i++) {
-    const cells = p.rows[i],
-      row = i + 2
-    if (!cells.some(Boolean)) continue
-    seen.add(row)
-    const old = existing.get(row),
-      fingerprint = await digest(JSON.stringify(answerFields(p.headers, cells)))
+  const differences: { row: number; code: string }[] = []
+  for (const item of reconciled) {
+    const old = item.previous
     if (!old) {
       fresh++
-      differences.push({ row, code: 'new' })
-    } else if (old.fingerprint !== fingerprint) {
+      differences.push({ row: item.row, code: item.ambiguous ? 'identity_ambiguous' : 'new' })
+    } else if (old.fingerprint !== item.fingerprint) {
       changed++
-      differences.push({ row, code: 'changed' })
+      differences.push({ row: item.row, code: 'changed' })
     } else {
       matched++
       if (!old.noco_id || old.capture_state !== 'complete') pending++
     }
   }
-  const missing = prior.results.filter(
-    (r) => r.source_row >= s.firstRow && !seen.has(r.source_row),
-  ).length
+  const seen = new Set(reconciled.map((r) => r.logicalRow))
+  const missing = new Set(
+    prior.results.filter((r) => !seen.has(r.source_row)).map((r) => r.source_row),
+  ).size
   return {
     state: 'checked',
     inputMode: 'push',
@@ -493,7 +548,7 @@ export async function checkPush(env: Env, input: unknown, now = Date.now()) {
   }
 }
 function timestampCell(s: Source, headers: string[], cells: string[]) {
-  const selector = s.mapping?.timestamp
+  const selector = s.personProjection?.mapping.timestamp ?? s.mapping?.timestamp
   const label = typeof selector === 'string' ? selector : selector?.label
   const matches = headers.flatMap((h, i) =>
     (label ? h.trim() === label.trim() : /^(Horodateur|Horodatage|Timestamp)$/i.test(h.trim()))
@@ -525,10 +580,12 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
     projecting &&
     (!isoTimestamp(env.PROJECTION_START_AT ?? '') ||
       !Number.isFinite(cutover) ||
-      !env.GOOGLE_FORMS_SYNC_SECRET ||
-      env.GOOGLE_FORMS_SYNC_SECRET.length < 32 ||
-      env.GOOGLE_FORMS_SYNC_SECRET.length > 256 ||
-      !configuredSources(env).some((s) => s.kind) ||
+      (configuredSources(env).some((s) => s.kind) &&
+        (!env.GOOGLE_FORMS_SYNC_SECRET ||
+          env.GOOGLE_FORMS_SYNC_SECRET.length < 32 ||
+          env.GOOGLE_FORMS_SYNC_SECRET.length > 256)) ||
+      !configuredSources(env).some((s) => s.kind || s.personProjection) ||
+      configuredSources(env).some((s) => s.personProjection && !s.projectionFirstRow) ||
       configuredSources(env).some(
         (s) =>
           s.kind &&
@@ -543,7 +600,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
     throw new Error('projection_configuration_invalid')
   const d1 = new Queries(env.STATE)
   // Worst-case SQL cost includes error journaling and explicit-429 rollback.
-  const deliveryQueries = projecting ? 16 : 6
+  const deliveryQueries = projecting ? 20 : 6
   // Lease exceeds the platform's 15-minute scheduled execution maximum. Every
   // release/claim is fenced by owner; an old invocation cannot unlock a new run.
   const claimed = await d1
@@ -582,6 +639,48 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
   const catchup = () => {
     if (result.state !== 'attention_required') result.state = 'catching_up'
   }
+  const sourceSnapshots = new Map<
+    string,
+    Promise<{
+      rows: string[][]
+      history: Receipt[]
+      identities: Awaited<ReturnType<typeof reconcileGoogleRows<Receipt>>>
+    }>
+  >()
+  function currentSource(s: Source) {
+    const key = sourceKey(s)
+    if (!sourceSnapshots.has(key))
+      sourceSnapshots.set(
+        key,
+        (async () => {
+          const rows = input ? [input.headers, ...input.rows] : await snapshot(s, req)
+          const prior = await d1
+            .prepare(
+              'SELECT * FROM google_transition_poller WHERE source_key=? ORDER BY source_row,revision LIMIT 20001',
+            )
+            .bind(key)
+            .all<Receipt>()
+          if (prior.results.length > 20000) throw new Error('identity_history_limit')
+          const identities = await reconcileGoogleRows(
+            rows.slice(1).flatMap((cells, i) =>
+              i + 2 >= s.firstRow && cells.some(Boolean)
+                ? [
+                    {
+                      row: i + 2,
+                      timestamp: timestampCell(s, rows[0], cells),
+                      fields: answerFields(rows[0], cells),
+                    },
+                  ]
+                : [],
+            ),
+            prior.results,
+            s.firstRow,
+          )
+          return { rows, history: prior.results, identities }
+        })(),
+      )
+    return sourceSnapshots.get(key)!
+  }
   async function ownership() {
     const row = await d1
       .prepare(
@@ -607,7 +706,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
       cle_reponse: r.response_key,
       formulaire: c.label,
       horodatage_source: c.timestamp,
-      ligne_source: r.source_row,
+      ligne_source: c.physicalRow ?? r.source_row,
       revision: r.revision,
       reponses: JSON.stringify(answerFields(c.headers, c.cells)),
       source_url: `https://docs.google.com/spreadsheets/d/${r.source_key.split(':')[0]}/edit#gid=${r.source_key.split(':')[1]}`,
@@ -634,6 +733,134 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
     if (new TextEncoder().encode(payload).length > 32768)
       throw new Error('projection_payload_too_large')
     return payload
+  }
+  async function projectPerson(r: Receipt, s: Source, captured: Captured) {
+    const config = s.personProjection!,
+      configDigest = await digest(JSON.stringify(config))
+    let outcome: Outcome | null = r.projection_outcome ? JSON.parse(r.projection_outcome) : null
+    let frozen: { configDigest: string; plan: PersonPlan } | null = r.projection_payload
+      ? JSON.parse(r.projection_payload)
+      : null
+    const read = (path: string) => nc(env, req, path)
+    if (!outcome || outcome.state === 'writing') {
+      const current = await currentSource(s),
+        identity = current.identities.find((i) => i.logicalRow === r.source_row)
+      if (frozen && frozen.configDigest !== configDigest)
+        outcome = { state: 'review', code: 'projection_configuration_changed' }
+      else if (
+        !identity ||
+        identity.fingerprint !== r.fingerprint ||
+        (identity.previous && identity.previous.response_key !== r.response_key)
+      )
+        outcome = { state: 'review', code: 'source_changed_before_projection' }
+      else if (captured.identityAmbiguous) outcome = { state: 'review', code: 'identity_ambiguous' }
+      else if (
+        r.revision !== 1 ||
+        r.source_row < s.projectionFirstRow! ||
+        Date.parse(captured.readAt) < cutover ||
+        Date.parse(googleTimestamp(captured.timestamp)) < cutover
+      )
+        outcome = { state: 'review', code: 'before_cutover' }
+      if (!outcome && !frozen) {
+        let planned
+        try {
+          planned = await planGooglePerson(
+            config,
+            captured.headers,
+            captured.cells,
+            googleTimestamp(captured.timestamp),
+            read,
+          )
+        } catch (e) {
+          // Transport failures remain retryable; deterministic schema/identity errors are reviewable.
+          if (!(e instanceof Error) || !/^(person_|sheet_|identity_)/.test(e.message)) throw e
+          planned = { state: 'review' as const, code: codeOf(e) }
+        }
+        if (planned.state === 'review') outcome = planned
+        else {
+          frozen = { configDigest, plan: planned.plan }
+          await save(r.response_key, { projection_payload: JSON.stringify(frozen) })
+        }
+      }
+      if (frozen && (!outcome || outcome.state === 'writing')) {
+        // Reserve HTTP headroom BEFORE marking or issuing any business mutation.
+        req.ensure(10)
+        let claim: { response_key: string } | null = null
+        if (frozen.plan.create) {
+          await ownership()
+          await d1
+            .prepare(
+              `INSERT INTO google_transition_person_claims(identity_key,response_key,created_at) VALUES(?,?,?) ON CONFLICT(identity_key) DO NOTHING`,
+            )
+            .bind(frozen.plan.create.key, r.response_key, new Date(rt.now()).toISOString())
+            .run()
+          claim = await d1
+            .prepare(
+              'SELECT response_key FROM google_transition_person_claims WHERE identity_key=?',
+            )
+            .bind(frozen.plan.create.key)
+            .first<{ response_key: string }>()
+          if (!claim) throw new Error('person_claim_missing')
+        }
+        const actual = await checkGooglePersonPlan(frozen.plan, read)
+        if (frozen.plan.create && actual === 'after')
+          await save(r.response_key, { projection_payload: JSON.stringify(frozen) })
+        if (actual === 'after')
+          outcome = {
+            state: 'complete',
+            code: frozen.plan.linkOnly
+              ? 'linked_raw_only'
+              : frozen.plan.remaining
+                ? 'saved_raw_remaining'
+                : 'saved',
+          }
+        else if (claim && claim.response_key !== r.response_key)
+          outcome = { state: 'review', code: 'person_creation_already_claimed' }
+        else if (outcome?.state === 'writing')
+          outcome = { state: 'review', code: 'business_write_uncertain' }
+        else if (actual !== 'before') outcome = { state: 'review', code: 'existing_value_conflict' }
+        else {
+          await ownership()
+          await save(r.response_key, {
+            projection_outcome: JSON.stringify({
+              state: 'writing',
+              code: 'business_write_pending',
+            }),
+          })
+          try {
+            await nc(
+              env,
+              req,
+              `tables/${frozen.plan.table}/records`,
+              frozen.plan.create ? 'POST' : 'PATCH',
+              {
+                ...(frozen.plan.create ? {} : { Id: frozen.plan.id }),
+                ...frozen.plan.after,
+              },
+            )
+          } catch (e) {
+            if (e instanceof RateLimit) await save(r.response_key, { projection_outcome: null })
+            throw e
+          }
+          outcome =
+            (await checkGooglePersonPlan(frozen.plan, read)) === 'after'
+              ? {
+                  state: 'complete',
+                  code: frozen.plan.linkOnly
+                    ? 'linked_raw_only'
+                    : frozen.plan.remaining
+                      ? 'saved_raw_remaining'
+                      : 'saved',
+                }
+              : { state: 'review', code: 'business_write_uncertain' }
+        }
+      }
+      if (!outcome) throw new Error('projection_uncertain')
+      if (frozen?.plan.create && outcome.state === 'complete')
+        await save(r.response_key, { projection_payload: JSON.stringify(frozen) })
+      await save(r.response_key, { projection_outcome: JSON.stringify(outcome) })
+    }
+    return { outcome, plan: frozen?.plan }
   }
   async function deliver(r: Receipt, s: Source) {
     req.ensure(3)
@@ -669,6 +896,18 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
               ...fields,
               statut_reprise: 'À rapprocher',
               date_reprise: captured.readAt,
+              detail_reprise: googleReconciliationDetail(
+                r.source_key,
+                {
+                  state: 'review',
+                  code: captured.identityAmbiguous
+                    ? 'identity_ambiguous'
+                    : s.kind || s.personProjection
+                      ? 'projection_pending'
+                      : 'mapping_not_configured',
+                },
+                captured.readAt,
+              ),
             })
           } catch (e) {
             // Explicit 429 is a rejected write; other failures retain 'writing'.
@@ -699,46 +938,48 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
         report(s).captured++
       }
       if (projecting && r.projection_eligible && !r.projection_complete) {
+        let personPlan: PersonPlan | undefined
         let outcome: Outcome | null = r.projection_outcome ? JSON.parse(r.projection_outcome) : null
+        if (s.personProjection) {
+          const projected = await projectPerson(r, s, captured)
+          outcome = projected.outcome
+          personPlan = projected.plan
+        }
         if (!outcome) {
-          if (input) {
-            // A pending receipt must agree with THIS authenticated full snapshot,
-            // before the normal scan has discovered its edit/deletion/revision.
-            const cells = input.rows[r.source_row - 2]
-            if (
-              !cells ||
-              (await digest(JSON.stringify(answerFields(input.headers, cells)))) !== r.fingerprint
-            )
-              outcome = { state: 'review', code: 'source_changed_before_projection' }
-            else if (
-              !s.kind ||
+          const current = await currentSource(s)
+          const identity = current.identities.find((i) => i.logicalRow === r.source_row)
+          if (
+            !identity ||
+            identity.fingerprint !== r.fingerprint ||
+            (identity.previous && identity.previous.response_key !== r.response_key)
+          )
+            outcome = { state: 'review', code: 'source_changed_before_projection' }
+          else if (captured.identityAmbiguous)
+            outcome = { state: 'review', code: 'identity_ambiguous' }
+          else if (
+            input &&
+            (!s.kind ||
               s.eventVersion !== 2 ||
               s.cohortId !== 2 ||
               r.revision !== 1 ||
               r.source_row < s.projectionFirstRow! ||
               Date.parse(captured.readAt) < cutover ||
-              Date.parse(googleTimestamp(captured.timestamp)) < cutover
-            )
-              outcome = { state: 'review', code: 'before_cutover' }
-            else if ((await digest(JSON.stringify(captured.headers))) !== s.policy?.headerDigest)
-              outcome = { state: 'review', code: 'sheet_headers_changed' }
-            else if (r.projection_payload) {
-              try {
-                if ((await projectionPayload(r, s, captured)) !== r.projection_payload)
-                  outcome = { state: 'review', code: 'projection_configuration_changed' }
-              } catch {
+              Date.parse(googleTimestamp(captured.timestamp)) < cutover)
+          )
+            outcome = { state: 'review', code: 'before_cutover' }
+          else if (
+            input &&
+            (await digest(JSON.stringify(captured.headers))) !== s.policy?.headerDigest
+          )
+            outcome = { state: 'review', code: 'sheet_headers_changed' }
+          else if (r.projection_payload) {
+            try {
+              if ((await projectionPayload(r, s, captured)) !== r.projection_payload)
                 outcome = { state: 'review', code: 'projection_configuration_changed' }
-              }
+            } catch {
+              outcome = { state: 'review', code: 'projection_configuration_changed' }
             }
           }
-          const latest = await d1
-            .prepare(
-              'SELECT MAX(revision) AS revision FROM google_transition_poller WHERE source_key=? AND source_row=?',
-            )
-            .bind(r.source_key, r.source_row)
-            .first<{ revision: number }>()
-          if (latest?.revision !== r.revision)
-            outcome = { state: 'review', code: 'source_superseded' }
           if (!outcome && !r.projection_payload) {
             try {
               r.projection_payload = await projectionPayload(r, s, captured)
@@ -773,14 +1014,33 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
           }
           await save(r.response_key, { projection_outcome: JSON.stringify(outcome) })
         }
+        // Read immediately before the journal patch, retaining operator annotations
+        // and prior business evidence rather than replacing detail_reprise.
+        req.ensure(3)
+        const journalBefore = (await nc(env, req, `${path}/${r.noco_id}`)) as Record<
+          string,
+          unknown
+        >
+        verified(journalBefore, fields)
         const patch = {
           Id: r.noco_id,
           statut_reprise:
             outcome.state === 'complete' && outcome.code === 'saved'
               ? 'Repris dans le dossier'
               : 'À rapprocher',
-          detail_reprise: outcome.code,
+          detail_reprise: googleReconciliationDetail(
+            r.source_key,
+            outcome,
+            new Date(rt.now()).toISOString(),
+            personPlan,
+          ),
         }
+        patch.detail_reprise = mergeGoogleReconciliationDetail(
+          journalBefore.detail_reprise,
+          patch.detail_reprise,
+        )
+        if (hasPendingGoogleReconciliation(patch.detail_reprise))
+          patch.statut_reprise = 'À rapprocher'
         await ownership()
         await nc(env, req, path, 'PATCH', patch)
         const checked = (await nc(env, req, `${path}/${r.noco_id}`)) as Record<string, unknown>
@@ -828,7 +1088,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
       const s = sources.find((s) => sourceKey(s) === receipt.source_key)
       if (!s) continue
       // Pending work cannot consume the budget needed to inspect fresh sources.
-      if (d1.count + deliveryQueries > 20) {
+      if (d1.count + deliveryQueries > 24) {
         catchup()
         break
       }
@@ -854,7 +1114,8 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
         .bind((index + 1) % sources.length, owner)
         .run()
       try {
-        const rows = input ? [input.headers, ...input.rows] : await snapshot(s, req),
+        const current = await currentSource(s),
+          rows = current.rows,
           headers = rows[0],
           summary = report(s)
         summary.rows = rows.slice(s.firstRow - 1).filter((r) => r.some(Boolean)).length
@@ -868,18 +1129,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
           Math.max(0, rows.length - row + 1),
           MAX_INSPECTED - result.inspected,
         )
-        // One bounded read for the seeded/unchanged window, rather than a query
-        // per inspected line. The UNIQUE source/row/revision index serves MAX.
-        const prior = await d1
-          .prepare(
-            `SELECT p.* FROM google_transition_poller p
-          WHERE p.source_key=? AND p.source_row>=? AND p.source_row<? AND p.revision=(
-            SELECT MAX(q.revision) FROM google_transition_poller q
-            WHERE q.source_key=p.source_key AND q.source_row=p.source_row)`,
-          )
-          .bind(key, row, row + available)
-          .all<Receipt>()
-        const previous = new Map(prior.results.map((receipt) => [receipt.source_row, receipt]))
+        const identities = new Map(current.identities.map((identity) => [identity.row, identity]))
         try {
           for (let step = 0; step < available; step++) {
             if (result.inspected >= MAX_INSPECTED || result.processed >= MAX_ROWS) {
@@ -891,20 +1141,31 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
             result.inspected++
             if (cells.some(Boolean)) {
               const fingerprint = await digest(JSON.stringify(answerFields(headers, cells)))
-              let receipt: Receipt | null | undefined = previous.get(row)
+              const identity = identities.get(row)!
+              let receipt: Receipt | null | undefined = identity.previous
               if (!receipt || receipt.fingerprint !== fingerprint) {
                 d1.ensure(3 + deliveryQueries + 1) // reserve, deliver, checkpoint
-                const revision = (receipt?.revision ?? 0) + 1,
-                  responseKey = await digest(JSON.stringify([key, row, revision, fingerprint]))
+                const revision = identity.maxRevision + 1,
+                  logicalRow = identity.logicalRow,
+                  responseKey = await digest(
+                    JSON.stringify([key, logicalRow, revision, fingerprint]),
+                  )
                 const captured: Captured = {
                   headers,
                   cells,
+                  physicalRow: row,
+                  identityAmbiguous: identity.ambiguous,
                   label: s.label,
                   timestamp: timestampCell(s, headers, cells),
                   readAt: new Date(rt.now()).toISOString(),
                 }
                 let eligible = false
-                if (projecting && revision === 1 && s.kind && row >= s.projectionFirstRow!) {
+                if (
+                  projecting &&
+                  revision === 1 &&
+                  (s.kind || s.personProjection) &&
+                  identity.logicalRow >= s.projectionFirstRow!
+                ) {
                   try {
                     eligible =
                       Date.parse(googleTimestamp(captured.timestamp)) >= cutover &&
@@ -922,7 +1183,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
                   .bind(
                     responseKey,
                     key,
-                    row,
+                    logicalRow,
                     fingerprint,
                     revision,
                     JSON.stringify(captured),
@@ -935,6 +1196,7 @@ export async function run(env: Env, options: Partial<Runtime> = {}, input?: Push
                   .bind(responseKey)
                   .first<Receipt>()
                 if (!receipt) throw new Error('receipt_missing')
+                identity.previous = receipt
               }
               if (
                 !attempted.has(receipt.response_key) &&
