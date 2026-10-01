@@ -164,3 +164,35 @@ export function parseReviewCommand(body: Record<string, unknown>) {
     reason: body.reason.trim(),
   }
 }
+
+/** Match explicit table/id references only. Never infer a participant's dossier
+ * from a name. Parent imports may use table IDs or these stable business names. */
+export function resolveReconciliationTargets(
+  receipt: Reconciliation | null,
+  dossiers: ReviewTarget[],
+  adults: GoogleRow[],
+  tables: { participations: string; engagements: string; adults: string },
+) {
+  return (receipt?.targets ?? []).map((target) => {
+    const school = [tables.participations, 'participations'].includes(target.table)
+    const trainer = [tables.engagements, 'engagements', 'parcours_formateur'].includes(target.table)
+    const adult = [tables.adults, 'adultes', 'adults'].includes(target.table)
+    let label: string
+    if (school || trainer) {
+      const dossier = dossiers.find(
+        (d) => d.id === target.id && d.kind === (school ? 'school' : 'trainer'),
+      )
+      label =
+        dossier?.label ??
+        `Dossier ${school ? 'établissement' : 'formateur'} #${target.id} — nom non résolu (dossier absent ou archivé)`
+    } else if (adult) {
+      const person = adults.find((a) => a.Id === target.id)
+      const name = person ? `${string(person.prenom)} ${string(person.nom)}`.trim() : ''
+      const dossier = person
+        ? dossiers.find((d) => d.kind === 'school' && d.id === person.participations_id)
+        : undefined
+      label = `Participant adulte ${name || `#${target.id}`}${dossier ? ` — ${dossier.label}` : ' — dossier non résolu'}`
+    } else label = `Référence ${target.table} #${target.id} — nom non résolu`
+    return { ...target, label }
+  })
+}

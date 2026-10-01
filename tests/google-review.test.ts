@@ -318,3 +318,50 @@ test('team JWT required, trainer audience rejected, nonadmins read only, public 
     globalThis.fetch = realFetch
   }
 })
+
+test('receipt table IDs and names resolve exact school/trainer dossiers and adult relations', async () => {
+  const { resolveReconciliationTargets } = await import('../src/lib/google-review')
+  const tables = {
+    participations: 'tableparts',
+    engagements: 'tabletrainers',
+    adults: 'tableadults',
+  }
+  const dossiers = [
+    { kind: 'school' as const, id: 7, label: 'École de la Colline — Ville — 2026–2027 — DOS-7' },
+    { kind: 'trainer' as const, id: 7, label: 'Alex Fictif — parcours #7' },
+  ]
+  const result = resolveReconciliationTargets(
+    {
+      ...receipt,
+      version: 1,
+      state: 'partial',
+      targets: [
+        { table: 'tableadults', id: 21, fields: ['date_pre_recu'] },
+        { table: 'tableparts', id: 7, fields: ['adultes'] },
+        { table: 'tabletrainers', id: 7, fields: ['accord_signe'] },
+      ],
+    },
+    dossiers,
+    [{ Id: 21, prenom: 'Camille', nom: 'Exemple', participations_id: 7 }],
+    tables,
+  )
+  expect(result[0].label).toContain('Camille Exemple — École de la Colline')
+  expect(result[1].label).toBe(dossiers[0].label)
+  expect(result[2].label).toBe(dossiers[1].label)
+  const alias = resolveReconciliationTargets(
+    {
+      ...receipt,
+      version: 1,
+      state: 'partial',
+      targets: [
+        { table: 'adults', id: 21, fields: [] },
+        { table: 'participations', id: 99, fields: [] },
+      ],
+    },
+    dossiers,
+    [{ Id: 21, prenom: 'Camille', nom: 'Exemple', participations_id: 7 }],
+    tables,
+  )
+  expect(alias[0].label).toContain('École de la Colline')
+  expect(alias[1].label).toContain('nom non résolu')
+})

@@ -14,12 +14,17 @@ const auth = await getInternalContext(Astro.request, Astro.locals)
 if (auth instanceof Response) return auth
 ---
 
-<InternalLayout title="Réponses Google à vérifier" current="formulaires" identity={auth.identity}>
+<InternalLayout
+  title="Réponses Google à vérifier"
+  current="reponses-google"
+  identity={auth.identity}
+>
   <div id="google-review" class="gr" data-admin={auth.identity.admin}>
     <a href="/interne/formulaires">← Formulaires</a>
     <header class="gr-header">
       <h1>Réponses Google à vérifier</h1><button type="button" class="iw-button" id="gr-refresh"
-        >Actualiser</button>
+        >Actualiser</button
+      >
     </header>
     <p class="gr-notice">
       Une réponse conservée n’est pas nécessairement intégrée. Le rattachement indique à quel
@@ -38,11 +43,20 @@ if (auth instanceof Response) return auth
           id="gr-search"
           type="search"
           placeholder="Formulaire, nom ou établissement"
-        /></label>
+        /></label
+      >
     </div>
     <div id="gr-list" class="gr-list"></div>
     <section id="gr-detail" class="gr-card" hidden aria-labelledby="gr-title">
-      <h2 id="gr-title" tabindex="-1"></h2><p id="gr-summary"></p><dl id="gr-answers"></dl>
+      <h2 id="gr-title" tabindex="-1"></h2><p id="gr-summary"></p><section
+        id="gr-reconciliation"
+        hidden
+        aria-labelledby="gr-reconciliation-title"
+      >
+        <h3 id="gr-reconciliation-title">Dossiers concernés par le reçu</h3><ul id="gr-targets">
+        </ul><p id="gr-reasons"></p>
+      </section>
+      <dl id="gr-answers"></dl>
       <details>
         <summary>Historique et preuves conservés</summary><pre id="gr-history"></pre>
       </details>
@@ -62,7 +76,8 @@ if (auth instanceof Response) return auth
           ><input id="gr-confirm" type="checkbox" required />Je confirme le dossier et la cohorte
           affichés. Cette action ne réalise pas l’intégration des réponses.</label
         ><button id="gr-save" class="iw-button iw-button--primary" type="submit"
-          >Confirmer le rattachement uniquement</button>
+          >Confirmer le rattachement uniquement</button
+        >
       </form>
       <p id="gr-readonly" hidden></p>
     </section>

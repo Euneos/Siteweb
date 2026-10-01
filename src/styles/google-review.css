@@ -126,3 +126,16 @@
     width: 100%;
   }
 }
+.gr #gr-reconciliation {
+  margin-block: var(--s-lie);
+  padding: var(--s-lie);
+  border-left: 3px solid var(--vert);
+  background: #f7f8f6;
+}
+.gr #gr-targets {
+  padding-left: 1.1rem;
+  margin-block: var(--s-lie);
+}
+.gr #gr-targets li + li {
+  margin-top: var(--s-lie);
+}

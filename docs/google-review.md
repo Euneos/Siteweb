@@ -10,23 +10,14 @@ Sec-Fetch-Site cross-site. Aucun envoi d’email ni projection métier.
 
 - `GOOGLE_REVIEW_JOURNAL_TABLE` : ID de la table du journal Google (aucun défaut).
 - `NOCODB_TOKEN`, `TEAM_WORKSPACE`, paramètres Access déjà existants.
-- Ajouter cette table **par une nouvelle migration TEAM_WORKSPACE**, via le circuit
-  `docs/internal-migrations.md`, avant activation. Ne pas créer la table à la volée.
-  Ce chantier fournit le SQL ici pour intégration par le parent, sans déploiement :
+- `migrations/interne/0005_google_review_attachments.sql` ajoute le registre via
+  le circuit `docs/internal-migrations.md` (preview puis production avant Pages).
+  La page est reliée à la navigation interne, sous « Réponses Google ».
 
-```sql
-CREATE TABLE google_review_attachments (
-  journal_id INTEGER PRIMARY KEY,
-  source_key TEXT NOT NULL,
-  state TEXT NOT NULL CHECK(state IN ('pending','complete')),
-  audit_json TEXT NOT NULL,
-  before_detail TEXT NOT NULL,
-  after_detail TEXT NOT NULL
-);
-```
-
-Le parent doit ajouter le lien à la navigation ou au catalogue des formulaires
-(ces fichiers sont volontairement hors du périmètre de ce chantier).
+Le manifeste de migration est calculé automatiquement :
+`bun scripts/internal-migrations.mjs list` doit inclure 0005 et son SHA256.
+Ne pas modifier `internal-migrations-history.json` : il fige uniquement le socle
+0001–0004 déjà adopté. Aucune migration n'est exécutée à la volée par la page.
 
 ## Contrat des preuves de reprise
 
@@ -72,3 +63,12 @@ Le client reprend la temporisation 650 ms et les reprises explicites 429 du
 collecteur, dont le client n’est pas exporté. Requêtes séquentielles, trois essais
 maximum, Retry-After borné à dix secondes, aucun retry de timeout/5xx écriture,
 aucun suivi de redirection avec le jeton. Il n’y a pas de polling automatique.
+
+## Recette compilée sans compte ni donnée de production
+
+Après `bun run build`, lancer `bun scripts/check-google-review.mjs`. Le serveur
+local utilise les pages/API compilées, un JWT fictif signé localement, toutes les
+migrations en SQLite mémoire et des réponses NocoDB simulées. Toute requête
+externe non prévue fait échouer la recette. Contrôles à 390 et 1440 px, confirmation,
+double envoi, noms des dossiers dans les reçus, filtres, accès et captures.
+`CHECK_SCREENSHOTS` et `GOOGLE_REVIEW_TEST_PORT` personnalisent sortie/port.

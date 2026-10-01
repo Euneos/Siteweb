@@ -1,5 +1,6 @@
-import type { reviewView, ReviewTarget } from '../lib/google-review'
+import type { reviewView, ReviewTarget, resolveReconciliationTargets } from '../lib/google-review'
 type Row = Awaited<ReturnType<typeof reviewView>> & {
+  resolvedTargets?: ReturnType<typeof resolveReconciliationTargets>
   operation?: { state: string; audit_json: string } | null
 }
 const root = document.querySelector<HTMLElement>('#google-review')
@@ -52,7 +53,13 @@ if (root) {
           (filter.value === 'integrated'
             ? row.state === 'integrated'
             : row.state !== 'integrated' || row.operation?.state === 'pending')) &&
-        JSON.stringify([row.form, row.answers, row.rawAnswers, row.attachment?.target.label])
+        JSON.stringify([
+          row.form,
+          row.answers,
+          row.rawAnswers,
+          row.attachment?.target.label,
+          row.resolvedTargets,
+        ])
           .toLocaleLowerCase('fr')
           .includes(query),
     )
@@ -79,6 +86,16 @@ if (root) {
     detail.hidden = false
     get('gr-title').textContent = `Réponse #${row.id} — ${row.form}`
     get('gr-summary').textContent = summary(row)
+    get('gr-reconciliation').hidden = !row.receipt
+    const resolved = get('gr-targets')
+    resolved.replaceChildren()
+    for (const item of row.resolvedTargets ?? []) {
+      const li = document.createElement('li')
+      li.textContent = `${item.label}${item.fields.length ? ` · Champs attestés : ${item.fields.join(', ')}` : ''}`
+      resolved.append(li)
+    }
+    get('gr-reasons').textContent = row.receipt?.reasons.join(' · ') ?? ''
+
     const answers = get('gr-answers')
     answers.replaceChildren()
     for (const answer of row.answers.length
@@ -164,6 +181,7 @@ if (root) {
     feedback.textContent = 'Enregistrement du rattachement…'
     try {
       const result = await api(body)
+      result.row.resolvedTargets = selected.resolvedTargets
       rows = rows.map((r) => (r.id === result.row.id ? result.row : r))
       renderList()
       open(result.row)

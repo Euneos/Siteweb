@@ -1,7 +1,10 @@
 import { NC, reconcilierActifs } from './nocodb'
+import { OPERATIONAL_ADULTS_TABLE } from './operational-data'
 import { WorkspaceError, type WorkspaceDatabase } from './internal-workspace'
 import {
   manualReview,
+  reconciliation,
+  resolveReconciliationTargets,
   parseReviewCommand,
   positiveId,
   reviewVersion,
@@ -155,14 +158,25 @@ export async function listReviews(ctx: Context) {
       .all<{ journal_id: number; state: string; audit_json: string }>()
   ).results
   const rows = await all(ctx.client, ctx.table)
+  const targets = await reviewTargets(ctx.client)
+  const hasAdults = rows.some((row) =>
+    reconciliation(row)?.targets.some((t) =>
+      [OPERATIONAL_ADULTS_TABLE, 'adultes', 'adults'].includes(t.table),
+    ),
+  )
+  const adults = hasAdults ? await all(ctx.client, OPERATIONAL_ADULTS_TABLE) : []
   return {
     rows: await Promise.all(
       rows.map(async (row) => ({
         ...(await reviewView(row)),
+        resolvedTargets: resolveReconciliationTargets(reconciliation(row), targets, adults, {
+          ...NC.tables,
+          adults: OPERATIONAL_ADULTS_TABLE,
+        }),
         operation: operations.find((o) => o.journal_id === row.Id) ?? null,
       })),
     ),
-    targets: await reviewTargets(ctx.client),
+    targets,
   }
 }
 export async function attachReview(ctx: Context, body: Record<string, unknown>, actor: string) {
