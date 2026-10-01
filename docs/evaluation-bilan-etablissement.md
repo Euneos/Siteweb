@@ -1,108 +1,140 @@
-# Évaluation finale et bilan établissement : préparation, sans ouverture de collecte
+# Évaluation finale et bilan établissement : réception métier vérifiée
 
-Les définitions exactes relues le 1er octobre 2026 sont préparées séparément :
+Deux parcours indépendants : `/suivi/evaluation-formation` (20 questions exactes,
+17 obligatoires) et `/suivi/bilan-etablissement` (15 questions exactes, 11
+obligatoires). Chacun ajoute une année scolaire obligatoire, autorisée pour les
+nouvelles réponses uniquement. Aucun rattachement historique n’en est déduit.
 
-| Parcours | Questions source | Obligatoires source | Ajout autorisé pour le site |
-|---|---:|---:|---|
-| `/suivi/evaluation-formation` | 20 | 17 | Année scolaire obligatoire |
-| `/suivi/bilan-etablissement` | 15 | 11 | Année scolaire obligatoire |
+Les types et libellés de la source sont conservés : six questions multiples et
+trois listes déroulantes pour l’évaluation ; « Si non, pourquoi ? » obligatoire
+sans condition pour le bilan ; échelle 0–10 avec zéro valide. L’option littérale
+« Autre : » n’ajoute aucun champ libre non prouvé par le relevé éditeur. La parité
+est testée par empreintes du contenu public, sans ID source ni donnée de compte.
 
-Ce lot livre la parité des libellés, options, types, obligations, sections et bornes
-d’échelles, leur validation serveur et leur rendu en préversion. L’année est une
-question **nouvelle**, explicitement autorisée pour les prochaines réponses : elle
-ne permet aucune inférence sur une réponse Google historique.
+## Prérequis d’activation
 
-**Ce lot ne livre pas la réception métier. Les deux pages et endpoints renvoient
-503 sur euneos.fr/www.euneos.fr, avant toute collecte, quels que soient les secrets
-présents.** Aucun interrupteur de configuration ne peut les ouvrir. Hors production,
-le parcours est une simulation explicite qui ne lit ni n’écrit aucune base et ne
-contacte aucun transport externe. Aucun lien n’est ajouté au catalogue public ou
-privé. Ne pas annoncer ces formulaires en ligne ni les confondre avec B/J45.
+- Journal et configuration existants : `PUBLIC_FORMS_TABLE`, `NOCODB_TOKEN`,
+  `OPERATIONAL_FORMS_ENABLED`, `FORM_SUBMISSIONS`.
+- Migration additive `0014_final_questionnaires.sql` dans FORM_SUBMISSIONS :
+  plans, dates, résultats et claims durables. Aucune modification des registres
+  Google, de leurs clés ni des migrations des autres formulaires.
+- Deux colonnes NocoDB **nouvelles**, absentes lors de la lecture de métadonnées
+  du 1er octobre : `adultes.date_evaluation_recu` (Date) et
+  `participations.date_bilan_etablissement_recu` (Date). Le manifeste préparé
+  `migrations/nocodb/questionnaires-fin-receptions.json` décrit ces ajouts ;
+  **il n’est pas appliqué automatiquement par la migration D1 et n’a pas été
+  appliqué à distance par ce lot**. L’intégrateur doit préparer et vérifier ces
+  colonnes avant activation. Aucun renommage ou détournement de date_post_recu.
+- Secrets dédiés `EVALUATION_FORMATION_PROJECTION` et
+  `BILAN_ETABLISSEMENT_PROJECTION` : tables et mappings confirmés, jamais exposés
+  au navigateur. Leur format natif accepte `cohorts[].answers[]` **sans answer**,
+  ou `answer` et des aliases additionnels. Les collisions entre cohortes sont
+  refusées. Les aliases de noms d’établissement proviennent d’une preuve privée.
 
-## Particularités conservées
+Exemple exclusivement fictif de configuration évaluation :
 
-- Évaluation : six questions à cases à cocher multiples, même lorsqu’elles
-  ressemblent à une échelle verbale ; trois listes déroulantes obligatoires.
-- L’évaluation n’a pas de question de nom répondant. Ne pas remplir un champ nom
-  virtuel depuis NocoDB pour satisfaire artificiellement le planner PR38.
-- Bilan : « Si non, pourquoi ? » reste obligatoire pour toutes les réponses ;
-  aucune condition cachée n’est inventée. L’échelle de recommandation contient 0.
-- L’option littérale « Autre : » de l’évaluation reste un choix. Le relevé éditeur
-  fourni ne prouve pas un champ libre associé ; aucun champ supplémentaire n’est
-  déduit de sa ponctuation.
-- Champs email rendus comme email, limites de taille techniques, année consécutive
-  et rejet des clés/options inconnues. Les autres types restent ceux observés.
-  Les échelles numériques gardent leurs bornes verbales lorsqu’elles existent.
-- Les textes personnels des répondants, identifiants de sources et preuves DOM
-  privées ne sont pas dans le dépôt. Les deux empreintes de parité portent
-  exclusivement sur le contenu public des questions.
+```json
+{
+  "version": 1,
+  "family": "evaluation_formation",
+  "tables": {
+    "people": "fictionaladults0001",
+    "records": "fictionaldossiers01",
+    "schools": "fictionalschools001"
+  },
+  "cohorts": [
+    {
+      "id": 2,
+      "answers": ["2026-2027", "2026 2027"],
+      "establishments": [{ "answer": "École fictive", "participationId": 7, "schoolId": 9 }]
+    }
+  ],
+  "receipt": { "field": "date_evaluation_recu", "type": "Date" }
+}
+```
 
-## Contrat de projection à compléter avant une ouverture
+Pour le bilan, `family` est `bilan_etablissement`, `people` désigne la même table
+que `schools`, et receipt.field est `date_bilan_etablissement_recu`. Le seul
+champ métier supplémentaire autorisé est `scoreNps: true`, qui demande
+explicitement de reporter la recommandation 0–10 vers `participations.score_nps`
+(Number). **Le défaut et les configurations privées préparées sont false** :
+la présence de la colonne seule n’active jamais le report. Aucun nom de colonne
+libre ni changement de statut n’est configurable.
 
-Le snapshot privé du 1er octobre comporte `date_pre_recu`, `date_post_recu` et
-`date_suivi_recu` sur adultes, mais aucun champ de réception propre à l’évaluation
-finale. Les participations comportent `score_nps`, mais aucun marqueur distinct de
-réception du bilan établissement identifié dans ce snapshot. L’existence d’une
-colonne ne prouve ni son mapping à ce questionnaire ni son autorisation d’écriture.
-Aucune nouvelle colonne NocoDB ni migration n’est appliquée ou présumée ici.
+GET et POST refusent avant capture si configuration, registre ou colonne manque,
+ou si le type de réception/NPS diffère. La vérification se fait dans les vraies
+métadonnées NocoDB, pas seulement sur une déclaration de secret. Hors euneos.fr,
+la préversion simule uniquement, même avec secrets présents ; zéro stockage.
 
-| Étape | Évaluation finale | Bilan établissement |
-|---|---|---|
-| Source publique | Les 20 questions exactes + année nouvelle | Les 15 questions exactes + année nouvelle |
-| Identité à vérifier | Email exact unique dans adultes, établissement déclaré et année explicitement mappés dans la configuration privée ; aucun nom inventé | Email égal à un champ contact autorisé d’un établissement unique, nom établissement exact ; année déclarée correspondant à un dossier actif unique |
-| Relations | adulte.participations_id = dossier confirmé ; établissement/cohorte conformes ; dossier non fusionné | établissement confirmé + cohorte explicite ; un seul dossier non fusionné ; aucun choix par campagne active |
-| Réception ciblée | Champ propre à l’évaluation à définir/auditer. **Jamais date_post_recu**, réservé à B | Champ(s) de réception du bilan à définir/auditer. Ne pas utiliser fiche_contact_recue ni statut_formation |
-| Autres champs | Questionnaire complet au journal ; aucune note ou statut formé | Mapping éventuel de la question de recommandation vers score_nps à confirmer explicitement, avec type/plage et règle de non-écrasement ; pas de score automatique avant cet audit |
-| Hors périmètre | Création d’adulte, modification des noms/emails, participation supposée, score de formation | Création d’établissement/dossier, relation supposée à un formateur, changement de statut |
+## Résolution explicite et écritures limitées
 
-Primitives réutilisables : les claims, plans figés, états durables et relectures
-PR38/pré-A/B/J45. Pour le bilan établissement, `planGooglePerson` peut servir à
-l’identité établissement/dossier avec une configuration **bilan_etablissement**
-auditée (`mapping.name` désigne ici le nom de l’établissement). Pour l’évaluation,
-son contrat actuel exige un nom répondant absent de la source : un résolveur
-spécifique email+relation explicite doit être testé, sans élargir silencieusement
-le contrat du Worker ou du runner B/J45.
+**Évaluation.** Email exact unique parmi email/email_2 des adultes, dossier déclaré
+par l’année et l’alias d’établissement privés, puis contrôle de la relation
+adulte.participations_id, de la cohorte, de l’établissement et de l’absence de
+fusion. L’établissement existe et le dossier de cette année est unique. La source
+n’a pas de nom répondant : aucun nom n’est inventé ou injecté dans le planner PR38.
+Les noms NocoDB servent uniquement de gardes de stabilité. Seule la date distincte
+de réception est écrite sur l’adulte ; aucune création, identité, date B/J45,
+réponse pédagogique ou statut « formé » n’est écrit sur cette fiche.
 
-## Séquence de mise en œuvre restante
+**Bilan établissement.** Email exact unique parmi referent_email, email_direction,
+email_institutionnel, email_logistique ; établissement correspondant exactement
+au mapping privé de l’alias déclaré ; un seul dossier pour cet établissement et
+l’année configurée, non fusionné. Aucune relation à un formateur ou une mission
+n’est déduite. Seule sa date de réception est écrite sur la participation.
 
-1. Confirmer dans les métadonnées réelles les champs de réception propres aux
-   deux familles, ou faire valider un changement de schéma distinct. Auditer le
-   mapping du score éventuel, sans déduire un champ à partir du seul libellé.
-2. Préparer des configurations privées versionnées : tables, aliases
-   établissement/cohorte, champs contacts admis, champs de réception et types.
-   Refuser configuration absente, ambiguë ou modifiée après capture. Aucun ID ni
-   mapping privé dans le dépôt ou le navigateur.
-3. Conserver au journal les couples libellé/réponse, l’année déclarée, la version
-   et la date serveur figée ; relire la source avant toute projection. Le journal
-   reste append-only pour ne pas écraser une annotation concurrente.
-4. Enregistrer dans FORM_SUBMISSIONS un plan, son digest et ses claims avant le
-   PATCH métier. Geler date/identité/dossier. Contrôler identité, relations et
-   anciennes valeurs avant et après écriture. Écriture incertaine : lecture seule
-   au rejeu. Zéro création et zéro statut « formé ».
-5. Montrer dans le catalogue privé un résultat D1 vérifié et son dossier/date,
-   ou une attente explicite avec motif ; ne pas prétendre réception métier sur
-   la seule présence d’une ligne au journal. Réponse publique uniforme.
-6. Recetter le parcours compilé → journal → champ métier → lecture privée avec
-   données fictives, puis faire la recette autorisée de l’environnement cible.
-   Ajouter les liens seulement après cette validation.
+Une date existante différente est conservée et devient un cas à vérifier. Si NPS
+est explicitement activé, une valeur vide peut être remplie ; la même valeur est
+conservée. Une valeur différente, y compris zéro, est préservée et affichée comme
+report partiel : réception vérifiée, score existant inchangé, avis intégral au
+journal. Les autres réponses restent exclusivement au journal.
 
-Cas de recette indispensables : email absent/dupliqué, email d’un autre dossier,
-établissements homonymes, deux dossiers actifs sur l’année, cohorte non configurée,
-dossier fusionné, date/score existants différents, source ou POST/PATCH perdu,
-rejeu sur une autre date, changement de configuration, identité réservée ailleurs,
-annotation journal concurrente. Le score zéro doit rester une valeur renseignée.
-Les claims site ne constituent pas un compare-and-swap universel face aux PATCH
-Google/humains : cette limite doit être documentée ou traitée explicitement.
+## Durabilité et catalogue
 
-## Vérification du lot préparatoire
+Source exacte versionnée → réservation de reçu → date serveur figée dans D1 →
+journal NocoDB créé et relu exactement → plan figé et claim sur table/ID/champ de
+réception → contrôles avant écriture → marqueur writing durable → PATCH ciblé →
+relecture et nouvelle vérification d’unicité → résultat D1.
+
+Les états queued/planning/retryable/writing/complete/review reprennent le protocole
+pré-A. Seules les lectures/préparations préalables peuvent être rejouées. Un PATCH
+incertain n’est jamais réémis ; la reprise relit son plan. Date, configuration et
+identité ne changent pas au rejeu. Un changement de mapping mène à une attente
+explicite. Un claim incertain n’est ni effacé ni expiré automatiquement.
+
+Le journal reste append-only après capture : pas de PATCH qui écraserait une
+annotation Google/humaine. Le catalogue protégé lit les réponses et la preuve D1,
+avec date/dossier vérifiés, résultat partiel ou motif d’attente. Le dispatcher
+`finalQuestionnairePublicEntry` doit précéder le fallback OperationalInput, comme
+ceux de pré-A/B/J45/accord/bilan formateur. Aucun accès public aux réponses. La
+réponse publique est uniforme et ne divulgue aucune existence d’identité/dossier.
+
+Les claims sérialisent les réponses de ces deux formulaires. Ils ne constituent
+pas un compare-and-swap NocoDB face aux interventions humaines. Un futur Worker
+écrivant les mêmes nouvelles dates devra partager ce protocole avant activation.
+Les Workers Google actuels ne projettent pas ces nouveaux champs. Aucun email,
+changement de statut de formation ou de config globale dans ce lot.
+
+## Recette locale
 
 ```sh
 bun run test
 bun run build
 bun scripts/check-final-questionnaires.mjs
+bun run test:operational
 ```
 
-La recette compile les deux vraies pages/endpoints, vérifie sept largeurs par page,
-les options et contrôles, deux simulations au clavier, puis l’absence du formulaire
-et le HTTP 503 en mode production. Aucun secret ni donnée réelle n’est utilisé.
-Ce lot ne dépend pas des commits B/J45/accord et ne doit pas retarder pré-A.
+Tests sur vrai SQLite et transports NocoDB simulés : identités/années/dossiers
+ambigus, alias natifs de deux cohortes, colonne absente/type erroné, conflits de
+dates/NPS, score zéro, source perdue, PATCH perdu, reprise avec date figée,
+concurrence, configuration modifiée, annotation concurrente et changement
+d’identité pendant l’écriture. Les tests de contenu source restent séparés.
+
+La recette navigateur utilise les vraies pages, APIs et lecteur privé compilés :
+14 largeurs, deux réceptions métier relues, reprise après réponse perdue sans
+second PATCH, cas pending, score existant préservé, accès non authentifié refusé,
+absence de schéma bloquée avant collecte. Données fictives exclusivement.
+
+Le parent peut intégrer ce complément après le commit de préparation. Colonnes,
+secrets, migration distante et publication restent des opérations séparées ;
+aucune réussite locale n’est présentée comme une soumission réelle en production.

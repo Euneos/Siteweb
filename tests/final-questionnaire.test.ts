@@ -78,7 +78,7 @@ for (const def of definitions) {
           'Choix inconnu'
       expect(() => parseFinalQuestionnaire(def, value)).toThrow()
     })
-  test(`${def.slug}: production always closed even for valid input; no transport or storage`, async () => {
+  test(`${def.slug}: production closed without configuration even for valid input; no transport or storage`, async () => {
     globalThis.fetch = Object.assign(
       async () => {
         throw new Error('External transport forbidden')
@@ -92,7 +92,7 @@ for (const def of definitions) {
     for (const host of ['euneos.fr', 'www.euneos.fr']) {
       const result = await finalQuestionnairePreview(request(def, body(), host), def.slug)
       expect(result.status).toBe(503)
-      expect(await result.json()).toMatchObject({ code: 'projection_unavailable' })
+      expect(await result.json()).toMatchObject({ code: 'indisponible' })
       expect(result.headers.get('cache-control')).toContain('no-store')
     }
   })

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "tables": [
+    {"table": "adultes", "columns": [{"title": "date_evaluation_recu", "uidt": "Date"}]},
+    {"table": "participations", "columns": [{"title": "date_bilan_etablissement_recu", "uidt": "Date"}]}
+  ]
+}

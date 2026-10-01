@@ -1,5 +1,5 @@
 // Exact public wording observed on 2026-10-01; no source/account IDs or answers.
-// Preparatory definitions only: production collection is deliberately unavailable.
+// Publication requires the dedicated schema, private mapping and durable projection.
 export type FinalQuestionnaireSlug = 'evaluation-formation' | 'bilan-etablissement'
 export type FinalQuestion = {
   key: string
@@ -27,7 +27,7 @@ export const finalQuestionnaireDefinitions: FinalQuestionnaireDefinition[] = [
   {
     slug: 'evaluation-formation',
     kind: 'evaluation_fin_formation',
-    version: 'evaluation-formation-draft-v1',
+    version: 'evaluation-formation-v1',
     title: 'WISE UP - Évaluation de Fin de Formation',
     introduction:
       'Veuillez prendre quelques minutes pour évaluer votre expérience de formation WISE UP.',
@@ -349,7 +349,7 @@ export const finalQuestionnaireDefinitions: FinalQuestionnaireDefinition[] = [
   {
     slug: 'bilan-etablissement',
     kind: 'bilan_etablissement',
-    version: 'bilan-etablissement-draft-v1',
+    version: 'bilan-etablissement-v1',
     title: 'WISE-UP — 6. Questionnaire Bilan Établissement (référent/direction)',
     introduction:
       "Durée estimée : 2 à 3 minutes\n\nCe court questionnaire nous permet de recueillir le point de vue de l'établissement sur le déroulement du programme WISE-UP et ses conditions de poursuite.",

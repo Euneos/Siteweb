@@ -6,6 +6,7 @@ import { type SubmissionDatabase } from './candidature-store'
 import { identityText, operationalRequest, hashOperational, type OperationalInput, type OperationalKind, type OperationalTarget } from './operational-data'
 import { closedDossier, operationalConfig, operationalPath, OperationalLinkError } from './operational-links'
 import { enregistrerOperational } from './operational-store'
+import { finalQuestionnairePublicEntry } from './final-questionnaire'
 import { preformationDetails } from './preformation'
 import { postformationPublicEntry } from './postformation'
 import { readPreformationProjection, preformationPendingReason } from './preformation-projection'
@@ -139,6 +140,8 @@ export async function listPublicForms(locals: unknown) {
     const source = JSON.parse(String(row.reponses)) as { answers: OperationalInput }
     const postformation = await postformationPublicEntry(db, row, source)
     if (postformation) return postformation
+    const finalEntry = await finalQuestionnairePublicEntry(db, row, source)
+    if (finalEntry) return finalEntry
     const questionnaire = preformationDetails(source)
     if (questionnaire) {
       const projection = await readPreformationProjection(db, String(row.cle_reponse))
@@ -177,10 +180,10 @@ export async function listPublicForms(locals: unknown) {
 /** A failed or uncertain journal POST must remain visible to the team. Do not
  * reset the write marker or blindly send it again. Payloads are private D1 data. */
 async function pendingQuestionnaireSources(db: SubmissionDatabase, visibleReceipts: Set<string>) {
-  const { results: tables } = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('public_bilan_formateur_projections','public_accord_projections')").bind().all<{ name: string }>()
+  const { results: tables } = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('public_bilan_formateur_projections','public_accord_projections','public_final_questionnaire_projections')").bind().all<{ name: string }>()
   const pending = []
   for (const { name } of tables) {
-    if (!['public_bilan_formateur_projections', 'public_accord_projections'].includes(name)) continue
+    if (!['public_bilan_formateur_projections', 'public_accord_projections', 'public_final_questionnaire_projections'].includes(name)) continue
     const { results } = await db.prepare(`SELECT p.receipt,p.payload,p.received_at FROM ${name} p
       JOIN public_form_receipts r ON r.receipt=p.receipt
       WHERE r.noco_id IS NULL AND r.capture_started=1 ORDER BY p.received_at DESC LIMIT 100`).bind().all<{receipt:string;payload:string;received_at:string}>()
@@ -192,7 +195,7 @@ async function pendingQuestionnaireSources(db: SubmissionDatabase, visibleReceip
       pending.push({
         school: typeof field('school') === 'string' ? field('school') : '', city: '',
         year: typeof field('year') === 'string' ? field('year') : '',
-        form: name === 'public_bilan_formateur_projections' ? 'Bilan formateur' : 'Accord formateur',
+        form: name === 'public_bilan_formateur_projections' ? 'Bilan formateur' : name === 'public_accord_projections' ? 'Accord formateur' : payload.kind === 'evaluation_fin_formation' ? 'Évaluation de fin de formation' : 'Bilan établissement',
         state: 'Transmission au journal non confirmée — à vérifier', participationId: null,
         details: [
           ['Référence de réception', row.receipt],
