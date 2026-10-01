@@ -43,3 +43,27 @@ const reasonLabels: Record<string, string> = {
 export function reviewReasonLabel(reason: string): string {
   return Object.hasOwn(reasonLabels, reason) ? reasonLabels[reason] : reason
 }
+
+/** Search only the explicit fields available in the review view. */
+export function matchesReviewSearch(
+  row: {
+    id: number
+    form: string
+    answers: { question: string; answer: string }[]
+    rawAnswers: string
+    attachment?: { target: { label: string } } | null
+    resolvedTargets?: { table: string; id: number; fields: string[]; label: string }[]
+  },
+  query: string,
+) {
+  return JSON.stringify([
+    `Réponse #${row.id}`,
+    `Formulaire source : ${row.form || 'Non précisé'}`,
+    row.answers,
+    row.rawAnswers,
+    row.attachment?.target.label,
+    row.resolvedTargets,
+  ])
+    .toLocaleLowerCase('fr')
+    .includes(query.trim().toLocaleLowerCase('fr'))
+}

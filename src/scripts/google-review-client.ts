@@ -1,6 +1,7 @@
 import type { reviewView, ReviewTarget, resolveReconciliationTargets } from '../lib/google-review'
 import {
   matchesReviewFilter,
+  matchesReviewSearch,
   reviewFilters,
   reviewReasonLabel,
 } from '../lib/google-review-presentation'
@@ -105,19 +106,8 @@ if (root) {
       if (label)
         option.textContent = `${label} (${rows.filter((row) => matchesReviewFilter(row, option.value)).length})`
     }
-    const query = search.value.trim().toLocaleLowerCase('fr')
     const visible = rows.filter(
-      (row) =>
-        matchesReviewFilter(row, filter.value) &&
-        JSON.stringify([
-          row.form,
-          row.answers,
-          row.rawAnswers,
-          row.attachment?.target.label,
-          row.resolvedTargets,
-        ])
-          .toLocaleLowerCase('fr')
-          .includes(query),
+      (row) => matchesReviewFilter(row, filter.value) && matchesReviewSearch(row, search.value),
     )
     const count = document.createElement('p')
     count.textContent = `${visible.length} entrée(s) affichée(s) sur ${rows.length}. Les différentes versions d’une réponse sont conservées.`
