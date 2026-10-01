@@ -1119,6 +1119,31 @@ try {
     await page.locator('#iw-close').click()
     checks.push(`weekly-7-8-preserve-existing-no-duplicates-${width}`)
   }
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.locator('#iw-new').click()
+    await expect(page.locator('#iw-entry-person')).toBeEnabled()
+    await page.locator('#iw-entry-person').selectOption({ label: 'Candice' })
+    await page.locator('#iw-entry-activity').selectOption('Coordination')
+    await page.locator('#iw-hours').fill('3.5')
+    const before = new Set(sql.query('SELECT id FROM workspace_entries').all().map(row => row.id))
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    const delegated = sql.query('SELECT * FROM workspace_entries').all().find(row => !before.has(row.id))
+    assert(delegated)
+    assert.equal(delegated.person.toLowerCase(), 'candice')
+    assert.equal(delegated.created_by, 'member@example.test')
+    assert.equal(delegated.hours, 3.5)
+    await expect(page.locator('#iw-editor')).toContainText('Créée par member@example.test')
+    await page.locator('#iw-hours').fill('4')
+    await page.locator('#iw-save').click()
+    await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
+    assert.equal(sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(delegated.id).hours, 4)
+    assert(await page.locator('#iw-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    await page.screenshot({ path: `${output}/saisie-collegue-${width}.png` })
+    await page.locator('#iw-close').click()
+    checks.push(`delegated-create-edit-creator-${width}`)
+  }
   failDatabase = true
   await page.locator('#iw-refresh').click()
   await expect(page.locator('#iw-calendar-state')).toContainText(
