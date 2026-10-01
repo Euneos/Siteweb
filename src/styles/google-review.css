@@ -139,3 +139,11 @@
 .gr #gr-targets li + li {
   margin-top: var(--s-lie);
 }
+
+.gr-pending-summary {
+  padding: var(--s-lie);
+  border-left: 4px solid #a4211a;
+  background: #fff4f3;
+  color: #8b1b16;
+  font-weight: 700;
+}

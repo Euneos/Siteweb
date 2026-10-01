@@ -28,6 +28,8 @@ if (auth instanceof Response) return auth
       NocoDB, copier de donnée dans le dossier ni changer de statut.
     </p>
     <p id="gr-feedback" role="status" aria-live="polite">Chargement des réponses…</p>
+    <p id="gr-pending-summary" class="gr-pending-summary" role="status" aria-live="polite" hidden>
+    </p>
     <div class="gr-filters">
       <label
         >Afficher<select id="gr-state"
@@ -41,7 +43,7 @@ if (auth instanceof Response) return auth
         >Rechercher<input
           id="gr-search"
           type="search"
-          placeholder="Formulaire, nom ou établissement"
+          placeholder="N° de réponse, formulaire, nom ou établissement"
         /></label
       >
     </div>

@@ -63,6 +63,7 @@ if (root) {
   const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
   const feedback = get('gr-feedback'),
     list = get('gr-list'),
+    pendingSummary = get('gr-pending-summary'),
     detail = get('gr-detail'),
     form = get<HTMLFormElement>('gr-form')
   const target = get<HTMLSelectElement>('gr-target'),
@@ -106,6 +107,9 @@ if (root) {
       if (label)
         option.textContent = `${label} (${rows.filter((row) => matchesReviewFilter(row, option.value)).length})`
     }
+    const pendingCount = rows.filter((row) => matchesReviewFilter(row, 'pending')).length
+    pendingSummary.textContent = `${pendingCount} réponse${pendingCount > 1 ? 's' : ''} à examiner`
+    pendingSummary.hidden = pendingCount === 0
     const visible = rows.filter(
       (row) => matchesReviewFilter(row, filter.value) && matchesReviewSearch(row, search.value),
     )
@@ -120,7 +124,9 @@ if (root) {
       title.textContent = `Réponse #${row.id}`
       const status = document.createElement('span')
       status.textContent = `${row.submittedAt} · ${summary(row)}`
-      button.append(title, status)
+      const formLabel = document.createElement('span')
+      formLabel.textContent = `Formulaire source : ${row.form || 'Non précisé'}`
+      button.append(title, formLabel, status)
       button.addEventListener('click', () => {
         if (!busy) open(row)
       })
@@ -189,6 +195,7 @@ if (root) {
     detail.hidden = true
     selected = null
     rows = []
+    pendingSummary.hidden = true
     list.replaceChildren()
     feedback.textContent = 'Lecture des réponses et des dossiers…'
     try {
