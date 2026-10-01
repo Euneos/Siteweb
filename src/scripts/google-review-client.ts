@@ -3,6 +3,27 @@ type Row = Awaited<ReturnType<typeof reviewView>> & {
   resolvedTargets?: ReturnType<typeof resolveReconciliationTargets>
   operation?: { state: string; audit_json: string } | null
 }
+const fieldLabels: Record<string, string> = {
+  adulte_id: 'Identifiant du participant', nom: 'Nom', prenom: 'Prénom', email: 'E-mail',
+  fonction: 'Fonction', participations_id: 'Dossier établissement', statut: 'Statut',
+  adultes: 'Participants adultes', date_pre_recu: 'Réception du questionnaire préformation',
+  date_suivi_recu: 'Réception du questionnaire de suivi à 45 jours',
+  accord_signe: 'Accord signé', date_accord: 'Date de l’accord', notes: 'Informations du dossier',
+  fiche_contact_recue: 'Fiche contact reçue', date_candidature: 'Date de candidature',
+  enjeux: 'Enjeux identifiés', besoin_partage: 'Besoin partagé par l’équipe',
+  nb_professionnels: 'Nombre de professionnels', faisabilite: 'Faisabilité',
+  point_vigilance: 'Point de vigilance', accord_direction: 'Accord de la direction',
+  demarrage_souhaite: 'Démarrage souhaité', contrainte_calendrier: 'Contraintes de calendrier',
+  consentement: 'Consentement', apporteur_nom: 'Formateur apporteur', apporteur_email: 'E-mail du formateur apporteur',
+  formation_instructeur: 'Formation de l’instructeur', experience_animation: 'Expérience d’animation',
+  pratique_personnelle: 'Pratique personnelle', interventions_animees: 'Interventions animées',
+  annees_experience: 'Années d’expérience', motivation: 'Motivation', disponible_2026_27: 'Disponibilité 2026–2027',
+  etab_pressenti: 'Établissement pressenti', etab_pressenti_nom: 'Nom de l’établissement pressenti',
+  etab_pressenti_adresse: 'Adresse de l’établissement pressenti', etab_pressenti_type: 'Type d’établissement',
+  etab_pressenti_ville: 'Ville de l’établissement pressenti', etab_pressenti_cp: 'Code postal de l’établissement',
+  etab_pressenti_academie: 'Académie', direction_nom: 'Nom de la direction', direction_email: 'E-mail de la direction',
+  accord_principe: 'Accord de principe', contexte_complement: 'Complément de contexte',
+}
 const root = document.querySelector<HTMLElement>('#google-review')
 if (root) {
   const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
@@ -91,7 +112,7 @@ if (root) {
     resolved.replaceChildren()
     for (const item of row.resolvedTargets ?? []) {
       const li = document.createElement('li')
-      li.textContent = `${item.label}${item.fields.length ? ` · Champs attestés : ${item.fields.join(', ')}` : ''}`
+      li.textContent = `${item.label}${item.fields.length ? ` · Champs attestés : ${[...new Set(item.fields.map((field) => fieldLabels[field] || 'Autre information du dossier'))].join(', ')}` : ''}`
       resolved.append(li)
     }
     get('gr-reasons').textContent = row.receipt?.reasons.join(' · ') ?? ''
