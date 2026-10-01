@@ -1,0 +1,13 @@
+---
+import Preview from '../../components/FinalQuestionnairePreview.astro'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+// No activation switch: a verified projection contract is still required.
+if (!preview) Astro.response.status = 503
+---
+
+<Preview slug="evaluation-formation" preview={preview} ready={preview} />
