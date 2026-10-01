@@ -22,14 +22,15 @@ const personalForms = [
     name: 'Organisation de la formation adultes',
     purpose: 'Préparer les dates et les personnes',
     description:
-      'Préciser le calendrier, les modalités et les formateurs de la formation des adultes.',
-    fields: ['Dates et séances', 'Modalités', 'Formateurs'],
+      'Préciser le calendrier, les modalités, les formateurs et les adultes participants dans un seul formulaire. La liste des adultes peut être complétée plus tard.',
+    fields: ['Dates et séances', 'Modalités', 'Formateurs', 'Participants adultes (facultatif)'],
     example: [
       ['Référent', 'Prénom Nom · referent@example.test'],
       ['Dates de formation', 'À préciser avec l’équipe'],
       ['Modalités', 'Présentiel'],
       ['Planning des séances', 'Jour · horaires · durée'],
       ['Formateurs', 'Prénom Nom'],
+      ['Participants adultes', 'Prénom Nom · adulte@example.test (liste facultative)'],
     ],
   },
   {
@@ -44,20 +45,6 @@ const personalForms = [
       ['Activités', 'Organisation à préciser'],
       ['Groupes concernés', 'Informations collectives, sans noms de jeunes'],
       ['Évaluation', 'Modalités à confirmer avec l’équipe'],
-    ],
-  },
-  {
-    key: 'participants',
-    number: '+',
-    name: 'Participants adultes',
-    purpose: 'Compléter la liste du dossier',
-    description:
-      'Rattacher les adultes participants à la bonne cohorte. Une inscription ne signifie pas que la personne est formée.',
-    fields: ['Référent', 'Adultes participants', 'Vérification de la liste'],
-    example: [
-      ['Référent', 'Prénom Nom · referent@example.test'],
-      ['Participant adulte', 'Prénom Nom · adulte@example.test'],
-      ['Liste', 'À vérifier avant de transmettre'],
     ],
   },
 ]
@@ -178,6 +165,33 @@ const publicForms = [
             <p class="fc-footnote" data-kind-note>
               La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.
             </p>
+            {item.key === 'deploiement' && (
+              <details class="fc-example" data-participants-complement>
+                <summary>Compléter uniquement les participants plus tard</summary>
+                <div class="fc-example-body" data-catalog-kind="participants">
+                  <p>
+                    Les participants peuvent être renseignés dans le formulaire n°4 ci-dessus.
+                    Si l’organisation a déjà été envoyée, utilisez ce complément pour ajouter des
+                    adultes sans ressaisir le calendrier. Les anciens liens restent utilisables.
+                  </p>
+                  <span class="fc-status" data-operational-state="participants" data-state="unknown">
+                    État à vérifier
+                  </span>
+                  <div data-public-access hidden>
+                    <label class="of-field">Lien de complément à partager
+                      <input type="text" readonly value="https://euneos.fr/suivi/participants" aria-label="URL publique : complément de participants adultes" data-public-url />
+                    </label>
+                    <div class="fc-actions">
+                      <a class="iw-button" href="/suivi/participants" target="_blank" rel="noopener noreferrer">Voir le complément ↗</a>
+                      <button type="button" class="iw-button" data-copy-public disabled>Copier le lien de complément</button>
+                    </div>
+                    <p class="fc-copy-feedback" data-public-copy-feedback role="status" aria-live="polite" />
+                  </div>
+                  <button type="button" class="iw-button" data-prepare-kind="participants" disabled>Lien prérempli pour un dossier : participants</button>
+                  <p class="fc-footnote" data-kind-note>La disponibilité de ce formulaire doit être vérifiée avant de préparer un lien.</p>
+                </div>
+              </details>
+            )}
           </article>
         ))
       }

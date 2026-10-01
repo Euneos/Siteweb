@@ -398,6 +398,7 @@ try {
       assert.equal(payload.schoolDetails.type, 'Collège')
     }
     if (route === 'deploiement') {
+      assert.equal(payload.participants.length, 0, 'Participants remain optional in form 4')
       assert.equal(payload.declaredTrainers.length, 2)
       assert.equal(payload.formation.sessions, 5)
       assert.equal(payload.preformation, 'Je vais le faire')
@@ -415,6 +416,38 @@ try {
       assert.equal(payload.youth.activeT1, '')
     }
   }
+
+  // Form 4: no initial mandatory row; optional list, native validation and removal.
+  await goto('deploiement')
+  await fill('deploiement')
+  await expect(page.locator('[data-person]')).toHaveCount(0)
+  await expect(page.locator('#of-participants-count')).toContainText('facultatif')
+  await page.locator('#of-add-person').click()
+  await page.locator('[data-person-field=firstName]').fill('Camille')
+  const incompletePosts = publicPosts.length
+  await submit()
+  assert.equal(publicPosts.length, incompletePosts, 'An added adult needs both names')
+  await page.locator('[data-person-field=lastName]').fill('Exemple')
+  await page.locator('[data-person-field=email]').fill('camille@example.test')
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.deepEqual(publicPosts.at(-1).participants, [{ firstName: 'Camille', lastName: 'Exemple', email: 'camille@example.test', role: '' }])
+  await goto('deploiement')
+  await fill('deploiement')
+  await page.locator('#of-add-person').click()
+  await expect(page.locator('[data-person] [data-remove]')).toBeEnabled()
+  await page.locator('[data-person] [data-remove]').click()
+  await expect(page.locator('[data-person]')).toHaveCount(0)
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.deepEqual(publicPosts.at(-1).participants, [])
+  await goto('deploiement')
+  await page.locator('#of-add-person').evaluate((button) => { if (button instanceof HTMLButtonElement) for (let i = 0; i < 201; i++) button.click() })
+  await expect(page.locator('[data-person]')).toHaveCount(200)
+  await expect(page.locator('#of-add-person')).toBeDisabled()
+  await page.locator('[data-person]').last().locator('[data-remove]').click()
+  await expect(page.locator('[data-person]')).toHaveCount(199)
+  await expect(page.locator('#of-add-person')).toBeEnabled()
 
   // Reusable links: no account, code or bearer token. Actual compiled preview POST.
   for (const width of [390, 1440]) for (const route of routes) {
@@ -629,6 +662,13 @@ try {
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), expected)
     await expect(card.locator('[data-public-copy-feedback]')).toContainText('URL publique copiée')
   }
+  await expect(catalog.locator('#catalog-personal > .fc-grid > .fc-card')).toHaveCount(3)
+  await expect(catalog.locator('.fc-card[data-catalog-kind=participants]')).toHaveCount(0)
+  const complement = catalog.locator('[data-participants-complement]')
+  await expect(complement).not.toHaveAttribute('open', '')
+  await complement.locator('summary').click()
+  await complement.locator('[data-copy-public]').click()
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'https://euneos.fr/suivi/participants')
   for (const chosenKind of ['deploiement', 'participants', 'contact']) {
     await catalog.locator(`[data-prepare-kind=${chosenKind}]`).click()
     await expect(linkForm.locator('[name=kind]')).toHaveValue(chosenKind)
@@ -760,7 +800,8 @@ try {
         ).toHaveAttribute('aria-current', 'page')
       } else {
         await goto(route)
-        if (route === 'participants') {
+        if (route === 'deploiement') await page.locator('#of-add-person').click()
+        if (route === 'participants' || route === 'deploiement') {
           await page.locator('[data-person-field=firstName]').fill('Camille')
           await page.locator('[data-person-field=lastName]').fill('Exemple')
         }
@@ -816,7 +857,7 @@ try {
         await page.screenshot({ path: `${output}/${route}-${width}-full.png`, fullPage: true })
         if (route !== 'internal') {
           await page
-            .locator(route === 'participants' ? '#of-participants' : route === 'activites-jeunes' ? '#of-evaluation-details' : '#of-trainers')
+            .locator(['participants', 'deploiement'].includes(route) ? '#of-participants' : route === 'activites-jeunes' ? '#of-evaluation-details' : '#of-trainers')
             .scrollIntoViewIfNeeded()
           await page.screenshot({ path: `${output}/${route}-${width}-adults.png` })
         }

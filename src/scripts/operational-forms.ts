@@ -39,7 +39,9 @@ if (form) {
       remove.setAttribute('aria-label', `Retirer l’adulte ${i + 1}`)
       remove.disabled = pending || (form!.dataset.kind === 'participants' && rows.length === 1)
     })
-    count.textContent = `${rows.length} adulte(s) à transmettre.`
+    count.textContent = rows.length
+      ? `${rows.length} adulte(s) à transmettre.`
+      : 'Aucun adulte ajouté pour le moment (facultatif).'
     addPerson.disabled = pending || rows.length >= 200
   }
   function newPerson(focus = false) {

@@ -95,6 +95,16 @@ test.each(['Oui', 'Non', 'Je vais le faire'])(
     expect(result).not.toHaveProperty('statut')
   },
 )
+test('unified deployment permits an empty or partial list, but validates each added adult and the 200 limit', () => {
+  const adult = { firstName: 'Alex', lastName: 'Exemple', email: '', role: '' }
+  expect(parseOperationalInput(deploymentV2(), 'deploiement').participants).toEqual([])
+  expect(parseOperationalInput({ ...deploymentV2(), participants: [adult] }, 'deploiement').participants).toEqual([adult])
+  for (const invalid of [{ ...adult, firstName: '' }, { ...adult, lastName: '' }, { ...adult, email: 'incorrect' }])
+    expect(() => parseOperationalInput({ ...deploymentV2(), participants: [invalid] }, 'deploiement')).toThrow()
+  const participants = Array.from({ length: 200 }, (_, i) => ({ ...adult, firstName: `Adulte ${i}` }))
+  expect(parseOperationalInput({ ...deploymentV2(), participants }, 'deploiement').participants).toHaveLength(200)
+  expect(() => parseOperationalInput({ ...deploymentV2(), participants: [...participants, { ...adult, firstName: '201' }] }, 'deploiement')).toThrow()
+})
 test.each([undefined, 'yes', false])(
   'v2 deployment refuses missing or invalid preformation %s',
   (preformation) => {

@@ -37,7 +37,7 @@ const errorMessage =
       : 'Ce lien est invalide, expiré ou a été remplacé. Demandez un nouveau lien à l’équipe EUNEOS.'
 const titles = {
   contact: 'Fiche contact',
-  deploiement: 'Organisation de la formation',
+  deploiement: 'Organisation de la formation adultes',
   participants: 'Participants adultes',
   'activites-jeunes': 'Organisation des activités avec les jeunes',
 }
@@ -307,13 +307,23 @@ const route = page?.kind === 'contact' ? 'fiche-contact' : page?.kind
                     </fieldset>
                   </>
                 )}
-                {page.kind === 'participants' && (
+                {(page.kind === 'participants' || page.kind === 'deploiement') && (
                   <fieldset class="of-section">
                     <legend>Adultes participant à la formation</legend>
                     <p class="of-note">
                       Renseignez les adultes de l’équipe éducative qui suivent la formation. Ce
                       recensement ne vaut pas validation de leur formation.
                     </p>
+                    {page.kind === 'deploiement' && (
+                      <p class="of-note">
+                        Cette liste est facultative : ajoutez les personnes déjà connues, même si la
+                        liste est incomplète. Vous pourrez la compléter plus tard avec le{' '}
+                        <a href="/suivi/participants" target="_blank" rel="noopener noreferrer">
+                          formulaire de complément des participants (nouvel onglet)
+                        </a>.
+                      </p>
+                    )}
+                    <p class="of-note">200 adultes maximum par envoi.</p>
                     <div id="of-participants" class="of-stack" />
                     <div class="of-actions">
                       <button
