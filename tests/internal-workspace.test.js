@@ -62,6 +62,18 @@ const entry = (extra = {}) => ({
 })
 
 describe('Calendriers et commentaires persistants', () => {
+  test('saisie pour un collègue : auteur signé, correction et auteur initial conservés', async () => {
+    const { db } = fixture()
+    const input = entry({ person: 'Candice', created_by: 'forged@example.test', updated_by: 'forged@example.test' })
+    const id = await saveEntry(db, actor, input)
+    let saved = (await listEntries(db, '2026-09', 'equipe')).find(row => row.id === id)
+    expect(saved).toMatchObject({ person: 'candice', created_by: actor.email, updated_by: actor.email, hours: 3 })
+    await saveEntry(db, actor, { ...input, hours: 7 }, id, 1)
+    await saveEntry(db, admin, { ...input, hours: 8 }, id, 2)
+    saved = (await listEntries(db, '2026-09', 'equipe')).find(row => row.id === id)
+    expect(saved).toMatchObject({ created_by: actor.email, updated_by: admin.email, hours: 8 })
+    await expect(saveEntry(db, { email: 'other@example.test', admin: false }, input, id, 3)).rejects.toMatchObject({ status: 403 })
+  })
   test('disponibilités mensuelles : récurrence, créneaux, exceptions et réalisé restent distincts', () => {
     const slots = [{ start: '09:00', end: '12:30' }, { start: '13:30', end: '17:00' }]
     const days = planMonth('2026-10-01', '2026-10-31', [
@@ -104,7 +116,8 @@ describe('Calendriers et commentaires persistants', () => {
     expect((await listEntries(db, '2028-02', 'equipe'))[0]).toMatchObject({ hours: 4, version: 3 })
     await expect(saveEntry(db, actor, input, ids[0], 1)).rejects.toMatchObject({ status: 409 })
     await expect(saveEntry(db, actor, input, undefined, undefined, crypto.randomUUID())).rejects.toMatchObject({ status: 409 })
-    await expect(saveEntry(db, actor, { ...input, person: 'other@example.test' })).rejects.toMatchObject({ status: 403 })
+    const delegated = await saveEntry(db, actor, { ...input, person: 'other@example.test' })
+    expect(delegated).not.toBe(ids[0])
     await expect(saveEntry(db, actor, { ...input, activity: 'Coordination' }, ids[0], 3)).rejects.toMatchObject({ status: 409 })
     await expect(saveEntry(db, admin, { ...input, person: 'other@example.test' }, ids[0], 3)).rejects.toMatchObject({ status: 409 })
     await expect(saveEntry(db, actor, { ...input, starts_on: '2028-02-02', daily_hours: '[]' })).rejects.toMatchObject({ status: 400 })

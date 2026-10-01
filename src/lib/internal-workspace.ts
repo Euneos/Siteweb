@@ -2,7 +2,7 @@
  * Notion stays canonical until an audited import and an explicit cutover.
  * No live cross-system synchronization or automatic social publication. */
 import { parseDailyHours, dailyTotal } from './daily-hours'
-import { isOwnPerson } from './workspace-people'
+import { isOwnPerson, workspacePeople } from './workspace-people'
 import { MONTHLY_ACTIVITY, monthlyAvailabilityId } from './monthly-availability'
 
 export interface WorkspaceDatabase {
@@ -118,7 +118,7 @@ export function parseEntry(input: unknown) {
   if (!['', 'presence', 'absence', 'conge'].includes(attendance))
     throw new WorkspaceError(400, 'Présence ou absence invalide.')
   const person = text(x.person, 120, true)
-  if (x.kind === 'equipe' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person))
+  if (x.kind === 'equipe' && !workspacePeople.some(name => name.toLowerCase() === person.toLowerCase()) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person))
     throw new WorkspaceError(400, 'Utilisez l’adresse email de la personne pour le suivi d’équipe.')
   return {
     kind: x.kind,
@@ -238,8 +238,8 @@ export async function saveEntry(
     if (id && id !== monthlyId)
       throw new WorkspaceError(409, 'Le mois et la personne de cette fiche mensuelle ne peuvent pas changer. Ouvrez les disponibilités du mois souhaité.')
   }
-  if (entry.kind === 'equipe' && !actor.admin && !isOwnPerson(entry.person, actor.email))
-    throw new WorkspaceError(403, 'Vous pouvez déclarer uniquement vos propres heures et absences.')
+  // The subject and the authenticated creator are independent: members may
+  // create a record for a colleague; created_by always comes from the session.
   const previous = id
     ? await db.prepare('SELECT * FROM workspace_entries WHERE id = ?').bind(id).first<Entry>()
     : null
