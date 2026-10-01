@@ -342,19 +342,19 @@ function initCalendar(root: HTMLElement) {
     !entry ||
     entry.kind === 'editorial' ||
     identity.admin ||
-    (entry.created_by === identity.email && isOwnPerson(entry.person, identity.email))
+    entry.created_by === identity.email
   const updateLink = () => {}
   const updatePermissions = () => {
     readOnly = !canEdit(selected)
     fieldset.disabled = readOnly || saving || comparing
     save.hidden = readOnly
-    deleteButton.hidden = !selected || readOnly || (selected.kind === 'equipe' && selected.status === 'valide' && !identity.admin)
+    deleteButton.hidden = !selected || readOnly || (selected.kind === 'equipe' && !identity.admin && (selected.status === 'valide' || !isOwnPerson(selected.person, identity.email)))
     deleteButton.disabled = saving || commenting || comparing || conflictPending
     save.disabled = saving || conflictPending || comparing
     byId('iw-readonly').hidden = !readOnly
     const person = input('person') as HTMLSelectElement
     const monthly = editorKind === 'equipe' && input('activity').value === MONTHLY_ACTIVITY
-    person.disabled = editorKind === 'equipe' && (!identity.admin || monthly)
+    person.disabled = editorKind === 'equipe' && monthly
     input('activity').disabled = monthly
     for (const key of ['starts_on', 'ends_on'] as const) (input(key) as HTMLInputElement).readOnly = monthly
     byId<HTMLButtonElement>('iw-fill-month').disabled = monthly
@@ -393,6 +393,15 @@ function initCalendar(root: HTMLElement) {
       const option = new Option(label, value)
       if (editorKind === 'equipe' && !identity.admin && value === 'valide') option.disabled = true
       statusSelect.add(option)
+    }
+    if (editorKind === 'equipe') {
+      const person = input('person') as HTMLSelectElement
+      person.replaceChildren(new Option('Sélectionner une personne', ''))
+      const known = [entry.person, identity.email, ...(data?.filterOptions?.people ?? [])].filter(Boolean)
+      for (const name of workspacePeople) {
+        const value = known.find(value => personName(value) === name) ?? name
+        person.add(new Option(name, value))
+      }
     }
     for (const field of fields) writeField(field, entry[field])
     input('title').closest<HTMLElement>('.iw-field')!.hidden = editorKind === 'equipe'
