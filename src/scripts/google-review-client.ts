@@ -1,5 +1,10 @@
 import type { reviewView, ReviewTarget, resolveReconciliationTargets } from '../lib/google-review'
-import { matchesReviewFilter, reviewFilters } from '../lib/google-review-presentation'
+import {
+  matchesReviewFilter,
+  matchesReviewSearch,
+  reviewFilters,
+  reviewReasonLabel,
+} from '../lib/google-review-presentation'
 type Row = Awaited<ReturnType<typeof reviewView>> & {
   resolvedTargets?: ReturnType<typeof resolveReconciliationTargets>
   operation?: { state: string; audit_json: string } | null
@@ -58,6 +63,7 @@ if (root) {
   const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
   const feedback = get('gr-feedback'),
     list = get('gr-list'),
+    pendingSummary = get('gr-pending-summary'),
     detail = get('gr-detail'),
     form = get<HTMLFormElement>('gr-form')
   const target = get<HTMLSelectElement>('gr-target'),
@@ -101,19 +107,11 @@ if (root) {
       if (label)
         option.textContent = `${label} (${rows.filter((row) => matchesReviewFilter(row, option.value)).length})`
     }
-    const query = search.value.trim().toLocaleLowerCase('fr')
+    const pendingCount = rows.filter((row) => matchesReviewFilter(row, 'pending')).length
+    pendingSummary.textContent = `${pendingCount} réponse${pendingCount > 1 ? 's' : ''} à examiner`
+    pendingSummary.hidden = pendingCount === 0
     const visible = rows.filter(
-      (row) =>
-        matchesReviewFilter(row, filter.value) &&
-        JSON.stringify([
-          row.form,
-          row.answers,
-          row.rawAnswers,
-          row.attachment?.target.label,
-          row.resolvedTargets,
-        ])
-          .toLocaleLowerCase('fr')
-          .includes(query),
+      (row) => matchesReviewFilter(row, filter.value) && matchesReviewSearch(row, search.value),
     )
     const count = document.createElement('p')
     count.textContent = `${visible.length} entrée(s) affichée(s) sur ${rows.length}. Les différentes versions d’une réponse sont conservées.`
@@ -126,7 +124,9 @@ if (root) {
       title.textContent = `Réponse #${row.id}`
       const status = document.createElement('span')
       status.textContent = `${row.submittedAt} · ${summary(row)}`
-      button.append(title, status)
+      const formLabel = document.createElement('span')
+      formLabel.textContent = `Formulaire source : ${row.form || 'Non précisé'}`
+      button.append(title, formLabel, status)
       button.addEventListener('click', () => {
         if (!busy) open(row)
       })
@@ -147,7 +147,7 @@ if (root) {
       li.textContent = `${item.label}${item.fields.length ? ` · Champs attestés : ${[...new Set(item.fields.map((field) => fieldLabels[field] || 'Autre information du dossier'))].join(', ')}` : ''}`
       resolved.append(li)
     }
-    get('gr-reasons').textContent = row.receipt?.reasons.join(' · ') ?? ''
+    get('gr-reasons').textContent = row.receipt?.reasons.map(reviewReasonLabel).join(' · ') ?? ''
 
     const answers = get('gr-answers')
     answers.replaceChildren()
@@ -195,6 +195,7 @@ if (root) {
     detail.hidden = true
     selected = null
     rows = []
+    pendingSummary.hidden = true
     list.replaceChildren()
     feedback.textContent = 'Lecture des réponses et des dossiers…'
     try {
