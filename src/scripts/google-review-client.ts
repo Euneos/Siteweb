@@ -23,6 +23,7 @@ const fieldLabels: Record<string, string> = {
   etab_pressenti_ville: 'Ville de l’établissement pressenti', etab_pressenti_cp: 'Code postal de l’établissement',
   etab_pressenti_academie: 'Académie', direction_nom: 'Nom de la direction', direction_email: 'E-mail de la direction',
   accord_principe: 'Accord de principe', contexte_complement: 'Complément de contexte',
+  bilan_recu: 'Bilan reçu', dates_respectees: 'Respect des dates prévues', difficulte: 'Difficultés signalées',
 }
 const root = document.querySelector<HTMLElement>('#google-review')
 if (root) {
@@ -85,7 +86,7 @@ if (root) {
           .includes(query),
     )
     const count = document.createElement('p')
-    count.textContent = `${visible.length} réponse(s) affichée(s) sur ${rows.length}.`
+    count.textContent = `${visible.length} entrée(s) affichée(s) sur ${rows.length}. Les différentes versions d’une réponse sont conservées.`
     list.append(count)
     for (const row of visible) {
       const button = document.createElement('button')
