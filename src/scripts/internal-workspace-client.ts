@@ -493,13 +493,24 @@ function initCalendar(root: HTMLElement) {
       totalsPanel.append(node('p', '', 'Aucune heure réalisée renseignée pour ce mois.'))
       return
     }
-    const list = node('dl', 'iw-totals')
-    for (const [name, total] of [...grouped].sort(([a], [b]) => a.localeCompare(b, 'fr'))) {
-      const item = node('div')
-      item.append(node('dt', '', name), node('dd', '', hours(total)))
-      list.append(item)
+    const table = node('table', 'iw-table')
+    table.append(node('caption', 'iw-sr-only', `Heures réalisées en ${monthFormat.format(dateObject(`${month}-01`))}`))
+    const head = table.createTHead().insertRow()
+    for (const label of ['Personne', 'Heures réalisées']) {
+      const th = node('th', '', label)
+      th.scope = 'col'
+      head.append(th)
     }
-    totalsPanel.append(list)
+    const body = table.createTBody()
+    for (const [name, total] of [...grouped].sort(([a], [b]) => a.localeCompare(b, 'fr'))) {
+      const label = node('th', '', name)
+      label.scope = 'row'
+      body.insertRow().append(label, node('td', '', hours(total)))
+    }
+    const label = node('th', '', 'Total du mois')
+    label.scope = 'row'
+    table.createTFoot().insertRow().append(label, node('td', '', hours([...grouped.values()].reduce((sum, total) => sum + total, 0))))
+    totalsPanel.append(table)
   }
   const setMetrics = (loaded: CalendarData | null) => {
     renderTotals(loaded)
