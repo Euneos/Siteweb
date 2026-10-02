@@ -744,7 +744,7 @@ try {
   }
   await page.locator('#iw-person').selectOption('Alex')
   await expect(page.locator('#iw-calendar-state')).toContainText('Aucune fiche ne correspond')
-  await expect(page.locator('#iw-person-totals dd')).toHaveText(['6 h'])
+  await expect(page.locator('#iw-person-totals tbody td')).toHaveText(['6 h'])
   await page.locator('#iw-person').selectOption('')
   await page.locator('[data-view="list"]').click()
   const teamPreview = page.locator('.iw-entry').first()
