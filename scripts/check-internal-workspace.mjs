@@ -735,8 +735,11 @@ try {
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await expect(page.locator('#iw-person-totals')).toContainText('Heures réalisées par personne')
-    await expect(page.locator('#iw-person-totals dt')).toHaveText(['Member'])
-    await expect(page.locator('#iw-person-totals dd')).toHaveText(['6 h'])
+    await expect(page.locator('#iw-person-totals thead th')).toHaveText(['Personne', 'Heures réalisées'])
+    await expect(page.locator('#iw-person-totals tbody th')).toHaveText(['Member'])
+    await expect(page.locator('#iw-person-totals tbody td')).toHaveText(['6 h'])
+    await expect(page.locator('#iw-person-totals tfoot th')).toHaveText(['Total du mois'])
+    await expect(page.locator('#iw-person-totals tfoot td')).toHaveText(['6 h'])
     assert(await page.locator('#iw-person-totals').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
   }
   await page.locator('#iw-person').selectOption('Alex')
