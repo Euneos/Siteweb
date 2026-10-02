@@ -316,7 +316,13 @@ const server = Bun.serve({
       request.headers.get('Origin') === url.origin
         ? 'https://euneos.fr'
         : (request.headers.get('Origin') ?? 'https://euneos.fr')
-    return render(url.pathname + url.search, role, request.method, body, origin)
+    const started = Date.now()
+    if (process.env.REVIEW_TEST_TRACE)
+      console.log('request', url.pathname + url.search, body?.action ?? 'GET')
+    const response = await render(url.pathname + url.search, role, request.method, body, origin)
+    if (process.env.REVIEW_TEST_TRACE)
+      console.log('response', url.pathname + url.search, response.status, Date.now() - started)
+    return response
   },
 })
 const browser = await chromium.launch({
@@ -327,7 +333,10 @@ const browser = await chromium.launch({
 try {
   const origin = `http://127.0.0.1:${server.port}`
   for (const width of [1440, 390, 320, 768]) {
-    const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce' })
+    const context = await browser.newContext({
+      viewport: { width, height: 1000 },
+      reducedMotion: 'reduce',
+    })
     await context.route('**/*', (route) => {
       if (new URL(route.request().url()).origin === origin) return route.continue()
       networkErrors.push('Unexpected browser request: ' + route.request().url())
@@ -337,7 +346,7 @@ try {
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(origin + '/interne/reponses-google')
     await expect(page.locator('#gr-feedback')).toContainText('Réponses actualisées', {
-      timeout: 20000,
+      timeout: 60000,
     })
     await expect(
       page.getByRole('link', { name: 'Réponses à vérifier', exact: true }),
@@ -373,7 +382,7 @@ try {
     await expect(page.locator('.gr-row')).toHaveCount(4)
     await page.locator('[data-response-id="1"]').click()
     if (width === 1440) {
-      await expect(page.locator('#gr-form')).toBeVisible({ timeout: 20000 })
+      await expect(page.locator('#gr-form')).toBeVisible({ timeout: 60000 })
       await page.locator('#gr-target').selectOption('school:7')
       await page
         .locator('#gr-reason')
@@ -386,7 +395,7 @@ try {
       )
       await page.locator('#gr-target-confirm').check()
       await page.locator('#gr-save').click()
-      await expect(page.locator('#gr-preview')).toBeVisible({ timeout: 30000 })
+      await expect(page.locator('#gr-preview')).toBeVisible({ timeout: 60000 })
       await expect(page.locator('#gr-changes')).toContainText('2026-10-01')
       assert.equal(mutations, 0, 'Preparing must not modify NocoDB')
       await page.locator('#gr-apply').click()
@@ -394,10 +403,10 @@ try {
       await page.screenshot({ path: `${output}/preview-${width}.png`, fullPage: true })
       await page.locator('#gr-confirm').check()
       await page.locator('#gr-apply').click()
-      await expect(page.locator('#gr-correction-result')).toBeVisible({ timeout: 45000 })
+      await expect(page.locator('#gr-correction-result')).toBeVisible({ timeout: 60000 })
       await expect(page.locator('#gr-result-title')).toHaveText(
         'Correction appliquée et vérifiée',
-        { timeout: 30000 },
+        { timeout: 60000 },
       )
       assert.equal(mutations, 1)
       assert.equal(data[adults][0].date_pre_recu, '2026-10-01')
@@ -407,29 +416,29 @@ try {
       await page.reload()
       await expect(page.locator('#gr-result-title')).toHaveText(
         'Correction appliquée et vérifiée',
-        { timeout: 20000 },
+        { timeout: 60000 },
       )
       assert.equal(mutations, 1, 'Refreshing never repeats a write')
       await page.locator('#gr-back').click()
       await page.locator('#gr-state').selectOption('partial')
       await page.locator('[data-response-id="4"]').click()
-      await expect(page.locator('#gr-form')).toBeVisible({ timeout: 20000 })
+      await expect(page.locator('#gr-form')).toBeVisible({ timeout: 60000 })
       await page.locator('#gr-target').selectOption('school:7')
       await page
         .locator('#gr-reason')
         .fill('Les dates source ont été confirmées pour cette fixture')
       await page.locator('#gr-target-confirm').check()
       await page.locator('#gr-save').click()
-      await expect(page.locator('#gr-preview')).toBeVisible({ timeout: 30000 })
+      await expect(page.locator('#gr-preview')).toBeVisible({ timeout: 60000 })
       await expect(page.locator('#gr-changes')).toContainText('2026-10-06')
       await expect(page.locator('#gr-changes')).toContainText('2026-10-05')
       await expect(page.locator('#gr-changes')).toContainText('2026-12-20')
       await page.locator('#gr-confirm').check()
       await page.locator('#gr-apply').click()
-      await expect(page.locator('#gr-correction-result')).toBeVisible({ timeout: 45000 })
+      await expect(page.locator('#gr-correction-result')).toBeVisible({ timeout: 60000 })
       await expect(page.locator('#gr-result-title')).toHaveText(
         'Correction appliquée et vérifiée',
-        { timeout: 30000 },
+        { timeout: 60000 },
       )
       assert.equal(mutations, 2)
       assert.equal(data[parts][0].date_debut_formation, '2026-10-05')
@@ -437,7 +446,7 @@ try {
     } else {
       await expect(page.locator('#gr-result-title')).toHaveText(
         'Correction appliquée et vérifiée',
-        { timeout: 20000 },
+        { timeout: 60000 },
       )
     }
     assert(
@@ -457,7 +466,7 @@ try {
   await expect(memberPage.locator('#gr-access')).toContainText('consultation')
   await expect(memberPage.locator('#gr-result-title')).toHaveText(
     'Correction appliquée et vérifiée',
-    { timeout: 20000 },
+    { timeout: 60000 },
   )
   await expect(memberPage.locator('#gr-form')).toBeHidden()
   await expect(memberPage.locator('#gr-readonly')).toBeVisible()

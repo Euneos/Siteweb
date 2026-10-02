@@ -143,7 +143,7 @@ if (root) {
         option.textContent = `${label} (${rows.filter((row) => matchesReviewFilter(row, option.value)).length})`
     }
     const pendingCount = rows.filter((row) => matchesReviewFilter(row, 'pending')).length
-    pendingSummary.textContent = `${pendingCount} entrée${pendingCount > 1 ? 's' : ''} à vérifier. Ce nombre inclut des vérifications techniques ; ce ne sont pas ${pendingCount} tâches à effectuer par l’équipe.`
+    pendingSummary.textContent = `${pendingCount} entrée${pendingCount > 1 ? 's' : ''} à vérifier. Ouvrez une réponse pour connaître la correction possible ou le point à confirmer.`
     pendingSummary.hidden = pendingCount === 0
     const visible = rows.filter(
       (row) => matchesReviewFilter(row, filter.value) && matchesReviewSearch(row, search.value),
@@ -323,7 +323,7 @@ if (root) {
           ? 'Oui'
           : 'Non'
         : String(value)
-  function showChanges(container: HTMLElement, changes: CorrectionChange[]) {
+  function showChanges(container: HTMLElement, changes: CorrectionChange[], completed = false) {
     container.replaceChildren()
     for (const change of changes) {
       const section = document.createElement('div'),
@@ -332,7 +332,7 @@ if (root) {
         after = document.createElement('p')
       section.className = 'gr-change'
       title.textContent = change.label
-      before.textContent = `Actuellement : ${displayValue(change.before)}`
+      before.textContent = `${completed ? 'Avant correction' : 'Actuellement'} : ${displayValue(change.before)}`
       after.textContent = `Après correction : ${displayValue(change.after)}`
       section.append(title, before, after)
       container.append(section)
@@ -352,7 +352,7 @@ if (root) {
       result.message ||
       correction.message ||
       'Les valeurs modifiées sont conservées dans l’historique de cette réponse. Les autres informations n’ont pas été modifiées.'
-    showChanges(get('gr-result-changes'), correction.changes ?? [])
+    showChanges(get('gr-result-changes'), correction.changes ?? [], state === 'complete')
     lastOperation =
       correction.id && (correction.hash || correction.planHash)
         ? { id: correction.id, hash: correction.hash || correction.planHash }
@@ -363,6 +363,10 @@ if (root) {
       get('gr-next').textContent =
         'Le résultat ci-dessous détaille les champs corrigés. Les autres réponses restent conservées ; leur intégration complète n’est pas attestée par cette correction.'
       get('gr-request').hidden = true
+      if (get('gr-reasons').textContent)
+        get('gr-reasons').textContent =
+          'Motif initial de la collecte : ' + get('gr-reasons').textContent
+      get('gr-correction-feedback').textContent = ''
     }
     if (selected && correction.id) {
       selected.correction = { state, actor: correction.actor }
