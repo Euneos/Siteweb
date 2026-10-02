@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { matchesReviewFilter, matchesReviewSearch } from '../src/lib/google-review-presentation'
+import { matchesReviewFilter, matchesReviewSearch, reviewIdentity, reviewTitle, reviewGuidance, reviewRequest } from '../src/lib/google-review-presentation'
 
 test('288 retained entries separate pending from pedagogical partials without counting dossiers', () => {
   const rows = [
@@ -73,4 +73,34 @@ test('technical review reasons are readable, while human notes and unknown codes
   expect(reviewReasonLabel('Confirmer avec la coordination')).toBe('Confirmer avec la coordination')
   expect(reviewReasonLabel('future_unknown_code')).toBe('future_unknown_code')
   expect(reviewReasonLabel('constructor')).toBe('constructor')
+})
+
+const review = {
+  id: 113, state: 'pending' as const, form: 'Préformation',
+  answers: [
+    { question: 'Prénom et nom', answer: 'Camille Exemple' },
+    { question: 'Établissement', answer: 'CIO Exemple' },
+    { question: 'Année Scolaire concernée', answer: '2026-2027' },
+    { question: 'Que vous a dit votre responsable ?', answer: 'Une autre personne' },
+  ],
+  receipt: { reasons: ['establishment_unresolved'] }, resolvedTargets: [],
+}
+test('review shows declared identity only and keeps source and year in the request', () => {
+  expect(reviewIdentity(review)).toEqual({ person: 'Camille Exemple', school: 'CIO Exemple', year: '2026-2027' })
+  expect(reviewTitle(review)).toBe('Camille Exemple — CIO Exemple')
+  expect(reviewRequest(review)).toContain('#reponse-113')
+  expect(reviewRequest(review)).toContain('2026-2027')
+  expect(reviewIdentity({ answers: [review.answers[3]] }).person).toBe('')
+})
+test('review never invites a new attachment to repair uncertain writes or known targets', () => {
+  expect(reviewGuidance(review).canAttach).toBe(true)
+  expect(reviewGuidance({ ...review, operation: { state: 'pending' } }).canAttach).toBe(false)
+  expect(reviewGuidance({ ...review, resolvedTargets: [{ table: 'participations', id: 1, label: 'Known', fields: [] }] }).canAttach).toBe(false)
+  expect(reviewGuidance({ ...review, state: 'integrated' }).canAttach).toBe(false)
+  expect(reviewGuidance({ ...review, receipt: { reasons: ['existing_value_conflict'] } }).canAttach).toBe(false)
+})
+test('a partial receipt and an attachment do not become completed migration proof', () => {
+  expect(reviewGuidance({ ...review, state: 'partial', receipt: { reasons: ['saved_raw_remaining'] } }).title).toContain('Certaines')
+  expect(reviewGuidance({ ...review, attachment: { target: { label: 'Dossier confirmé' } } }).title).toContain('report reste à vérifier')
+  expect(reviewGuidance({ ...review, state: 'unknown', receipt: null }).next).not.toContain('rien n’a été')
 })

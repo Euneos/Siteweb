@@ -14,70 +14,138 @@ const auth = await getInternalContext(Astro.request, Astro.locals)
 if (auth instanceof Response) return auth
 ---
 
-<InternalLayout title="Réponses Google" current="reponses-google" identity={auth.identity}>
-  <div id="google-review" class="gr" data-admin={auth.identity.admin}>
+<InternalLayout title="Réponses à vérifier" current="reponses-google" identity={auth.identity}>
+  <div
+    id="google-review"
+    class="gr"
+    data-admin={auth.identity.admin}
+    data-email={auth.identity.email}
+  >
     <a href="/interne/formulaires">← Formulaires</a>
     <header class="gr-header">
-      <h1>Réponses Google</h1><button type="button" class="iw-button" id="gr-refresh"
+      <h1>Réponses à vérifier</h1><button type="button" class="iw-button" id="gr-refresh"
         >Actualiser</button
       >
     </header>
     <p class="gr-notice">
-      Une réponse conservée n’est pas nécessairement intégrée. Le rattachement indique à quel
-      dossier elle appartient. Il est conservé dans cet espace interne, sans modifier le journal
-      NocoDB, copier de donnée dans le dossier ni changer de statut.
+      Retrouvez ici les réponses aux anciens Google Forms qui demandent encore une vérification. Le
+      suivi quotidien reste dans <a href="/etat-candidatures">Suivi des établissements</a>.
+    </p>
+    <p id="gr-access" class="gr-access">
+      {
+        auth.identity.admin
+          ? 'Vous pouvez préparer une correction et la confirmer après avoir relu les valeurs avant et après.'
+          : 'Votre accès est en consultation : vous pouvez lire les réponses et préparer une demande. Seuls les responsables peuvent appliquer une correction ici.'
+      }
     </p>
     <p id="gr-feedback" role="status" aria-live="polite">Chargement des réponses…</p>
     <p id="gr-pending-summary" class="gr-pending-summary" role="status" aria-live="polite" hidden>
     </p>
-    <div class="gr-filters">
-      <label
-        >Afficher<select id="gr-state"
-          ><option value="pending">À examiner</option><option value="partial"
-            >Intégrations partielles</option
-          ><option value="integrated">Intégrations attestées</option><option value="all"
-            >Toutes les entrées</option
-          ></select
-        ></label
-      ><label
-        >Rechercher<input
-          id="gr-search"
-          type="search"
-          placeholder="N° de réponse, formulaire, nom ou établissement"
-        /></label
-      >
+    <div id="gr-list-view">
+      <p class="gr-help">
+        Ouvrez une réponse pour voir ce qui reste à faire. Les réponses partiellement reportées ne
+        nécessitent pas toutes une action de votre part.
+      </p>
+      <div class="gr-filters">
+        <label
+          >Afficher<select id="gr-state"
+            ><option value="pending">À vérifier</option><option value="partial"
+              >Intégrations partielles</option
+            ><option value="integrated">Reports vérifiés</option><option value="all"
+              >Toutes les entrées</option
+            ></select
+          ></label
+        ><label
+          >Rechercher<input
+            id="gr-search"
+            type="search"
+            placeholder="N° de réponse, formulaire, nom ou établissement"
+          /></label
+        >
+      </div>
+      <div id="gr-list" class="gr-list"></div>
     </div>
-    <div id="gr-list" class="gr-list"></div>
     <section id="gr-detail" class="gr-card" hidden aria-labelledby="gr-title">
-      <h2 id="gr-title" tabindex="-1"></h2><p id="gr-source-form"></p><p id="gr-summary">
-      </p><section id="gr-reconciliation" hidden aria-labelledby="gr-reconciliation-title">
-        <h3 id="gr-reconciliation-title">Dossiers concernés par le reçu</h3><ul id="gr-targets">
-        </ul><p id="gr-reasons"></p>
+      <button id="gr-back" type="button" class="iw-button">← Retour à la liste</button>
+      <h2 id="gr-title" tabindex="-1"></h2><p id="gr-source-form"></p><p id="gr-summary"></p>
+      <section class="gr-action" aria-labelledby="gr-action-title">
+        <p id="gr-owner" class="gr-owner"></p>
+        <h3 id="gr-action-title"></h3><p id="gr-next"></p>
+        <p id="gr-reasons"></p>
+        <div id="gr-dossier-links"></div>
       </section>
-      <dl id="gr-answers"></dl>
+      <section id="gr-reconciliation" hidden aria-labelledby="gr-reconciliation-title">
+        <h3 id="gr-reconciliation-title">Informations déjà reportées ou dossiers identifiés</h3><ul
+          id="gr-targets"
+        >
+        </ul>
+      </section>
+      <details id="gr-source">
+        <summary>Lire la réponse d’origine</summary><dl id="gr-answers"></dl>
+      </details>
       <details>
         <summary>Historique et preuves conservés</summary><pre id="gr-history"></pre>
       </details>
-      <form id="gr-form">
-        <h3>Rattacher cette réponse</h3><label
-          >Dossier exact<select id="gr-target" required
+      <p id="gr-correction-feedback" role="status" aria-live="polite"></p>
+      <form id="gr-form" hidden>
+        <h3>Corriger les informations dans NocoDB</h3>
+        <p id="gr-correction-help"></p>
+        <label
+          >Dossier et année scolaire concernés<select id="gr-target" required
             ><option value="">Choisir un dossier…</option></select
           ></label
-        ><label
-          >Justification<textarea
+        >
+        <div id="gr-correction-fields"></div>
+        <label
+          >Pourquoi cette correction ?<textarea
             id="gr-reason"
             required
             maxlength="2000"
             rows="3"
-            placeholder="Éléments vérifiés permettant ce rattachement"></textarea></label
-        ><p id="gr-choice"></p><label class="gr-check"
-          ><input id="gr-confirm" type="checkbox" required />Je confirme le dossier et la cohorte
-          affichés. Cette action ne réalise pas l’intégration des réponses.</label
-        ><button id="gr-save" class="iw-button iw-button--primary" type="submit"
-          >Confirmer le rattachement uniquement</button
+            placeholder="Précisez ce que vous avez vérifié : identité, année, date confirmée…"
+          ></textarea></label
+        >
+        <p id="gr-choice"></p>
+        <label class="gr-check"
+          ><input id="gr-target-confirm" type="checkbox" required />J’ai vérifié le dossier et
+          l’année scolaire. Je souhaite voir les changements proposés avant de les appliquer.</label
+        >
+        <button id="gr-save" class="iw-button iw-button--primary" type="submit"
+          >Voir la correction proposée</button
         >
       </form>
+      <section id="gr-preview" class="gr-action" hidden aria-labelledby="gr-preview-title">
+        <h3 id="gr-preview-title" tabindex="-1">Vérifier avant de modifier</h3>
+        <p id="gr-preview-target"></p>
+        <div id="gr-changes"></div>
+        <p id="gr-preview-message"></p>
+        <label class="gr-check"
+          ><input id="gr-confirm" type="checkbox" />Je confirme uniquement les changements affichés
+          ci-dessus.</label
+        >
+        <button id="gr-apply" class="iw-button iw-button--primary" type="button"
+          >Appliquer la correction</button
+        >
+      </section>
+      <section id="gr-correction-result" hidden aria-labelledby="gr-result-title">
+        <h3 id="gr-result-title" tabindex="-1"></h3><p id="gr-result-message"></p>
+        <div id="gr-result-changes"></div>
+        <button id="gr-check-result" class="iw-button" type="button" hidden
+          >Vérifier le résultat sans réécrire</button
+        >
+      </section>
       <p id="gr-readonly" hidden></p>
+      <details id="gr-request" class="gr-request">
+        <summary>Besoin d’aide ? Préparer une demande</summary>
+        <p>
+          Complétez votre précision, puis copiez cette demande dans votre conversation avec l’agent
+          EUNEOS ou avec Charly. Rien n’est envoyé depuis cette page.
+        </p>
+        <label for="gr-request-text">Demande préparée</label>
+        <textarea id="gr-request-text" rows="7"></textarea>
+        <button id="gr-copy-request" type="button" class="iw-button">Copier la demande</button>
+        <p id="gr-copy-feedback" role="status" aria-live="polite"></p>
+      </details>
     </section>
     <noscript
       >Activez JavaScript pour consulter les réponses. Aucune modification n’a été faite.</noscript

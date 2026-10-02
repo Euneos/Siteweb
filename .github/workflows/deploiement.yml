@@ -75,6 +75,7 @@ jobs:
           bun scripts/check-internal-table.mjs
           bun scripts/check-internal-workspace.mjs
           bun scripts/check-implantations.mjs
+          bun scripts/check-google-review.mjs
           bun run test:operational
           bun scripts/check-preformation.mjs
           bun scripts/check-accord-formateur.mjs

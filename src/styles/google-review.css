@@ -68,6 +68,64 @@
 .gr-card h3 {
   margin-bottom: var(--s-lie);
 }
+.gr-card h2 {
+  margin-top: var(--s-titre);
+}
+.gr-access,
+.gr-help {
+  margin-block: var(--s-lie);
+}
+.gr-access {
+  font-size: var(--t-note);
+}
+.gr-action {
+  background: var(--jaune-clair);
+  border-left: 4px solid var(--jaune);
+  padding: var(--s-lie);
+  margin-block: var(--s-titre);
+}
+.gr-owner {
+  font-size: var(--t-note);
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.gr-row .gr-row-action {
+  font-weight: 700;
+  color: var(--vert);
+}
+.gr-row:hover {
+  border-color: var(--vert);
+  background: #f7f8f6;
+}
+.gr #gr-dossier-links {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: var(--s-lie);
+}
+.gr #gr-source,
+.gr-request {
+  margin-block: var(--s-titre);
+}
+.gr summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  padding-block: 0.6rem;
+}
+.gr summary:focus-visible {
+  outline: 3px solid #7a5b00;
+  outline-offset: 3px;
+}
+.gr-request {
+  border-top: 1px solid #9aac9e;
+  padding-top: var(--s-titre);
+}
+.gr-request textarea {
+  margin-block: var(--s-lie);
+}
+.gr #gr-detail {
+  scroll-margin-top: 1rem;
+}
 .gr dt {
   font-weight: 600;
   margin-top: var(--s-lie);
@@ -146,4 +204,19 @@
   background: #fff4f3;
   color: #8b1b16;
   font-weight: 700;
+}
+
+.gr-change {
+  margin-block: var(--s-lie);
+  padding: var(--s-lie);
+  border: 1px solid #d7ded8;
+  background: #f7f8f6;
+  overflow-wrap: anywhere;
+}
+.gr-change p {
+  margin-block: 0.5rem;
+}
+#gr-correction-fields {
+  display: grid;
+  gap: var(--s-lie);
 }
