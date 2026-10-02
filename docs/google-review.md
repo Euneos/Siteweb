@@ -63,7 +63,7 @@ les champs prévus par chaque famille ; elle ne reçoit aucun PATCH arbitraire d
 
 Les réservations D1 commencent à la confirmation, pas à la préparation. Les écritures
 utilisent le verrou du collecteur et les réservations des formulaires publics concernés.
-Un résultat incertain reste réservé et suspend la collecte Google jusqu’à une vérification concluante. Ce blocage est signalé dans le résultat ; si la relecture ne prouve pas les valeurs attendues, un contrôle technique est nécessaire, sans lever les verrous à l’aveugle. Un seul PATCH est tenté : ni timeout ni réponse
+Une réception publique en état « à vérifier » peut suivre une écriture incertaine : elle bloque également la correction manuelle tant que son résultat n’est pas attesté. Un résultat incertain reste réservé et suspend la collecte Google jusqu’à une vérification concluante. Ce blocage est signalé dans le résultat ; si la relecture ne prouve pas les valeurs attendues, un contrôle technique est nécessaire, sans lever les verrous à l’aveugle. Un seul PATCH est tenté : ni timeout ni réponse
 inconnue ne provoquent une répétition. « Vérifier le résultat sans réécrire » relit NocoDB
 et les gardes ; cette vérification appartient à l’auteur de l’opération. Le bouton ne
 s’affiche pas pour un autre utilisateur.
