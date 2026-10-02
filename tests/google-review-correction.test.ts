@@ -606,6 +606,14 @@ for (const family of ['preformation', 'postformation', 'suivi_j45', 'evaluation'
         .run(now)
       expect((await confirm(p)).state).toBe('conflict')
       expect(patches).toHaveLength(0)
+      sharedSql
+        .query(
+          `UPDATE ${projection} SET state='review',code='business_write_uncertain' WHERE receipt='native'`,
+        )
+        .run()
+      const uncertainNative = await prepare({})
+      expect((await confirm(uncertainNative)).state).toBe('conflict')
+      expect(patches).toHaveLength(0)
       sharedSql.query(`UPDATE ${projection} SET state='complete' WHERE receipt='native'`).run()
       const next = await prepare({})
       expect((await confirm(next)).state).toBe('complete')

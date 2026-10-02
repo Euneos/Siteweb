@@ -504,7 +504,9 @@ async function reserveNativeClaims(ctx: CorrectionContext, s: Saved, p: Correcti
       .prepare(`SELECT state FROM ${projection} WHERE receipt=?`)
       .bind(claim.receipt)
       .first<{ state: string }>()
-    if (native && ['complete', 'review'].includes(native.state)) continue
+    // A terminal review can follow a timed-out write: it does not prove the request stopped.
+    // Only a verified complete projection allows a later manual correction.
+    if (native?.state === 'complete') continue
     const manual = await ctx.shared
       .prepare(
         "SELECT code FROM public_form_receipts WHERE receipt=? AND kind='manual_google_correction'",
