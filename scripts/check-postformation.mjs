@@ -112,6 +112,7 @@ try {
     return route.continue()
   })
   const page = await context.newPage()
+  await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
   page.on('pageerror', (e) => errors.push(e.message))
   const fill = async (def, email = 'adult@example.invalid') => {
     for (const [key, value] of Object.entries({

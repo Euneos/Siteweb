@@ -198,6 +198,7 @@ try {
     return route.continue()
   })
   const page = await context.newPage()
+  await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
   page.on('pageerror', (error) => browserErrors.push(error.message))
   for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
