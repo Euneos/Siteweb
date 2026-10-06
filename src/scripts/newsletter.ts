@@ -36,14 +36,21 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
         link.href = result.download
         link.textContent = 'Télécharger l’étude'
         link.className = 'cta s-blanc'
-        feedback.replaceChildren(document.createTextNode(result.state === 'confirmation'
-          ? 'Votre étude se télécharge. Vérifiez votre boîte e-mail pour confirmer votre inscription à la newsletter. '
-          : 'Vous êtes déjà inscrits à la newsletter EUNEOS. '), link)
+        if (result.state === 'confirmation') {
+          feedback.replaceChildren(
+            document.createTextNode('Votre étude se télécharge. Vérifiez votre boîte e-mail pour confirmer votre inscription à la newsletter. '),
+            link,
+          )
+        } else {
+          feedback.textContent = 'Vous êtes déjà inscrits à la newsletter EUNEOS.'
+        }
         feedback.classList.remove('is-error')
         feedback.classList.add('is-ok')
         feedback.setAttribute('role', 'status')
         feedback.setAttribute('aria-live', 'polite')
+        if (!link.isConnected) document.body.append(link)
         link.click()
+        if (result.state !== 'confirmation') link.remove()
       }
     } catch {
       // Pas de nouvel envoi automatique : le serveur a pu recevoir la demande.

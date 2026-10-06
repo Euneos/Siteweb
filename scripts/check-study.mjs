@@ -39,6 +39,7 @@ try {
         await expect(status).toContainText(state === 'confirmation' ? 'confirmer votre inscription à la newsletter' : 'Vous êtes déjà inscrits à la newsletter EUNEOS.')
         await expect(status).toHaveAttribute('role', 'status')
         await expect(status).not.toContainText('Inscription confirmée. Bienvenue')
+        await expect(status.locator('a')).toHaveCount(state === 'confirmation' ? 1 : 0)
         if (popup) {
           await page.keyboard.press('Escape')
           await expect(page.locator('#study-popup')).not.toBeVisible()
