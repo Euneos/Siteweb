@@ -14,7 +14,7 @@ afterEach(() => fetchMock.mockReset())
 
 async function submit(profil, config = env, options = {}) {
   const form = new FormData()
-  Object.entries({ nom: 'Test', email: 'test@example.com', profil, retour: '/newsletter' })
+  Object.entries({ nom: 'Test', email: 'test@example.com', profil, retour: options.retour ?? '/newsletter' })
     .forEach(([key, value]) => form.set(key, value))
   if (options.etude) form.set('etude', 'oui')
   return POST({
@@ -185,4 +185,17 @@ test('popup étude : contact déjà connu hors newsletter, téléchargement sans
   expect(result.state).toBe('deja-inscrit')
   expect(result.download).toStartWith('/api/etude?token=')
   expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
+
+test('page étude : confirmation Brevo et erreurs reviennent sur /etudewiseup', async () => {
+  fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+  const response = await submit('enjeux', env, { json: true, etude: true, retour: '/etudewiseup' })
+  expect((await response.json()).download).toStartWith('/api/etude?token=')
+  const body = JSON.parse(String(fetchMock.mock.calls[1][1].body))
+  expect(body.redirectionUrl).toBe('https://euneos.fr/etudewiseup?nl=confirme#study-page-title')
+  fetchMock.mockReset()
+  const erreur = await submit('enjeux', {}, { etude: true, retour: '/etudewiseup' })
+  expect(erreur.headers.get('Location')).toBe('/etudewiseup?nl=indisponible#study-page-title')
 })

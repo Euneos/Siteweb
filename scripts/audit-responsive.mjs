@@ -51,6 +51,7 @@ const routes = [
   '/qui-sommes-nous',
   '/contact',
   '/newsletter',
+  '/etudewiseup',
   '/candidater/etablissement',
   '/candidater/formateur',
   '/faq',

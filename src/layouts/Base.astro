@@ -98,7 +98,7 @@ const withFooterTopSpace = !sectionFlow && !['/contact', '/contact/'].includes(A
     </main>
 
     <Footer withTopSpace={withFooterTopSpace} />
-    <StudyPopup />
+    {!['/etudewiseup', '/etudewiseup/'].includes(Astro.url.pathname) && <StudyPopup />}
 
     <style>
       .hero-zone {

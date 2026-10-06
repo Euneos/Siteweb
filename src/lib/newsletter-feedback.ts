@@ -3,7 +3,7 @@ export const newsletterMessages = {
   ok: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
   confirmation: 'Vérifiez votre boîte e-mail et cliquez sur le lien reçu pour confirmer votre inscription.',
   confirme: 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.',
-  'deja-inscrit': 'Cette adresse e-mail est déjà inscrite à la newsletter.',
+  'deja-inscrit': 'Vous êtes déjà inscrits à la newsletter EUNEOS.',
   erreur: 'Renseignez votre nom et votre adresse e-mail.',
   email: 'L’adresse e-mail ne semble pas valide.',
   profil: 'Choisissez le profil qui vous correspond.',

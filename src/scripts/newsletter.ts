@@ -38,7 +38,11 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
         link.className = 'cta s-blanc'
         feedback.replaceChildren(document.createTextNode(result.state === 'confirmation'
           ? 'Votre étude se télécharge. Vérifiez votre boîte e-mail pour confirmer votre inscription à la newsletter. '
-          : 'Votre étude se télécharge. Cette adresse est déjà enregistrée ; aucun nouvel e-mail de confirmation n’est envoyé. '), link)
+          : 'Vous êtes déjà inscrits à la newsletter EUNEOS. '), link)
+        feedback.classList.remove('is-error')
+        feedback.classList.add('is-ok')
+        feedback.setAttribute('role', 'status')
+        feedback.setAttribute('aria-live', 'polite')
         link.click()
       }
     } catch {

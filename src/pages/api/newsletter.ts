@@ -15,6 +15,7 @@ const PROFILS = new Set(['etablissement', 'formateur', 'partenaire', 'enjeux'])
 const RETOURS: Record<string, string> = {
   '/': '/?nl=%s#newsletter',
   '/newsletter': '/newsletter?nl=%s#inscription',
+  '/etudewiseup': '/etudewiseup?nl=%s#study-page-title',
 }
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {

@@ -94,7 +94,7 @@ try {
         // Une deuxième soumission pendant la première ne crée pas de requête.
         await form.evaluate(element => element.requestSubmit())
         release()
-        await expect(status).toContainText(state === 'deja-inscrit' ? 'déjà inscrite' : 'erreur technique')
+        await expect(status).toContainText(state === 'deja-inscrit' ? 'Vous êtes déjà inscrits à la newsletter EUNEOS.' : 'erreur technique')
         await expect(button).toBeEnabled()
         await expect(status).toBeInViewport()
         await expect(form.locator('[name="nom"]')).toHaveValue('Test navigateur')
