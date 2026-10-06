@@ -1,4 +1,5 @@
 import { afterEach, expect, spyOn, test } from 'bun:test'
+import { studySubscriber } from '../src/lib/study-access'
 import { POST } from '../src/pages/api/newsletter'
 
 const env = {
@@ -173,4 +174,21 @@ test('étude : une adresse déjà inscrite reçoit le lien sans nouvel envoi', a
   expect(body.state).toBe('deja-inscrit')
   expect(body.download).toStartWith('/api/etude?token=')
   expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
+
+for (const [label, contact, autorise] of [
+  ['inscription confirmée', { listIds: [9] }, true],
+  ['contact hors newsletter', { listIds: [2] }, false],
+  ['adresse désinscrite', { listIds: [9], emailBlacklisted: true }, false],
+  ['réponse invalide', {}, false],
+]) {
+  test(`accès étude : ${label}`, async () => {
+    fetchMock.mockResolvedValueOnce(Response.json(contact))
+    expect(await studySubscriber('test@example.com', env)).toBe(autorise)
+  })
+}
+test('accès étude : panne Brevo ne donne aucun accès', async () => {
+  fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }))
+  await expect(studySubscriber('test@example.com', env)).rejects.toThrow()
 })
