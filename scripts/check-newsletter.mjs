@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { chromium, expect } from '@playwright/test'
 
@@ -135,4 +136,5 @@ try {
 }
 
 // Le popup partage le formulaire : vérifier aussi son propre parcours.
-await import('./check-study.mjs')
+const studyCheck = spawnSync(process.execPath, ['scripts/check-study.mjs'], { stdio: 'inherit', timeout: 120_000 })
+assert.equal(studyCheck.status, 0, 'La recette popup doit réussir')
