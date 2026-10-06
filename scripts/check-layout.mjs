@@ -8,6 +8,7 @@ const output = process.env.CHECK_SCREENSHOTS
 if (output) await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE_PATH })
 const page = await browser.newPage({ reducedMotion: 'reduce' })
+await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
 const errors = []
 page.on('pageerror', (error) => errors.push(error.message))
 const box = async (selector) => {

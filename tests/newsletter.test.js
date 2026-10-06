@@ -16,6 +16,7 @@ async function submit(profil, config = env, options = {}) {
   const form = new FormData()
   Object.entries({ nom: 'Test', email: 'test@example.com', profil, retour: '/newsletter' })
     .forEach(([key, value]) => form.set(key, value))
+  if (options.etude) form.set('etude', 'oui')
   return POST({
     request: new Request(options.url ?? 'https://euneos.fr/api/newsletter', {
       method: 'POST', body: form, headers: { origin: options.origin ?? 'https://euneos.fr', ...(options.json ? { accept: 'application/json' } : {}) },
@@ -153,4 +154,23 @@ test('liste enjeux manquante : aucun envoi Brevo', async () => {
   const response = await submit('enjeux', { ...env, BREVO_LIST_ENJEUX: '' })
   expect(response.headers.get('Location')).toContain('nl=indisponible')
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+
+test('étude : lien signé transmis uniquement dans l’e-mail de confirmation', async () => {
+  fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+  const response = await submit('enjeux', env, { json: true, etude: true })
+  expect(await response.json()).toEqual({ state: 'confirmation' })
+  const body = JSON.parse(String(fetchMock.mock.calls[1][1].body))
+  expect(body.redirectionUrl).toStartWith('https://euneos.fr/api/etude?token=')
+})
+
+test('étude : une adresse déjà inscrite reçoit le lien sans nouvel envoi', async () => {
+  fetchMock.mockResolvedValueOnce(Response.json({ listIds: [9] }))
+  const response = await submit('enjeux', env, { json: true, etude: true })
+  const body = await response.json()
+  expect(body.state).toBe('deja-inscrit')
+  expect(body.download).toStartWith('/api/etude?token=')
+  expect(fetchMock).toHaveBeenCalledTimes(1)
 })

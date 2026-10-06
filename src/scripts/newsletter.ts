@@ -31,6 +31,17 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
         throw new Error('Réponse newsletter inattendue')
       }
       showFeedback(result.state)
+      if (form.querySelector('[name="etude"]') && result.state === 'confirmation' && !('preview' in result)) {
+        feedback.textContent = 'Vérifiez votre boîte e-mail : confirmez votre inscription avec le lien reçu pour télécharger l’étude complète.'
+      }
+      if ('download' in result && typeof result.download === 'string' && result.download.startsWith('/api/etude?token=')) {
+        const link = document.createElement('a')
+        link.href = result.download
+        link.textContent = 'Télécharger l’étude'
+        link.className = 'cta s-blanc'
+        feedback.replaceChildren(link)
+        link.click()
+      }
     } catch {
       // Pas de nouvel envoi automatique : le serveur a pu recevoir la demande.
       showFeedback('technique')

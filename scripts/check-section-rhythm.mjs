@@ -164,6 +164,7 @@ await mkdir(output, { recursive: true })
 const reports = []
 try {
   const page = await browser.newPage({ reducedMotion: 'reduce' })
+  await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
   await page.route('**/api/**', (route) =>
     route.request().method() === 'GET' ? route.continue() : route.abort(),
   )

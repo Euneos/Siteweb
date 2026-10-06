@@ -16,6 +16,7 @@ try {
     // Les assertions de navigation restent actives, comme dans les autres recettes du site.
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' })
     const page = await context.newPage()
+    await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     for (const [path, formId, statusId] of [
@@ -113,6 +114,7 @@ try {
   // Le formulaire natif reste utilisable sans JavaScript.
   const context = await browser.newContext({ javaScriptEnabled: false, reducedMotion: 'reduce' })
   const page = await context.newPage()
+  await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
   for (const [path, formId] of [['/', 'newsletter'], ['/newsletter', 'nl-form']]) {
     await page.goto(base + path)
     const form = page.locator(`#${formId}`)

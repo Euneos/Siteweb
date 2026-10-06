@@ -1,3 +1,4 @@
+import { studyToken } from '../../lib/study-access'
 import type { APIRoute } from 'astro'
 import type { NewsletterState } from '../../lib/newsletter-feedback'
 import { brevoEnv, inscrireNewsletter } from '../../lib/brevo'
@@ -48,16 +49,27 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
   if (modeApercu(request)) return vers('confirmation', true)
 
+  let download: string | undefined
   try {
+    const env = brevoEnv(locals)
+    if (form.get('etude') === 'oui' && env.BREVO_API_KEY) {
+      download = `/api/etude?token=${encodeURIComponent(await studyToken(email.toLowerCase(), env.BREVO_API_KEY))}`
+    }
     const inscrit = await inscrireNewsletter(
       brevoEnv(locals),
       nom,
       email.toLowerCase(),
       profil,
-      `${new URL(request.url).origin}${gabarit.replace('%s', 'confirme')}`,
+      `${new URL(request.url).origin}${download ?? gabarit.replace('%s', 'confirme')}`,
     )
     if (!inscrit) return vers('indisponible')
-    if (inscrit === 'deja-inscrit') return vers('deja-inscrit')
+    if (inscrit === 'deja-inscrit') {
+      if (download) {
+        if (wantsJson) return Response.json({ state: 'deja-inscrit', download }, { headers: { 'Cache-Control': 'no-store' } })
+        return redirect(download, 303)
+      }
+      return vers('deja-inscrit')
+    }
   } catch (error) {
     console.error('[newsletter]', error instanceof Error ? error.message : error)
     return vers('technique')
