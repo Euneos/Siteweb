@@ -49,27 +49,26 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
   if (modeApercu(request)) return vers('confirmation', true)
 
-  let download: string | undefined
   try {
     const env = brevoEnv(locals)
-    if (form.get('etude') === 'oui' && env.BREVO_API_KEY) {
-      download = `/api/etude?token=${encodeURIComponent(await studyToken(email.toLowerCase(), env.BREVO_API_KEY))}`
-    }
     const inscrit = await inscrireNewsletter(
-      brevoEnv(locals),
+      env,
       nom,
       email.toLowerCase(),
       profil,
-      `${new URL(request.url).origin}${download ?? gabarit.replace('%s', 'confirme')}`,
+      `${new URL(request.url).origin}${gabarit.replace('%s', 'confirme')}`,
+      { skipExistingContact: form.get('etude') === 'oui' },
     )
     if (!inscrit) return vers('indisponible')
-    if (inscrit === 'deja-inscrit') {
-      if (download) {
-        if (wantsJson) return Response.json({ state: 'deja-inscrit', download }, { headers: { 'Cache-Control': 'no-store' } })
-        return redirect(download, 303)
-      }
-      return vers('deja-inscrit')
+    const state = inscrit === 'deja-inscrit' ? 'deja-inscrit' : 'confirmation'
+    // Le jeton atteste un formulaire validé et accepté par Brevo. Le PDF est
+    // disponible immédiatement ; la confirmation newsletter garde son parcours.
+    if (form.get('etude') === 'oui' && env.BREVO_API_KEY) {
+      const download = `/api/etude?token=${encodeURIComponent(await studyToken(email.toLowerCase(), env.BREVO_API_KEY))}`
+      if (wantsJson) return Response.json({ state, download }, { headers: { 'Cache-Control': 'no-store' } })
+      return redirect(download, 303)
     }
+    if (inscrit === 'deja-inscrit') return vers('deja-inscrit')
   } catch (error) {
     console.error('[newsletter]', error instanceof Error ? error.message : error)
     return vers('technique')
