@@ -1,0 +1,66 @@
+---
+import { isNewsletterState, newsletterMessages, newsletterSuccess } from '../lib/newsletter-feedback'
+interface Props {
+  idPrefix?: string
+  heading?: 'h1' | 'h2'
+  retour?: string
+  state?: string | null
+}
+const { idPrefix = 'study', heading = 'h2', retour = '/newsletter', state = null } = Astro.props
+const Title = heading
+const message = isNewsletterState(state) ? newsletterMessages[state] : null
+const success = newsletterSuccess(state) || state === 'deja-inscrit'
+const profils = [
+  { valeur: 'etablissement', label: 'Je suis un établissement' },
+  { valeur: 'formateur', label: 'Je souhaite devenir formateur-ice' },
+  { valeur: 'partenaire', label: 'Je souhaite devenir membre/partenaire' },
+  { valeur: 'enjeux', label: 'Je m’intéresse à vos enjeux' },
+]
+---
+  <div class="cand__panel study-form-shell">
+    <Title id={`${idPrefix}-title`}>À partir de quel âge les jeunes devraient-ils pouvoir accéder aux réseaux sociaux ?</Title>
+    <p class="cand__chapo">Alors que la question est débattue au sein des parlements, elle s'est déjà posée dans les salles de classe. Nous avons interrogé 4 700 jeunes de 9 à 18 ans dans six pays européens, dont plus d'un tiers en France. Inscrivez-vous pour recevoir l'étude complète et mieux accompagner les jeunes dans leurs usages numériques au quotidien.</p>
+          <form class="cand__form" id={`${idPrefix}-form`} data-newsletter-form data-newsletter-status={`${idPrefix}-status`} method="POST" action="/api/newsletter">
+            <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <input type="hidden" name="retour" value={retour} /><input type="hidden" name="etude" value="oui" />
+
+            <p class="cand__row">
+              <label for={`${idPrefix}-nom`}>Nom/Prénom</label>
+              <span class="champ">
+                <input id={`${idPrefix}-nom`} name="nom" type="text" autocomplete="name" maxlength="160" required />
+              </span>
+            </p>
+            <p class="cand__row">
+              <label for={`${idPrefix}-mail`}>Email</label>
+              <span class="champ">
+                <input id={`${idPrefix}-mail`} name="email" type="email" autocomplete="email" maxlength="254" required />
+              </span>
+            </p>
+
+            <fieldset class="cand__row cand__row--large cand__choix">
+              <legend>Vous êtes</legend>
+              <ul>
+              {
+                profils.map((p, i) => (
+                  <li><label>
+                    <input type="radio" name="profil" value={p.valeur} checked={i === 0} /> <span>{p.label}</span>
+                  </label></li>
+                ))
+              }
+              </ul>
+            </fieldset>
+
+            <p class="cand__legal">
+              En envoyant ce formulaire, vous acceptez de recevoir la newsletter EUNEOS. Vous pourrez
+              vous désinscrire à tout moment. <a href="/politique-de-confidentialite">En savoir plus</a>.
+            </p>
+          </form>
+    <p id={`${idPrefix}-status`} class="study-feedback" role={message && !success ? "alert" : "status"} aria-live={message && !success ? "assertive" : "polite"} tabindex="-1">{message}</p>
+    <button type="submit" form={`${idPrefix}-form`} class="cta s-blanc study-submit">Télécharger l’étude</button>
+  </div>
+<style is:global>
+.study-form-shell .champ, .study-form-shell .cta { clip-path: none; }
+.study-form-shell h1, .study-form-shell h2 { font-size: var(--t-titre); color: white; text-align: center; }
+.study-submit { display: flex; margin: var(--s-lie) auto 0; white-space: normal; text-align: center; }
+.study-feedback:not(:empty) { margin-top: var(--s-lie); padding: 1rem; border: 1px solid currentColor; }
+</style>

@@ -1,57 +1,13 @@
 ---
-const profils = [
-  { valeur: 'etablissement', label: 'Je suis un établissement' },
-  { valeur: 'formateur', label: 'Je souhaite devenir formateur-ice' },
-  { valeur: 'partenaire', label: 'Je souhaite devenir membre/partenaire' },
-  { valeur: 'enjeux', label: 'Je m’intéresse à vos enjeux' },
-]
+import StudyForm from './StudyForm.astro'
 ---
 <dialog id="study-popup" class="study-popup s-vert" aria-labelledby="study-title">
   <button type="button" class="study-close" aria-label="Fermer la fenêtre">×</button>
-  <div class="cand__panel">
-    <h2 id="study-title">À partir de quel âge les jeunes devraient-ils pouvoir accéder aux réseaux sociaux ?</h2>
-    <p class="cand__chapo">Alors que la question est débattue au sein des parlements, elle s'est déjà posée dans les salles de classe. Nous avons interrogé 4 700 jeunes de 9 à 18 ans dans six pays européens, dont plus d'un tiers en France. Inscrivez-vous pour recevoir l'étude complète et mieux accompagner les jeunes dans leurs usages numériques au quotidien.</p>
-          <form class="cand__form" id="study-form" data-newsletter-form data-newsletter-status="study-status" method="POST" action="/api/newsletter">
-            <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
-            <input type="hidden" name="retour" value="/newsletter" /><input type="hidden" name="etude" value="oui" />
-
-            <p class="cand__row">
-              <label for="study-nom">Nom/Prénom</label>
-              <span class="champ">
-                <input id="study-nom" name="nom" type="text" autocomplete="name" maxlength="160" required />
-              </span>
-            </p>
-            <p class="cand__row">
-              <label for="study-mail">Email</label>
-              <span class="champ">
-                <input id="study-mail" name="email" type="email" autocomplete="email" maxlength="254" required />
-              </span>
-            </p>
-
-            <fieldset class="cand__row cand__row--large cand__choix">
-              <legend>Vous êtes</legend>
-              <ul>
-              {
-                profils.map((p, i) => (
-                  <li><label>
-                    <input type="radio" name="profil" value={p.valeur} checked={i === 0} /> <span>{p.label}</span>
-                  </label></li>
-                ))
-              }
-              </ul>
-            </fieldset>
-
-            <p class="cand__legal">
-              En envoyant ce formulaire, vous acceptez de recevoir la newsletter EUNEOS. Vous pourrez
-              vous désinscrire à tout moment. <a href="/politique-de-confidentialite">En savoir plus</a>.
-            </p>
-          </form>
-    <p id="study-status" role="status" aria-live="polite" tabindex="-1"></p>
-    <button type="submit" form="study-form" class="cta s-blanc study-submit">Télécharger l’étude</button>
-  </div>
+  <StudyForm />
 </dialog>
 <script>
-  const dialog = document.querySelector<HTMLDialogElement>('#study-popup')!
+  const dialog = document.querySelector<HTMLDialogElement>('#study-popup')
+  if (dialog) {
   const close = () => {
     dialog.close()
     try { sessionStorage.setItem('euneos-study-dismissed', '1') } catch {}
@@ -61,16 +17,12 @@ const profils = [
   let dismissed = false
   try { dismissed = sessionStorage.getItem('euneos-study-dismissed') === '1' } catch {}
   if (!dismissed && !new URL(location.href).searchParams.has('nl')) dialog.showModal()
+  }
 </script>
 <style is:global>
 .study-popup { position: fixed; inset: 0; margin: auto; width: min(58rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 0; background: var(--vert); color: white; overflow-y: auto; }
 .study-popup::backdrop { background: rgb(0 0 0 / .6); }
 .study-popup .cand__panel { padding-top: 3.5rem; }
-.study-popup .champ { clip-path: none; }
-.study-popup .cta { clip-path: none; }
-.study-popup h2 { font-size: var(--t-titre); color: white; text-align: center; }
 .study-close { position: absolute; top: .4rem; right: .4rem; z-index: 1; width: 44px; height: 44px; font-size: var(--t-cta); cursor: pointer; }
-.study-submit { display: flex; margin: var(--s-lie) auto 0; white-space: normal; text-align: center; }
-#study-status:not(:empty) { margin-top: var(--s-lie); padding: 1rem; border: 1px solid currentColor; }
 body:has(.study-popup[open]) { overflow: hidden; }
 </style>

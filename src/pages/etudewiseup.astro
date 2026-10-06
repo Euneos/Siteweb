@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro'
+import StudyForm from '../components/StudyForm.astro'
+export const prerender = false
+---
+<Base title="Étude européenne WISE-UP — EUNEOS" description="À partir de quel âge les jeunes devraient-ils pouvoir accéder aux réseaux sociaux ? Téléchargez l’étude menée auprès de 4 700 jeunes dans six pays européens." heroSurface="vert" heroFold="none">
+  <div class="candidature-page s-vert">
+    <section class="section study-page">
+      <div class="page">
+        <StudyForm idPrefix="study-page" heading="h1" retour="/etudewiseup" state={Astro.url.searchParams.get('nl')} />
+      </div>
+    </section>
+  </div>
+</Base>
+<style>
+.study-page { max-width: 68rem; margin-inline: auto; }
+</style>
