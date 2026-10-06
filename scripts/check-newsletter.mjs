@@ -133,3 +133,6 @@ try {
 } finally {
   await browser.close()
 }
+
+// Le popup partage le formulaire : vérifier aussi son propre parcours.
+await import('./check-study.mjs')

@@ -117,6 +117,7 @@ try {
     return route.continue()
   })
   const page = await context.newPage()
+  await page.addInitScript(() => sessionStorage.setItem('euneos-study-dismissed', '1'))
   page.on('pageerror', (error) => errors.push(error.message))
   for (const [index, def] of definitions.entries()) {
     for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
