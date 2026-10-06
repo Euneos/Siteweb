@@ -64,6 +64,7 @@ export async function inscrireNewsletter(
   email: string,
   profil: string,
   redirectionUrl: string,
+  options: { skipExistingContact?: boolean } = {},
 ) {
   if (!env.BREVO_API_KEY) return false
 
@@ -92,7 +93,7 @@ export async function inscrireNewsletter(
       || !Array.isArray(details.listIds) || !details.listIds.every(Number.isInteger)) {
       throw new Error('Réponse Brevo invalide lors de la vérification des listes')
     }
-    if (details.listIds.some((id: number) => listesNewsletter.includes(id))) return 'deja-inscrit'
+    if (options.skipExistingContact || details.listIds.some((id: number) => listesNewsletter.includes(id))) return 'deja-inscrit'
   } else if (contact.status !== 404) {
     throw new Error(`Vérification des listes Brevo indisponible (${contact.status})`)
   }

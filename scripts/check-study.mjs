@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { chromium, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 import { mkdir } from 'node:fs/promises'
 const base = process.env.CHECK_BASE_URL ?? 'http://127.0.0.1:4321'
 assert(['localhost', '127.0.0.1'].includes(new URL(base).hostname) || /^pr-\d+\.euneos-site\.pages\.dev$/.test(new URL(base).hostname))
@@ -7,7 +8,7 @@ const browser = await chromium.launch()
 await mkdir('/tmp/euneos-study', { recursive: true })
 try {
   for (const width of [320, 390, 860, 1440]) {
-    const page = await browser.newPage({ viewport: { width, height: 900 } })
+    const page = await browser.newPage({ viewport: { width, height: 900 }, acceptDownloads: true })
     page.setDefaultTimeout(15_000)
     page.setDefaultNavigationTimeout(15_000)
     console.log(`Popup : vérification à ${width} px`)
@@ -19,14 +20,19 @@ try {
     await page.screenshot({ path: `/tmp/euneos-study/popup-${width}.png` })
     await page.locator('#study-nom').fill('Recette locale')
     await page.locator('#study-mail').fill('test@example.com')
-    await page.route('**/api/newsletter', route => route.fulfill({ json: { state: 'confirmation' } }))
+    assert.equal(await dialog.locator('.champ').first().evaluate(el => getComputedStyle(el).clipPath), 'none')
+    const pdf = Buffer.from(await readFile(new URL('../src/assets/etude-europeenne.base64', import.meta.url), 'utf8'), 'base64')
+    await page.route(/\/api\/etude\?token=recette$/, route => route.fulfill({ body: pdf, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename=etude-europeenne-euneos.pdf' } }))
+    await page.route('**/api/newsletter', route => route.fulfill({ json: { state: 'confirmation', download: '/api/etude?token=recette' } }))
+    const downloadPromise = page.waitForEvent('download')
     await page.locator('[form="study-form"]').click()
-    await expect(page.locator('#study-status')).toContainText('confirmez votre inscription')
+    const download = await downloadPromise
+    assert.equal(download.suggestedFilename(), 'etude-europeenne-euneos.pdf')
+    assert.equal(await download.failure(), null, 'Le téléchargement doit terminer')
+    assert.deepEqual(await readFile(await download.path()), pdf)
+    await expect(page.locator('#study-status')).toContainText('confirmer votre inscription à la newsletter')
     await page.keyboard.press('Escape')
     await expect(dialog).not.toBeVisible()
-    page.setDefaultTimeout(15_000)
-    page.setDefaultNavigationTimeout(15_000)
-    console.log(`Popup : vérification à ${width} px`)
     await page.goto(base + '/contact')
     await expect(dialog).not.toBeVisible()
     await page.close()

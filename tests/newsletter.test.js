@@ -1,5 +1,4 @@
 import { afterEach, expect, spyOn, test } from 'bun:test'
-import { studySubscriber } from '../src/lib/study-access'
 import { POST } from '../src/pages/api/newsletter'
 
 const env = {
@@ -158,13 +157,15 @@ test('liste enjeux manquante : aucun envoi Brevo', async () => {
 })
 
 
-test('étude : lien signé transmis uniquement dans l’e-mail de confirmation', async () => {
+test('étude : téléchargement immédiat et confirmation newsletter habituelle', async () => {
   fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
     .mockResolvedValueOnce(new Response(null, { status: 204 }))
   const response = await submit('enjeux', env, { json: true, etude: true })
-  expect(await response.json()).toEqual({ state: 'confirmation' })
+  const result = await response.json()
+  expect(result.state).toBe('confirmation')
+  expect(result.download).toStartWith('/api/etude?token=')
   const body = JSON.parse(String(fetchMock.mock.calls[1][1].body))
-  expect(body.redirectionUrl).toStartWith('https://euneos.fr/api/etude?token=')
+  expect(body.redirectionUrl).toBe('https://euneos.fr/newsletter?nl=confirme#inscription')
 })
 
 test('étude : une adresse déjà inscrite reçoit le lien sans nouvel envoi', async () => {
@@ -177,18 +178,11 @@ test('étude : une adresse déjà inscrite reçoit le lien sans nouvel envoi', a
 })
 
 
-for (const [label, contact, autorise] of [
-  ['inscription confirmée', { listIds: [9] }, true],
-  ['contact hors newsletter', { listIds: [2] }, false],
-  ['adresse désinscrite', { listIds: [9], emailBlacklisted: true }, false],
-  ['réponse invalide', {}, false],
-]) {
-  test(`accès étude : ${label}`, async () => {
-    fetchMock.mockResolvedValueOnce(Response.json(contact))
-    expect(await studySubscriber('test@example.com', env)).toBe(autorise)
-  })
-}
-test('accès étude : panne Brevo ne donne aucun accès', async () => {
-  fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }))
-  await expect(studySubscriber('test@example.com', env)).rejects.toThrow()
+test('popup étude : contact déjà connu hors newsletter, téléchargement sans automatisation', async () => {
+  fetchMock.mockResolvedValueOnce(Response.json({ listIds: [2, 5] }))
+  const response = await submit('enjeux', env, { json: true, etude: true })
+  const result = await response.json()
+  expect(result.state).toBe('deja-inscrit')
+  expect(result.download).toStartWith('/api/etude?token=')
+  expect(fetchMock).toHaveBeenCalledTimes(1)
 })
