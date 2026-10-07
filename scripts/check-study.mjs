@@ -39,7 +39,7 @@ try {
         assert.equal(await download.failure(), null, 'Le téléchargement doit terminer')
         assert.deepEqual(await readFile(await download.path()), pdf)
         const status = page.locator(`#${prefix}-status`)
-        await expect(status).toHaveText(state === 'confirmation' ? 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.' : 'Vous êtes déjà inscrits à la newsletter EUNEOS.')
+        await expect(status).toHaveText(state === 'confirmation' ? 'Merci pour votre téléchargement. Confirmez votre inscription à la newsletter EUNEOS dans votre boîte mail si vous souhaitez suivre nos actualités sur ce sujet.' : 'Vous êtes déjà inscrits à la newsletter EUNEOS.')
         await expect(status).toHaveAttribute('role', 'status')
         await expect(status.locator('a')).toHaveCount(0)
         if (popup) {
