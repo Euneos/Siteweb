@@ -30,6 +30,11 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
       if (!result || typeof result !== 'object' || !('state' in result) || !isNewsletterState(result.state)) {
         throw new Error('Réponse newsletter inattendue')
       }
+      if (body.get('etude') === 'oui' && ['ok', 'confirmation', 'deja-inscrit'].includes(result.state)
+        && !('preview' in result && result.preview === true)
+        && !('download' in result && typeof result.download === 'string' && result.download.startsWith('/api/etude?token='))) {
+        throw new Error('Téléchargement absent après inscription à l’étude')
+      }
       showFeedback(result.state)
       if ('download' in result && typeof result.download === 'string' && result.download.startsWith('/api/etude?token=')) {
         if (result.state === 'confirmation') {

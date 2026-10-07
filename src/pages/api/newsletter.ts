@@ -36,7 +36,8 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect(gabarit.replace('%s', `${etat}${preview ? '&preview=1' : ''}`), 303)
   }
 
-  if (form.get('website')) return vers('ok')
+  // Un champ piège rempli ne doit jamais annoncer un téléchargement accepté.
+  if (form.get('website') || form.get('euneos_study_check')) return vers(form.get('etude') === 'oui' ? 'technique' : 'ok')
   if (!aucunTexteTropLong(form) || !champsDansLesLimites(form, { nom: 160, email: 254, profil: 20, retour: 40 })) {
     return vers('erreur')
   }

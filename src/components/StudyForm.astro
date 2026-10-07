@@ -21,7 +21,7 @@ const profils = [
     <Title id={`${idPrefix}-title`}>À partir de quel âge les jeunes devraient-ils pouvoir accéder aux réseaux sociaux ?</Title>
     <p class="cand__chapo">Alors que la question est débattue au sein des parlements, elle s'est déjà posée dans les salles de classe. Nous avons interrogé 4 700 jeunes de 9 à 18 ans dans six pays européens, dont plus d'un tiers en France. <span class="study-invitation">Inscrivez-vous pour recevoir l'étude complète et mieux accompagner les jeunes dans leurs usages numériques au quotidien.</span></p>
           <form class="cand__form" id={`${idPrefix}-form`} data-newsletter-form data-newsletter-status={`${idPrefix}-status`} method="POST" action="/api/newsletter">
-            <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <input class="form-trap" type="text" name="euneos_study_check" tabindex="-1" autocomplete="new-password" aria-hidden="true" data-lpignore="true" data-1p-ignore data-bwignore />
             <input type="hidden" name="retour" value={retour} /><input type="hidden" name="etude" value="oui" />
 
             <p class="cand__row">
