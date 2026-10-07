@@ -19,6 +19,8 @@ try {
         await page.goto(base + path)
         const shell = page.locator('.study-form-shell')
         await expect(shell).toBeVisible()
+        await expect(shell.locator('[name="website"]')).toHaveCount(0)
+        await expect(shell.locator('[name="euneos_study_check"]')).toHaveAttribute('autocomplete', 'new-password')
         await expect(shell.locator('.study-invitation')).toHaveCSS('color', 'rgb(248, 199, 2)')
         await expect(page.locator('#study-popup')).toHaveCount(popup ? 1 : 0)
         await expect(shell.locator('[name="profil"]')).toHaveCount(4)
@@ -52,6 +54,13 @@ try {
     }
   }
   const page = await browser.newPage()
+  await page.goto(base + '/etudewiseup')
+  await page.locator('#study-page-nom').fill('Recette locale')
+  await page.locator('#study-page-mail').fill('test@example.com')
+  await page.route('**/api/newsletter', route => route.fulfill({ json: { state: 'ok' } }))
+  await page.locator('[form="study-page-form"]').click()
+  await expect(page.locator('#study-page-status')).toHaveAttribute('role', 'alert')
+  await expect(page.locator('#study-page-status')).not.toContainText('Inscription confirmée')
   const response = await page.request.get(base + '/api/etude')
   assert([403, 503].includes(response.status()))
   assert(!(response.headers()['content-type'] ?? '').includes('application/pdf'))

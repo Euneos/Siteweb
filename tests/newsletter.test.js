@@ -17,6 +17,7 @@ async function submit(profil, config = env, options = {}) {
   Object.entries({ nom: 'Test', email: 'test@example.com', profil, retour: options.retour ?? '/newsletter' })
     .forEach(([key, value]) => form.set(key, value))
   if (options.etude) form.set('etude', 'oui')
+  for (const [key, value] of Object.entries(options.fields ?? {})) form.set(key, value)
   return POST({
     request: new Request(options.url ?? 'https://euneos.fr/api/newsletter', {
       method: 'POST', body: form, headers: { origin: options.origin ?? 'https://euneos.fr', ...(options.json ? { accept: 'application/json' } : {}) },
@@ -187,6 +188,15 @@ test('popup étude : contact déjà connu hors newsletter, téléchargement sans
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
+
+for (const field of ['website', 'euneos_study_check']) {
+  test(`étude : champ anti-robot ${field} rempli, aucun faux succès`, async () => {
+    const response = await submit('enjeux', env, { json: true, etude: true, fields: { [field]: 'France' } })
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ state: 'technique' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+}
 
 test('page étude : confirmation Brevo et erreurs reviennent sur /etudewiseup', async () => {
   fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }))
