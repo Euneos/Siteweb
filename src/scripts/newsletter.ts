@@ -32,15 +32,8 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
       }
       showFeedback(result.state)
       if ('download' in result && typeof result.download === 'string' && result.download.startsWith('/api/etude?token=')) {
-        const link = document.createElement('a')
-        link.href = result.download
-        link.textContent = 'Télécharger l’étude'
-        link.className = 'cta s-blanc'
         if (result.state === 'confirmation') {
-          feedback.replaceChildren(
-            document.createTextNode('Votre étude se télécharge. Vérifiez votre boîte e-mail pour confirmer votre inscription à la newsletter. '),
-            link,
-          )
+          feedback.textContent = 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.'
         } else {
           feedback.textContent = 'Vous êtes déjà inscrits à la newsletter EUNEOS.'
         }
@@ -48,9 +41,9 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
         feedback.classList.add('is-ok')
         feedback.setAttribute('role', 'status')
         feedback.setAttribute('aria-live', 'polite')
-        if (!link.isConnected) document.body.append(link)
-        link.click()
-        if (result.state !== 'confirmation') link.remove()
+        // Une navigation vers la réponse attachment lance le téléchargement,
+        // sans dépendre d'un clic synthétique après la requête d'inscription.
+        window.location.assign(result.download)
       }
     } catch {
       // Pas de nouvel envoi automatique : le serveur a pu recevoir la demande.

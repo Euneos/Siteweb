@@ -19,7 +19,7 @@ const profils = [
 ---
   <div class="cand__panel study-form-shell">
     <Title id={`${idPrefix}-title`}>À partir de quel âge les jeunes devraient-ils pouvoir accéder aux réseaux sociaux ?</Title>
-    <p class="cand__chapo">Alors que la question est débattue au sein des parlements, elle s'est déjà posée dans les salles de classe. Nous avons interrogé 4 700 jeunes de 9 à 18 ans dans six pays européens, dont plus d'un tiers en France. Inscrivez-vous pour recevoir l'étude complète et mieux accompagner les jeunes dans leurs usages numériques au quotidien.</p>
+    <p class="cand__chapo">Alors que la question est débattue au sein des parlements, elle s'est déjà posée dans les salles de classe. Nous avons interrogé 4 700 jeunes de 9 à 18 ans dans six pays européens, dont plus d'un tiers en France. <span class="study-invitation">Inscrivez-vous pour recevoir l'étude complète et mieux accompagner les jeunes dans leurs usages numériques au quotidien.</span></p>
           <form class="cand__form" id={`${idPrefix}-form`} data-newsletter-form data-newsletter-status={`${idPrefix}-status`} method="POST" action="/api/newsletter">
             <input class="form-trap" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="retour" value={retour} /><input type="hidden" name="etude" value="oui" />
@@ -60,6 +60,7 @@ const profils = [
   </div>
 <style is:global>
 .study-form-shell .champ, .study-form-shell .cta { clip-path: none; }
+.study-form-shell .study-invitation { color: var(--jaune); }
 .study-form-shell h1, .study-form-shell h2 { font-size: var(--t-titre); color: white; text-align: center; }
 .study-submit { display: flex; margin: var(--s-lie) auto 0; white-space: normal; text-align: center; }
 .study-feedback:not(:empty) { margin-top: var(--s-lie); padding: 1rem; border: 1px solid currentColor; }
