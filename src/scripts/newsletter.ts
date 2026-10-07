@@ -38,9 +38,9 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-
       showFeedback(result.state)
       if ('download' in result && typeof result.download === 'string' && result.download.startsWith('/api/etude?token=')) {
         if (result.state === 'confirmation') {
-          feedback.textContent = 'Inscription confirmée. Bienvenue dans la newsletter EUNEOS.'
+          feedback.textContent = 'Merci pour votre téléchargement. Confirmez votre inscription à la newsletter EUNEOS dans votre boîte mail si vous souhaitez suivre nos actualités sur ce sujet.'
         } else {
-          feedback.textContent = 'Vous êtes déjà inscrits à la newsletter EUNEOS.'
+          feedback.textContent = 'Merci pour votre téléchargement.'
         }
         feedback.classList.remove('is-error')
         feedback.classList.add('is-ok')
