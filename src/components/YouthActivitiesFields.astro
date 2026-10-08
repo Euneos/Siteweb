@@ -1,98 +1,90 @@
 ---
 import Field from './OperationalField.astro'
-// Composition adapted from the form 5 preview (PR #26).
 ---
 
 <fieldset class="of-section">
-  <legend>Les jeunes concernés</legend>
-  <div class="of-grid">
+  <legend>Évaluation scientifique (facultatif)</legend>
+  <p class="of-note">
+    Le groupe actif reçoit les ateliers et répond aux questionnaires T1 et T2. Le groupe contrôle
+    répond aux questionnaires T1 et T2 sans participer aux ateliers. Prévoyez environ 30 minutes par
+    questionnaire. Les réponses des élèves sont anonymes.
+  </p>
+  <label class="of-field">
+    Souhaitez-vous proposer des groupes pour l’évaluation scientifique ? *
+    <select name="evaluation" required>
+      <option value="">Choisir une réponse</option>
+      <option value="true">Oui</option>
+      <option value="false">Non</option>
+    </select>
+  </label>
+  <div id="of-evaluation-details" class="of-stack" hidden>
+    <p class="of-note">
+      Décrivez les classes ou groupes sans indiquer le nom des élèves. L’équipe EUNEOS examinera la
+      proposition avant de confirmer la participation à l’évaluation et les modalités des codes
+      anonymes.
+    </p>
     <Field
-      name="totalClasses"
-      label="Nombre total de classes ou groupes"
+      name="activeCount"
+      label="Nombre total d’élèves dans le groupe actif"
       type="number"
-      min={1}
-      max={1000}
-      required
+      min={0}
+      max={100000}
     />
     <Field
+      name="activeClasses"
+      label="Détail de la classe participant à l’évaluation (groupe actif)"
+      type="textarea"
+      required
+      maxLength={5000}
+      hint="Classe ; niveau ; nombre d’élèves ; enseignant responsable ; format des ateliers. Une classe par ligne, sans noms d’élèves."
+    />
+    <Field
+      name="activeT1"
+      label="Date de passation du questionnaire jeunes T1 — groupe actif (si déjà connue)"
+      type="date"
+    />
+    <Field
+      name="controlCount"
+      label="Nombre total d’élèves dans le groupe contrôle"
+      type="number"
+      min={0}
+      max={100000}
+    />
+    <Field
+      name="controlClasses"
+      label="Détail de la classe contrôle (groupe contrôle)"
+      type="textarea"
+      required
+      maxLength={5000}
+      hint="Classe ; niveau ; nombre d’élèves ; enseignant responsable. Une classe par ligne, sans noms d’élèves."
+    />
+    <Field
+      name="controlT1"
+      label="Date de passation du questionnaire jeunes T1 — groupe contrôle (si déjà connue)"
+      type="date"
+    />
+  </div>
+</fieldset>
+<fieldset class="of-section">
+  <legend>Jeunes sensibilisés par les équipes formées à WISE-UP</legend>
+  <p class="of-note">Comptez tous les jeunes qui bénéficieront des activités issues de la formation du personnel.</p>
+  <div class="of-grid">
+    <Field
       name="totalStudents"
-      label="Nombre total de jeunes bénéficiaires"
+      label="Nombre total d’élèves bénéficiaires concernés"
       type="number"
       min={1}
       max={100000}
       required
     />
-  </div>
-  <Field name="levels" label="Niveaux concernés" required maxLength={500} />
-</fieldset>
-<fieldset class="of-section">
-  <legend>Évaluation scientifique</legend>
-  <p class="of-note">
-    Les groupes actifs participent aux ateliers et répondent aux questionnaires avant (T1) et après
-    (T2). Les groupes contrôles répondent aux questionnaires sans participer aux ateliers. Prévoyez
-    environ 30 minutes par questionnaire.
-  </p>
-  <label class="of-field"
-    >Souhaitez-vous proposer des groupes pour cette évaluation ? *
-    <select name="evaluation" required>
-      <option value="">Choisir une réponse</option>
-      <option value="false">Non</option><option value="true">Oui</option>
-    </select>
-  </label>
-  <div id="of-evaluation-details" class="of-stack" hidden>
-    <p class="of-note">
-      Votre établissement propose les groupes. Leur validation scientifique sera examinée par
-      l’équipe ; cet envoi ne la confirme pas et ne génère aucun code.
-    </p>
     <Field
-      name="activeClasses"
-      label="Classes ou groupes actifs proposés"
-      type="textarea"
+      name="totalClasses"
+      label="Nombre total de classes ou groupes concernés"
+      type="number"
+      min={1}
+      max={1000}
       required
-      maxLength={5000}
-      hint="Une classe par ligne : nom ; niveau ; effectif ; enseignant ; format des ateliers. N’indiquez pas de noms d’élèves."
     />
-    <Field
-      name="controlClasses"
-      label="Classes ou groupes contrôles proposés"
-      type="textarea"
-      required
-      maxLength={5000}
-      hint="Une classe par ligne : nom ; niveau ; effectif ; enseignant. N’indiquez pas de noms d’élèves."
-    />
-    <div class="of-grid">
-      <Field
-        name="activeCount"
-        label="Nombre de jeunes dans les groupes actifs"
-        type="number"
-        min={0}
-        max={100000}
-      />
-      <Field
-        name="controlCount"
-        label="Nombre de jeunes dans les groupes contrôles"
-        type="number"
-        min={0}
-        max={100000}
-      />
-      <Field name="activeT1" label="Questionnaire T1 — groupes actifs" type="date" />
-      <Field name="activeT2" label="Questionnaire T2 — groupes actifs" type="date" />
-      <Field name="controlT1" label="Questionnaire T1 — groupes contrôles" type="date" />
-    </div>
-    <p class="of-note">
-      Renseignez les dates déjà connues. Les autres modalités de passation seront précisées avec
-      l’équipe.
-    </p>
   </div>
-</fieldset>
-<fieldset class="of-section">
-  <legend>Ateliers avec les jeunes (facultatif)</legend>
-  <Field name="workshopCount" label="Nombre d’ateliers prévus" type="number" min={0} max={10000} />
-  <Field
-    name="workshopSchedule"
-    label="Planning détaillé des ateliers"
-    type="textarea"
-    maxLength={10000}
-    hint="Une ligne par atelier : groupe ; date ; début ; fin ; durée ; remarque."
-  />
+  <Field name="levels" label="Niveau(x) concerné(s)" required maxLength={500} />
 </fieldset>

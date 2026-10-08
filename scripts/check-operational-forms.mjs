@@ -415,8 +415,35 @@ try {
       assert.equal(payload.youth.activeCount, 24)
       assert.equal(payload.youth.controlCount, 29)
       assert.equal(payload.youth.activeT1, '')
+      assert.equal(payload.youth.activeT2, '')
+      assert.equal(payload.youth.workshopCount, null)
+      assert.equal(payload.youth.totalStudents, 75)
     }
   }
+
+  // Form 5 follows the reference questionnaire: optional evaluation details, then all beneficiaries.
+  await goto('activites-jeunes')
+  await fill('activites-jeunes')
+  await expect(page.locator('[name=activeT2], [name=workshopCount], [name=workshopSchedule]')).toHaveCount(0)
+  assert(await page.locator('fieldset.of-section legend').allTextContents().then((labels) =>
+    labels.findIndex((label) => label.includes('Évaluation scientifique')) < labels.findIndex((label) => label.includes('Jeunes sensibilisés'))))
+  await page.locator('[name=evaluation]').selectOption('false')
+  await expect(page.locator('#of-evaluation-details')).toBeHidden()
+  await expect(page.locator('[name=activeClasses]')).toBeDisabled()
+  await page.locator('[name=totalStudents]').fill('75')
+  await page.locator('[name=totalClasses]').fill('3')
+  await page.locator('[name=levels]').fill('Cinquième et quatrième')
+  await page.locator('[name=organizationConfirmed]').check()
+  await page.locator('[name=changesAcknowledged]').check()
+  await submit()
+  await expect(feedback).toContainText('Test terminé')
+  assert.equal(publicPosts.at(-1).youth.evaluation, false)
+  assert.equal(publicPosts.at(-1).youth.totalStudents, 75)
+  await goto('activites-jeunes')
+  await page.locator('[name=evaluation]').selectOption('true')
+  await expect(page.locator('#of-evaluation-details')).toBeVisible()
+  await expect(page.locator('[name=activeClasses]')).toBeEnabled()
+  await expect(page.locator('[name=activeClasses]')).toHaveAttribute('required', '')
 
   // Form 4: no initial mandatory row; optional list, native validation and removal.
   await goto('deploiement')
