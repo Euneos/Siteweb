@@ -423,6 +423,7 @@ try {
 
   // Form 5 follows the reference questionnaire: optional evaluation details, then all beneficiaries.
   await goto('activites-jeunes')
+  await fill('activites-jeunes')
   await expect(page.locator('[name=activeT2], [name=workshopCount], [name=workshopSchedule]')).toHaveCount(0)
   assert(await page.locator('fieldset.of-section legend').allTextContents().then((labels) =>
     labels.findIndex((label) => label.includes('Évaluation scientifique')) < labels.findIndex((label) => label.includes('Jeunes sensibilisés'))))
