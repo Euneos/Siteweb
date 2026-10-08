@@ -71,7 +71,6 @@ jobs:
 
       - name: Vérifier le rendu responsive compilé
         run: |
-          trap 'echo "::error title=Recette responsive::Échec à la ligne $LINENO : $BASH_COMMAND"' ERR
           bunx playwright install --with-deps chromium
           bun scripts/check-internal-table.mjs
           bun scripts/check-internal-workspace.mjs
