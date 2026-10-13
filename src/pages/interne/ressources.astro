@@ -24,6 +24,82 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         </p>
       </div>
     </div>
+    <nav class="iw-actions resource-shortcuts" aria-label="Accès rapides aux ressources">
+      <a class="iw-button" href="#guides-pratiques">Guides pratiques</a>
+      <a class="iw-button" href="#supports-formation">Supports de formation</a>
+      <a class="iw-button" href="#documents-signer">Documents à signer</a>
+      <a class="iw-button" href="#agenda">Agenda</a>
+    </nav>
+    <div class="resource-sections">
+      <section class="iw-panel" id="guides-pratiques" aria-labelledby="guides-title">
+        <h2 id="guides-title">Guides pratiques</h2>
+        <p>Les repères pour préparer vos interventions et accompagner les établissements.</p>
+        <ul>
+          <li>
+            <strong>Guide du formateur</strong> — préparation, suivi, évaluation et démarches administratives.
+            <span class="iw-muted">Lien à compléter.</span>
+          </li>
+          <li>
+            <strong>Guide établissement</strong> — rôles et étapes du déploiement. <span
+              class="iw-muted">Lien à compléter.</span>
+          </li>
+          <li>
+            <strong>Présentation référents</strong> — présenter le programme aux personnes référentes.
+            <span class="iw-muted">Lien à compléter.</span>
+          </li>
+        </ul>
+      </section>
+      <section class="iw-panel" id="supports-formation" aria-labelledby="supports-title">
+        <h2 id="supports-title">Préparer et animer une formation</h2>
+        <p>Retrouvez les documents partagés pour préparer vos séances et animer les ateliers.</p>
+        <a
+          class="iw-button"
+          href="https://drive.google.com/drive/folders/1cbczGNkfnvWefYno-_GXYWU70m5uEFro?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer">Ouvrir les supports de formation ↗</a
+        >
+      </section>
+      <section class="iw-panel" aria-labelledby="programme-title">
+        <h2 id="programme-title">Présenter le programme</h2>
+        <p>Brochure et supports pour vos démarches auprès des établissements.</p>
+        <p class="iw-muted">Liens à compléter.</p>
+      </section>
+      <section class="iw-panel" id="documents-signer" aria-labelledby="documents-title">
+        <h2 id="documents-title">Documents à signer</h2>
+        <ul>
+          <li>
+            <a href="/suivi/accord-formateur" target="_blank" rel="noopener noreferrer"
+              ><strong>Accord du formateur ↗</strong></a
+            > — à signer en début de formation.
+          </li>
+          <li>
+            <strong>Convention de mission</strong> — à remplir et signer lorsque vous intervenez. <span
+              class="iw-muted">Formulaire à venir.</span>
+          </li>
+        </ul>
+        <p>
+          Pour le suivi, l’évaluation et les autres démarches administratives, consultez les <a
+            href="#guides-pratiques">guides pratiques</a
+          >.
+        </p>
+      </section>
+      <section class="iw-panel" id="agenda" aria-labelledby="agenda-title">
+        <h2 id="agenda-title">Agenda</h2>
+        <p>Intervisions, formations complémentaires et rencontres du réseau.</p>
+        <p class="iw-muted">Dates et liens d’inscription à renseigner.</p>
+      </section>
+      <section class="iw-panel" aria-labelledby="reseau-title">
+        <h2 id="reseau-title">Carte du réseau</h2>
+        <p>Repérer les établissements et les formateurs par territoire.</p>
+        <p class="iw-muted">Accès à la carte à compléter.</p>
+      </section>
+      <section class="iw-panel" aria-labelledby="entraide-title">
+        <h2 id="entraide-title">Partager et trouver de l’aide</h2>
+        <p>Retours d’expérience, ressources issues des intervisions et contacts utiles.</p>
+        <p class="iw-muted">Ressources et contacts à compléter.</p>
+      </section>
+    </div>
+    <h2>Catalogue des ressources</h2>
     <noscript
       ><p class="iw-feedback">
         Activez JavaScript pour consulter le catalogue de ressources.
@@ -77,3 +153,44 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
     </p>
   </div>
 </InternalLayout>
+
+<style>
+  .resource-shortcuts {
+    flex-wrap: wrap;
+    margin-block: var(--s-titre);
+  }
+  .resource-sections {
+    display: grid;
+    gap: var(--s-grille);
+    margin-bottom: var(--s-bloc);
+  }
+  .resource-sections section {
+    scroll-margin-top: var(--s-bloc);
+    min-width: 0;
+    padding: var(--s-lie);
+  }
+  .resource-sections h2 {
+    margin-bottom: var(--s-lie);
+  }
+  .resource-sections p + p,
+  .resource-sections p + a,
+  .resource-sections ul {
+    margin-top: var(--s-lie);
+  }
+  .resource-sections ul {
+    padding-left: 1.25em;
+  }
+  .resource-sections li + li {
+    margin-top: var(--s-lie);
+  }
+  .resource-shortcuts a,
+  .resource-sections a {
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 64rem) {
+    .resource-sections {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+  }
+</style>
