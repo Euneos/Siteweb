@@ -738,8 +738,8 @@ try {
     await expect(page.locator('#iw-person-totals thead th')).toHaveText(['Personne', 'Heures réalisées'])
     await expect(page.locator('#iw-person-totals tbody th')).toHaveText(['Member'])
     await expect(page.locator('#iw-person-totals tbody td')).toHaveText(['6 h'])
-    await expect(page.locator('#iw-person-totals tfoot th')).toHaveText(['Total du mois'])
-    await expect(page.locator('#iw-person-totals tfoot td')).toHaveText(['6 h'])
+    // Pauline (2 octobre) : tableau Personne / Heures réalisées, sans ligne de total.
+    await expect(page.locator('#iw-person-totals tfoot')).toHaveCount(0)
     assert(await page.locator('#iw-person-totals').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
   }
   await page.locator('#iw-person').selectOption('Alex')
