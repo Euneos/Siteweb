@@ -565,6 +565,21 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
   .iw-day--outside {
     background: #f7f8f6;
   }
+  .iw-day__add {
+    float: right;
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid var(--border, #c9d3cc);
+    border-radius: 2px;
+    background: var(--papier);
+    color: var(--noir);
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .iw-day__add:hover {
+    background: #edf3ef;
+  }
   .iw-day__date {
     display: flex;
     align-items: center;
@@ -603,9 +618,38 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
   .iw-event:hover {
     background: #dee9e2;
   }
+  /* Fiches édito : couleurs par statut, demandées par Pauline le 2 octobre. */
+  .iw-event[data-status='en_cours'] {
+    border-color: #9b9a97;
+    background: #ebeae6;
+  }
+  .iw-event[data-status='a_creer'] {
+    border-color: #b8977e;
+    background: #f1e8e2;
+  }
+  .iw-event[data-status='a_modifier'] {
+    border-color: #9a6dd7;
+    background: #ece5f5;
+  }
   .iw-event[data-status='a_valider'] {
-    border-color: var(--jaune-fold);
-    background: #fff7d8;
+    border-color: #e16f64;
+    background: #fbe4e4;
+  }
+  .iw-event[data-status='programme'] {
+    border-color: #d9a72e;
+    background: #fbeecd;
+  }
+  .iw-event[data-status='valide'] {
+    border-color: #6f8f7a;
+    background: #dfe7e1;
+  }
+  .iw-event[data-status='publie'] {
+    border-color: #4dab9a;
+    background: #ddefea;
+  }
+  .iw-event[data-attendance='conge'] {
+    border-color: #e8833a;
+    background: #fde8d4;
   }
   .iw-event[data-status='brouillon'] {
     border-color: #78877f;
@@ -698,6 +742,27 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
   .iw-badge[data-status='valide'],
   .iw-badge[data-status='publie'] {
     background: #dcece3;
+  }
+  .iw-badge[data-status='en_cours'] {
+    background: #ebeae6;
+  }
+  .iw-badge[data-status='a_creer'] {
+    background: #f1e8e2;
+  }
+  .iw-badge[data-status='a_modifier'] {
+    background: #ece5f5;
+  }
+  .iw-badge[data-status='a_valider'] {
+    background: #fbe4e4;
+  }
+  .iw-badge[data-status='programme'] {
+    background: #fbeecd;
+  }
+  .iw-badge[data-status='valide'] {
+    background: #dfe7e1;
+  }
+  .iw-badge[data-status='publie'] {
+    background: #ddefea;
   }
   .iw-badge[data-status='annule'] {
     text-decoration: line-through;

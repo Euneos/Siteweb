@@ -433,6 +433,11 @@ function initCalendar(root: HTMLElement) {
     input('ends_on').required = editorKind === 'equipe'
     byId('iw-hours-field').hidden = editorKind !== 'equipe'
     byId('iw-attendance-field').hidden = editorKind !== 'equipe'
+    const partners = [...byId<HTMLSelectElement>('iw-entry-person').options].find((option) => option.value === 'Partenaires')
+    if (partners) {
+      partners.hidden = editorKind === 'equipe'
+      partners.disabled = editorKind === 'equipe'
+    }
     byId('iw-location-field').hidden = true
     updatePermissions()
     updateLink()
@@ -507,9 +512,6 @@ function initCalendar(root: HTMLElement) {
       label.scope = 'row'
       body.insertRow().append(label, node('td', '', hours(total)))
     }
-    const label = node('th', '', 'Total du mois')
-    label.scope = 'row'
-    table.createTFoot().insertRow().append(label, node('td', '', hours([...grouped.values()].reduce((sum, total) => sum + total, 0))))
     totalsPanel.append(table)
   }
   const setMetrics = (loaded: CalendarData | null) => {
@@ -675,11 +677,17 @@ function initCalendar(root: HTMLElement) {
       time.setAttribute('aria-label', longDateFormat.format(dateObject(date)))
       if (date === localDate()) time.setAttribute('aria-current', 'date')
       cell.append(time)
+      if (!byId<HTMLButtonElement>('iw-new').hidden && !byId<HTMLButtonElement>('iw-new').disabled) {
+        const add = button('+', () => openEditor(null, date), 'iw-day__add')
+        add.setAttribute('aria-label', `Créer une fiche le ${longDateFormat.format(dateObject(date))}`)
+        cell.append(add)
+      }
       const todayEntries = entries.filter((entry) => entryOccursOn(entry, date))
       const events = node('div', 'iw-day__events')
       todayEntries.forEach((entry) => {
         const event = button('', () => openEditor(entry), 'iw-event')
         event.dataset.entryId = entry.id
+        if (entry.kind === 'equipe') event.dataset.attendance = entry.attendance
         if (entry.kind === 'editorial') {
           event.dataset.status = entry.status
           event.draggable = true
@@ -896,7 +904,7 @@ function initCalendar(root: HTMLElement) {
     }
     closeEditor()
   }
-  function openEditor(entry: Entry | null) {
+  function openEditor(entry: Entry | null, onDate?: string) {
     editorScroll = { x: window.scrollX, y: window.scrollY }
     opener = document.activeElement as HTMLElement
     modalGeneration++
@@ -921,7 +929,7 @@ function initCalendar(root: HTMLElement) {
     byId('iw-entry-audit').textContent = entry
       ? `Créée par ${entry.created_by} · Dernière modification : ${entry.updated_by} · Version ${entry.version}`
       : ''
-    const date = month === localDate().slice(0, 7) ? localDate() : `${month}-01`
+    const date = onDate ?? (month === localDate().slice(0, 7) ? localDate() : `${month}-01`)
     fillForm(
       entry ?? {
         kind: editorKind,
@@ -1340,6 +1348,14 @@ function initCalendar(root: HTMLElement) {
     if (!selected && end.value < dateStart.value) end.value = dateStart.value
   })
   byId('iw-new').addEventListener('click', () => openEditor(null))
+  // Une heure saisie sur une fiche équipe vaut présence (demande de Pauline, 2 octobre).
+  form.addEventListener('input', (event) => {
+    const field = event.target as HTMLInputElement
+    if (editorKind !== 'equipe' || field.type !== 'number' || !(Number(field.value) > 0)) return
+    if (field.name !== 'hours' && !field.closest('#iw-daily-rows')) return
+    const attendance = byId<HTMLSelectElement>('iw-attendance')
+    if (attendance.value !== 'presence') attendance.value = 'presence'
+  })
   byId('iw-close').addEventListener('click', requestClose)
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault()
