@@ -39,8 +39,17 @@ Nouveau Monde. Aucun frais pour l'établissement.
 | **Le code en ligne** | `github.com/Euneos/Siteweb` |
 | **Les mails** | Viaduc (inchangé) — `webmail.viaduc.fr` |
 
-La base contient 18 tables : établissements, participations, formateurs, engagements,
-missions, adultes formés, groupes d'élèves, sessions, présences, et les modèles d'e-mails.
+La base contient 20 tables : cohortes, établissements, participations, formateurs, parcours
+formateur, missions, adultes, groupes de jeunes, ateliers, codes anonymes, sessions de formation,
+présences, conventions, factures, relances, modèles et blocs d'e-mails, journal des e-mails,
+réponses des formulaires Google et du site.
+
+**Les doublons archivés** : une ligne dont `fusionne_vers` est renseigné est un ancien doublon,
+fusionné dans le dossier vers lequel elle pointe. Elle ne se compte pas et ne se modifie pas :
+on travaille sur le dossier cible. Tout comptage ou toute liste exclut ces lignes.
+
+Les **calendriers** de l'espace interne (éditorial, équipe & heures) ne sont **pas** dans NocoDB :
+ils sont dans la base des pages internes, accessible par `bun scripts/calendrier.ts`.
 
 **Deux notions à ne pas confondre**, parce que toute la base repose dessus :
 
@@ -58,6 +67,10 @@ candidature publique. Les **engagements** et validations restent suivis par l'é
 
 ### Consulter et faire avancer les dossiers
 
+L'agent lit et modifie la base **directement** avec ses outils `nocodb_*` (chercher, lire,
+créer, modifier des lignes). Toute écriture demande votre accord ; rien ne se supprime.
+Pour les synthèses toutes faites, il a aussi :
+
 ```
 bun scripts/base.mjs campagne            où en est le recrutement
 bun scripts/base.mjs candidatures        les candidatures établissements
@@ -69,7 +82,7 @@ bun scripts/base.mjs modeles             les 16 modèles d'e-mails
 bun scripts/base.mjs modele <code>       lire un modèle en entier
 ```
 
-### Cinq compétences installées
+### Six compétences installées
 
 L'agent les déclenche tout seul selon ce que vous demandez :
 
@@ -80,6 +93,7 @@ L'agent les déclenche tout seul selon ce que vous demandez :
 | **relancer-un-dossier** | trouver ce qui dort, préparer la relance |
 | **preparer-un-email** | rédiger à partir des 16 modèles officiels |
 | **modifier-le-site** | changer un texte, une photo, puis publier |
+| **calendrier-equipe** | voir un mois, créer ou modifier une fiche, des heures, une présence, déplacer une publication |
 
 Elles sont dans `.claude/skills/`. Ce sont des fichiers texte : vous pouvez les lire, les
 corriger, en ajouter.
@@ -92,6 +106,21 @@ Les cinq décisions de candidature sont **Candidature reçue**, **Candidature ac
 **Établissement engagé**, **Abandon** et **Refus**. L’ancien libellé est conservé dans
 `statut_origine` pour l’historique. Un dossier « à qualifier » ne doit pas être accepté
 par déduction. L’accusé de réception est suivi séparément de la décision.
+
+### Le calendrier
+
+*« Qu'est-ce qui est prévu en octobre ? »*, *« Ajoute 3 h de coordination pour moi jeudi »*,
+*« Déplace le post LinkedIn au 22 »*. Mêmes règles que dans l'espace interne : seule la
+responsable (`gouvernance@euneos.fr`) valide les heures, une fiche équipe ne se modifie que par
+son autrice ou la responsable. Supprimer une fiche se fait dans l'espace interne.
+
+### Vos mails
+
+Si votre boîte est branchée, l'agent peut **lire** vos mails reçus et envoyés : chercher un
+échange, retrouver une lettre, résumer ce qui attend une réponse. **Il ne peut pas envoyer,
+supprimer ni déplacer un mail.** Chaque boîte est privée : l'agent de Charlotte ne voit pas
+celle de Candice. Ce que vous apprenez dans un mail n'est partagé avec l'équipe que si vous
+demandez à l'agent de l'écrire dans la base (par exemple : cocher « lettre d'intérêt signée »).
 
 ### Modifier le site
 
@@ -149,8 +178,10 @@ y compris a ce qui etait juste.
 
 À dire clairement plutôt que de laisser croire le contraire :
 
-- **Envoyer un e-mail.** Les 16 modèles sont dans la base, mais rien ne les envoie encore.
-  Les envois passent toujours par l'ancien système.
+- **Envoyer un e-mail.** Il lit votre boîte et prépare un brouillon à partir des 16 modèles,
+  mais c'est vous qui envoyez.
+- **Supprimer** une ligne de la base ou une fiche du calendrier.
+- **Lire la boîte d'une collègue.**
 - **Relancer automatiquement.** La table existe, le déclencheur non.
 - **Vous prévenir d'une nouvelle candidature.** Elle arrive en base sans notification.
 - **Générer les codes anonymes des élèves** ni piloter les questionnaires avant/après.
