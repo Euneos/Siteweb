@@ -82,7 +82,7 @@ bun scripts/base.mjs modeles             les 16 modèles d'e-mails
 bun scripts/base.mjs modele <code>       lire un modèle en entier
 ```
 
-### Sept compétences installées
+### Huit compétences installées
 
 L'agent les déclenche tout seul selon ce que vous demandez :
 
@@ -95,6 +95,7 @@ L'agent les déclenche tout seul selon ce que vous demandez :
 | **modifier-le-site** | changer un texte, une photo, puis publier |
 | **calendrier-equipe** | voir un mois, créer ou modifier une fiche, des heures, une présence, déplacer une publication |
 | **bilan-des-mails** | ce qui attend une réponse dans votre boîte, puis les relances inscrites dans la base |
+| **rattacher-reponses** | rattacher à leur dossier les réponses de formulaires restées « à vérifier » |
 
 Elles sont dans `.claude/skills/`. Ce sont des fichiers texte : vous pouvez les lire, les
 corriger, en ajouter.
