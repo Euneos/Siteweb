@@ -131,8 +131,9 @@ chercher et lire un fichier (Word, Excel, PDF, Google Docs et Sheets), **remplir
 modifier un Google Doc, créer ou déposer un fichier. **Toute écriture demande votre accord.**
 Il ne partage jamais un fichier et ne change aucun droit d'accès.
 
-Pour remplir un `.xlsx`, le plus fiable est de le convertir d'abord en Google Sheets (l'agent
-peut le faire, avec votre accord), puis de remplir les cases.
+**Remplir un fichier Excel (`.xlsx`) du Drive** : l'agent l'ouvre directement dans le dossier Drive
+de votre Mac (outils `excel_*`), le remplit après votre accord, et Drive le synchronise.
+**Fermez le fichier dans Excel avant** : sinon Drive crée une copie « en conflit ».
 
 ### Modifier le site
 
