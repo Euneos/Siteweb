@@ -125,10 +125,13 @@ demandez à l'agent de l'écrire dans la base (par exemple : cocher « lettre d'
 
 ### Le Drive de l'équipe
 
-L'agent **lit** le Drive du compte commun `euneosequipe@gmail.com` : chercher un fichier, lire
-un Word, un Excel, un PDF (lettres, guides, conventions, kits). **Il ne dépose, ne modifie et ne
-supprime rien** dans le Drive pour l'instant. Les données des dossiers restent dans NocoDB :
-le Drive sert aux documents.
+L'agent travaille dans le Drive du compte commun `euneosequipe@gmail.com` (outils `google_*`) :
+chercher et lire un fichier (Word, Excel, PDF, Google Docs et Sheets), **remplir un tableur**,
+modifier un Google Doc, créer ou déposer un fichier. **Toute écriture demande votre accord.**
+Il ne partage jamais un fichier et ne change aucun droit d'accès.
+
+Pour remplir un `.xlsx`, le plus fiable est de le convertir d'abord en Google Sheets (l'agent
+peut le faire, avec votre accord), puis de remplir les cases.
 
 ### Modifier le site
 
@@ -190,7 +193,7 @@ y compris a ce qui etait juste.
   mais c'est vous qui envoyez.
 - **Supprimer** une ligne de la base ou une fiche du calendrier.
 - **Lire la boîte d'une collègue.**
-- **Déposer ou modifier un fichier dans le Drive.**
+- **Partager un fichier du Drive** ou changer ses droits d'accès.
 - **Relancer automatiquement.** La table existe, le déclencheur non.
 - **Vous prévenir d'une nouvelle candidature.** Elle arrive en base sans notification.
 - **Générer les codes anonymes des élèves** ni piloter les questionnaires avant/après.
