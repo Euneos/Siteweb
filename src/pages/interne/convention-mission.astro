@@ -1,0 +1,155 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals, true)
+if (context instanceof Response) return context
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+const personFields = [
+  ['nom', 'Prénom et nom', 'text'],
+  ['structure', 'Statut / structure', 'text'],
+  ['identification', 'SIRET / identification', 'text'],
+  ['adresse', 'Adresse professionnelle', 'text'],
+  ['email', 'E-mail professionnel', 'email'],
+  ['telephone', 'Téléphone', 'tel'],
+]
+const schoolFields = [
+  ['etablissement', 'Nom de l’établissement'], ['adresse', 'Adresse'],
+  ['direction', 'Direction : nom et fonction'], ['referent', 'Référent : nom et fonction'],
+  ['contact', 'Contact professionnel : e-mail / téléphone'],
+]
+---
+<InternalLayout title="Convention de mission — démonstration" current="ressources" identity={context.identity} teamAccess={context.teamMember}>
+  <section class="cm-demo">
+    <a href="/interne/ressources#documents-signer">← Ressources formateurs</a>
+    <h1>Convention de mission WISE-UP</h1>
+    <p class="iw-panel"><strong>Démonstration — informations fictives uniquement.</strong> Cette première version permet de vérifier les champs. Rien n’est enregistré, envoyé ni signé. La validation EUNEOS, le PDF contractuel et les signatures ne sont pas encore disponibles.</p>
+    <p>Parcours prévu : compléter → vérification EUNEOS → signature du formateur → contresignature EUNEOS → exemplaire disponible dans cet espace.</p>
+    <p><a href="https://docs.google.com/document/d/1qgB6UyS-5majuat5OiTNRd66NG4MSTQS/edit" target="_blank" rel="noopener noreferrer">Consulter la convention de référence et ses 14 articles ↗</a></p>
+    <form id="cm-form" class="cm-stack" onsubmit="return false" autocomplete="off">
+      <fieldset class="iw-panel cm-stack">
+        <legend>1. Formateur·rice</legend>
+        {personFields.map(([name, label, type]) => <label class="iw-field">{label} *<input name={name} type={type} maxlength="250" required /></label>)}
+        <p>La convention complète l’accord formateur déjà accepté. EUNEOS vérifiera le référencement et les missions autorisées.</p>
+      </fieldset>
+      <section aria-labelledby="cm-schools-title" class="cm-stack">
+        <h2 id="cm-schools-title">2. Établissements et missions</h2>
+        <p>Ajoutez un bloc pour chaque établissement déjà validé par EUNEOS. Les huit sessions représentent 16 heures de formation.</p>
+        <div id="cm-schools" class="cm-stack"></div>
+        <button type="button" id="cm-add" class="iw-button">Ajouter un établissement</button>
+      </section>
+      <fieldset class="iw-panel cm-stack">
+        <legend>3. Frais complémentaires</legend>
+        <p>Les frais courants sont inclus. Toute prise en charge complémentaire nécessite l’accord préalable d’EUNEOS.</p>
+        <label class="iw-field">Situation<select name="frais"><option value="aucun">Aucun frais complémentaire</option><option value="accord">Accord EUNEOS déjà obtenu — à vérifier</option><option value="demande">Demande à examiner par EUNEOS</option></select></label>
+        <label class="iw-field">Nature, mission concernée, estimation et référence de l’accord<textarea name="detailsFrais" maxlength="2000" rows="4"></textarea></label>
+        <p>Barème du modèle : voiture 0,636 €/km ; moto 0,468 €/km ; train en seconde classe. Les autres frais autorisés sont remboursés sur justificatif dans la limite de l’accord donné.</p>
+      </fieldset>
+      <section class="iw-panel cm-stack" aria-labelledby="cm-total-title">
+        <h2 id="cm-total-title">4. Récapitulatif prévisionnel</h2>
+        <output id="cm-total" aria-live="polite"></output>
+        <p>Le cas 2 et les frais restent soumis à validation. Le régime de TVA sera vérifié avec le statut du prestataire ; aucun taux n’est présumé ici.</p>
+        <button type="button" id="cm-check" class="iw-button">Vérifier la saisie de démonstration</button>
+        <p id="cm-feedback" role="status" tabindex="-1"></p>
+        <button type="button" disabled class="iw-button">Soumettre à EUNEOS — bientôt disponible</button>
+      </section>
+    </form>
+    <noscript>Activez JavaScript pour afficher les blocs établissement de cette démonstration.</noscript>
+    <template id="cm-school-template">
+      <fieldset class="iw-panel cm-school cm-stack">
+        <legend class="cm-school-title">Établissement</legend>
+        {schoolFields.map(([name, label]) => <label class="iw-field">{label} *<input data-field={name} maxlength="250" required /></label>)}
+        <label class="iw-field">Format *<select data-field="format" required><option value="presentiel">16 h en présentiel</option><option value="hybride">8 h en présentiel + 8 h à distance</option></select></label>
+        <p>La formation entièrement à distance n’est pas autorisée. Chaque session dure deux heures.</p>
+        <div class="cm-sessions">
+          {Array.from({length: 8}, (_, index) => <fieldset class="cm-session">
+            <legend>Session {index + 1} — 2 h</legend>
+            <label class="iw-field">Date *<input type="date" data-field={`date-${index}`} required /></label>
+            <label class="iw-field">Heure de début *<input type="time" data-field={`heure-${index}`} required /></label>
+            <label class="iw-field">Modalité *<select data-field={`modalite-${index}`} class="cm-mode" required><option value="presentiel">Présentiel</option><option value="distance">Visioconférence</option></select></label>
+          </fieldset>)}
+        </div>
+        <label class="iw-field">Cas 1 — classe active participant à l’évaluation<select data-field="cas1" class="cm-cas1"><option value="non">Non</option><option value="oui">Oui — ateliers de 4 h, forfait de 200 €</option></select></label>
+        <div class="cm-cas1-details cm-stack" hidden>
+          <label class="iw-field">Classe / niveau (aucun nom d’élève)<input data-field="classe" maxlength="120" /></label>
+          <label class="iw-field">Dates et horaires des 4 h d’ateliers<input data-field="ateliers" maxlength="500" /></label>
+        </div>
+        <label class="iw-field">Cas 2 — formation spécifique à l’animation des ateliers<select data-field="cas2" class="cm-cas2"><option value="non">Non</option><option value="2">2 heures — accord EUNEOS requis</option><option value="4">4 heures — accord EUNEOS requis</option></select></label>
+        <div class="cm-cas2-details cm-stack" hidden>
+          <label class="iw-field">Période / dates<input data-field="periodeCas2" maxlength="250" /></label>
+          <label class="iw-field">Référence de l’autorisation EUNEOS<input data-field="accordCas2" maxlength="250" /></label>
+          <p>Le montant sera renseigné par EUNEOS lors de la vérification.</p>
+        </div>
+        <button type="button" class="iw-button cm-remove">Retirer cet établissement</button>
+      </fieldset>
+    </template>
+  </section>
+</InternalLayout>
+<script>
+  const form = document.querySelector<HTMLFormElement>('#cm-form')!
+  const schools = document.querySelector<HTMLDivElement>('#cm-schools')!
+  const template = document.querySelector<HTMLTemplateElement>('#cm-school-template')!
+  const feedback = document.querySelector<HTMLParagraphElement>('#cm-feedback')!
+  let sequence = 0
+  function refresh() {
+    const blocks = Array.from(schools.querySelectorAll<HTMLFieldSetElement>('.cm-school'))
+    let workshops = 0
+    let hasCase2 = false
+    blocks.forEach((block, index) => {
+      block.querySelector('.cm-school-title')!.textContent = `Établissement ${index + 1}`
+      block.querySelector<HTMLButtonElement>('.cm-remove')!.disabled = blocks.length === 1
+      for (const caseNumber of [1, 2]) {
+        const active = block.querySelector<HTMLSelectElement>(`.cm-cas${caseNumber}`)!.value !== 'non'
+        const details = block.querySelector<HTMLDivElement>(`.cm-cas${caseNumber}-details`)!
+        details.hidden = !active
+        details.querySelectorAll<HTMLInputElement>('input').forEach(input => { input.required = active; input.disabled = !active })
+        if (active && caseNumber === 1) workshops++
+        if (active && caseNumber === 2) hasCase2 = true
+      }
+    })
+    const money = new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'})
+    document.querySelector('#cm-total')!.textContent = `${blocks.length} formation(s) × 1 000 € + ${workshops} atelier(s) classe active × 200 € = ${money.format(blocks.length * 1000 + workshops * 200)}${hasCase2 ? ', hors cas 2 à chiffrer par EUNEOS' : ''}, hors frais autorisés.`
+    feedback.textContent = ''
+  }
+  function add() {
+    const fragment = template.content.cloneNode(true) as DocumentFragment
+    const block = fragment.querySelector<HTMLFieldSetElement>('.cm-school')!
+    const prefix = `mission-${++sequence}`
+    block.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-field]').forEach(input => { input.name = `${prefix}-${input.dataset.field}` })
+    block.querySelector('.cm-remove')!.addEventListener('click', () => {
+      if (!confirm('Retirer cet établissement et ses informations de démonstration ?')) return
+      block.remove(); refresh()
+    })
+    schools.append(fragment)
+    refresh()
+  }
+  document.querySelector('#cm-add')!.addEventListener('click', add)
+  form.addEventListener('change', refresh)
+  form.addEventListener('submit', event => event.preventDefault())
+  document.querySelector('#cm-check')!.addEventListener('click', () => {
+    if (!form.reportValidity()) return
+    for (const block of schools.querySelectorAll<HTMLFieldSetElement>('.cm-school')) {
+      const format = block.querySelector<HTMLSelectElement>('[data-field="format"]')!.value
+      const remote = Array.from(block.querySelectorAll<HTMLSelectElement>('.cm-mode')).filter(input => input.value === 'distance').length
+      if ((format === 'presentiel' && remote !== 0) || (format === 'hybride' && remote !== 4)) {
+        feedback.textContent = 'Vérifiez les modalités : huit sessions en présentiel, ou quatre en présentiel et quatre en visioconférence.'
+        feedback.focus(); return
+      }
+    }
+    feedback.textContent = 'Champs de démonstration complets. Aucune transmission ni validation EUNEOS effectuée. Les données seront perdues en quittant cette page.'
+    feedback.focus()
+  })
+  add()
+</script>
+<style>
+  .cm-demo { display: grid; gap: var(--s-lie); }
+  .cm-stack { display: grid; gap: var(--s-lie); min-width: 0; }
+  .cm-demo fieldset { min-width: 0; }
+  .cm-demo legend { font-weight: 600; }
+  .cm-demo input, .cm-demo select, .cm-demo textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+  .cm-sessions { display: grid; gap: var(--s-lie); }
+  .cm-session { display: grid; gap: var(--s-lie); padding: var(--s-lie); }
+  .cm-demo [hidden] { display: none; }
+  .cm-demo button:disabled { opacity: .65; cursor: not-allowed; }
+  @media (min-width: 48rem) { .cm-sessions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
