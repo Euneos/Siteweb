@@ -33,18 +33,25 @@ modification qui rend bien sur ordinateur peut se casser sur téléphone.
 
 ## Publier
 
-Présenter la preview des changements à Pauline avant la publication finale demandée. Une PR vers `main` déploie une preview ; seule la fusion dans `main` déclenche la production. Respecter une validation déjà donnée pour le périmètre concerné.
+**Pas de PR, pas de branche** : on publie directement sur `main`. La vérification automatique
+du dépôt (job `verifier`) bloque la mise en ligne si quelque chose casse ; c'est le seul
+garde-fou, donc les vérifications ci-dessus (`test`, `build`, petite largeur) se font **avant**.
+
+1. Montrer à Pauline le texte avant / après, et la capture en petite largeur.
+2. Attendre son accord explicite (« ok », « vas-y »). Une validation déjà donnée pour ce
+   périmètre précis vaut accord.
+3. Publier :
 
 ```
+git pull --ff-only
 git diff --check
 git add <fichiers-concernes>
 git commit -m "fix: description du changement"
-git push -u origin <branche>
-gh pr create --base main --draft --title "fix: description du changement" --body-file <description.md>
+git push origin main
 ```
 
-Puis **vérifier sur `euneos.fr`**, pas seulement en local. Annoncer le résultat à l'équipe
-avec l'adresse exacte de la page modifiée.
+Jamais `--force`. Si le `push` est refusé parce que `main` a bougé : `git pull --ff-only`,
+relancer `test` et `build`, puis pousser à nouveau.
 
 ## Vérifier que la publication a RÉELLEMENT abouti
 
@@ -69,12 +76,10 @@ D1 ni configuration technique à effectuer pour chaque changement de statut.
 Le job conserve l'artifact `d1-receipts-<run-id>-<tentative>` : vérifier le reçu de
 l'environnement publié, `status: verified`, `codeSha`, `planSha256` et la liste
 `after`. En production, le reçu preview doit porter le même SHA et le même plan.
-Une PR externe n'a ni secrets ni déploiement ; une PR interne devenue ancienne
-doit être synchronisée avec main et revalidée avant sa preview.
 
 Pour un changement de schéma, lire [le circuit D1](../../../docs/internal-migrations.md),
 ajouter une nouvelle migration consécutive dans `migrations/interne` et ses tests,
-puis suivre la même PR. Ne jamais modifier/rejouer 0001–0004, ni lancer
+puis publier de la même façon. Ne jamais modifier/rejouer 0001–0004, ni lancer
 `wrangler d1 migrations apply` manuellement. L'adoption initiale des migrations
 historiques est une opération unique du responsable technique, avec exports
 privés ; un message « Bootstrap local requis » doit être remonté avec le run
