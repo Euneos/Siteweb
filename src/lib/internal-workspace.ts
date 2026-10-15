@@ -8,7 +8,7 @@ import { MONTHLY_ACTIVITY, monthlyAvailabilityId } from './monthly-availability'
 export interface WorkspaceDatabase {
   batch(statements: ReturnType<ReturnType<WorkspaceDatabase['prepare']>['bind']>[]): Promise<{ meta: { changes: number } }[]>
   prepare(sql: string): {
-    bind(...values: (string | number | null)[]): {
+      bind(...values: (string | number | null | Uint8Array | ArrayBuffer)[]): {
       all<T>(): Promise<{ results: T[] }>
       first<T>(): Promise<T | null>
       run(): Promise<{ meta: { changes: number } }>

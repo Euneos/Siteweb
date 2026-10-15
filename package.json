@@ -18,9 +18,11 @@
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/sitemap": "^3.6.0",
+    "@pdf-lib/fontkit": "^1.1.1",
     "@tailwindcss/vite": "^4.1.14",
     "astro": "^5.16.6",
     "jose": "^6.2.12",
+    "pdf-lib": "^1.17.1",
     "tailwindcss": "^4.1.14"
   },
   "devDependencies": {

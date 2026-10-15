@@ -1,6 +1,6 @@
 import type { WorkspaceDatabase } from './internal-workspace'
 
-type Value = string | number | null
+type Value = string | number | null | ArrayBuffer | Uint8Array
 type QueryResult = { results: unknown[]; meta?: { changes?: number } }
 
 /**
@@ -11,6 +11,8 @@ type QueryResult = { results: unknown[]; meta?: { changes?: number } }
  */
 export function d1Http(accountId: string, databaseId: string, token: string, fetchImpl: typeof fetch = fetch): WorkspaceDatabase {
   const query = async (sql: string, params: Value[]): Promise<QueryResult> => {
+    if (params.some(value => value instanceof ArrayBuffer || value instanceof Uint8Array))
+      throw new Error('Les documents binaires ne sont accessibles que depuis le site privé.')
     const response = await fetchImpl(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
       {

@@ -5,7 +5,7 @@ import { getInternalContext, privateHeaders } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
 for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
-const personFields = [
+const personFields: [string, string, 'text' | 'email' | 'tel'][] = [
   ['nom', 'Prénom et nom', 'text'],
   ['structure', 'Statut / structure', 'text'],
   ['identification', 'SIRET / identification', 'text'],
@@ -19,14 +19,16 @@ const schoolFields = [
   ['contact', 'Contact professionnel : e-mail / téléphone'],
 ]
 ---
-<InternalLayout title="Convention de mission — démonstration" current="ressources" identity={context.identity} teamAccess={context.teamMember}>
+<InternalLayout title="Convention de mission" current="ressources" identity={context.identity} teamAccess={context.teamMember}>
   <section class="cm-demo">
     <a href="/interne/ressources#documents-signer">← Ressources formateurs</a>
     <h1>Convention de mission WISE-UP</h1>
-    <p class="iw-panel"><strong>Démonstration — informations fictives uniquement.</strong> Cette première version permet de vérifier les champs. Rien n’est enregistré, envoyé ni signé. La validation EUNEOS, le PDF contractuel et les signatures ne sont pas encore disponibles.</p>
-    <p>Parcours prévu : compléter → vérification EUNEOS → signature du formateur → contresignature EUNEOS → exemplaire disponible dans cet espace.</p>
+    <p class="iw-panel"><strong>Parcours privé.</strong> Le formateur complète la convention, EUNEOS vérifie les missions et finalise le PDF. Le formateur télécharge, signe et dépose ce PDF ici. EUNEOS le contresigne et dépose l’exemplaire final. Aucun PDF n’est envoyé par ce site par e-mail.</p>
+    <p>La signature manuscrite ou dessinée dans un PDF ne constitue pas une signature électronique certifiée. EUNEOS vérifie manuellement les documents avant la contresignature. PDF à déposer : 750 Ko maximum.</p>
     <p><a href="https://docs.google.com/document/d/1qgB6UyS-5majuat5OiTNRd66NG4MSTQS/edit" target="_blank" rel="noopener noreferrer">Consulter la convention de référence et ses 14 articles ↗</a></p>
-    <form id="cm-form" class="cm-stack" onsubmit="return false" autocomplete="off">
+    <p id="cm-state" role="status" tabindex="-1">Chargement de vos conventions…</p>
+    <form id="cm-form" class="cm-stack" hidden autocomplete="off">
+      <h2>À compléter en ligne par le/la formateur·rice</h2>
       <fieldset class="iw-panel cm-stack">
         <legend>1. Formateur·rice</legend>
         {personFields.map(([name, label, type]) => <label class="iw-field">{label} *<input name={name} type={type} maxlength="250" required /></label>)}
@@ -49,12 +51,17 @@ const schoolFields = [
         <h2 id="cm-total-title">4. Récapitulatif prévisionnel</h2>
         <output id="cm-total" aria-live="polite"></output>
         <p>Le cas 2 et les frais restent soumis à validation. Le régime de TVA sera vérifié avec le statut du prestataire ; aucun taux n’est présumé ici.</p>
-        <button type="button" id="cm-check" class="iw-button">Vérifier la saisie de démonstration</button>
+        <button type="button" id="cm-check" class="iw-button">Vérifier la saisie</button>
         <p id="cm-feedback" role="status" tabindex="-1"></p>
-        <button type="button" disabled class="iw-button">Soumettre à EUNEOS — bientôt disponible</button>
+        <button type="submit" id="cm-submit" class="iw-button">Soumettre à la vérification EUNEOS</button>
       </section>
     </form>
-    <noscript>Activez JavaScript pour afficher les blocs établissement de cette démonstration.</noscript>
+    <section class="cm-stack" aria-labelledby="cm-existing-title">
+      <h2 id="cm-existing-title">Suivi des conventions et vérification EUNEOS</h2>
+      <p>L’équipe EUNEOS renseigne ici le représentant et le montant du cas 2, vérifie les frais et les dates, puis valide le PDF avant toute signature.</p>
+      <div id="cm-list" class="cm-stack"></div>
+    </section>
+    <noscript>Activez JavaScript pour accéder à vos conventions.</noscript>
     <template id="cm-school-template">
       <fieldset class="iw-panel cm-school cm-stack">
         <legend class="cm-school-title">Établissement</legend>
@@ -86,10 +93,17 @@ const schoolFields = [
   </section>
 </InternalLayout>
 <script>
+  type Mission = import('../../lib/mission-convention').Mission
+  type Payload = import('../../lib/mission-convention').MissionPayload
+  type Listed = { id: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; fees_decision: string; fees_details: string; created_at: string }
   const form = document.querySelector<HTMLFormElement>('#cm-form')!
   const schools = document.querySelector<HTMLDivElement>('#cm-schools')!
   const template = document.querySelector<HTMLTemplateElement>('#cm-school-template')!
   const feedback = document.querySelector<HTMLParagraphElement>('#cm-feedback')!
+  const state = document.querySelector<HTMLParagraphElement>('#cm-state')!
+  const list = document.querySelector<HTMLDivElement>('#cm-list')!
+  const endpoint = '/api/interne/conventions-mission'
+  let editing: string | undefined
   let sequence = 0
   function refresh() {
     const blocks = Array.from(schools.querySelectorAll<HTMLFieldSetElement>('.cm-school'))
@@ -117,7 +131,7 @@ const schoolFields = [
     const prefix = `mission-${++sequence}`
     block.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-field]').forEach(input => { input.name = `${prefix}-${input.dataset.field}` })
     block.querySelector('.cm-remove')!.addEventListener('click', () => {
-      if (!confirm('Retirer cet établissement et ses informations de démonstration ?')) return
+      if (!confirm('Retirer cet établissement et ses informations ?')) return
       block.remove(); refresh()
     })
     schools.append(fragment)
@@ -125,21 +139,196 @@ const schoolFields = [
   }
   document.querySelector('#cm-add')!.addEventListener('click', add)
   form.addEventListener('change', refresh)
-  form.addEventListener('submit', event => event.preventDefault())
-  document.querySelector('#cm-check')!.addEventListener('click', () => {
+  function valid() {
     if (!form.reportValidity()) return
     for (const block of schools.querySelectorAll<HTMLFieldSetElement>('.cm-school')) {
       const format = block.querySelector<HTMLSelectElement>('[data-field="format"]')!.value
       const remote = Array.from(block.querySelectorAll<HTMLSelectElement>('.cm-mode')).filter(input => input.value === 'distance').length
       if ((format === 'presentiel' && remote !== 0) || (format === 'hybride' && remote !== 4)) {
         feedback.textContent = 'Vérifiez les modalités : huit sessions en présentiel, ou quatre en présentiel et quatre en visioconférence.'
-        feedback.focus(); return
+        feedback.focus(); return false
       }
     }
-    feedback.textContent = 'Champs de démonstration complets. Aucune transmission ni validation EUNEOS effectuée. Les données seront perdues en quittant cette page.'
+    feedback.textContent = 'Saisie complète. Vous pouvez la soumettre à EUNEOS.'
     feedback.focus()
+    return true
+  }
+  document.querySelector('#cm-check')!.addEventListener('click', valid)
+  const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value
+  const payload = (): Payload => ({
+    nom: value('nom'), structure: value('structure'), identification: value('identification'), adresse: value('adresse'),
+    email: value('email'), telephone: value('telephone'), frais: value('frais') as Payload['frais'], detailsFrais: value('detailsFrais'),
+    missions: Array.from(schools.querySelectorAll<HTMLFieldSetElement>('.cm-school')).map(block => {
+      const get = (name: string) => block.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)!.value
+      return {
+        etablissement: get('etablissement'), adresse: get('adresse'), direction: get('direction'), referent: get('referent'), contact: get('contact'),
+        format: get('format') as Mission['format'], sessions: Array.from({length: 8}, (_, i) => ({
+          date: get(`date-${i}`), heure: get(`heure-${i}`), modalite: get(`modalite-${i}`) as Mission['sessions'][number]['modalite'],
+        })), cas1: get('cas1') as Mission['cas1'], classe: get('classe'), ateliers: get('ateliers'),
+        cas2: get('cas2') as Mission['cas2'], periodeCas2: get('periodeCas2'), accordCas2: get('accordCas2'),
+      }
+    }),
   })
-  add()
+  async function send(body: object) {
+    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error || 'Opération indisponible.')
+    return result
+  }
+  const message = (text: string) => { state.textContent = text; state.focus() }
+  const button = (label: string, act: () => void) => {
+    const element = document.createElement('button')
+    element.type = 'button'; element.className = 'iw-button'; element.textContent = label; element.addEventListener('click', act)
+    return element
+  }
+  const link = (id: string, kind: string, label: string) => {
+    const anchor = document.createElement('a')
+    anchor.className = 'iw-button'; anchor.textContent = label
+    anchor.href = `${endpoint}?id=${encodeURIComponent(id)}&kind=${kind}`
+    return anchor
+  }
+  function edit(record: Listed) {
+    editing = record.id
+    const p = record.payload
+    for (const key of ['nom','structure','identification','adresse','email','telephone','frais','detailsFrais'] as const) {
+      (form.elements.namedItem(key) as HTMLInputElement).value = p[key]
+    }
+    schools.replaceChildren()
+    for (const mission of p.missions) {
+      add()
+      const block = schools.lastElementChild as HTMLFieldSetElement
+      for (const key of ['etablissement','adresse','direction','referent','contact','format','cas1','classe','ateliers','cas2','periodeCas2','accordCas2'] as const)
+        (block.querySelector(`[data-field="${key}"]`) as HTMLInputElement).value = mission[key]
+      mission.sessions.forEach((session, i) => {
+        for (const [key, data] of Object.entries(session))
+          (block.querySelector(`[data-field="${key === 'heure' ? 'heure' : key === 'date' ? 'date' : 'modalite'}-${i}"]`) as HTMLInputElement).value = data
+      })
+    }
+    refresh()
+    form.hidden = false
+    form.scrollIntoView({ behavior: 'smooth' })
+  }
+  async function upload(id: string, kind: 'trainer_signed' | 'complete') {
+    const input = document.createElement('input')
+    input.type = 'file'; input.accept = 'application/pdf,.pdf'
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      if (file.size > 750_000) { message('PDF trop volumineux : 750 Ko maximum.'); return }
+      if (!confirm(kind === 'complete' ? 'Avez-vous vérifié la signature du formateur et la contresignature EUNEOS sur ce PDF final ?' : 'Déposer le PDF signé pour vérification par EUNEOS ?')) return
+      try {
+        message('Dépôt en cours…')
+        const response = await fetch(`${endpoint}?id=${encodeURIComponent(id)}&kind=${kind}`, { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: file })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Dépôt non confirmé.')
+        await reload()
+        message('Document déposé et vérifié dans votre espace.')
+      } catch (error) { message(error instanceof Error ? error.message : 'Dépôt non confirmé. Rechargez la page.') }
+    })
+    input.click()
+  }
+  async function reload() {
+    const response = await fetch(endpoint)
+    if (!response.ok) throw new Error('Impossible de charger les conventions.')
+    const data = await response.json() as { conventions: Listed[]; team: boolean; admin: boolean; accountEmail: string }
+    list.replaceChildren()
+    form.hidden = data.team
+    if (!data.team) {
+      if (!editing) (form.elements.namedItem('email') as HTMLInputElement).value = data.accountEmail
+      if (!editing) { schools.replaceChildren(); add() }
+    }
+    for (const record of data.conventions) {
+      const panel = document.createElement('section')
+      panel.className = 'iw-panel cm-stack'
+      const title = document.createElement('h2')
+      title.textContent = `${record.payload.nom} — ${record.payload.missions.map(m => m.etablissement).join(', ')}`
+      panel.append(title)
+      const status = document.createElement('p')
+      const labels: Record<string, string> = { submitted: 'En attente de vérification EUNEOS', changes_requested: 'Corrections demandées', approved: 'PDF prêt à signer', trainer_signed: 'Signature du formateur reçue — en attente EUNEOS', complete: 'Convention contresignée disponible' }
+      status.textContent = labels[record.state] || record.state
+      panel.append(status)
+      const details = document.createElement('details')
+      const summary = document.createElement('summary')
+      summary.textContent = 'Relire les informations et les huit sessions par établissement'
+      details.append(summary)
+      const identity = document.createElement('p')
+      identity.textContent = `${record.payload.nom} · ${record.payload.structure} · ${record.payload.identification} · ${record.payload.adresse} · ${record.payload.email} · ${record.payload.telephone}`
+      details.append(identity)
+      for (const mission of record.payload.missions) {
+        const heading = document.createElement('h3')
+        heading.textContent = mission.etablissement
+        const info = document.createElement('p')
+        info.textContent = `${mission.adresse} · Direction : ${mission.direction} · Référent : ${mission.referent} · Contact : ${mission.contact} · ${mission.format === 'hybride' ? 'Hybride' : 'Présentiel'}`
+        const sessions = document.createElement('ol')
+        for (const session of mission.sessions) {
+          const item = document.createElement('li')
+          item.textContent = `${session.date} · ${session.heure} · ${session.modalite === 'distance' ? 'Visioconférence' : 'Présentiel'} (2 h)`
+          sessions.append(item)
+        }
+        const cases = document.createElement('p')
+        cases.textContent = `Cas 1 : ${mission.cas1 === 'oui' ? `${mission.classe} — ${mission.ateliers}` : 'non'}. Cas 2 : ${mission.cas2 === 'non' ? 'non' : `${mission.cas2} h — ${mission.periodeCas2} — accord ${mission.accordCas2}`}.`
+        details.append(heading, info, sessions, cases)
+      }
+      const fees = document.createElement('p')
+      fees.textContent = `Frais proposés : ${record.payload.frais} — ${record.payload.detailsFrais || 'aucun détail'}. Frais validés par EUNEOS : ${record.fees_decision === 'accord' ? record.fees_details : 'aucun'}. Cas 2 validé : ${record.case2_euros} €.`
+      details.append(fees)
+      panel.append(details)
+      if (record.review_note) { const p = document.createElement('p'); p.textContent = `Message EUNEOS : ${record.review_note}`; panel.append(p) }
+      if (record.state === 'changes_requested' && !data.team) panel.append(button('Corriger la convention', () => edit(record)))
+      if (['approved', 'trainer_signed', 'complete'].includes(record.state)) panel.append(link(record.id, 'approved', 'Télécharger le PDF validé'))
+      if (record.state === 'approved' && !data.team) panel.append(button('Déposer mon PDF signé', () => upload(record.id, 'trainer_signed')))
+      if (record.state === 'complete') panel.append(link(record.id, 'complete', 'Télécharger l’exemplaire contresigné'))
+      if (data.team && record.state === 'trainer_signed') panel.append(link(record.id, 'trainer_signed', 'Vérifier le PDF signé'))
+      if (data.admin && record.state === 'trainer_signed') panel.append(button('Déposer la convention contresignée', () => upload(record.id, 'complete')))
+      if (data.admin && record.state === 'submitted') {
+        const rep = document.createElement('input'); rep.id = `rep-${record.id}`; rep.maxLength = 180
+        const repLabel = document.createElement('label'); repLabel.className = 'iw-field'; repLabel.htmlFor = rep.id; repLabel.textContent = 'EUNEOS — Nom et fonction de la personne signataire'; repLabel.append(rep)
+        const amount = document.createElement('input'); amount.id = `amount-${record.id}`; amount.type = 'number'; amount.min = '0'; amount.max = '100000'; amount.value = '0'
+        const amountLabel = document.createElement('label'); amountLabel.className = 'iw-field'; amountLabel.htmlFor = amount.id; amountLabel.textContent = 'EUNEOS — Montant total du cas 2 validé (€ ; 0 si aucun)'; amountLabel.append(amount)
+        const feesChoice = document.createElement('select'); feesChoice.id = `fees-${record.id}`
+        for (const [value, label] of [['aucun', 'Aucun frais complémentaire autorisé'], ['accord', 'Frais autorisés par EUNEOS']]) {
+          const option = document.createElement('option'); option.value = value; option.textContent = label; feesChoice.append(option)
+        }
+        const feesLabel = document.createElement('label'); feesLabel.className = 'iw-field'; feesLabel.htmlFor = feesChoice.id; feesLabel.textContent = 'EUNEOS — Décision sur les frais'; feesLabel.append(feesChoice)
+        const feesDetails = document.createElement('textarea'); feesDetails.id = `fees-details-${record.id}`; feesDetails.maxLength = 2000; feesDetails.rows = 3
+        const feesDetailsLabel = document.createElement('label'); feesDetailsLabel.className = 'iw-field'; feesDetailsLabel.htmlFor = feesDetails.id; feesDetailsLabel.textContent = 'EUNEOS — Nature, mission, barème et plafond des frais autorisés (si applicable)'; feesDetailsLabel.append(feesDetails)
+        const check = document.createElement('input'); check.type = 'checkbox'; check.id = `review-${record.id}`
+        const label = document.createElement('label'); label.className = 'cm-review-confirm'; label.htmlFor = check.id; label.textContent = 'J’ai vérifié le référencement du formateur, les établissements, les missions, les montants et les frais autorisés.'; label.prepend(check)
+        panel.append(repLabel, amountLabel, feesLabel, feesDetailsLabel, label)
+        panel.append(button('Valider et générer le PDF', async () => {
+          try {
+            message('Génération et validation en cours…')
+            await send({ action: 'approve', id: record.id, representative: rep.value, case2Euros: Number(amount.value), feesDecision: feesChoice.value, feesDetails: feesDetails.value, confirmed: check.checked })
+            await reload(); message('PDF validé et enregistré. Le formateur peut le télécharger.')
+          } catch (error) { message(error instanceof Error ? error.message : 'Validation incertaine. Rechargez la page.') }
+        }))
+        panel.append(button('Demander une correction', async () => {
+          const note = prompt('Quelles corrections le formateur doit-il apporter ?')
+          if (!note) return
+          try { await send({ action: 'changes', id: record.id, note }); await reload(); message('Demande de correction enregistrée. Prévenez le formateur : aucun e-mail automatique n’est envoyé.') }
+          catch (error) { message(error instanceof Error ? error.message : 'Action non confirmée.') }
+        }))
+      }
+      list.append(panel)
+    }
+    message(data.conventions.length ? `${data.conventions.length} convention(s) dans cet espace.` : 'Aucune convention enregistrée.')
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault()
+    if (!valid()) return
+    if (!confirm('Envoyer cette convention à EUNEOS pour vérification ?')) return
+    const submit = document.querySelector<HTMLButtonElement>('#cm-submit')!
+    submit.disabled = true
+    try {
+      await send({ action: 'submit', id: editing, payload: payload() })
+      editing = undefined
+      form.reset()
+      await reload()
+      message('Convention reçue dans votre espace, en attente de vérification par EUNEOS. Prévenez l’équipe : aucun e-mail automatique n’est envoyé.')
+    } catch (error) { message(error instanceof Error ? error.message : 'Enregistrement incertain. Rechargez la page avant tout nouvel envoi.') }
+    finally { submit.disabled = false }
+  })
+  reload().catch(error => message(error instanceof Error ? error.message : 'Service indisponible.'))
 </script>
 <style>
   .cm-demo { display: grid; gap: var(--s-lie); }
@@ -147,6 +336,10 @@ const schoolFields = [
   .cm-demo fieldset { min-width: 0; }
   .cm-demo legend { font-weight: 600; }
   .cm-demo input, .cm-demo select, .cm-demo textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+  .cm-demo input[type='checkbox'] { width: auto; margin-right: .5em; }
+  .cm-review-confirm { display: flex; align-items: flex-start; gap: .5em; }
+  .cm-review-confirm input[type='checkbox'] { flex: none; margin-top: .25em; }
+  .cm-demo .iw-button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .cm-sessions { display: grid; gap: var(--s-lie); }
   .cm-session { display: grid; gap: var(--s-lie); padding: var(--s-lie); }
   .cm-demo [hidden] { display: none; }
