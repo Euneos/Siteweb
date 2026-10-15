@@ -151,6 +151,13 @@ documents : l'agent les suivra.
 
 ---
 
+## Changer la structure des bases
+
+Ajouter une table ou un champ (pages internes, NocoDB) se fait **en autonomie**, après l'accord
+de la personne : la vérification automatique l'applique d'abord sur la base d'essai, puis en production.
+**Supprimer ou renommer** une table ou un champ, **effacer ou réécrire** des données existantes :
+préparer le changement, puis demander l'accord de Charly avant de publier. Ces changements-là ne se défont pas.
+
 ## Règles de conduite
 
 **1. Seul l'accusé de réception est automatique.**
