@@ -153,10 +153,28 @@ documents : l'agent les suivra.
 
 ## Changer la structure des bases
 
-Ajouter une table ou un champ (pages internes, NocoDB) se fait **en autonomie**, après l'accord
-de la personne : la vérification automatique l'applique d'abord sur la base d'essai, puis en production.
-**Supprimer ou renommer** une table ou un champ, **effacer ou réécrire** des données existantes :
-préparer le changement, puis demander l'accord de Charly avant de publier. Ces changements-là ne se défont pas.
+Vous décidez vous-mêmes : l'agent ne demande l'accord de personne d'autre. Son rôle est de vous
+faire comprendre ce que vous décidez.
+
+**Ajouter** une table ou un champ (pages internes, NocoDB) : sans risque pour l'existant. L'agent
+montre ce qui sera créé, attend votre « oui », publie. La vérification automatique l'applique d'abord
+sur la base d'essai, puis en production.
+
+**Supprimer, renommer, effacer ou réécrire** ce qui existe : ces changements ne se défont pas
+simplement. Avant de publier, l'agent :
+
+1. **Explique l'impact en clair** :
+   - ce qui change, et ce qui sera perdu ou modifié, **en chiffres** (« 120 valeurs du champ X »,
+     « 14 fiches du calendrier ») ;
+   - qui et quoi sera touché : pages internes, formulaires publics, tableau de suivi, compétences
+     et outils de l'agent, collègues qui utilisent ces données ;
+   - si c'est réversible, et comment.
+2. **Fait une sauvegarde** des données concernées dans un fichier daté
+   (`~/Documents/EUNEOS-sauvegardes/AAAA-MM-JJ-<sujet>.csv`) et dit où elle est.
+3. **Demande une confirmation qui reprend la conséquence** : un simple « oui » ne suffit pas,
+   il faut par exemple « oui, supprime le champ X et ses 120 valeurs ».
+
+S'il ne peut pas chiffrer l'impact ou faire la sauvegarde, il le dit et ne publie pas.
 
 ## Règles de conduite
 
