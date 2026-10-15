@@ -27,9 +27,36 @@ Cloudflare Access. Aucune notification ou synchronisation NocoDB n'est déclench
 les personnes doivent se prévenir hors de ce circuit. Le catalogue de ressources
 reste un répertoire de liens et ne stocke aucun de ces documents.
 La page équipe « Catalogue des formulaires » référence la convention dans
-« Documents à signer » et permet de copier son lien privé. Le formateur ouvre
-le même formulaire depuis « Ressources formateurs », sans passer par la page
-du catalogue réservée à l'équipe.
+« Documents à signer » et permet de copier le lien formateur
+`/interne/ressources?convention=1`. Le formateur peut aussi ouvrir le formulaire
+depuis « Ressources formateurs », sans passer par le catalogue réservé à l'équipe.
+Sa page et son API utilisent les **mêmes deux chemins Cloudflare Access** que le
+reste des ressources : `/interne/ressources` et `/api/interne/ressources`, avec
+`?convention=1`. Cette application donne accès à l'ensemble des ressources
+formateurs, y compris les documents à signer, mais pas aux calendriers ni aux
+autres pages internes. La validation EUNEOS conserve son audience équipe sur
+`/interne/convention-mission` et `/api/interne/conventions-mission`.
+Un lien partagé ne crée pas de compte : l'adresse du formateur doit figurer dans
+la liste nominative de l'application « EUNEOS — ressources » ; sa page de connexion
+propose un code reçu par e-mail. La liste d'accès est gérée chez Cloudflare,
+pas par le champ « adresse du compte formateur » dans la convention.
+Ne pas remettre le lien équipe dans les ressources partagées : il exige une
+autre audience. L'API des ressources ordinaires reste en lecture seule : seules
+ses requêtes portant `?convention=1` acceptent une saisie ou un PDF et appliquent
+les contrôles de propriétaire et d'étape. Le rôle de responsable n'est jamais
+attribué par l'audience Ressources. Avant de partager le lien, faire ajouter les
+adresses choisies à la politique Allow nominative existante, puis tester un
+compte formateur autorisé, un non-autorisé et le refus des pages équipe.
+
+Calendrier : chaque établissement reçoit entre 4 et 8 séances datées de 2 h
+ou 4 h, pour un total obligatoire de 16 h. L'hybride exige exactement 8 h sur
+site et 8 h à distance. Aucun horaire n'est collecté ni imprimé. Les anciennes
+saisies de huit séances de 2 h qui contiennent un horaire restent lisibles :
+le PDF et toute correction future affichent leurs dates et leurs durées sans
+réécrire rétroactivement les documents déjà signés.
+À la demande de Candice (15 octobre), l'article 3 généré remplace la phrase
+du modèle « 8 sessions d'environ 2 heures » par la répartition des 16 heures
+effectivement renseignée ; les autres clauses demeurent celles du modèle.
 
 Chaque PDF est limité à 750 Ko pour rester sous la limite de taille d'une ligne D1.
 Un scanner doit produire un PDF léger ; un PDF lourd n'est pas tronqué ni accepté.

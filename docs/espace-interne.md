@@ -18,7 +18,7 @@ Deux applications Cloudflare Access avec **deux audiences différentes** sont n�
 
 L’application bibliothèque doit couvrir les deux chemins exacts `/interne/ressources` et `/api/interne/ressources`, et leur variante avec slash final. L’application équipe couvre `/interne`, `/interne/*`, `/api/interne/*`, `/etat-candidatures` et sa variante avec slash final. La règle bibliothèque plus spécifique doit gagner. L’administration du catalogue reste sur un chemin équipe distinct : un JWT bibliothèque, même portant l’adresse d’un responsable, ne permet jamais d’écrire. Répéter ces protections pour les domaines de preview/alias utilisés. Le contrôle serveur refuse aussi les accès directs au déploiement qui ne fournissent pas le bon JWT.
 
-Les liens de ressources ne modifient pas les permissions des fichiers Drive/Canva d’origine. Ce catalogue n’est pas un hébergeur de pièces jointes et n’accorde pas de nouveaux droits sur les fichiers.
+Les liens de ressources ne modifient pas les permissions des fichiers Drive/Canva d’origine. Ce catalogue n’est pas un hébergeur de pièces jointes et n’accorde pas de nouveaux droits sur les fichiers. La variante `?convention=1` des chemins Ressources et de leur API donne aux mêmes formateurs autorisés la saisie et les dépôts privés de leur convention ; le serveur vérifie le propriétaire et l’étape. Cela ne donne accès à aucune autre page interne ni à la validation EUNEOS, qui reste sur l’application équipe (voir `docs/conventions-mission.md`).
 
 ## Carte des implantations
 

@@ -42,11 +42,11 @@ export function contractText(data: MissionPayload, representative: string, case2
     ...data.missions.flatMap((m, i) => [
       `Mission ${i + 1} — Établissement : ${m.etablissement}. Adresse : ${m.adresse}. Direction : ${m.direction}. Référent : ${m.referent}. Contact professionnel : ${m.contact}.`,
     ]),
-    before(article(3), '☐ 100 %'),
+    before(article(3), '☐ 100 %').replace('Formation des personnels : 16 heures, organisées en 8 sessions d’environ 2 heures.', 'Formation des personnels : 16 heures, réparties selon le calendrier validé ci-dessous.'),
     'La formation entièrement à distance n’est pas autorisée.',
     ...data.missions.flatMap((m, i) => [
       `Établissement ${i + 1} : ${m.etablissement} — ${m.format === 'hybride' ? '8 h sur site + 8 h en visioconférence' : '16 h sur site'}.`,
-      ...m.sessions.map((s, j) => `Session ${j + 1} : ${s.date}, ${s.heure}–${String((Number(s.heure.slice(0, 2)) + 2) % 24).padStart(2, '0')}${s.heure.slice(2)} ; 2 h ; ${s.modalite === 'distance' ? 'visioconférence' : 'présentiel'}.`),
+      ...m.sessions.map((s, j) => `Séance ${j + 1} : ${s.date} ; ${s.duree} h ; ${s.modalite === 'distance' ? 'visioconférence' : 'présentiel'}.`),
     ]),
     ...[4, 5, 6].flatMap(n => lines(article(n))),
     before(article(7), 'Situation(s) applicable(s)'),

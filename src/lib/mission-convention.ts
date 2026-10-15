@@ -1,6 +1,6 @@
 import { WorkspaceError, type WorkspaceDatabase, type WorkspaceIdentity } from './internal-workspace'
 
-export type Session = { date: string; heure: string; modalite: 'presentiel' | 'distance' }
+export type Session = { date: string; duree: 2 | 4; modalite: 'presentiel' | 'distance' }
 export type Mission = {
   etablissement: string; adresse: string; direction: string; referent: string; contact: string
   format: 'presentiel' | 'hybride'; sessions: Session[]
@@ -30,6 +30,23 @@ const date = (value: unknown) => {
 const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : fail('Formulaire invalide.')
 
+/** Historical submissions used eight 2-hour sessions with a start time. Preserve
+ * them during display, corrections and PDF approval; never silently discard a mission. */
+export function normalizeStoredPayload(value: string): MissionPayload {
+  const data = JSON.parse(value) as MissionPayload
+  return {
+    ...data,
+    missions: data.missions.map(mission => ({
+      ...mission,
+      sessions: mission.sessions.map(session => ({
+        date: session.date,
+        duree: 'duree' in session ? session.duree : 2,
+        modalite: session.modalite,
+      })),
+    })),
+  }
+}
+
 export function trainerAccountEmail(value: unknown): string {
   const email = field(value, 250).toLowerCase()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('Indiquez une adresse e-mail valide.')
@@ -47,15 +64,17 @@ export function parseMissionPayload(value: unknown): MissionPayload {
     if (names.has(etablissement.toLowerCase())) fail('Un établissement figure plusieurs fois.')
     names.add(etablissement.toLowerCase())
     const format = choice(m.format, ['presentiel', 'hybride'] as const)
-    if (!Array.isArray(m.sessions) || m.sessions.length !== 8) fail('Huit sessions sont requises par établissement.')
+    if (!Array.isArray(m.sessions) || m.sessions.length < 4 || m.sessions.length > 8)
+      fail('Indiquez entre 4 et 8 séances par établissement.')
     const sessions = (m.sessions as unknown[]).map((rawSession: unknown): Session => {
       const s = object(rawSession)
-      const heure = field(s.heure, 5)
-      if (!/^([01]\d|2[01]):[0-5]\d$/.test(heure)) fail('Une session de deux heures doit finir avant minuit.')
-      return { date: date(s.date), heure, modalite: choice(s.modalite, ['presentiel', 'distance'] as const) }
+      if (s.duree !== 2 && s.duree !== 4) fail('La durée d’une séance doit être de 2 h ou 4 h.')
+      return { date: date(s.date), duree: s.duree as 2 | 4, modalite: choice(s.modalite, ['presentiel', 'distance'] as const) }
     })
-    const remote = sessions.filter(s => s.modalite === 'distance').length
-    if (remote !== (format === 'hybride' ? 4 : 0)) fail('Vérifiez le format des huit sessions.')
+    if (sessions.reduce((sum, s) => sum + s.duree, 0) !== 16)
+      fail('Le calendrier doit totaliser 16 h par établissement.')
+    const remote = sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)
+    if (remote !== (format === 'hybride' ? 8 : 0)) fail('Vérifiez les heures sur site et à distance : le format hybride prévoit 8 h de chaque.')
     const cas1 = choice(m.cas1, ['non', 'oui'] as const)
     const cas2 = choice(m.cas2, ['non', '2', '4'] as const)
     return {
@@ -80,7 +99,7 @@ export async function listConventions(db: WorkspaceDatabase, identity: Workspace
     ? 'SELECT * FROM mission_conventions ORDER BY created_at DESC LIMIT 100'
     : 'SELECT * FROM mission_conventions WHERE owner_email=? ORDER BY created_at DESC LIMIT 100')
     .bind(...(team ? [] : [identity.email])).all<ConventionRow>()
-  return results.map(({ payload, ...row }) => ({ ...row, payload: JSON.parse(payload) as MissionPayload }))
+  return results.map(({ payload, ...row }) => ({ ...row, payload: normalizeStoredPayload(payload) }))
 }
 export async function getConvention(db: WorkspaceDatabase, id: string, identity: WorkspaceIdentity, team: boolean) {
   const row = await db.prepare('SELECT * FROM mission_conventions WHERE id=?').bind(id).first<ConventionRow>()

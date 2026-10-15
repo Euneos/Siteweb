@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { readFileSync } from 'node:fs'
 import { PDFDocument } from 'pdf-lib'
-import { parseMissionPayload, submitConvention, getConvention, requestChanges, listConventions, trainerAccountEmail } from '../src/lib/mission-convention'
+import { parseMissionPayload, submitConvention, getConvention, requestChanges, listConventions, normalizeStoredPayload, trainerAccountEmail } from '../src/lib/mission-convention'
 import { contractText, generateContractPdf } from '../src/lib/mission-convention-pdf'
 
 const owner = { email: 'formateur@example.test', admin: false }
 const admin = { email: 'candice@example.test', admin: true }
 const mission = () => ({
   etablissement: 'Collège fictif', adresse: 'Toulouse', direction: 'Direction', referent: 'Référent', contact: 'contact@example.test',
-  format: 'hybride', sessions: Array.from({ length: 8 }, (_, i) => ({ date: '2027-01-12', heure: '09:00', modalite: i < 4 ? 'distance' : 'presentiel' })),
+  format: 'hybride', sessions: Array.from({ length: 8 }, (_, i) => ({ date: '2027-01-12', duree: 2, modalite: i < 4 ? 'distance' : 'presentiel' })),
   cas1: 'oui', classe: '4e', ateliers: 'février', cas2: 'non', periodeCas2: '', accordCas2: '',
 })
 const payload = () => ({
@@ -33,16 +33,29 @@ function fixture() {
 }
 
 describe('convention de mission privée', () => {
-  test('validation serveur : identité, huit sessions, hybride, établissements distincts et frais', () => {
+  test('validation serveur : calendrier de 16 h, hybride, établissements distincts et frais', () => {
     expect(trainerAccountEmail('FORMATEUR@example.test')).toBe(owner.email)
     expect(() => trainerAccountEmail('invalide')).toThrow()
     expect(parseMissionPayload(payload()).missions[0].sessions).toHaveLength(8)
     expect(() => parseMissionPayload({ ...payload(), email: 'invalide' })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), missions: [mission(), mission()] })).toThrow()
+    const fourByFour = Array.from({length: 4}, (_, i) => ({date: '2027-01-12', duree: 4, modalite: i < 2 ? 'distance' : 'presentiel'}))
+    const mixed = [4, 4, 2, 2, 2, 2].map((duree, i) => ({date: '2027-01-12', duree, modalite: i < 2 ? 'distance' : 'presentiel'}))
+    expect(parseMissionPayload({ ...payload(), missions: [{...mission(), sessions: fourByFour}] }).missions[0].sessions).toHaveLength(4)
+    expect(parseMissionPayload({ ...payload(), missions: [{...mission(), sessions: mixed}] }).missions[0].sessions).toHaveLength(6)
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: mission().sessions.slice(1) }] })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), format: 'presentiel' }] })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), frais: 'demande' })).toThrow()
-    expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: mission().sessions.map(s => ({ ...s, heure: '23:00' })) }] })).toThrow()
+    expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: fourByFour.map(s => ({...s, duree: 3})) }] })).toThrow()
+    expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: fourByFour.map(s => ({...s, modalite: 'distance'})) }] })).toThrow()
+    expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: fourByFour.slice(1) }] })).toThrow()
+  })
+  test('une ancienne convention 8 × 2 h reste lisible et corrigeable sans les anciennes heures', () => {
+    const stored = {...payload(), missions: [{...mission(), sessions: mission().sessions.map(({duree, ...s}) => ({...s, heure: '09:00'}))}]}
+    const normalized = normalizeStoredPayload(JSON.stringify(stored))
+    expect(normalized.missions[0].sessions).toHaveLength(8)
+    expect(normalized.missions[0].sessions[0]).toEqual({date:'2027-01-12',duree:2,modalite:'distance'})
+    expect(parseMissionPayload(normalized).missions[0].sessions).toHaveLength(8)
   })
   test('une saisie faite par EUNEOS reste réservée au compte formateur désigné', async () => {
     const { sql, db } = fixture()
@@ -74,12 +87,22 @@ describe('convention de mission privée', () => {
     expect(text).toContain('2 formation(s) × 1 000 € = 2000 €')
     expect(text).toContain('TOTAL PRÉVISIONNEL : 2200 €')
     expect(text).toContain('Lycée fictif')
+    expect(text).toContain('Formation des personnels : 16 heures, réparties selon le calendrier validé ci-dessous.')
+    expect(text).not.toContain('8 sessions d’environ 2 heures')
+    expect(text).not.toContain('09:00')
     expect(text).not.toContain('retournée par le/la Formateur·rice à wiseup@euneos.fr')
     expect(text).not.toContain('[ NOM DE L’ÉTABLISSEMENT ]')
     expect(text).not.toContain('[          ]')
     expect(text).not.toContain('[dates]')
     expect(text).not.toContain('[nom(s)')
     expect(text).toContain('Frais remboursables autorisés par EUNEOS : Train 2e classe, plafond 90 €')
+    const compact = parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: [
+      {date:'2027-01-12',duree:4,modalite:'distance'}, {date:'2027-01-19',duree:4,modalite:'distance'},
+      {date:'2027-02-02',duree:4,modalite:'presentiel'}, {date:'2027-02-09',duree:4,modalite:'presentiel'},
+    ] }] })
+    const compactText = contractText(compact, 'Candice Marro — présidente', 0).join('\n')
+    expect(compactText).toContain('Séance 4 : 2027-02-09 ; 4 h ; présentiel')
+    expect(compactText).not.toContain('Séance 5 :')
     const bytes = await generateContractPdf(data, 'Candice Marro — présidente', 0, readFileSync('public/fonts/OpenSans-convention.ttf'))
     expect(bytes.byteLength).toBeLessThan(750_000)
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1)
@@ -88,8 +111,11 @@ describe('convention de mission privée', () => {
     const catalogue = readFileSync('src/components/internal/FormCatalog.astro', 'utf8')
     const resources = readFileSync('src/pages/interne/ressources.astro', 'utf8')
     expect(catalogue).toContain('data-private-form="convention-mission"')
-    expect(catalogue).toContain('value="https://euneos.fr/interne/convention-mission"')
+    expect(catalogue).toContain('value="https://euneos.fr/interne/ressources?convention=1"')
     expect(catalogue).toContain('href="/interne/convention-mission"')
-    expect(resources).toContain('href="/interne/convention-mission"')
+    expect(resources).toContain('href="/interne/ressources?convention=1"')
+    const resourceApi = readFileSync('src/pages/api/interne/ressources.ts', 'utf8')
+    expect(resourceApi).toContain('conventionPost(context)')
+    expect(resourceApi).toContain('conventionPut(context)')
   })
 })

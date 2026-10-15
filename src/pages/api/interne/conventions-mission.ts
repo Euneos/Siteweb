@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { PDFDocument } from 'pdf-lib'
 import { getInternalContext, internalError, privateJson, readInternalBody, entryId, privateHeaders } from '../../../lib/internal-context'
 import { WorkspaceError } from '../../../lib/internal-workspace'
-import { getConvention, listConventions, requestChanges, submitConvention, trainerAccountEmail, type MissionPayload } from '../../../lib/mission-convention'
+import { getConvention, listConventions, normalizeStoredPayload, requestChanges, submitConvention, trainerAccountEmail } from '../../../lib/mission-convention'
 import { generateContractPdf } from '../../../lib/mission-convention-pdf'
 
 export const prerender = false
@@ -84,7 +84,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (feesDetails.length > 2000 || (body.feesDecision === 'accord' && !feesDetails))
         throw new WorkspaceError(400, 'Précisez les frais autorisés et leur plafond ou refus.')
       const fees = body.feesDecision === 'accord' ? feesDetails : 'aucun'
-      const payload = JSON.parse(row.payload) as MissionPayload
+      const payload = normalizeStoredPayload(row.payload)
       if (!payload.missions.some(m => m.cas2 !== 'non') && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 indiqué.')
       const fontResponse = await fetch(new URL('/fonts/OpenSans-convention.ttf', request.url))
       if (!fontResponse.ok) throw new WorkspaceError(503, 'Police PDF indisponible. Réessayez plus tard.')

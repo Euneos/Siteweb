@@ -1,20 +1,23 @@
 ---
 export const prerender = false
 import InternalLayout from '../../layouts/InternalLayout.astro'
+import MissionConvention from '../../components/internal/MissionConvention.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
 const identity = context.identity
+const convention = Astro.url.searchParams.get('convention') === '1'
 Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
 Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
 ---
 
 <InternalLayout
-  title="Ressources formateurs"
+  title={convention ? 'Convention de mission' : 'Ressources formateurs'}
   current="ressources"
   identity={identity}
   teamAccess={context.teamMember}
 >
+  {convention ? <MissionConvention /> : (
   <div id="iw-resources">
     <div class="iw-resource-intro">
       <div class="iw-intro__text">
@@ -73,7 +76,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             > — à signer en début de formation.
           </li>
           <li>
-            <a href="/interne/convention-mission"><strong>Remplir la convention de mission →</strong></a> — huit sessions par établissement, vérification EUNEOS puis dépôt du PDF signé sur cette même page.
+            <a href="/interne/ressources?convention=1"><strong>Remplir la convention de mission →</strong></a> — calendrier de 16 h par établissement, vérification EUNEOS puis dépôt du PDF signé dans le même espace.
           </li>
         </ul>
         <p>
@@ -151,6 +154,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       service qui les héberge.
     </p>
   </div>
+  )}
 </InternalLayout>
 
 <style>
