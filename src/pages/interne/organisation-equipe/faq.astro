@@ -1,0 +1,24 @@
+---
+export const prerender = false
+import InternalLayout from '../../../layouts/InternalLayout.astro'
+import TeamTaskGuide from '../../../components/TeamTaskGuide.astro'
+import { getInternalContext, privateHeaders } from '../../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+---
+
+<InternalLayout
+  title="FAQ — Mode d’emploi du tableau"
+  current="organisation"
+  identity={context.identity}
+>
+  <div class="iw-intro">
+    <div class="iw-intro__text">
+      <p class="iw-eyebrow">Organisation équipe</p><h1>FAQ — Mode d’emploi du tableau</h1>
+    </div>
+    <a class="iw-button" href="/interne/organisation-equipe">← Retour au tableau</a>
+  </div>
+  <TeamTaskGuide />
+  <a class="iw-button" href="/interne/organisation-equipe">← Retour au tableau</a>
+</InternalLayout>

@@ -20,10 +20,14 @@ const { identity } = Astro.props
       >
     </div>
     <div class="iw-toolbar">
-      <p class="iw-small iw-muted">
-        Glissez horizontalement pour changer d’étape, verticalement pour changer de personne.
-        Cliquez pour ouvrir la fiche.
-      </p><button type="button" class="iw-button" id="task-refresh">Actualiser</button>
+      <aside class="task-help" aria-label="Mode d’emploi du tableau">
+        <p>Ce tableau sert à répartir le travail et à suivre son avancement.</p>
+        <p>Chaque tâche a une seule fiche, un responsable et, si nécessaire, des contributeurs.</p>
+        <p>
+          Voici la marche à suivre : <a href="/interne/organisation-equipe/faq"
+            >FAQ — Mode d’emploi du tableau</a>
+        </p>
+      </aside><button type="button" class="iw-button" id="task-refresh">Actualiser</button>
     </div>
     <div class="task-viewbar">
       <p class="iw-small iw-muted">Repère : jusqu’à 3 priorités à la fois par personne.</p>
@@ -32,7 +36,8 @@ const { identity } = Astro.props
           id="task-completed-view"
           ><option value="recent">Les 14 derniers jours</option><option value="all"
             >Toutes, hors archives</option
-          ><option value="archived">Les archives</option></select>
+          ><option value="archived">Les archives</option></select
+        >
       </div>
     </div>
     <p id="task-notice" class="iw-feedback" role="status">Chargement des tâches…</p>
@@ -206,6 +211,20 @@ const { identity } = Astro.props
 </InternalLayout>
 
 <style is:global>
+  .task-help {
+    padding: 16px 20px;
+    border-left: 4px solid var(--vert);
+    background: white;
+    font-size: var(--iw-small);
+  }
+  .task-help p + p {
+    margin-top: 6px;
+  }
+  .task-help a {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   .task-scroll {
     max-width: 100%;
     overflow-x: auto;
