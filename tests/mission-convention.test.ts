@@ -118,4 +118,9 @@ describe('convention de mission privée', () => {
     expect(resourceApi).toContain('conventionPost(context)')
     expect(resourceApi).toContain('conventionPut(context)')
   })
+  test('aucun lien vers le Word modifiable ne figure dans le formulaire partagé', () => {
+    const form = readFileSync('src/components/internal/MissionConvention.astro', 'utf8')
+    expect(form).not.toContain('docs.google.com/document/d/')
+    expect(form).toContain('Les 14 articles figurent dans le PDF finalisé')
+  })
 })

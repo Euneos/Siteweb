@@ -6,6 +6,10 @@ articles, remplace les tableaux vierges par les missions contrôlées et supprim
 les anciennes consignes d'échange de PDF par e-mail. Toute modification du modèle
 doit être revue avant de modifier la génération. La signature dessinée dans un PDF
 n'est pas une signature électronique qualifiée ; aucun dossier de preuve n'est produit.
+Le Word source n'est pas lié depuis le formulaire partagé : le formateur relit
+les 14 articles dans le PDF finalisé avant signature. Retirer un lien du site
+ne change pas les droits Drive du fichier source ; son propriétaire doit
+vérifier séparément qu'il n'est pas modifiable par les personnes ayant le lien.
 
 La migration additive `0009_conventions_mission.sql` ajoute uniquement deux tables
 dans `TEAM_WORKSPACE` : `mission_conventions` (saisies, propriétaire, étapes et
