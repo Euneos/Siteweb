@@ -1,0 +1,222 @@
+---
+import InternalLayout from '../layouts/InternalLayout.astro'
+import { taskPeople, taskStatuses } from '../lib/team-tasks'
+interface Props {
+  identity: { email: string; admin: boolean }
+}
+const { identity } = Astro.props
+---
+
+<InternalLayout title="Organisation équipe" current="organisation" identity={identity}>
+  <div id="team-board">
+    <div class="iw-intro">
+      <div class="iw-intro__text">
+        <p class="iw-eyebrow">Notre travail au quotidien</p><h1>Organisation équipe</h1><p>
+          Les tâches de chacune, réunies dans un tableau partagé.
+        </p>
+      </div>
+      <button class="iw-button iw-button--primary" id="task-new" type="button"
+        >＋ Nouvelle tâche</button
+      >
+    </div>
+    <div class="iw-toolbar">
+      <p class="iw-small iw-muted">Cliquez sur une tâche pour la modifier ou la déplacer.</p><button
+        type="button"
+        class="iw-button"
+        id="task-refresh">Actualiser</button>
+    </div>
+    <p id="task-notice" class="iw-feedback" role="status">Chargement des tâches…</p>
+    <noscript><p>Activez JavaScript pour consulter et modifier les tâches.</p></noscript>
+    <div
+      class="task-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Tableau des tâches, défilement horizontal sur petit écran"
+    >
+      <table class="task-board" aria-busy="true">
+        <caption class="iw-sr-only"
+          >Organisation équipe : personnes en colonnes et statuts en lignes</caption
+        >
+        <thead
+          ><tr
+            ><th scope="col">Statut des tâches</th>{
+              taskPeople.map((person) => <th scope="col">{person}</th>)
+            }</tr
+          ></thead
+        >
+        <tbody
+          >{
+            taskStatuses.map((status) => (
+              <tr>
+                <th scope="row">{status.label}</th>
+                {taskPeople.map((person) => (
+                  <td>
+                    <div class="task-cell" data-person={person} data-status={status.id} />
+                    <button
+                      type="button"
+                      class="task-add"
+                      data-person={person}
+                      data-status={status.id}
+                      aria-label={`Ajouter une tâche : ${person}, ${status.label}`}
+                    >
+                      ＋ Ajouter
+                    </button>
+                  </td>
+                ))}
+              </tr>
+            ))
+          }</tbody
+        >
+      </table>
+    </div>
+    <p class="iw-small iw-muted task-mobile-hint">
+      Sur petit écran, faites défiler le tableau horizontalement pour voir les trois personnes.
+    </p>
+  </div>
+  <dialog id="task-editor" class="iw-dialog" aria-labelledby="task-editor-title">
+    <header class="iw-dialog__header">
+      <h2 id="task-editor-title">Nouvelle tâche</h2><button
+        type="button"
+        class="iw-button"
+        id="task-close"
+        aria-label="Fermer">✕</button>
+    </header>
+    <form id="task-form" class="iw-dialog__body">
+      <div class="iw-field">
+        <label for="task-title">Titre *</label><input
+          id="task-title"
+          name="title"
+          required
+          maxlength="180"
+        />
+      </div>
+      <div class="iw-field">
+        <label for="task-description">Description</label><textarea
+          id="task-description"
+          name="description"
+          rows="4"
+          maxlength="4000"></textarea>
+      </div>
+      <div class="iw-formgrid">
+        <div class="iw-field">
+          <label for="task-person">Personne</label><select id="task-person" name="person"
+            >{taskPeople.map((person) => <option>{person}</option>)}</select>
+        </div>
+        <div class="iw-field">
+          <label for="task-status">Statut</label><select id="task-status" name="status"
+            >{
+              taskStatuses.map((status) => <option value={status.id}>{status.label}</option>)
+            }</select>
+        </div>
+      </div>
+      <p id="task-error" class="iw-feedback" role="alert"></p>
+      <div class="iw-actions">
+        <button type="submit" id="task-save" class="iw-button iw-button--primary"
+          >Enregistrer</button
+        ><button type="button" id="task-cancel" class="iw-button">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="../scripts/team-tasks-client.ts"></script>
+</InternalLayout>
+
+<style is:global>
+  .task-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--iw-line);
+    border-radius: 12px;
+    background: white;
+  }
+  .task-board {
+    width: 100%;
+    min-width: 780px;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  .task-board th,
+  .task-board td {
+    padding: 18px;
+    vertical-align: top;
+    text-align: left;
+    border-bottom: 1px solid var(--iw-line);
+    border-right: 1px solid var(--iw-line);
+  }
+  .task-board thead th {
+    background: var(--vert);
+    color: white;
+  }
+  .task-board th:first-child {
+    width: 19%;
+  }
+  .task-board tbody th {
+    background: #f9f5df;
+  }
+  .task-board tbody tr:nth-child(2) th {
+    background: #fff0df;
+  }
+  .task-board tbody tr:nth-child(3) th {
+    background: #f1eeee;
+  }
+  .task-board tr:last-child > * {
+    border-bottom: 0;
+  }
+  .task-board tr > :last-child {
+    border-right: 0;
+  }
+  .task-cell {
+    display: grid;
+    gap: 12px;
+    min-height: 100px;
+    align-content: start;
+  }
+  .task-card {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--iw-line);
+    border-left: 4px solid var(--vert);
+    border-radius: 8px;
+    background: var(--papier);
+    text-align: left;
+    color: var(--noir);
+    font: inherit;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+  }
+  .task-card:hover {
+    border-color: var(--vert);
+  }
+  .task-card span {
+    font-size: var(--iw-small);
+    white-space: pre-wrap;
+  }
+  .task-add {
+    min-height: 44px;
+    padding: 6px;
+    margin-top: 12px;
+    border: 0;
+    background: transparent;
+    color: var(--noir);
+    font: inherit;
+    cursor: pointer;
+  }
+  #task-form {
+    display: grid;
+    gap: 20px;
+  }
+  .task-mobile-hint {
+    display: none;
+  }
+  @media (max-width: 860px) {
+    .task-mobile-hint {
+      display: block;
+      margin-top: 12px !important;
+    }
+    .task-board th,
+    .task-board td {
+      padding: 12px;
+    }
+  }
+</style>

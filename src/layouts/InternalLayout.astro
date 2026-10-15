@@ -7,6 +7,7 @@ interface Props {
   title: string
   current:
     | 'calendrier'
+    | 'organisation'
     | 'suivi'
     | 'ressources'
     | 'catalogue'
@@ -61,6 +62,13 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           teamAccess && (
             <a href="/interne" aria-current={current === 'calendrier' ? 'page' : undefined}>
               Calendriers de l’équipe
+            </a>
+          )
+        }
+        {
+          teamAccess && (
+            <a href="/interne/organisation-equipe" aria-current={current === 'organisation' ? 'page' : undefined}>
+              Organisation équipe
             </a>
           )
         }

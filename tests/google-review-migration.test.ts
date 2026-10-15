@@ -38,6 +38,10 @@ test('0005 is discovered and applied once through the adopted TEAM_WORKSPACE pip
     const correctionMigration = migrationSQL(readLocalState(db), migrations)
     expect(correctionMigration).toContain('CREATE TABLE google_review_corrections')
     apply(correctionMigration!)
+    expect(validateState(readLocalState(db), migrations)).toBe(6)
+    for (let index = 6; index < migrations.length; index++) {
+      apply(migrationSQL(readLocalState(db), migrations)!)
+    }
     expect(validateState(readLocalState(db), migrations)).toBe(migrations.length)
     expect(migrationSQL(readLocalState(db), migrations)).toBeNull()
     expect(db.query('SELECT * FROM workspace_entries').all()).toEqual(before)
