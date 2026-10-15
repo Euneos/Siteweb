@@ -20,11 +20,20 @@ const { identity } = Astro.props
       >
     </div>
     <div class="iw-toolbar">
-      <p class="iw-small iw-muted">Cliquez sur une tâche pour la modifier ou la déplacer.</p><button
-        type="button"
-        class="iw-button"
-        id="task-refresh">Actualiser</button
-      >
+      <p class="iw-small iw-muted">
+        Glissez horizontalement pour changer d’étape, verticalement pour changer de personne.
+        Cliquez pour ouvrir la fiche.
+      </p><button type="button" class="iw-button" id="task-refresh">Actualiser</button>
+    </div>
+    <div class="task-viewbar">
+      <p class="iw-small iw-muted">Repère : jusqu’à 3 priorités à la fois par personne.</p>
+      <div class="iw-field">
+        <label for="task-completed-view">Dans la colonne Terminées</label><select
+          id="task-completed-view"
+          ><option value="recent">Les 14 derniers jours</option><option value="all"
+            >Toutes, hors archives</option
+          ><option value="archived">Les archives</option></select>
+      </div>
     </div>
     <p id="task-notice" class="iw-feedback" role="status">Chargement des tâches…</p>
     <p id="task-mail-feedback" class="iw-feedback" role="status" hidden></p>
@@ -37,22 +46,36 @@ const { identity } = Astro.props
     >
       <table class="task-board" aria-busy="true">
         <caption class="iw-sr-only"
-          >Organisation équipe : personnes en colonnes et statuts en lignes</caption
+          >Organisation équipe : personnes en lignes et étapes en colonnes</caption
         >
         <thead
           ><tr
-            ><th scope="col">Statut des tâches</th>{
-              taskPeople.map((person) => <th scope="col">{person}</th>)
+            ><th scope="col">Équipe</th>{
+              taskStatuses.map((status) => (
+                <th scope="col" data-stage={status.id}>
+                  {status.label}
+                </th>
+              ))
             }</tr
           ></thead
         >
         <tbody
           >{
-            taskStatuses.map((status) => (
+            taskPeople.map((person) => (
               <tr>
-                <th scope="row">{status.label}</th>
-                {taskPeople.map((person) => (
-                  <td>
+                <th scope="row">
+                  <>
+                    <span>{person}</span>
+                    <span class="task-person-summary" data-person-summary={person} />
+                  </>
+                </th>
+                {taskStatuses.map((status) => (
+                  <td
+                    class="task-dropzone"
+                    data-person={person}
+                    data-status={status.id}
+                    data-stage={status.id}
+                  >
                     <div class="task-cell" data-person={person} data-status={status.id} />
                     <button
                       type="button"
@@ -72,7 +95,8 @@ const { identity } = Astro.props
       </table>
     </div>
     <p class="iw-small iw-muted task-mobile-hint">
-      Sur petit écran, faites défiler le tableau horizontalement pour voir les trois personnes.
+      Sur petit écran, faites défiler le tableau horizontalement pour voir les quatre étapes.
+      Cliquez sur une carte pour modifier sa fiche.
     </p>
   </div>
   <dialog id="task-editor" class="iw-dialog" aria-labelledby="task-editor-title">
@@ -102,7 +126,7 @@ const { identity } = Astro.props
       </div>
       <div class="iw-formgrid">
         <div class="iw-field">
-          <label for="task-person">Personne</label><select id="task-person" name="person"
+          <label for="task-person">Responsable</label><select id="task-person" name="person"
             >{taskPeople.map((person) => <option>{person}</option>)}</select
           >
         </div>
@@ -114,9 +138,61 @@ const { identity } = Astro.props
           >
         </div>
       </div>
+      <div class="iw-formgrid">
+        <div class="iw-field">
+          <label for="task-due">Échéance (facultative)</label><input
+            type="date"
+            id="task-due"
+            name="due_on"
+            min="1900-01-01"
+            max="2200-12-31"
+          />
+        </div>
+        <label class="task-check"
+          ><input type="checkbox" id="task-priority" name="priority" /> Prioritaire</label
+        >
+      </div>
+      <div class="task-blocker-fields">
+        <label class="task-check"
+          ><input type="checkbox" id="task-blocked" name="blocked" /> Bloquée / En attente de réponse</label
+        >
+        <div class="iw-field" id="task-blocker-field" hidden>
+          <label for="task-blocker">Raison du blocage *</label><textarea
+            id="task-blocker"
+            name="blocker"
+            maxlength="1000"
+            rows="2"
+            placeholder="Ex. : attente du retour du proviseur ; relance prévue le 20 octobre."
+          ></textarea>
+        </div>
+      </div>
+      <fieldset class="task-contributors">
+        <legend>Contributeurs</legend>
+        <p class="iw-small iw-muted">
+          La tâche apparaît aussi dans leur ligne. Son contenu et son statut sont communs.
+        </p>
+        <div>
+          {
+            taskPeople.map((person) => (
+              <label>
+                <input type="checkbox" name="contributors" value={person} /> {person}
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+      <div id="task-archive-field" hidden>
+        <label class="task-check"
+          ><input type="checkbox" id="task-archived" name="archived" /> Archiver cette tâche terminée</label
+        >
+        <p class="iw-small iw-muted">
+          Elle reste consultable avec le filtre « Les archives ». Décochez pour la remettre dans les
+          tâches terminées, ou changez son étape pour la rouvrir.
+        </p>
+      </div>
       <p class="iw-small iw-muted">
-        Une nouvelle attribution déclenche un e-mail à la personne choisie. Un changement de titre,
-        de description ou de statut seul n’envoie pas d’e-mail.
+        Une nouvelle tâche prévient son responsable. Un changement de responsable prévient l’ancien
+        et le nouveau responsable. Les autres modifications n’envoient pas d’e-mail.
       </p>
       <p id="task-error" class="iw-feedback" role="alert"></p>
       <div class="iw-actions">
@@ -139,7 +215,7 @@ const { identity } = Astro.props
   }
   .task-board {
     width: 100%;
-    min-width: 780px;
+    min-width: 1040px;
     table-layout: fixed;
     border-collapse: collapse;
   }
@@ -152,20 +228,110 @@ const { identity } = Astro.props
     border-right: 1px solid var(--iw-line);
   }
   .task-board thead th {
+    color: var(--noir);
+  }
+  .task-board th:first-child {
+    width: 150px;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: #f1eeee;
+  }
+  .task-board tbody th {
+    background: #f1eeee;
+  }
+  .task-board thead th:first-child {
     background: var(--vert);
     color: white;
   }
-  .task-board th:first-child {
-    width: 19%;
+  .task-board [data-stage='today'] {
+    --stage-color: #f2b3f0;
+    --stage-bg: #fff5fd;
   }
-  .task-board tbody th {
-    background: #f9f5df;
+  .task-board [data-stage='en-cours'] {
+    --stage-color: #fc5e27;
+    --stage-bg: #fff5ef;
   }
-  .task-board tbody tr:nth-child(2) th {
-    background: #fff0df;
+  .task-board [data-stage='en-attente'] {
+    --stage-color: #f8c702;
+    --stage-bg: #fffbed;
   }
-  .task-board tbody tr:nth-child(3) th {
-    background: #f1eeee;
+  .task-board [data-stage='terminee'] {
+    --stage-color: #a8c9b8;
+    --stage-bg: #f2f8f4;
+  }
+  .task-board thead th[data-stage] {
+    background: var(--stage-bg);
+    border-top: 6px solid var(--stage-color);
+  }
+  .task-board td {
+    background: var(--stage-bg);
+  }
+  .task-person-summary {
+    display: block;
+    font-size: var(--iw-small);
+    font-weight: 400;
+    margin-top: 12px;
+  }
+  .task-person-summary.is-overloaded {
+    font-weight: 600;
+  }
+  .task-viewbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .task-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+  }
+  .task-check input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--vert);
+  }
+  .task-blocker-fields {
+    display: grid;
+    gap: 8px;
+  }
+  .task-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .task-badge {
+    border: 1px solid var(--iw-line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--noir);
+  }
+  .task-badge--priority {
+    background: #f2b3f0;
+    font-weight: 600;
+  }
+  .task-badge--blocked {
+    background: #ffe1d5;
+  }
+  .task-badge--overdue {
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .task-card strong {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .task-card--contributor strong {
+    font-weight: 400;
+  }
+  .task-card .task-card-meta {
+    font-size: var(--iw-small);
   }
   .task-board tr:last-child > * {
     border-bottom: 0;
@@ -187,7 +353,7 @@ const { identity } = Astro.props
     border: 1px solid var(--iw-line);
     border-left: 4px solid var(--vert);
     border-radius: 8px;
-    background: var(--papier);
+    background: white;
     text-align: left;
     color: var(--noir);
     font: inherit;
@@ -196,6 +362,56 @@ const { identity } = Astro.props
   }
   .task-card:hover {
     border-color: var(--vert);
+  }
+  .task-role {
+    justify-self: start;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f8e588;
+    color: var(--noir);
+    font-weight: 600;
+  }
+  .task-card--contributor {
+    border-left-color: #b27b00;
+  }
+  .task-card--contributor .task-role {
+    background: #f1eeee;
+  }
+  .task-card[draggable='true'] {
+    cursor: grab;
+  }
+  .task-card.is-dragging {
+    opacity: 0.5;
+  }
+  .task-dropzone.is-drop-target {
+    background: #f9f5df;
+    outline: 2px dashed var(--vert);
+    outline-offset: -4px;
+  }
+  .task-contributors {
+    border: 1px solid var(--iw-line);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 0;
+  }
+  .task-contributors legend {
+    font-weight: 600;
+  }
+  .task-contributors > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+  .task-contributors label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+  }
+  .task-contributors input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--vert);
   }
   .task-card span {
     font-size: var(--iw-small);
