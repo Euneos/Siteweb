@@ -14,7 +14,10 @@ Elle ne modifie aucune table ni ligne existante. Les migrations passent uniqueme
 par le workflow documenté dans `docs/internal-migrations.md`, jamais à la main.
 
 Parcours : un compte Cloudflare Access formateur soumet puis peut corriger sur demande ;
-un membre `INTERNAL_ADMIN_EMAILS` vérifie manuellement le référencement et les missions,
+un membre `INTERNAL_ADMIN_EMAILS` peut aussi préparer le formulaire pour un compte
+formateur explicitement désigné (adresse de connexion, distincte de l'e-mail professionnel) ;
+les autres membres de l'équipe ne peuvent ni créer ni valider de convention.
+La direction vérifie manuellement le référencement et les missions,
 renseigne le représentant, la rémunération du cas 2 et sa décision sur les frais
 avant de générer le PDF figé ; le formateur le télécharge,
 le signe et le dépose ; la direction vérifie puis dépose le PDF contresigné.
@@ -23,6 +26,10 @@ Les formateurs ne voient que leurs conventions ; l'API refuse tout accès sans J
 Cloudflare Access. Aucune notification ou synchronisation NocoDB n'est déclenchée :
 les personnes doivent se prévenir hors de ce circuit. Le catalogue de ressources
 reste un répertoire de liens et ne stocke aucun de ces documents.
+La page équipe « Catalogue des formulaires » référence la convention dans
+« Documents à signer » et permet de copier son lien privé. Le formateur ouvre
+le même formulaire depuis « Ressources formateurs », sans passer par la page
+du catalogue réservée à l'équipe.
 
 Chaque PDF est limité à 750 Ko pour rester sous la limite de taille d'une ligne D1.
 Un scanner doit produire un PDF léger ; un PDF lourd n'est pas tronqué ni accepté.

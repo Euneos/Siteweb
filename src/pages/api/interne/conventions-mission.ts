@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { PDFDocument } from 'pdf-lib'
 import { getInternalContext, internalError, privateJson, readInternalBody, entryId, privateHeaders } from '../../../lib/internal-context'
 import { WorkspaceError } from '../../../lib/internal-workspace'
-import { getConvention, listConventions, requestChanges, submitConvention, type MissionPayload } from '../../../lib/mission-convention'
+import { getConvention, listConventions, requestChanges, submitConvention, trainerAccountEmail, type MissionPayload } from '../../../lib/mission-convention'
 import { generateContractPdf } from '../../../lib/mission-convention-pdf'
 
 export const prerender = false
@@ -50,9 +50,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const body = await readInternalBody(request)
     const action = body.action
     if (action === 'submit') {
-      if (ctx.teamMember) throw new WorkspaceError(403, 'Saisie réservée au compte formateur.')
       const id = body.id ? entryId(body.id) : undefined
-      const row = await submitConvention(ctx.db, ctx.identity, body.payload, id)
+      let owner = ctx.identity
+      if (ctx.teamMember) {
+        requireAdmin(ctx.teamMember, ctx.identity.admin)
+        const email = trainerAccountEmail(body.ownerEmail)
+        if (id) {
+          const existing = await getConvention(ctx.db, id, ctx.identity, true)
+          if (existing.owner_email !== email) throw new WorkspaceError(409, 'Le compte formateur d’une convention ne peut pas être remplacé.')
+        }
+        owner = { email, admin: false }
+      }
+      const row = await submitConvention(ctx.db, owner, body.payload, id)
       return privateJson({ id: row.id, state: row.state })
     }
     requireAdmin(ctx.teamMember, ctx.identity.admin)

@@ -433,6 +433,21 @@ if (app) {
       }
     })
   }
+  for (const card of app.querySelectorAll<HTMLElement>('[data-private-form]')) {
+    const input = card.querySelector<HTMLInputElement>('[data-private-url]')!
+    const button = card.querySelector<HTMLButtonElement>('[data-copy-private]')!
+    const status = card.querySelector<HTMLElement>('[data-private-copy-feedback]')!
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(input.value)
+        status.textContent = 'Lien privé copié. À partager uniquement avec les formateurs autorisés.'
+      } catch {
+        input.focus()
+        input.select()
+        status.textContent = 'Sélectionnez puis copiez le lien privé ci-dessus.'
+      }
+    })
+  }
   form.addEventListener('change', showExisting)
   refresh.addEventListener('click', () => {
     void load()

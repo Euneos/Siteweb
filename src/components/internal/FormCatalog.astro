@@ -305,6 +305,22 @@ const publicForms = [
       </p>
     </header>
     <div class="fc-grid">
+      <article class="fc-card" data-private-form="convention-mission" aria-labelledby="catalog-convention-title">
+        <span class="fc-status">Formulaire privé · accès formateur</span>
+        <div class="fc-heading">
+          <h3 id="catalog-convention-title">Convention de mission WISE-UP</h3>
+          <p>Le formateur renseigne ses établissements, les huit dates et horaires de formation par établissement, les interventions et les frais. EUNEOS vérifie et complète sa partie avant de mettre le PDF à signer à disposition dans le même espace.</p>
+        </div>
+        <label class="of-field">Lien à partager avec les formateurs autorisés
+          <input type="text" readonly value="https://euneos.fr/interne/convention-mission" data-private-url />
+        </label>
+        <div class="fc-actions">
+          <a class="iw-button iw-button--primary" href="/interne/convention-mission">Ouvrir le formulaire ↗</a>
+          <button type="button" class="iw-button" data-copy-private>Copier le lien</button>
+        </div>
+        <p class="fc-copy-feedback" data-private-copy-feedback role="status" aria-live="polite"></p>
+        <p class="fc-footnote">La connexion à l’espace formateur est obligatoire. Ce lien n’ouvre aucune convention d’une autre personne.</p>
+      </article>
       <article
         class="fc-card fc-card--planned"
         data-catalog-document="lettre"

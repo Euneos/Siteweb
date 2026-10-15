@@ -30,10 +30,15 @@ const date = (value: unknown) => {
 const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : fail('Formulaire invalide.')
 
+export function trainerAccountEmail(value: unknown): string {
+  const email = field(value, 250).toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('Indiquez une adresse e-mail valide.')
+  return email
+}
+
 export function parseMissionPayload(value: unknown): MissionPayload {
   const x = object(value)
-  const email = field(x.email, 250).toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('Indiquez une adresse e-mail valide.')
+  const email = trainerAccountEmail(x.email)
   if (!Array.isArray(x.missions) || x.missions.length < 1 || x.missions.length > 10) fail('Indiquez entre 1 et 10 établissements.')
   const names = new Set<string>()
   const missions = (x.missions as unknown[]).map((raw: unknown): Mission => {

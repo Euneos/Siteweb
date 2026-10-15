@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { readFileSync } from 'node:fs'
 import { PDFDocument } from 'pdf-lib'
-import { parseMissionPayload, submitConvention, getConvention, requestChanges, listConventions } from '../src/lib/mission-convention'
+import { parseMissionPayload, submitConvention, getConvention, requestChanges, listConventions, trainerAccountEmail } from '../src/lib/mission-convention'
 import { contractText, generateContractPdf } from '../src/lib/mission-convention-pdf'
 
 const owner = { email: 'formateur@example.test', admin: false }
@@ -34,6 +34,8 @@ function fixture() {
 
 describe('convention de mission privée', () => {
   test('validation serveur : identité, huit sessions, hybride, établissements distincts et frais', () => {
+    expect(trainerAccountEmail('FORMATEUR@example.test')).toBe(owner.email)
+    expect(() => trainerAccountEmail('invalide')).toThrow()
     expect(parseMissionPayload(payload()).missions[0].sessions).toHaveLength(8)
     expect(() => parseMissionPayload({ ...payload(), email: 'invalide' })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), missions: [mission(), mission()] })).toThrow()
@@ -41,6 +43,16 @@ describe('convention de mission privée', () => {
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), format: 'presentiel' }] })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), frais: 'demande' })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: mission().sessions.map(s => ({ ...s, heure: '23:00' })) }] })).toThrow()
+  })
+  test('une saisie faite par EUNEOS reste réservée au compte formateur désigné', async () => {
+    const { sql, db } = fixture()
+    const form = { ...payload(), email: 'adresse-professionnelle@example.test' }
+    const saved = await submitConvention(db, { email: trainerAccountEmail(owner.email), admin: false }, form)
+    expect(saved.owner_email).toBe(owner.email)
+    expect((await listConventions(db, owner, false)).map(row => row.id)).toEqual([saved.id])
+    expect((await listConventions(db, admin, false))).toHaveLength(0)
+    expect((await listConventions(db, admin, true)).map(row => row.id)).toEqual([saved.id])
+    sql.close()
   })
   test('isolement des formateurs et retour à la vérification après correction', async () => {
     const { sql, db } = fixture()
@@ -71,5 +83,13 @@ describe('convention de mission privée', () => {
     const bytes = await generateContractPdf(data, 'Candice Marro — présidente', 0, readFileSync('public/fonts/OpenSans-convention.ttf'))
     expect(bytes.byteLength).toBeLessThan(750_000)
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1)
+  })
+  test('le catalogue équipe et l’espace formateur pointent vers le même formulaire privé', () => {
+    const catalogue = readFileSync('src/components/internal/FormCatalog.astro', 'utf8')
+    const resources = readFileSync('src/pages/interne/ressources.astro', 'utf8')
+    expect(catalogue).toContain('data-private-form="convention-mission"')
+    expect(catalogue).toContain('value="https://euneos.fr/interne/convention-mission"')
+    expect(catalogue).toContain('href="/interne/convention-mission"')
+    expect(resources).toContain('href="/interne/convention-mission"')
   })
 })

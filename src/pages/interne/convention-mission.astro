@@ -28,7 +28,9 @@ const schoolFields = [
     <p><a href="https://docs.google.com/document/d/1qgB6UyS-5majuat5OiTNRd66NG4MSTQS/edit" target="_blank" rel="noopener noreferrer">Consulter la convention de référence et ses 14 articles ↗</a></p>
     <p id="cm-state" role="status" tabindex="-1">Chargement de vos conventions…</p>
     <form id="cm-form" class="cm-stack" hidden autocomplete="off">
-      <h2>À compléter en ligne par le/la formateur·rice</h2>
+      <h2 id="cm-form-title">À compléter en ligne par le/la formateur·rice</h2>
+      <p id="cm-team-instructions" hidden>L’équipe EUNEOS peut aussi préparer la saisie pour un formateur. Indiquez son adresse de connexion à « Ressources formateurs » pour qu’il retrouve ensuite sa convention.</p>
+      <label id="cm-owner-field" class="iw-field" hidden>Adresse du compte formateur autorisé *<input name="ownerEmail" type="email" maxlength="250" autocomplete="off" /></label>
       <fieldset class="iw-panel cm-stack">
         <legend>1. Formateur·rice</legend>
         {personFields.map(([name, label, type]) => <label class="iw-field">{label} *<input name={name} type={type} maxlength="250" required /></label>)}
@@ -95,15 +97,18 @@ const schoolFields = [
 <script>
   type Mission = import('../../lib/mission-convention').Mission
   type Payload = import('../../lib/mission-convention').MissionPayload
-  type Listed = { id: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; fees_decision: string; fees_details: string; created_at: string }
+  type Listed = { id: string; owner_email: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; fees_decision: string; fees_details: string; created_at: string }
   const form = document.querySelector<HTMLFormElement>('#cm-form')!
   const schools = document.querySelector<HTMLDivElement>('#cm-schools')!
   const template = document.querySelector<HTMLTemplateElement>('#cm-school-template')!
   const feedback = document.querySelector<HTMLParagraphElement>('#cm-feedback')!
+  const ownerField = document.querySelector<HTMLLabelElement>('#cm-owner-field')!
+  const ownerInput = form.elements.namedItem('ownerEmail') as HTMLInputElement
   const state = document.querySelector<HTMLParagraphElement>('#cm-state')!
   const list = document.querySelector<HTMLDivElement>('#cm-list')!
   const endpoint = '/api/interne/conventions-mission'
   let editing: string | undefined
+  let teamAdmin = false
   let sequence = 0
   function refresh() {
     const blocks = Array.from(schools.querySelectorAll<HTMLFieldSetElement>('.cm-school'))
@@ -189,6 +194,7 @@ const schoolFields = [
   }
   function edit(record: Listed) {
     editing = record.id
+    if (teamAdmin) { ownerInput.value = record.owner_email; ownerInput.readOnly = true }
     const p = record.payload
     for (const key of ['nom','structure','identification','adresse','email','telephone','frais','detailsFrais'] as const) {
       (form.elements.namedItem(key) as HTMLInputElement).value = p[key]
@@ -231,10 +237,16 @@ const schoolFields = [
     const response = await fetch(endpoint)
     if (!response.ok) throw new Error('Impossible de charger les conventions.')
     const data = await response.json() as { conventions: Listed[]; team: boolean; admin: boolean; accountEmail: string }
+    teamAdmin = data.team && data.admin
     list.replaceChildren()
-    form.hidden = data.team
-    if (!data.team) {
-      if (!editing) (form.elements.namedItem('email') as HTMLInputElement).value = data.accountEmail
+    form.hidden = data.team && !data.admin
+    ownerField.hidden = !teamAdmin
+    ownerInput.required = teamAdmin
+    document.querySelector('#cm-team-instructions')!.toggleAttribute('hidden', !teamAdmin)
+    document.querySelector('#cm-form-title')!.textContent = teamAdmin ? 'Préparer une convention en ligne pour un formateur' : 'À compléter en ligne par le/la formateur·rice'
+    if (!form.hidden) {
+      if (!editing && !data.team) (form.elements.namedItem('email') as HTMLInputElement).value = data.accountEmail
+      if (!editing && teamAdmin) ownerInput.readOnly = false
       if (!editing) { schools.replaceChildren(); add() }
     }
     for (const record of data.conventions) {
@@ -274,7 +286,7 @@ const schoolFields = [
       details.append(fees)
       panel.append(details)
       if (record.review_note) { const p = document.createElement('p'); p.textContent = `Message EUNEOS : ${record.review_note}`; panel.append(p) }
-      if (record.state === 'changes_requested' && !data.team) panel.append(button('Corriger la convention', () => edit(record)))
+      if (record.state === 'changes_requested' && (!data.team || data.admin)) panel.append(button('Corriger la convention', () => edit(record)))
       if (['approved', 'trainer_signed', 'complete'].includes(record.state)) panel.append(link(record.id, 'approved', 'Télécharger le PDF validé'))
       if (record.state === 'approved' && !data.team) panel.append(button('Déposer mon PDF signé', () => upload(record.id, 'trainer_signed')))
       if (record.state === 'complete') panel.append(link(record.id, 'complete', 'Télécharger l’exemplaire contresigné'))
@@ -311,7 +323,7 @@ const schoolFields = [
       }
       list.append(panel)
     }
-    message(data.conventions.length ? `${data.conventions.length} convention(s) dans cet espace.` : 'Aucune convention enregistrée.')
+    message(data.conventions.length ? `${data.conventions.length} convention(s) dans cet espace.` : teamAdmin ? 'Aucune convention enregistrée. Vous pouvez commencer avec le formulaire ci-dessus.' : 'Aucune convention enregistrée.')
   }
   form.addEventListener('submit', async event => {
     event.preventDefault()
@@ -320,11 +332,11 @@ const schoolFields = [
     const submit = document.querySelector<HTMLButtonElement>('#cm-submit')!
     submit.disabled = true
     try {
-      await send({ action: 'submit', id: editing, payload: payload() })
+      await send({ action: 'submit', id: editing, ownerEmail: teamAdmin ? ownerInput.value : undefined, payload: payload() })
       editing = undefined
       form.reset()
       await reload()
-      message('Convention reçue dans votre espace, en attente de vérification par EUNEOS. Prévenez l’équipe : aucun e-mail automatique n’est envoyé.')
+      message(teamAdmin ? 'Convention enregistrée pour le compte formateur indiqué, en attente de validation EUNEOS. Prévenez-le : aucun e-mail automatique n’est envoyé.' : 'Convention reçue dans votre espace, en attente de vérification par EUNEOS. Prévenez l’équipe : aucun e-mail automatique n’est envoyé.')
     } catch (error) { message(error instanceof Error ? error.message : 'Enregistrement incertain. Rechargez la page avant tout nouvel envoi.') }
     finally { submit.disabled = false }
   })
