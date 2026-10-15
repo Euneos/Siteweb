@@ -23,9 +23,11 @@ const { identity } = Astro.props
       <p class="iw-small iw-muted">Cliquez sur une tâche pour la modifier ou la déplacer.</p><button
         type="button"
         class="iw-button"
-        id="task-refresh">Actualiser</button>
+        id="task-refresh">Actualiser</button
+      >
     </div>
     <p id="task-notice" class="iw-feedback" role="status">Chargement des tâches…</p>
+    <p id="task-mail-feedback" class="iw-feedback" role="status" hidden></p>
     <noscript><p>Activez JavaScript pour consulter et modifier les tâches.</p></noscript>
     <div
       class="task-scroll"
@@ -79,7 +81,8 @@ const { identity } = Astro.props
         type="button"
         class="iw-button"
         id="task-close"
-        aria-label="Fermer">✕</button>
+        aria-label="Fermer">✕</button
+      >
     </header>
     <form id="task-form" class="iw-dialog__body">
       <div class="iw-field">
@@ -100,15 +103,21 @@ const { identity } = Astro.props
       <div class="iw-formgrid">
         <div class="iw-field">
           <label for="task-person">Personne</label><select id="task-person" name="person"
-            >{taskPeople.map((person) => <option>{person}</option>)}</select>
+            >{taskPeople.map((person) => <option>{person}</option>)}</select
+          >
         </div>
         <div class="iw-field">
           <label for="task-status">Statut</label><select id="task-status" name="status"
             >{
               taskStatuses.map((status) => <option value={status.id}>{status.label}</option>)
-            }</select>
+            }</select
+          >
         </div>
       </div>
+      <p class="iw-small iw-muted">
+        Une nouvelle attribution déclenche un e-mail à la personne choisie. Un changement de titre,
+        de description ou de statut seul n’envoie pas d’e-mail.
+      </p>
       <p id="task-error" class="iw-feedback" role="alert"></p>
       <div class="iw-actions">
         <button type="submit" id="task-save" class="iw-button iw-button--primary"

@@ -5,9 +5,11 @@ import {
   internalError,
   privateJson,
   readInternalBody,
+  internalEnvironment,
 } from '../../../lib/internal-context'
 import { WorkspaceError } from '../../../lib/internal-workspace'
 import { listTasks, saveTask } from '../../../lib/team-tasks'
+import { notifyTaskAssignment, type NotificationState } from '../../../lib/team-task-notifications'
 export const prerender = false
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -33,7 +35,19 @@ const write: APIRoute = async ({ request, locals }) => {
       body.task,
       request.method === 'PATCH' ? body.version : undefined,
     )
-    return privateJson({ task }, request.method === 'POST' ? 201 : 200)
+    let notification: NotificationState = 'uncertain'
+    try {
+      notification = await notifyTaskAssignment(
+        context.db,
+        internalEnvironment(locals),
+        task.id,
+        request.method === 'PATCH' ? (body.version as number) + 1 : 1,
+        new URL(request.url).origin,
+      )
+    } catch {
+      // The task is saved: a notification failure must not invite a duplicate creation.
+    }
+    return privateJson({ task, notification }, request.method === 'POST' ? 201 : 200)
   } catch (error) {
     return internalError(error)
   }

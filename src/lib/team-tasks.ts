@@ -56,10 +56,20 @@ export async function saveTask(
 ) {
   const task = parseTask(value)
   const now = new Date().toISOString()
+  const notification = (nextVersion: number) =>
+    db
+      .prepare(
+        'INSERT INTO team_task_notifications (task_id, task_version, person, title, description, task_status, assigned_by) SELECT ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1',
+      )
+      .bind(id, nextVersion, task.person, task.title, task.description, task.status, identity.email)
   if (version !== undefined) {
     if (!Number.isSafeInteger(version) || (version as number) < 1)
       throw new WorkspaceError(400, 'Version invalide.')
-    const result = await db
+    const previous = await db
+      .prepare('SELECT person FROM team_tasks WHERE id = ? AND version = ?')
+      .bind(id, version as number)
+      .first<{ person: string }>()
+    const update = db
       .prepare(
         'UPDATE team_tasks SET title = ?, description = ?, person = ?, status = ?, updated_by = ?, updated_at = ?, version = version + 1 WHERE id = ? AND version = ?',
       )
@@ -73,14 +83,20 @@ export async function saveTask(
         id,
         version as number,
       )
-      .run()
+    // Optimistic locking and the notification share one atomic batch. A stale
+    // update changes zero rows, so it cannot enqueue an assignment notification.
+    const [result] = await db.batch(
+      previous && previous.person !== task.person
+        ? [update, notification((version as number) + 1)]
+        : [update],
+    )
     if (result.meta.changes !== 1)
       throw new WorkspaceError(
         409,
         'Cette tâche a changé. Actualisez le tableau avant de la modifier.',
       )
   } else {
-    const result = await db
+    const insert = db
       .prepare(
         'INSERT INTO team_tasks (id, title, description, person, status, created_by, updated_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING',
       )
@@ -95,7 +111,7 @@ export async function saveTask(
         now,
         now,
       )
-      .run()
+    const [result] = await db.batch([insert, notification(1)])
     if (result.meta.changes !== 1)
       throw new WorkspaceError(
         409,

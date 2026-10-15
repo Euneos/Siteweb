@@ -125,6 +125,16 @@ if (root) {
       }
       dialog.close()
       await load()
+      const feedback = get('task-mail-feedback')
+      const messages: Record<string, string> = {
+        sent: 'Tâche enregistrée. La notification a été transmise au service d’envoi d’e-mails.',
+        unavailable: 'Tâche enregistrée, mais la notification par e-mail est indisponible.',
+        uncertain:
+          'Tâche enregistrée. L’envoi de la notification n’a pas pu être confirmé ; aucun nouvel envoi automatique ne sera tenté.',
+        preview: 'Tâche enregistrée dans l’espace d’essai. Aucun e-mail n’a été envoyé.',
+      }
+      feedback.textContent = messages[data.notification] ?? ''
+      feedback.hidden = !feedback.textContent
     } catch (failure) {
       error.textContent =
         failure instanceof Error

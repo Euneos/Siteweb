@@ -78,6 +78,8 @@ const manifestName = (await readdir(worker)).find(
 )
 const { manifest } = await import(new URL(manifestName, worker))
 const components = [
+  'interne/organisation-equipe.astro',
+  'api/interne/taches.ts',
   'interne/index.astro',
   'interne/ressources.astro',
   'interne/catalogue.astro',
@@ -131,6 +133,8 @@ const baseEntry = (extra) => ({
   ...extra,
 })
 const routes = [
+  '/interne/organisation-equipe',
+  '/api/interne/taches',
   '/interne',
   '/interne/ressources',
   '/interne/catalogue',
@@ -145,6 +149,8 @@ assert.equal(reads, 0)
 assert.equal((await call('/interne', 'member', 'GET', undefined, {}, {})).status, 503)
 for (const role of ['trainer', 'trainerManager']) {
   for (const path of [
+    '/interne/organisation-equipe',
+    '/api/interne/taches',
     '/interne',
     '/interne/catalogue',
     '/etat-candidatures',
@@ -1193,6 +1199,37 @@ try {
     1,
   )
   checks.push('admin-resource-create')
+  await page.setExtraHTTPHeaders({ 'X-Fixture-Role': 'member' })
+  await page.goto(`${origin}/interne/organisation-equipe`)
+  await expect(page.locator('#task-notice')).toContainText('0 tâches')
+  await page.locator('#task-new').click()
+  await page.locator('#task-title').fill('Tâche fictive de recette')
+  await page.locator('#task-description').fill('Description de démonstration')
+  await page.locator('#task-save').click()
+  await expect(page.locator('#task-mail-feedback')).toContainText('Aucun e-mail')
+  await expect(page.locator('.task-card')).toHaveCount(1)
+  assert.equal(sql.query('SELECT state FROM team_task_notifications').get().state, 'preview')
+  await page.locator('.task-card').click()
+  await page.locator('#task-person').selectOption('Pauline')
+  await page.locator('#task-status').selectOption('today')
+  await page.locator('#task-save').click()
+  await expect(page.locator('.task-cell[data-person=Pauline][data-status=today] .task-card')).toHaveCount(1)
+  assert.equal(sql.query('SELECT count(*) n FROM team_task_notifications').get().n, 2)
+  for (const width of [320, 390, 860, 861, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.locator('.task-card').click()
+    await expect(page.locator('#task-editor')).toBeVisible()
+    assert(await page.locator('#task-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    if ([390, 1440].includes(width)) await page.screenshot({ path: `${output}/notification-tache-${width}.png`, fullPage: true })
+    await page.locator('#task-cancel').click()
+    checks.push(`task-notification-${width}`)
+  }
+  await page.locator('.task-card').click()
+  await page.locator('#task-status').selectOption('en-cours')
+  await page.locator('#task-save').click()
+  await expect(page.locator('#task-mail-feedback')).toBeHidden()
+  assert.equal(sql.query('SELECT count(*) n FROM team_task_notifications').get().n, 2)
   assert.deepEqual(errors, [])
   await writeFile(
     `${output}/result.json`,
