@@ -82,7 +82,7 @@ const colonnes = [
 ]
 ---
 
-<InternalLayout title="État des candidatures 2026–2027" current="suivi" identity={identity}>
+<InternalLayout title="État des candidatures 2026–2027" current="suivi" identity={identity} wide>
   <div class="iw-intro">
     <div class="iw-intro__text">
       <p class="iw-eyebrow">Suivi des établissements</p>
@@ -460,6 +460,10 @@ const colonnes = [
 </InternalLayout>
 
 <style is:global>
+  .iw-main.iw-main--wide {
+    width: 100%;
+    max-width: none;
+  }
   .etat {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -538,7 +542,8 @@ const colonnes = [
     font-size: var(--t-note);
   }
   .etat__table-wrap {
-    overflow-x: auto;
+    width: 100%;
+    min-width: 0;
     border: 1px solid color-mix(in srgb, var(--vert) 25%, transparent);
   }
   .etat__table-wrap:focus-visible {
@@ -547,7 +552,8 @@ const colonnes = [
   }
   .etat__table {
     width: 100%;
-    min-width: 1500px;
+    min-width: 0;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: max(0.82rem, calc(var(--t-note) * 0.88));
     line-height: 1.3;
@@ -560,7 +566,9 @@ const colonnes = [
   }
   .etat__table th,
   .etat__table td {
-    padding: 0.8rem;
+    padding: 0.6rem 0.35rem;
+    overflow-wrap: anywhere;
+    hyphens: auto;
     text-align: left;
     vertical-align: top;
     border: 1px solid color-mix(in srgb, var(--vert) 18%, var(--blanc));
@@ -573,10 +581,12 @@ const colonnes = [
     font-weight: 700;
   }
   .etat__table thead .etat__etablissement {
-    min-width: 250px;
     background: #223f6d;
     text-align: left;
     font-size: 1.08em;
+  }
+  .etat__table .etat__verification {
+    white-space: normal;
   }
   .etat__mobile-label {
     display: none;
@@ -617,7 +627,7 @@ const colonnes = [
   .etat__meta,
   .etat__table small {
     margin-top: 0.25rem;
-    font-size: 0.82em;
+    font-size: 1em;
     font-weight: 400;
     opacity: 0.72;
   }
@@ -630,7 +640,7 @@ const colonnes = [
     text-align: center !important;
   }
   .etat__dernier-contact {
-    min-width: 13rem;
+    min-width: 0;
     overflow-wrap: anywhere;
   }
   .etat__dernier-contact a {
@@ -879,11 +889,13 @@ const colonnes = [
       grid-column: 2;
       opacity: 1;
     }
-    .etat__table td.etat__dernier-contact {
+    .etat__table td.etat__dernier-contact,
+    .etat__table td.etat__situation {
       grid-template-columns: minmax(0, 1fr);
       min-width: 0;
     }
-    .etat__table td.etat__dernier-contact > * {
+    .etat__table td.etat__dernier-contact > *,
+    .etat__table td.etat__situation > * {
       grid-column: 1;
     }
   }

@@ -16,8 +16,9 @@ interface Props {
     | 'reponses-google'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
+  wide?: boolean
 }
-const { title, current, identity, teamAccess = true } = Astro.props
+const { title, current, identity, teamAccess = true, wide = false } = Astro.props
 const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
 ---
 
@@ -125,7 +126,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
         <a class="iw-nav__public" href="/">Voir le site <span aria-hidden="true">↗</span></a>
       </div>
     </nav>
-    <main id="main" class="iw-main" tabindex="-1">
+    <main id="main" class:list={['iw-main', wide && 'iw-main--wide']} tabindex="-1">
       {
         preview && (
           <aside class="iw-feedback" aria-label="Espace d’essai">
