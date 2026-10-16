@@ -64,6 +64,9 @@ describe('convention et audience Ressources', () => {
     expect((await resourcePost({request:await request('/api/interne/ressources','trainers',trainer,{action:'submit',payload:payload()}),locals} as never)).status).toBe(404)
     expect((await conventionPost({request:await request('/api/interne/conventions-mission','trainers',trainer,{action:'approve',id}),locals} as never)).status).toBe(403)
     expect((await resourcePost({request:await request(url,'trainers',trainer,{action:'approve',id}),locals} as never)).status).toBe(403)
+    expect((await conventionPost({request:await request('/api/interne/conventions-mission','team','manager@example.test',{
+      action:'approve',id,confirmed:true,representativeName:'Candice Marro',representativeRole:'',case2Euros:0,feesDecision:'aucun',feesDetails:'',
+    }),locals} as never)).status).toBe(400)
     const tooSoon = new Request(`https://euneos.fr${url}&id=${id}&kind=trainer_signed`, {
       method:'PUT', headers:{'Cf-Access-Jwt-Assertion':await sign('trainers',trainer),Origin:'https://euneos.fr','Content-Type':'application/pdf'}, body:'%PDF-1.7',
     })

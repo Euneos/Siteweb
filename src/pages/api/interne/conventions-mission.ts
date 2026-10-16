@@ -74,8 +74,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const row = await getConvention(ctx.db, id, ctx.identity, true)
       if (row.state !== 'submitted') throw new WorkspaceError(409, 'La convention a changé. Rechargez la page.')
       if (body.confirmed !== true) throw new WorkspaceError(400, 'Vérifiez les missions et accords préalables avant validation.')
-      const representative = typeof body.representative === 'string' ? body.representative.trim() : ''
-      if (!representative || representative.length > 180) throw new WorkspaceError(400, 'Indiquez le nom et la fonction du représentant EUNEOS.')
+      const representativeName = typeof body.representativeName === 'string' ? body.representativeName.trim() : ''
+      const representativeRole = typeof body.representativeRole === 'string' ? body.representativeRole.trim() : ''
+      if (!representativeName || !representativeRole || representativeName.length > 90 || representativeRole.length > 90)
+        throw new WorkspaceError(400, 'Indiquez séparément le nom et la fonction du représentant EUNEOS.')
+      const representative = `${representativeName} — ${representativeRole}`
       const euros = body.case2Euros
       if (typeof euros !== 'number' || !Number.isInteger(euros) || euros < 0 || euros > 100000) throw new WorkspaceError(400, 'Montant cas 2 invalide.')
       if (body.feesDecision !== 'aucun' && body.feesDecision !== 'accord')

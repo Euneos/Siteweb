@@ -41,8 +41,10 @@ describe('convention de mission privée', () => {
     expect(() => parseMissionPayload({ ...payload(), missions: [mission(), mission()] })).toThrow()
     const fourByFour = Array.from({length: 4}, (_, i) => ({date: '2027-01-12', duree: 4, modalite: i < 2 ? 'distance' : 'presentiel'}))
     const mixed = [4, 4, 2, 2, 2, 2].map((duree, i) => ({date: '2027-01-12', duree, modalite: i < 2 ? 'distance' : 'presentiel'}))
+    const twelveFour = Array.from({length:4}, (_, i) => ({date:'2027-01-12',duree:4,modalite:i === 3 ? 'distance' : 'presentiel'}))
     expect(parseMissionPayload({ ...payload(), missions: [{...mission(), sessions: fourByFour}] }).missions[0].sessions).toHaveLength(4)
     expect(parseMissionPayload({ ...payload(), missions: [{...mission(), sessions: mixed}] }).missions[0].sessions).toHaveLength(6)
+    expect(parseMissionPayload({ ...payload(), missions: [{...mission(), sessions: twelveFour}] }).missions[0].sessions).toHaveLength(4)
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: mission().sessions.slice(1) }] })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), missions: [{ ...mission(), format: 'presentiel' }] })).toThrow()
     expect(() => parseMissionPayload({ ...payload(), frais: 'demande' })).toThrow()
@@ -87,8 +89,7 @@ describe('convention de mission privée', () => {
     expect(text).toContain('2 formation(s) × 1 000 € = 2000 €')
     expect(text).toContain('TOTAL PRÉVISIONNEL : 2200 €')
     expect(text).toContain('Lycée fictif')
-    expect(text).toContain('Formation des personnels : 16 heures, réparties selon le calendrier validé ci-dessous.')
-    expect(text).not.toContain('8 sessions d’environ 2 heures')
+    expect(text).toContain('maximum 8 sessions d’environ 2 heures (autres modalités possibles, les préciser)')
     expect(text).not.toContain('09:00')
     expect(text).not.toContain('retournée par le/la Formateur·rice à wiseup@euneos.fr')
     expect(text).not.toContain('[ NOM DE L’ÉTABLISSEMENT ]')
@@ -96,6 +97,20 @@ describe('convention de mission privée', () => {
     expect(text).not.toContain('[dates]')
     expect(text).not.toContain('[nom(s)')
     expect(text).toContain('Frais remboursables autorisés par EUNEOS : Train 2e classe, plafond 90 €')
+    expect(text).toContain('SIREN : 105 557 425')
+    expect(text).toContain('SIRET : 105 557 425 00011')
+    expect(text).toContain('RNA : W313042230')
+    expect(text).toContain('APE : 94.99Z - Autres organisations fonctionnant par adhésion volontaire')
+    expect(text).toContain('ESS : Oui')
+    expect(text).toContain('Fondée en avril 2026 — active au SIRENE depuis le 19 mai 2026')
+    expect(text).toContain('FICHE RÉCAPITULATIVE DE LA MISSION')
+    expect(text).not.toContain('VISA DE L’ÉTABLISSEMENT')
+    expect(text).not.toContain('Date / cachet')
+    expect(text).toContain('POUR EUNEOS — Candice Marro — présidente')
+    expect(text).toContain('LE/LA FORMATEUR·RICE — Camille Test')
+    expect(text).toContain('Période des séances : du 2027-01-12 au 2027-01-12')
+    expect(text).toContain('Référent : Référent ; contact : contact@example.test')
+    expect(text).toContain('Frais autorisés : Train 2e classe, plafond 90 €')
     const compact = parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: [
       {date:'2027-01-12',duree:4,modalite:'distance'}, {date:'2027-01-19',duree:4,modalite:'distance'},
       {date:'2027-02-02',duree:4,modalite:'presentiel'}, {date:'2027-02-09',duree:4,modalite:'presentiel'},
@@ -103,6 +118,11 @@ describe('convention de mission privée', () => {
     const compactText = contractText(compact, 'Candice Marro — présidente', 0).join('\n')
     expect(compactText).toContain('Séance 4 : 2027-02-09 ; 4 h ; présentiel')
     expect(compactText).not.toContain('Séance 5 :')
+    const twelveFour = parseMissionPayload({ ...payload(), missions: [{ ...mission(), sessions: [
+      {date:'2027-01-12',duree:4,modalite:'presentiel'}, {date:'2027-01-19',duree:4,modalite:'presentiel'},
+      {date:'2027-02-02',duree:4,modalite:'presentiel'}, {date:'2027-02-09',duree:4,modalite:'distance'},
+    ] }] })
+    expect(contractText(twelveFour, 'Candice Marro — présidente', 0).join('\n')).toContain('12 h sur site + 4 h en visioconférence')
     const bytes = await generateContractPdf(data, 'Candice Marro — présidente', 0, readFileSync('public/fonts/OpenSans-convention.ttf'))
     expect(bytes.byteLength).toBeLessThan(750_000)
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1)

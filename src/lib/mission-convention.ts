@@ -74,7 +74,8 @@ export function parseMissionPayload(value: unknown): MissionPayload {
     if (sessions.reduce((sum, s) => sum + s.duree, 0) !== 16)
       fail('Le calendrier doit totaliser 16 h par établissement.')
     const remote = sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)
-    if (remote !== (format === 'hybride' ? 8 : 0)) fail('Vérifiez les heures sur site et à distance : le format hybride prévoit 8 h de chaque.')
+    if ((format === 'presentiel' && remote !== 0) || (format === 'hybride' && (remote === 0 || remote === 16)))
+      fail('Le format hybride doit comporter des séances sur site et en visioconférence.')
     const cas1 = choice(m.cas1, ['non', 'oui'] as const)
     const cas2 = choice(m.cas2, ['non', '2', '4'] as const)
     return {

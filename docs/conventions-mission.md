@@ -1,15 +1,16 @@
 # Conventions de mission — espace privé
 
-Source contractuelle : export texte du modèle Drive du 15 octobre 2026,
+Source contractuelle : export texte du modèle Drive modifié le 15 octobre 2026 à 14 h 24 UTC,
 `src/content/convention-mission-modele.txt`. La génération conserve les quatorze
 articles, remplace les tableaux vierges par les missions contrôlées et supprime
 les anciennes consignes d'échange de PDF par e-mail. Toute modification du modèle
 doit être revue avant de modifier la génération. La signature dessinée dans un PDF
 n'est pas une signature électronique qualifiée ; aucun dossier de preuve n'est produit.
 Le Word source n'est pas lié depuis le formulaire partagé : le formateur relit
-les 14 articles dans le PDF finalisé avant signature. Retirer un lien du site
-ne change pas les droits Drive du fichier source ; son propriétaire doit
-vérifier séparément qu'il n'est pas modifiable par les personnes ayant le lien.
+les 14 articles dans le PDF finalisé avant signature. Sa permission Drive
+« toute personne avec le lien » est actuellement **lecteur** ; seuls le propriétaire
+et les rédacteurs nommément autorisés peuvent modifier. Retirer le lien du site
+ne change pas cette permission.
 
 La migration additive `0009_conventions_mission.sql` ajoute uniquement deux tables
 dans `TEAM_WORKSPACE` : `mission_conventions` (saisies, propriétaire, étapes et
@@ -53,14 +54,26 @@ adresses choisies à la politique Allow nominative existante, puis tester un
 compte formateur autorisé, un non-autorisé et le refus des pages équipe.
 
 Calendrier : chaque établissement reçoit entre 4 et 8 séances datées de 2 h
-ou 4 h, pour un total obligatoire de 16 h. L'hybride exige exactement 8 h sur
-site et 8 h à distance. Aucun horaire n'est collecté ni imprimé. Les anciennes
+ou 4 h, pour un total obligatoire de 16 h. L'hybride comprend au moins une
+séance sur site et une à distance ; la proportion 8 h / 8 h est un exemple,
+pas une obligation. Aucun horaire n'est collecté ni imprimé. Les anciennes
 saisies de huit séances de 2 h qui contiennent un horaire restent lisibles :
 le PDF et toute correction future affichent leurs dates et leurs durées sans
 réécrire rétroactivement les documents déjà signés.
-À la demande de Candice (15 octobre), l'article 3 généré remplace la phrase
-du modèle « 8 sessions d'environ 2 heures » par la répartition des 16 heures
-effectivement renseignée ; les autres clauses demeurent celles du modèle.
+Le PDF reprend l'article 3 du modèle Drive actualisé et détaille la répartition
+effective. Le modèle nomme Candice Marro, Directrice Générale, comme représentante ;
+ces deux champs sont proposés séparément et restent à confirmer par EUNEOS lors
+de la validation de chaque convention. L'article 1
+inclut les coordonnées, codes, mention ESS et dates institutionnelles du modèle.
+La fiche récapitulative figure à nouveau après les 14 articles ; seules les
+dates et signatures du formateur et d'EUNEOS restent à remplir. Le visa / tampon
+facultatif de l'établissement, encore présent dans le Word source, est supprimé
+du PDF généré à la demande de Candice (16 octobre) : l'établissement n'est pas
+partie à cette convention.
+Le générateur utilise une taille de corps homogène, des titres séparés, des
+listes aérées et des sauts de page qui évitent un titre isolé en bas de page.
+Les PDF déjà approuvés ne sont pas régénérés automatiquement : l'essai approuvé
+le 15 octobre reste inchangé et n'est pas supprimé.
 
 Chaque PDF est limité à 750 Ko pour rester sous la limite de taille d'une ligne D1.
 Un scanner doit produire un PDF léger ; un PDF lourd n'est pas tronqué ni accepté.

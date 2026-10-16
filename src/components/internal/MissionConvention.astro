@@ -61,8 +61,8 @@ const schoolFields = [
       <fieldset class="iw-panel cm-school cm-stack">
         <legend class="cm-school-title">Établissement</legend>
         {schoolFields.map(([name, label]) => <label class="iw-field">{label} *<input data-field={name} maxlength="250" required /></label>)}
-        <label class="iw-field">Format *<select data-field="format" required><option value="presentiel">16 h en présentiel</option><option value="hybride">8 h en présentiel + 8 h à distance</option></select></label>
-        <p>La formation entièrement à distance n’est pas autorisée. En hybride, prévoyez 8 h sur site et 8 h en visioconférence.</p>
+        <label class="iw-field">Format *<select data-field="format" required><option value="presentiel">16 h en présentiel</option><option value="hybride">Hybride : présentiel et visioconférence</option></select></label>
+        <p>La formation entièrement à distance n’est pas autorisée. En hybride, répartissez librement les 16 h entre les deux modalités.</p>
         <label class="iw-field">Répartition des 16 h<select class="cm-pattern"><option value="8x2">8 séances de 2 h</option><option value="4x4">4 séances de 4 h</option><option value="mixed">2 séances de 4 h + 4 séances de 2 h</option><option value="custom">Personnalisée (2 h ou 4 h par séance)</option></select></label>
         <div class="cm-sessions"></div>
         <output class="cm-hours" aria-live="polite"></output>
@@ -212,8 +212,8 @@ const schoolFields = [
       const hours = sessions.reduce((sum, s) => sum + Number(s.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
       const remote = sessions.filter(s => s.querySelector<HTMLSelectElement>('[data-session="modalite"]')!.value === 'distance')
         .reduce((sum, s) => sum + Number(s.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
-      if (hours !== 16 || (format === 'presentiel' && remote !== 0) || (format === 'hybride' && remote !== 8)) {
-        feedback.textContent = 'Chaque établissement doit totaliser 16 h : entièrement sur site, ou 8 h sur site et 8 h en visioconférence.'
+      if (hours !== 16 || (format === 'presentiel' && remote !== 0) || (format === 'hybride' && (remote === 0 || remote === 16))) {
+        feedback.textContent = 'Chaque établissement doit totaliser 16 h : entièrement sur site, ou avec au moins une séance sur site et une en visioconférence.'
         feedback.focus(); return false
       }
     }
@@ -365,8 +365,10 @@ const schoolFields = [
       if (data.team && record.state === 'trainer_signed') panel.append(link(record.id, 'trainer_signed', 'Vérifier le PDF signé'))
       if (data.admin && record.state === 'trainer_signed') panel.append(button('Déposer la convention contresignée', () => upload(record.id, 'complete')))
       if (data.admin && record.state === 'submitted') {
-        const rep = document.createElement('input'); rep.id = `rep-${record.id}`; rep.maxLength = 180
-        const repLabel = document.createElement('label'); repLabel.className = 'iw-field'; repLabel.htmlFor = rep.id; repLabel.textContent = 'EUNEOS — Nom et fonction de la personne signataire'; repLabel.append(rep)
+        const repName = document.createElement('input'); repName.id = `rep-name-${record.id}`; repName.maxLength = 90; repName.value = 'Candice Marro'
+        const repNameLabel = document.createElement('label'); repNameLabel.className = 'iw-field'; repNameLabel.htmlFor = repName.id; repNameLabel.textContent = 'EUNEOS — Nom de la personne signataire (à confirmer)'; repNameLabel.append(repName)
+        const repRole = document.createElement('input'); repRole.id = `rep-role-${record.id}`; repRole.maxLength = 90; repRole.value = 'Directrice Générale'
+        const repRoleLabel = document.createElement('label'); repRoleLabel.className = 'iw-field'; repRoleLabel.htmlFor = repRole.id; repRoleLabel.textContent = 'EUNEOS — Fonction de la personne signataire (à confirmer)'; repRoleLabel.append(repRole)
         const amount = document.createElement('input'); amount.id = `amount-${record.id}`; amount.type = 'number'; amount.min = '0'; amount.max = '100000'; amount.value = '0'
         const amountLabel = document.createElement('label'); amountLabel.className = 'iw-field'; amountLabel.htmlFor = amount.id; amountLabel.textContent = 'EUNEOS — Montant total du cas 2 validé (€ ; 0 si aucun)'; amountLabel.append(amount)
         const feesChoice = document.createElement('select'); feesChoice.id = `fees-${record.id}`
@@ -378,11 +380,11 @@ const schoolFields = [
         const feesDetailsLabel = document.createElement('label'); feesDetailsLabel.className = 'iw-field'; feesDetailsLabel.htmlFor = feesDetails.id; feesDetailsLabel.textContent = 'EUNEOS — Nature, mission, barème et plafond des frais autorisés (si applicable)'; feesDetailsLabel.append(feesDetails)
         const check = document.createElement('input'); check.type = 'checkbox'; check.id = `review-${record.id}`
         const label = document.createElement('label'); label.className = 'cm-review-confirm'; label.htmlFor = check.id; label.textContent = 'J’ai vérifié le référencement du formateur, les établissements, les missions, les montants et les frais autorisés.'; label.prepend(check)
-        panel.append(repLabel, amountLabel, feesLabel, feesDetailsLabel, label)
+        panel.append(repNameLabel, repRoleLabel, amountLabel, feesLabel, feesDetailsLabel, label)
         panel.append(button('Valider et générer le PDF', async () => {
           try {
             message('Génération et validation en cours…')
-            await send({ action: 'approve', id: record.id, representative: rep.value, case2Euros: Number(amount.value), feesDecision: feesChoice.value, feesDetails: feesDetails.value, confirmed: check.checked })
+            await send({ action: 'approve', id: record.id, representativeName: repName.value, representativeRole: repRole.value, case2Euros: Number(amount.value), feesDecision: feesChoice.value, feesDetails: feesDetails.value, confirmed: check.checked })
             await reload(); message('PDF validé et enregistré. Le formateur peut le télécharger.')
           } catch (error) { message(error instanceof Error ? error.message : 'Validation incertaine. Rechargez la page.') }
         }))

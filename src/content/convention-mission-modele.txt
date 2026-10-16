@@ -21,7 +21,7 @@ SIREN
 	Fondée en
 	Avril 2026 — active au SIRENE depuis le 19 mai 2026
 	Représentée par
-	[ PRÉNOM NOM / FONCTION ]
+	[ CANDICE MARRO - Directrice Générale ]
 
 
 ET
@@ -57,8 +57,8 @@ ________________
 
 
 ARTICLE 3 — PÉRIMÈTRE, FORMAT ET CALENDRIER DE LA MISSION
-Formation des personnels : 16 heures, organisées en 8 sessions d’environ 2 heures.
-☐ 100 % présentiel — 16 h sur site     ☐ Hybride — 8 h sur site + 8 h en visioconférence
+Formation des personnels : 16 heures, organisées en maximum 8 sessions d’environ 2 heures(autres modalités possibles, les préciser)
+☐ 100 % présentiel — 16 h sur site     ☐ Hybride —exemple:  8 h sur site + 8 h en visioconférence
 La formation entièrement à distance n’est pas autorisée.
 Session
 	Date
@@ -68,42 +68,42 @@ Session
 	1
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	2
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	3
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	4
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	5
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	6
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	7
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	8
 	[          ]
 	[          ]
-	2 h
+	 h
 	[          ]
 	ARTICLE 4 — OBJECTIFS ET CONTENU PÉDAGOGIQUE
 Le/la Formateur·rice dispense le parcours WISE-UP conformément aux supports et au déroulé validés par EUNEOS. Le parcours vise à renforcer la santé mentale et le bien-être numérique, l’attention, la régulation du stress et des émotions, les compétences psychosociales, la communication et la capacité des équipes éducatives à intégrer progressivement des pratiques WISE-UP dans leur contexte professionnel.
