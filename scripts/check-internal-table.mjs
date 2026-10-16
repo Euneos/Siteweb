@@ -231,7 +231,8 @@ try {
       ['Non renseignée', 'Non renseignée'],
     )
     assert.equal(await uncertain.getByText('Début dans les 30 jours', { exact: true }).count(), 0)
-    await tab.locator('.etat__progression > summary').click()
+    assert(await tab.locator('.etat__progression').evaluate(el => el.open), 'Tableau ouvert dès le chargement')
+    assert(await tab.locator('.etat__progression').evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('.etat__dossiers')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Tableau avant les fiches détaillées')
     assert.equal(
       await tab
         .getByRole('link', { name: '1 dossier aux dates à confirmer', exact: true })

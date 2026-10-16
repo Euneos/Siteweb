@@ -1,5 +1,6 @@
 ---
 import InternalLayout from '../layouts/InternalLayout.astro'
+import ProgressionEtablissements from '../components/ProgressionEtablissements.astro'
 import { readInternalIdentity } from '../lib/internal-access'
 import { jeton } from '../lib/nocodb'
 import {
@@ -251,6 +252,7 @@ const colonnes = [
                 qu’aucun démarrage n’est prévu.
               </p>
             )}
+            <ProgressionEtablissements lignes={etat.lignes} colonnes={colonnes} />
             <div class="etat__dossiers">
               {dossiersAffiches.map((ligne) => (
                 <article class="etat__dossier" aria-labelledby={`dossier-${ligne.id}`}>
@@ -404,7 +406,7 @@ const colonnes = [
                       ) : null}
                       <p class="etat__legende">
                         Le recensement ne vaut pas validation de la formation. Le bilan des missions
-                        reste dans les étapes du suivi ci-dessous.
+                        reste dans les étapes du tableau de suivi.
                       </p>
                     </section>
                   </div>
@@ -429,85 +431,6 @@ const colonnes = [
             </div>
           </section>
 
-          <details class="etat__progression">
-            <summary>Consulter les dix étapes de candidature et de suivi</summary>
-            <p class="etat__legende">
-              ✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée. Une
-              case vide ne signifie pas que l’action n’a pas eu lieu.
-            </p>
-            <p class="etat__scroll-aide">
-              Faites défiler le tableau horizontalement pour consulter les dix étapes.
-            </p>
-
-            <div
-              class="etat__table-wrap"
-              tabindex="0"
-              role="region"
-              aria-label="Tableau des candidatures, défilement horizontal possible"
-            >
-              <table class="etat__table">
-                <caption>Progression des établissements — cohorte 2026–2027</caption>
-                <thead>
-                  <tr>
-                    <th class="etat__etablissement" scope="col" rowspan="2">
-                      Établissement
-                    </th>
-                    <th scope="colgroup" colspan="3">
-                      Étape 1 — Candidature
-                    </th>
-                    <th scope="colgroup" colspan="4">
-                      Étape 2 — Sélection & confirmation
-                    </th>
-                    <th scope="colgroup" colspan="3">
-                      Étapes 3 à 9 — Déploiement → Évaluation
-                    </th>
-                  </tr>
-                  <tr>
-                    {colonnes.map((titre) => (
-                      <th scope="col">{titre}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {etat.lignes.length === 0 && (
-                    <tr>
-                      <td colspan="11">Aucun dossier dans cette cohorte.</td>
-                    </tr>
-                  )}
-                  {etat.lignes.map((ligne) => (
-                    <tr class:list={[ligne.aVerifier && 'is-a-verifier']}>
-                      <th scope="row">
-                        <span class="etat__nom">{ligne.etablissement}</span>
-                        <span class="etat__meta">
-                          {[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </span>
-                        {ligne.aVerifier && (
-                          <span class="etat__verification">Dossier à rapprocher</span>
-                        )}
-                      </th>
-                      {ligne.progression.map((cellule, index) => (
-                        <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`]}>
-                          <span aria-hidden="true">
-                            {cellule.etat === 'fait'
-                              ? '✓'
-                              : cellule.etat === 'en-cours'
-                                ? '◔'
-                                : cellule.etat === 'abandon'
-                                  ? '×'
-                                  : '—'}
-                          </span>
-                          <span class="etat__mobile-label">{colonnes[index]}</span>
-                          <small>{cellule.texte}</small>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
         </>
       )
     }
@@ -652,6 +575,15 @@ const colonnes = [
   .etat__table tbody tr.is-a-verifier {
     box-shadow: inset 0.3rem 0 var(--orange);
   }
+  .etat__table td.etat__piece-recue {
+    background: #c8e6d2;
+    color: #111;
+  }
+  .etat__table tbody tr.is-abandon > th,
+  .etat__table tbody tr.is-abandon > td {
+    background: #f4cccc;
+    color: #111;
+  }
   .etat__nom,
   .etat__meta,
   .etat__table small {
@@ -688,12 +620,16 @@ const colonnes = [
   .etat__operations,
   .etat__dossiers {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-lie);
     min-width: 0;
   }
   .etat__operations {
     margin-block: var(--s-titre);
     scroll-margin-top: 1rem;
+  }
+  .etat__progression {
+    min-width: 0;
   }
   .etat__filtres {
     display: flex;

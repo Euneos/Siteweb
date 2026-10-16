@@ -587,6 +587,25 @@ export function dateFormationFr(date: string | null): string {
   return !date ? 'Non renseignée' : isoDate(date) ? dateFr(date) : 'Date invalide · à vérifier'
 }
 
+/** Visual milestone only: never rewrite a decision or claim an email was sent. */
+export function etapeEnVert(ligne: EtatCandidature, index: number): boolean {
+  if (statutCandidature(ligne.statut).code === 'Abandonne') return false
+  if (index === 4) return ligne.lettreSignee
+  if (index === 5) return ligne.ficheContactRecue
+  return index < 4 && ligne.lettreSignee && ligne.ficheContactRecue &&
+    !candidatureArretee(ligne.statut)
+}
+
+export function trierProgression(lignes: EtatCandidature[]): EtatCandidature[] {
+  return [...lignes].sort((a, b) => {
+    const abandon = Number(statutCandidature(a.statut).code === 'Abandonne') -
+      Number(statutCandidature(b.statut).code === 'Abandonne')
+    const pieces = Number(etapeEnVert(b, 0)) - Number(etapeEnVert(a, 0))
+    return abandon || pieces || (a.dateCandidature || '9999').localeCompare(b.dateCandidature || '9999') ||
+      a.etablissement.localeCompare(b.etablissement, 'fr') || a.id - b.id
+  })
+}
+
 export function selectionnerDossiers(
   lignes: EtatCandidature[],
   filtre = 'tous',
@@ -610,6 +629,9 @@ export function selectionnerDossiers(
             : true,
     )
     .sort((a, b) => {
+      const abandon = Number(statutCandidature(a.statut).code === 'Abandonne') -
+        Number(statutCandidature(b.statut).code === 'Abandonne')
+      if (abandon) return abandon
       if (tri !== 'nom') {
         const da = isoDate(a.dateDebutFormation) ? a.dateDebutFormation : '9999'
         const db = isoDate(b.dateDebutFormation) ? b.dateDebutFormation : '9999'
