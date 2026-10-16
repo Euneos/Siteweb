@@ -606,6 +606,11 @@ export function trierProgression(lignes: EtatCandidature[]): EtatCandidature[] {
   })
 }
 
+export function filtrerEtablissements(lignes: EtatCandidature[], recherche: string): EtatCandidature[] {
+  const mots = normaliser(recherche).split(/\s+/).filter(Boolean)
+  return lignes.filter(ligne => mots.every(mot => normaliser(ligne.etablissement).includes(mot)))
+}
+
 export function selectionnerDossiers(
   lignes: EtatCandidature[],
   filtre = 'tous',

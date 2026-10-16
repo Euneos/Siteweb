@@ -1,8 +1,8 @@
 ---
 import { etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
 import { statutCandidature } from '../lib/statut-candidature'
-interface Props { lignes: EtatCandidature[]; colonnes: string[] }
-const { lignes, colonnes } = Astro.props
+interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string }
+const { lignes, colonnes, recherche = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes)
 ---
 
@@ -31,7 +31,7 @@ const progressionAffichee = trierProgression(lignes)
         <tr>{colonnes.map(titre => <th scope="col">{titre}</th>)}</tr>
       </thead>
       <tbody>
-        {lignes.length === 0 && <tr><td colspan="11">Aucun dossier dans cette cohorte.</td></tr>}
+        {lignes.length === 0 && <tr><td colspan="11">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
           <tr class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">

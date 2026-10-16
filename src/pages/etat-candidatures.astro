@@ -12,6 +12,7 @@ import {
   lireEtatCohorte,
   selectionnerDossiers,
   dateFormationFr,
+  filtrerEtablissements,
   type EtatCohorte,
 } from '../lib/etat-candidatures'
 
@@ -63,7 +64,9 @@ const tri = Astro.url.searchParams.get('tri') === 'nom' ? 'nom' : 'debut'
 const statutDemande = Astro.url.searchParams.get('statut') ?? ''
 const statut =
   estCodeStatutCandidature(statutDemande) || statutDemande === 'historique' ? statutDemande : ''
-const dossiersAffiches = selectionnerDossiers(etat?.lignes ?? [], filtre, tri, statut)
+const nomRecherche = (Astro.url.searchParams.get('nom') ?? '').trim().slice(0, 120)
+const dossiersParNom = filtrerEtablissements(etat?.lignes ?? [], nomRecherche)
+const dossiersAffiches = selectionnerDossiers(dossiersParNom, filtre, tri, statut)
 const dossiersDatesAConfirmer = selectionnerDossiers(etat?.lignes ?? [], 'dates').length
 const colonnes = [
   'Candidature reçue',
@@ -187,6 +190,25 @@ const colonnes = [
             </p>
           )}
 
+          <section id="suivi" class="etat__suivi" aria-label="Tableau de suivi des établissements">
+            <form class="etat__filtres" method="get" action="#suivi" role="search">
+              <label>
+                Nom de l’établissement
+                <input type="search" name="nom" value={nomRecherche} maxlength="120" placeholder="Ex. : Victor Hugo" />
+              </label>
+              <input type="hidden" name="statut" value={statut} />
+              <input type="hidden" name="filtre" value={filtre} />
+              <input type="hidden" name="tri" value={tri} />
+              <button class="iw-button" type="submit">Filtrer par nom</button>
+              {nomRecherche && <a href={`/etat-candidatures?${new URLSearchParams({ statut, filtre, tri })}#suivi`}>Effacer la recherche</a>}
+            </form>
+            <p class="etat__legende">
+              {dossiersParNom.length} établissement(s) dans le tableau sur {etat.lignes.length}.
+              {nomRecherche && <> Recherche : « {nomRecherche} ».</>}
+            </p>
+            <ProgressionEtablissements lignes={dossiersParNom} colonnes={colonnes} recherche={nomRecherche} />
+          </section>
+
           <section id="formations" class="etat__operations" aria-labelledby="titre-formations">
             <div>
               <h2 id="titre-formations">Préparer les formations</h2>
@@ -196,6 +218,7 @@ const colonnes = [
               </p>
             </div>
             <form class="etat__filtres" method="get" action="#formations">
+              {nomRecherche && <input type="hidden" name="nom" value={nomRecherche} />}
               <label>
                 Statut de candidature
                 <select name="statut">
@@ -252,7 +275,6 @@ const colonnes = [
                 qu’aucun démarrage n’est prévu.
               </p>
             )}
-            <ProgressionEtablissements lignes={etat.lignes} colonnes={colonnes} />
             <div class="etat__dossiers">
               {dossiersAffiches.map((ligne) => (
                 <article class="etat__dossier" aria-labelledby={`dossier-${ligne.id}`}>
@@ -618,13 +640,15 @@ const colonnes = [
     white-space: nowrap;
   }
   .etat__operations,
+  .etat__suivi,
   .etat__dossiers {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s-lie);
     min-width: 0;
   }
-  .etat__operations {
+  .etat__operations,
+  .etat__suivi {
     margin-block: var(--s-titre);
     scroll-margin-top: 1rem;
   }
@@ -647,7 +671,8 @@ const colonnes = [
     min-width: 0;
     font-size: var(--t-note);
   }
-  .etat__filtres select {
+  .etat__filtres select,
+  .etat__filtres input[type='search'] {
     width: 100%;
     min-height: 44px;
     padding: 0.5rem;

@@ -112,7 +112,7 @@ for (const table of ['mzbpzuikti6h3pz', 'mblganql53o34gm']) {
 }
 failTable = null
 const filtered = {}
-for (const query of ['?filtre=bientot', '?filtre=dates', '?filtre=sans-date', '?tri=nom'])
+for (const query of ['?filtre=bientot', '?filtre=dates', '?filtre=sans-date', '?tri=nom', '?nom=COLLEGE+DEMONSTRATION', '?nom=introuvable'])
   filtered[query] = await (await render(env, jwt, query)).text()
 assert.match(filtered['?filtre=bientot'], /1 dossier\(s\) affiché\(s\)/)
 assert.match(filtered['?filtre=dates'], /1 dossier\(s\) affiché\(s\)/)
@@ -233,6 +233,7 @@ try {
     assert.equal(await uncertain.getByText('Début dans les 30 jours', { exact: true }).count(), 0)
     assert(await tab.locator('.etat__progression').evaluate(el => el.open), 'Tableau ouvert dès le chargement')
     assert(await tab.locator('.etat__progression').evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('.etat__dossiers')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Tableau avant les fiches détaillées')
+    assert(await tab.locator('.etat__progression').evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('#formations')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Préparer les formations après le tableau')
     assert.equal(
       await tab
         .getByRole('link', { name: '1 dossier aux dates à confirmer', exact: true })
@@ -273,6 +274,22 @@ try {
     console.log(`Tableau compilé : ${width}px OK`)
   }
   await tab.setViewportSize({ width: 390, height: 1000 })
+  await tab.goto(`http://127.0.0.1:${server.port}/`)
+  await tab.getByRole('searchbox', { name: 'Nom de l’établissement', exact: true }).fill('COLLEGE DEMONSTRATION')
+  await tab.getByRole('button', { name: 'Filtrer par nom', exact: true }).click()
+  await tab.waitForURL(url => url.searchParams.get('nom') === 'COLLEGE DEMONSTRATION')
+  assert.equal(await tab.locator('.etat__table tbody tr').count(), 1, 'Recherche partielle sans accents dans le tableau')
+  assert.equal(await tab.locator('.etat__dossier').count(), 1, 'Recherche appliquée aux fiches')
+  assert.equal(await tab.locator('#formations input[name="nom"]').inputValue(), 'COLLEGE DEMONSTRATION', 'Recherche conservée dans les filtres de formation')
+  await tab.getByRole('searchbox').fill('introuvable')
+  await tab.getByRole('button', { name: 'Filtrer par nom', exact: true }).click()
+  await tab.waitForURL(url => url.searchParams.get('nom') === 'introuvable')
+  assert(await tab.getByText('Aucun établissement ne correspond à cette recherche.').isVisible())
+  assert.equal(await tab.locator('.etat__dossier').count(), 0)
+  await tab.getByRole('link', { name: 'Effacer la recherche', exact: true }).click()
+  await tab.waitForURL(url => !url.searchParams.has('nom'))
+  assert.equal(await tab.locator('.etat__table tbody tr').count(), 3)
+  console.log('Recherche par nom sans accents, aucun résultat, effacement et ordre des rubriques : OK')
   await tab.goto(`http://127.0.0.1:${server.port}/status-demo`)
   const statusSelect = tab.getByRole('combobox', { name: 'Statut de candidature' })
   assert.deepEqual(await statusSelect.locator('option').evaluateAll((options) => options.map((o) => [o.value, o.textContent.trim()])), [
