@@ -206,7 +206,7 @@ const colonnes = [
               {dossiersParNom.length} établissement(s) dans le tableau sur {etat.lignes.length}.
               {nomRecherche && <> Recherche : « {nomRecherche} ».</>}
             </p>
-            <ProgressionEtablissements lignes={dossiersParNom} colonnes={colonnes} recherche={nomRecherche} />
+            <ProgressionEtablissements lignes={dossiersParNom} colonnes={colonnes} recherche={nomRecherche} viewerEmail={identity.email} />
           </section>
 
           <section id="formations" class="etat__operations" aria-labelledby="titre-formations">
@@ -629,6 +629,15 @@ const colonnes = [
   .etat__centre {
     text-align: center !important;
   }
+  .etat__dernier-contact {
+    min-width: 13rem;
+    overflow-wrap: anywhere;
+  }
+  .etat__dernier-contact a {
+    display: inline-block;
+    padding-block: 0.6rem;
+    text-decoration: underline;
+  }
   .etat__verification {
     display: inline-block;
     margin-top: 0.5rem;
@@ -869,6 +878,13 @@ const colonnes = [
     .etat__table small {
       grid-column: 2;
       opacity: 1;
+    }
+    .etat__table td.etat__dernier-contact {
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
+    }
+    .etat__table td.etat__dernier-contact > * {
+      grid-column: 1;
     }
   }
 </style>

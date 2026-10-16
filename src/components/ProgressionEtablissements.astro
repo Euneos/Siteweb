@@ -1,8 +1,9 @@
 ---
 import { etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
 import { statutCandidature } from '../lib/statut-candidature'
-interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string }
-const { lignes, colonnes, recherche = '' } = Astro.props
+import { lienDernierContact, dateContactFr } from '../lib/dernier-contact'
+interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
+const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes)
 ---
 
@@ -18,12 +19,19 @@ const progressionAffichee = trierProgression(lignes)
     suivis des dossiers à compléter. Rouge : abandon enregistré, placé en fin de tableau.
   </p>
   <p class="etat__scroll-aide">Faites défiler le tableau horizontalement pour consulter les dix étapes.</p>
+  <p class="etat__legende">
+    Dernier contact / relance : dernier e-mail envoyé retrouvé dans la boîte de Charlotte,
+    y compris les envois collectifs et les échanges avec les formateurs concernant le dossier.
+    La date de vérification indique la dernière consultation de la messagerie, sans synchronisation automatique.
+    « Voir le mail » ouvre le webmail de Charlotte ; un message déplacé peut nécessiter une nouvelle recherche.
+  </p>
   <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures, défilement horizontal possible">
     <table class="etat__table">
       <caption>Progression des établissements — cohorte 2026–2027</caption>
       <thead>
         <tr>
           <th class="etat__etablissement" scope="col" rowspan="2">Établissement</th>
+          <th scope="col" rowspan="2">Dernier contact / relance</th>
           <th scope="colgroup" colspan="3">Étape 1 — Candidature</th>
           <th scope="colgroup" colspan="4">Étape 2 — Sélection & confirmation</th>
           <th scope="colgroup" colspan="3">Étapes 3 à 9 — Déploiement → Évaluation</th>
@@ -31,7 +39,7 @@ const progressionAffichee = trierProgression(lignes)
         <tr>{colonnes.map(titre => <th scope="col">{titre}</th>)}</tr>
       </thead>
       <tbody>
-        {lignes.length === 0 && <tr><td colspan="11">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier dans cette cohorte.'}</td></tr>}
+        {lignes.length === 0 && <tr><td colspan="12">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
           <tr class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
@@ -40,6 +48,22 @@ const progressionAffichee = trierProgression(lignes)
               <span class="etat__meta">{statutCandidature(ligne.statut).label}</span>
               {ligne.aVerifier && <span class="etat__verification">Dossier à rapprocher</span>}
             </th>
+            <td class="etat__dernier-contact">
+              <span class="etat__mobile-label">Dernier contact / relance</span>
+              {ligne.dernierContact?.status === 'found' ? (
+                <>
+                  <time datetime={ligne.dernierContact.sentAt}>{dateContactFr(ligne.dernierContact.sentAt!)}</time>
+                  <small>{ligne.dernierContact.via === 'formateur' ? 'Échange avec le formateur' : ligne.dernierContact.via === 'collectif' ? 'Envoi collectif' : 'E-mail à l’établissement'}</small>
+                  <small>{ligne.dernierContact.subject}</small>
+                  {lienDernierContact(ligne.dernierContact, viewerEmail) ? (
+                    <a href={lienDernierContact(ligne.dernierContact, viewerEmail)!} target="_blank" rel="noopener noreferrer">Voir le mail</a>
+                  ) : <small>Message dans la boîte de Charlotte</small>}
+                </>
+              ) : (
+                <span>{ligne.dernierContact?.status === 'ambiguous' ? 'À vérifier : contact partagé entre établissements' : ligne.dernierContact?.status === 'not_found' ? 'Aucun envoi retrouvé' : 'Messagerie non vérifiée'}</span>
+              )}
+              {ligne.dernierContact && <small>Vérifié le {dateContactFr(ligne.dernierContact.checkedAt)}</small>}
+            </td>
             {ligne.progression.map((cellule, index) => (
               <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, etapeEnVert(ligne, index) && 'etat__piece-recue']}>
                 <span aria-hidden="true">{cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
