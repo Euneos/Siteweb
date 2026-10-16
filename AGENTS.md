@@ -435,7 +435,7 @@ contre 53 px après Candice. Toujours mesurer les limites visibles des ensembles
 
 1. `bun run test` : vérifie les trois profils de newsletter avec Brevo simulé, sans email.
 2. `bun run build` : vérification Astro et compilation.
-3. Démarrer le site compilé : `bunx wrangler pages dev dist --port 4321`.
+3. Démarrer le site compilé : `bun run preview:cloudflare` (Node.js 22 installé et accessible dans le `PATH`). Wrangler ne prend pas en charge le moteur Bun ; cette commande force Node.js et évite les blocages de prévisualisation.
 4. `bun run test:layout` : contrôle à 320, 390, 768, 860, 861, 1024 et 1440 px,
    ouverts/fermés, touches Entrée, flèches de carrousel, débordements et chevauchements.
    Installer Chromium au besoin : `bunx playwright install chromium`.

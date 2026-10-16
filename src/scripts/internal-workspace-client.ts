@@ -596,6 +596,16 @@ function initCalendar(root: HTMLElement) {
       const person = node('span', 'iw-entry__person', entry.kind === 'editorial' ? personName(entry.person) : '')
       if (entry.daily_hours) {
         const rows = parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)!
+        if (entry.kind === 'equipe') {
+          for (const day of rows) {
+            const absence = ['absence', 'conge'].includes(entry.attendance)
+            const state = absence ? 'absence' : day.actual !== null ? 'realise' : 'prevu'
+            const label = absence ? 'Absence' : day.actual !== null ? 'Réalisé' : 'Prévu'
+            const chip = node('span', 'iw-attendance-chip', `${dateFormat.format(dateObject(day.date))} · ${label}${absence ? '' : ` · ${hours(day.actual ?? day.planned!)}`}`)
+            chip.dataset.attendanceState = state
+            text.append(chip)
+          }
+        }
         person.append(
           node(
             'span',
@@ -605,6 +615,12 @@ function initCalendar(root: HTMLElement) {
         )
       } else if (entry.hours !== null)
         person.append(node('span', 'iw-entry__details', hours(entry.hours)))
+      if (entry.kind === 'equipe' && !entry.daily_hours && (['absence', 'conge'].includes(entry.attendance) || entry.hours !== null)) {
+        const absence = ['absence', 'conge'].includes(entry.attendance)
+        const chip = node('span', 'iw-attendance-chip', absence ? 'Absence' : 'Réalisé')
+        chip.dataset.attendanceState = absence ? 'absence' : 'realise'
+        text.append(chip)
+      }
       open.append(node('span', 'iw-entry__date', dateRange(entry)), text, person)
       if (entry.kind === 'editorial') open.append(badge(entry))
       open.setAttribute(
@@ -688,6 +704,16 @@ function initCalendar(root: HTMLElement) {
         const event = button('', () => openEditor(entry), 'iw-event')
         event.dataset.entryId = entry.id
         if (entry.kind === 'equipe') event.dataset.attendance = entry.attendance
+        const dayHours = entry.daily_hours
+          ? parseDailyHours(entry.daily_hours, entry.starts_on, entry.ends_on)?.find(row => row.date === date)
+          : null
+        const attendanceState = entry.kind !== 'equipe' ? ''
+          : ['absence', 'conge'].includes(entry.attendance) ? 'absence'
+          : (dayHours ? dayHours.actual !== null : entry.hours !== null) ? 'realise'
+          : dayHours?.planned !== null && dayHours?.planned !== undefined ? 'prevu'
+          : ''
+        const attendanceLabel = { realise: 'Réalisé', prevu: 'Prévu', absence: 'Absence', '': '' }[attendanceState]
+        if (attendanceState) event.dataset.attendanceState = attendanceState
         if (entry.kind === 'editorial') {
           event.dataset.status = entry.status
           event.draggable = true
@@ -716,7 +742,7 @@ function initCalendar(root: HTMLElement) {
             'span',
             'iw-event__meta',
             [
-              entry.kind === 'equipe' ? attendanceLabels[entry.attendance] : personName(entry.person),
+              entry.kind === 'equipe' ? attendanceLabel || attendanceLabels[entry.attendance] : personName(entry.person),
               entry.kind === 'editorial' ? statuses[entry.status] ?? entry.status : '',
               entry.kind === 'editorial' ? entry.channel : entry.activity,
               entry.daily_hours
@@ -732,7 +758,7 @@ function initCalendar(root: HTMLElement) {
                         : '',
                       day.actual !== null
                         ? `${hours(day.actual)} réalisées`
-                        : 'Réalisé non renseigné',
+                        : day.planned !== null ? `${hours(day.planned)} prévues` : 'Réalisé non renseigné',
                     ]
                       .filter(Boolean)
                       .join(' · ')
@@ -747,7 +773,7 @@ function initCalendar(root: HTMLElement) {
         )
         event.setAttribute(
           'aria-label',
-          `Ouvrir ${entry.kind === 'equipe' ? personName(entry.person) : entry.title}, ${longDateFormat.format(dateObject(date))}, ${personName(entry.person)}${entry.kind === 'editorial' ? `, ${statuses[entry.status] ?? entry.status}` : ''}`,
+          `Ouvrir ${entry.kind === 'equipe' ? personName(entry.person) : entry.title}, ${longDateFormat.format(dateObject(date))}, ${personName(entry.person)}${entry.kind === 'editorial' ? `, ${statuses[entry.status] ?? entry.status}` : attendanceLabel ? `, ${attendanceLabel}` : ''}`,
         )
         events.append(event)
       })

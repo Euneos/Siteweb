@@ -7,6 +7,7 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
+    "preview:cloudflare": "node node_modules/wrangler/bin/wrangler.js pages dev dist --port 4321",
     "format": "prettier --write '**/*' --ignore-unknown",
     "test": "bun test tests",
     "test:newsletter": "bun scripts/check-newsletter.mjs",

@@ -1313,6 +1313,31 @@ try {
     await page.locator('#task-cancel').click()
   }
   checks.push('task-roles-shared-edit-drag-owner-contributor-status-conflict')
+  // A mixed fiche must use each day's hours, not the fiche's total or today's date.
+  for (const entry of [
+    baseEntry({ title: 'Charlotte', person: 'charlotte@euneos.fr', starts_on: '2026-11-02', ends_on: '2026-11-03', daily_hours: JSON.stringify([
+      { date: '2026-11-02', planned: 7, actual: 7 },
+      { date: '2026-11-03', planned: 3.5, actual: null },
+    ]) }),
+    baseEntry({ title: 'Charlotte', person: 'charlotte@euneos.fr', starts_on: '2026-11-05', ends_on: '2026-11-05', attendance: 'absence', hours: null }),
+  ]) assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId: crypto.randomUUID(), entry })).status, 201)
+  await page.goto(`${origin}/interne`)
+  await page.locator('[data-kind="equipe"]').click()
+  await page.locator('#iw-month').fill('2026-11')
+  await page.locator('#iw-month').press('Tab')
+  await expect(page.locator('#iw-result-count')).toContainText('novembre 2026')
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    for (const [state, color, label] of [['realise', 'rgb(0, 56, 45)', 'Réalisé'], ['prevu', 'rgb(248, 199, 2)', 'Prévu'], ['absence', 'rgb(242, 179, 240)', 'Absence']]) {
+      const item = page.locator(`${width === 390 ? '.iw-attendance-chip' : '.iw-event'}[data-attendance-state="${state}"]`).first()
+      await expect(item).toBeVisible()
+      await expect(item).toHaveCSS('background-color', color)
+      await expect(item).toContainText(label)
+    }
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.screenshot({ path: `${output}/couleurs-equipe-${width}.png`, fullPage: true })
+  }
+  checks.push('team-daily-colors-brand-mobile-desktop')
   assert.deepEqual(errors, [])
   await writeFile(
     `${output}/result.json`,
