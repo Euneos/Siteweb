@@ -2,7 +2,7 @@
 import { etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
 import { statutCandidature } from '../lib/statut-candidature'
 import { lienDernierContact, dateContactFr } from '../lib/dernier-contact'
-import { pointSituation } from '../lib/point-situation'
+import { pointSituation, situationCourante } from '../lib/point-situation'
 interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes)
@@ -63,6 +63,10 @@ const progressionAffichee = trierProgression(lignes)
             <td class="etat__situation">
               <span class="etat__mobile-label">Point de situation</span>
               <span>{pointSituation(ligne)}</span>
+              {situationCourante(ligne) && <small>
+                {situationCourante(ligne)!.sourceKind === 'echange-interne' ? 'Point interne du ' : 'Mail envoyé le '}
+                {dateContactFr(situationCourante(ligne)!.sourceAt)}
+              </small>}
             </td>
             <td class="etat__dernier-contact">
               <span class="etat__mobile-label">Dernier contact / relance</span>

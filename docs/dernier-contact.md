@@ -31,5 +31,16 @@ autres membres voient la date et l'objet, avec « Message dans la boîte de Char
 Le webmail demande sa propre connexion. Un déplacement du mail nécessite de
 retrouver son UID et dossier actuels à partir du Message-ID.
 
+## Point de situation issu des échanges
+
+Un résumé relu peut être conservé séparément dans `[EUNEOS_SITUATION_V1]` /
+`[/EUNEOS_SITUATION_V1]` : `version: 1`, `text`, `checkedAt`, `sourceAt`,
+`sourceKind` (`mail-envoye` ou `echange-interne`) et `sourceMessageIds` (1 à 5).
+Les dates sont ISO UTC. Ce bloc remplace le résumé automatique pour le dossier,
+avec la date de la source affichée. Un abandon/refus reste prioritaire ; un
+nouvel envoi postérieur au résumé rétablit le résumé automatique jusqu’à relecture.
+Un échange interne ne remplace pas la date du dernier contact extérieur.
+Les brouillons ne sont ni des envois ni des relances en retard : ne pas les importer.
+
 Contrôles : `bun test tests/dernier-contact.test.ts`, compilation, puis
 `bun scripts/check-internal-table.mjs` pour les colonnes et le rendu mobile.
