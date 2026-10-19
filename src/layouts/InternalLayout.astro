@@ -16,8 +16,9 @@ interface Props {
     | 'reponses-google'
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
+  wide?: boolean
 }
-const { title, current, identity, teamAccess = true } = Astro.props
+const { title, current, identity, teamAccess = true, wide = false } = Astro.props
 const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
 ---
 
@@ -125,7 +126,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
         <a class="iw-nav__public" href="/">Voir le site <span aria-hidden="true">↗</span></a>
       </div>
     </nav>
-    <main id="main" class="iw-main" tabindex="-1">
+    <main id="main" class:list={['iw-main', wide && 'iw-main--wide']} tabindex="-1">
       {
         preview && (
           <aside class="iw-feedback" aria-label="Espace d’essai">
@@ -658,6 +659,31 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
   .iw-event[data-attendance='conge'] {
     border-color: #e8833a;
     background: #fde8d4;
+  }
+  .iw-attendance-chip {
+    display: inline-block;
+    padding: 0.25rem 0.45rem;
+    margin: 0.25rem 0.25rem 0 0;
+    border-radius: 2px;
+    font-size: var(--iw-small);
+  }
+  .iw-attendance-chip[data-attendance-state='realise'],
+  .iw-event[data-attendance-state='realise'] {
+    border-color: var(--vert);
+    background: var(--vert);
+    color: #fff;
+  }
+  .iw-attendance-chip[data-attendance-state='prevu'],
+  .iw-event[data-attendance-state='prevu'] {
+    border-color: var(--jaune);
+    background: var(--jaune);
+    color: #000;
+  }
+  .iw-attendance-chip[data-attendance-state='absence'],
+  .iw-event[data-attendance-state='absence'] {
+    border-color: var(--rose);
+    background: var(--rose);
+    color: #000;
   }
   .iw-event[data-status='brouillon'] {
     border-color: #78877f;

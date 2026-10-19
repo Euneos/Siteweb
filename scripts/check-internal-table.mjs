@@ -17,6 +17,12 @@ const env = {
   INTERNAL_ACCESS_AUD: 'fixture-app',
   NOCODB_TOKEN: 'synthetic-token',
 }
+tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_LAST_CONTACT_V1]\n' + JSON.stringify({
+  version: 1, account: 'charlotte@euneos.fr', checkedAt: '2026-09-22T12:00:00.000Z', status: 'found',
+  sentAt: '2026-09-21T10:00:00.000Z', subject: 'Relance de démonstration',
+  mailbox: 'Sent', uid: 42, messageId: '<fixture-42@example.test>', via: 'etablissement',
+  body: 'DO-NOT-EXPOSE-EMAIL-BODY',
+}) + '\n[/EUNEOS_LAST_CONTACT_V1]'
 const jwt = await new SignJWT({ email: 'member@example.test' })
   .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
   .setSubject('fixture-user')
@@ -87,6 +93,16 @@ assert.match(html, /Envoi non documenté/)
 assert.doesNotMatch(html, /synthetic-token/)
 assert.doesNotMatch(html, /ARCHIVE-NON-COURANTE/)
 assert.match(html, /member@example.test/)
+assert.match(html, /Relance de démonstration/)
+assert.doesNotMatch(html, /webmail\.viaduc\.fr|DO-NOT-EXPOSE-EMAIL-BODY/)
+const ownerJwt = await new SignJWT({ email: 'Charlotte@euneos.fr' })
+  .setProtectedHeader({ alg: 'RS256', kid: 'test-key' }).setSubject('owner-fixture')
+  .setAudience(env.INTERNAL_ACCESS_AUD).setIssuer(`https://${env.INTERNAL_ACCESS_DOMAIN}`)
+  .setExpirationTime('10y').sign(privateKey)
+const ownerHtml = await (await render(env, ownerJwt)).text()
+assert.match(ownerHtml, /https:\/\/webmail\.viaduc\.fr\/\?/)
+assert.match(ownerHtml, /_uid=42/)
+assert.doesNotMatch(ownerHtml, /DO-NOT-EXPOSE-EMAIL-BODY/)
 assert.match(html, /Participants recensés/)
 assert.match(html, /débuts dans les 30 jours · dates cohérentes/)
 assert.match(html, /1 dossier aux\s+dates à confirmer/)
@@ -242,8 +258,26 @@ try {
     )
     assert.equal(await tab.locator('thead tr').count(), 2)
     assert.equal(await tab.locator('thead tr').last().locator('th').count(), 10)
-    assert.equal(await tab.locator('tbody tr').first().locator('td').count(), 10)
-    if (width <= 860) assert.equal(await tab.locator('.etat__mobile-label:visible').count(), 30)
+    assert.equal(await tab.locator('tbody tr').first().locator('td').count(), 12)
+    if (width <= 860) assert.equal(await tab.locator('.etat__mobile-label:visible').count(), 36)
+    if (width <= 860) {
+      assert(await tab.locator('.etat__dernier-contact .etat__mobile-label').first().evaluate(el => el.getBoundingClientRect().width > 150), 'Libellé du dernier contact lisible sur mobile')
+    }
+    assert(await tab.locator('.etat__table-wrap').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Toutes les colonnes tiennent sans défilement horizontal à ${width}px`)
+    assert(await tab.locator('.etat__situation').first().innerText(), 'Résumé présent')
+    await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
+    assert(await tab.getByRole('dialog').isVisible())
+    assert.equal(await tab.locator('.etat__table').count(), 1, 'Une seule table, sans duplication des dossiers')
+    assert(await tab.getByRole('dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Vue agrandie sans débordement à ${width}px`)
+    assert(await tab.locator('.etat__table-wrap').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Tableau agrandi sans défilement horizontal à ${width}px`)
+    await tab.keyboard.press('Escape')
+    assert(!await tab.getByRole('dialog').isVisible())
+    assert(await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).evaluate(el => document.activeElement === el), 'Retour du focus après Échap')
+    await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
+    if ([390, 1440].includes(width)) await tab.screenshot({ path: `${output}/suivi-agrandi-${width}.png` })
+    await tab.getByRole('button', { name: 'Fermer la vue agrandie', exact: true }).click()
+    await tab.locator('[data-suivi-inline] .etat__table').waitFor({ state: 'visible' })
+    assert.equal(await tab.locator('[data-suivi-inline] .etat__table').count(), 1, 'Tableau restauré dans la page')
     if ([390, 1440].includes(width)) {
       await tab.evaluate(() => window.scrollTo(0, 0))
       await tab.screenshot({ path: `${output}/page-${width}.png` })

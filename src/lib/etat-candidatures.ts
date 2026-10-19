@@ -1,5 +1,7 @@
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
+import { lireDernierContact, type DernierContact } from './dernier-contact'
+import { lireSituationVerifiee, type SituationVerifiee } from './point-situation'
 import { candidatureArretee, statutCandidature, sourceStatutDossier } from './statut-candidature'
 
 const API = 'https://app.nocodb.com/api/v2'
@@ -67,6 +69,8 @@ export interface EtatCandidature {
   commenceBientot: boolean
   aVerifier: boolean
   progression: Indicateur[]
+  dernierContact: DernierContact | null
+  situationVerifiee: SituationVerifiee | null
 }
 
 export interface Indicateur {
@@ -332,6 +336,8 @@ export async function lireEtatCohorte(
           !anomaliesDates.length &&
           commenceDans30Jours(participation, maintenant),
         progression: progression(participation, missionsDossier),
+        dernierContact: lireDernierContact(participation.notes),
+        situationVerifiee: lireSituationVerifiee(participation.notes),
         aVerifier:
           !etablissement ||
           (etablissementId !== null && (occurrences.get(etablissementId) ?? 0) > 1),
