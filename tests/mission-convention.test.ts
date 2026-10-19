@@ -44,6 +44,9 @@ describe('convention de mission privée', () => {
     const year2Text = contractText(parsedYear2,'Direction',300).join('\n')
     expect(year2Text).toContain('Animation des ateliers jeunes année 2 : 8 h')
     expect(year2Text).toContain('TOTAL PRÉVISIONNEL : 300 €')
+    expect(year2Text).not.toContain('animer les 16 heures prévues')
+    expect(year2Text).not.toContain('l’exécution complète des 16 heures')
+    expect(year2Text).toContain('animer le volume prévu pour chaque mission à l’article 3')
     expect(() => parseMissionPayload({...year2,missions:[{...year2.missions[0],volume:16}]})).toThrow()
     expect(() => parseMissionPayload({...year2,missions:[{...year2.missions[0],volume:10}]})).toThrow()
     for (const durations of [[3,3,3,3,4], [1.5,2.5,3,4,5], [8,8], Array(16).fill(1)]) {

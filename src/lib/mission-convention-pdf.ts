@@ -78,7 +78,11 @@ export function contractText(input: MissionPayload, representative: string, case
     `POUR EUNEOS — ${representative}. Date : ______________. Mention : « Bon pour accord ». Signature :`,
     `LE/LA FORMATEUR·RICE — ${data.nom}. Date : ______________. Mention : « Lu et approuvé — Bon pour accord ». Signature :`,
   ]
-  return sections.filter(Boolean)
+  return sections.filter(Boolean).map(text => year2
+    ? text.replace('animer les 16 heures prévues', 'animer le volume prévu pour chaque mission à l’article 3')
+      .replace('l’exécution complète des 16 heures', 'l’exécution complète du volume prévu pour chaque mission à l’article 3')
+      .replace('formation(s) de 16 h / intervention(s) complémentaire(s)', 'formation(s) de 16 h / parcours ateliers jeunes année 2 de 8 h / intervention(s) complémentaire(s)')
+    : text)
 }
 
 export async function generateContractPdf(data: MissionPayload, representative: string, case2Euros: number, fontBytes: ArrayBuffer | Uint8Array, fees?: string) {
