@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { PDFDocument } from 'pdf-lib'
 import { parseMissionPayload, submitConvention, getConvention, requestChanges, listConventions, normalizeStoredPayload, trainerAccountEmail } from '../src/lib/mission-convention'
 import { contractText, generateContractPdf } from '../src/lib/mission-convention-pdf'
+import { saveDraft, submitDraft, listDrafts } from '../src/lib/mission-convention-drafts'
 
 const owner = { email: 'formateur@example.test', admin: false }
 const admin = { email: 'candice@example.test', admin: true }
@@ -19,6 +20,7 @@ const payload = () => ({
 function fixture() {
   const sql = new Database(':memory:')
   sql.exec(readFileSync(new URL('../migrations/interne/0009_conventions_mission.sql', import.meta.url), 'utf8'))
+  sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql', 'utf8'))
   const db = {
     prepare: (query: string) => ({ bind: (...params: unknown[]) => ({
       run: async () => ({ meta: { changes: sql.query(query).run(...params as []).changes } }),
@@ -26,13 +28,50 @@ function fixture() {
       all: async <T>() => ({ results: sql.query(query).all(...params as []) as T[] }),
     }) }),
     batch: async (statements: { run: () => Promise<unknown> }[]) => {
-      throw new Error('Test de batch distinct')
+      sql.exec('BEGIN')
+      try { const results = []; for (const statement of statements) results.push(await statement.run()); sql.exec('COMMIT'); return results }
+      catch (error) { sql.exec('ROLLBACK'); throw error }
     },
   }
   return { sql, db: db as Parameters<typeof submitConvention>[0] }
 }
 
 describe('convention de mission privée', () => {
+  test('durées libres, fractions, formats courts et groupes distincts', () => {
+    const year2 = {...payload(),missions:[{...mission(),volume:8,cas1:'non',format:'presentiel',sessions:Array.from({length:8},()=>({date:'2027-01-12',duree:1,modalite:'presentiel'}))}]}
+    const parsedYear2 = parseMissionPayload(year2)
+    expect(parsedYear2.missions[0].volume).toBe(8)
+    const year2Text = contractText(parsedYear2,'Direction',300).join('\n')
+    expect(year2Text).toContain('Animation des ateliers jeunes année 2 : 8 h')
+    expect(year2Text).toContain('TOTAL PRÉVISIONNEL : 300 €')
+    expect(() => parseMissionPayload({...year2,missions:[{...year2.missions[0],volume:16}]})).toThrow()
+    expect(() => parseMissionPayload({...year2,missions:[{...year2.missions[0],volume:10}]})).toThrow()
+    for (const durations of [[3,3,3,3,4], [1.5,2.5,3,4,5], [8,8], Array(16).fill(1)]) {
+      const sessions = durations.map(duree => ({date:'2027-01-12',duree,modalite:'presentiel'}))
+      expect(parseMissionPayload({...payload(),missions:[{...mission(),format:'presentiel',sessions}]}).missions[0].sessions).toHaveLength(durations.length)
+    }
+    for (const duree of [0,-1,NaN,Infinity,17]) expect(() => parseMissionPayload({...payload(),missions:[{...mission(),sessions:[{date:'2027-01-12',duree,modalite:'presentiel'}]}]})).toThrow()
+    const groups = parseMissionPayload({...payload(),missions:[{...mission(),groupe:'Groupe 1'},{...mission(),groupe:'Groupe 2'}]})
+    expect(contractText(groups,'Direction',0).join('\n')).toContain('Collège fictif — Groupe 2')
+  })
+  test('brouillon incomplet, contrôle de version, soumission unique et conservation', async () => {
+    const {sql,db} = fixture()
+    const id = crypto.randomUUID()
+    const partial = {...payload(),structure:'',frais:'',missions:[{...mission(),sessions:[{date:'',duree:0,modalite:'presentiel'}],cas1:'',cas2:''}]}
+    const draft = await saveDraft(db,owner,admin,id,0,partial,'Dates à compléter')
+    expect(draft.revision).toBe(1)
+    expect(await listDrafts(db,{email:'autre@example.test',admin:false},false)).toHaveLength(0)
+    await expect(submitDraft(db,owner,id,1,partial)).rejects.toMatchObject({status:400})
+    await saveDraft(db,owner,owner,id,1,partial,'Note revue')
+    await expect(saveDraft(db,owner,owner,id,1,payload(),'')).rejects.toMatchObject({status:409})
+    const submitted = await submitDraft(db,owner,id,2,payload())
+    expect(submitted.state).toBe('submitted')
+    expect(await listDrafts(db,owner,false)).toHaveLength(0)
+    await expect(submitDraft(db,owner,id,2,payload())).rejects.toMatchObject({status:409})
+    expect((sql.query('SELECT COUNT(*) AS n FROM mission_conventions').get() as {n:number}).n).toBe(1)
+    expect((sql.query('SELECT COUNT(*) AS n FROM mission_convention_drafts').get() as {n:number}).n).toBe(1)
+    sql.close()
+  })
   test('validation serveur : calendrier de 16 h, hybride, établissements distincts et frais', () => {
     expect(trainerAccountEmail('FORMATEUR@example.test')).toBe(owner.email)
     expect(() => trainerAccountEmail('invalide')).toThrow()

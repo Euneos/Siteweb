@@ -32,6 +32,7 @@ function fixture() {
   const sql = new Database(':memory:')
   sql.exec(readFileSync('migrations/interne/0001_workspace.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0009_conventions_mission.sql','utf8'))
+  sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql','utf8'))
   const db = {
     prepare: (query: string) => ({bind:(...args: unknown[]) => ({
       all: async () => ({results:sql.query(query).all(...args as [])}),
@@ -50,6 +51,21 @@ function fixture() {
 }
 
 describe('convention et audience Ressources', () => {
+  test('brouillons privés : création direction, refus des autres comptes et soumission incomplète', async () => {
+    const {sql,locals,request} = fixture()
+    const id = crypto.randomUUID()
+    const url = '/api/interne/ressources?convention=1'
+    const teamUrl = '/api/interne/conventions-mission'
+    const body = { action:'save-draft', id, revision:0, ownerEmail:'formateur@example.test', note:'À compléter', payload:{...payload(),structure:'',missions:[{...payload().missions[0],sessions:[]}]}}
+    expect((await conventionPost({request:await request(teamUrl,'team','manager@example.test',body),locals} as never)).status).toBe(200)
+    const own = await (await resourceGet({request:await request(url,'trainers','formateur@example.test'),locals} as never)).json()
+    expect(own.drafts[0].id).toBe(id)
+    expect((await (await resourceGet({request:await request(url,'trainers','autre@example.test'),locals} as never)).json()).drafts).toEqual([])
+    expect((await resourcePost({request:await request(url,'trainers','autre@example.test',{...body,revision:1}),locals} as never)).status).toBe(404)
+    expect((await resourcePost({request:await request(url,'trainers','formateur@example.test',{...body,action:'submit-draft',revision:1}),locals} as never)).status).toBe(400)
+    expect((await conventionPost({request:await request(teamUrl,'team','collegue@example.test',{...body,id:crypto.randomUUID()}),locals} as never)).status).toBe(403)
+    sql.close()
+  })
   test('un formateur voit les ressources et sa convention, mais aucune action de l’équipe', async () => {
     const {sql,locals,request} = fixture()
     const url='/api/interne/ressources?convention=1'

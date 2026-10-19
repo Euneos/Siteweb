@@ -1,0 +1,84 @@
+import assert from 'node:assert/strict'
+import { readdir, readFile, mkdir } from 'node:fs/promises'
+import { Database } from 'bun:sqlite'
+import { App } from 'astro/app'
+import { generateKeyPair, exportJWK, SignJWT } from 'jose'
+import { chromium, expect } from '@playwright/test'
+
+// Compiled private page + real local SQL, synthetic accounts only.
+const output = process.env.CHECK_SCREENSHOTS
+if (output) await mkdir(output, { recursive: true })
+const sql = new Database(':memory:')
+for (const name of (await readdir('migrations/interne')).filter(n => n.endsWith('.sql')).sort()) sql.exec(await readFile(`migrations/interne/${name}`, 'utf8'))
+const db = {
+  batch: async statements => sql.transaction(() => statements.map(s => s.execute()))(),
+  prepare: query => ({ bind: (...values) => ({
+    first: async () => sql.query(query).get(...values),
+    all: async () => ({ results: sql.query(query).all(...values) }),
+    run: async () => ({ meta: { changes: sql.query(query).run(...values).changes } }),
+    execute: () => ({ meta: { changes: sql.query(query).run(...values).changes } }),
+  }) }),
+}
+const { publicKey, privateKey } = await generateKeyPair('RS256')
+const jwk = { ...await exportJWK(publicKey), kid: 'convention-local', alg: 'RS256', use: 'sig' }
+const env = { INTERNAL_ACCESS_DOMAIN:'convention-local.cloudflareaccess.com', INTERNAL_ACCESS_AUD:'team', RESOURCE_ACCESS_DOMAIN:'convention-local.cloudflareaccess.com', RESOURCE_ACCESS_AUD:'trainers', INTERNAL_ADMIN_EMAILS:'manager@example.test', TEAM_WORKSPACE:db }
+const token = await new SignJWT({ email:'trainer@example.test' }).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setSubject('synthetic').setAudience('trainers').setIssuer(`https://${env.INTERNAL_ACCESS_DOMAIN}`).setExpirationTime('30m').sign(privateKey)
+const originalFetch = globalThis.fetch
+globalThis.fetch = async url => {
+  assert.equal(String(url), `https://${env.INTERNAL_ACCESS_DOMAIN}/cdn-cgi/access/certs`)
+  return Response.json({keys:[jwk]})
+}
+const worker = new URL('../dist/_worker.js/', import.meta.url)
+const manifestName = (await readdir(worker)).find(n => n.startsWith('manifest_') && n.endsWith('.mjs'))
+const { manifest } = await import(new URL(manifestName, worker))
+const components = ['interne/ressources.astro','api/interne/ressources.ts']
+const pageMap = new Map(components.map(path => [`src/pages/${path}`, () => import(new URL(`pages/${path.replace(/\.(ts|astro)$/,'.astro.mjs')}`, worker))]))
+const app = new App({...manifest, sessionConfig:undefined, pageMap})
+const server = Bun.serve({hostname:'127.0.0.1',port:0,async fetch(request) {
+  const path = new URL(request.url).pathname
+  if (path.startsWith('/_astro/') || path.startsWith('/fonts/')) return new Response(Bun.file(`dist${path}`))
+  const headers = new Headers(request.headers); headers.set('Cf-Access-Jwt-Assertion',token)
+  return app.render(new Request(request,{headers}),{locals:{runtime:{env}}})
+}})
+const id = crypto.randomUUID()
+const mission = {etablissement:'Lycée fictif',groupe:'Année 2',adresse:'Adresse',direction:'Direction',referent:'Référent',contact:'contact@example.test',format:'presentiel',volume:8,sessions:Array.from({length:8},()=>({date:'',duree:1,modalite:'presentiel'})),cas1:'',classe:'',ateliers:'',cas2:'',periodeCas2:'',accordCas2:''}
+const payload = {nom:'Camille Exemple',structure:'',identification:'',adresse:'',email:'trainer@example.test',telephone:'',frais:'',detailsFrais:'',missions:[mission]}
+sql.query('INSERT INTO mission_convention_drafts(id,owner_email,payload,note,created_by) VALUES(?,?,?,?,?)').run(id,'trainer@example.test',JSON.stringify(payload),'Calendrier et coordonnées à compléter.','manager@example.test')
+const browser = await chromium.launch({headless:true})
+try {
+  const page = await browser.newPage()
+  const errors = []; page.on('pageerror',error=>errors.push(error.message))
+  await page.goto(`http://127.0.0.1:${server.port}/interne/ressources?convention=1`)
+  await page.getByRole('button',{name:'Compléter le brouillon',exact:true}).click()
+  await expect(page.locator('[data-field="volume"]')).toHaveValue('8')
+  await expect(page.locator('[data-session="duree"]').first()).toHaveValue('1')
+  for (const width of [320,390,768,860,861,1440]) {
+    await page.setViewportSize({width,height:900})
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth+1),true,`Overflow ${width}`)
+    if (output && [390,1440].includes(width)) await page.locator('.cm-school').screenshot({path:`${output}/convention-${width}.png`})
+  }
+  await page.locator('#cm-save-draft').click()
+  await expect(page.locator('#cm-state')).toContainText('Brouillon enregistré et relu')
+  assert.equal(sql.query('SELECT revision FROM mission_convention_drafts WHERE id=?').get(id).revision,2)
+  await page.locator('#cm-submit').click()
+  assert.equal(sql.query('SELECT count(*) AS n FROM mission_conventions').get().n,0)
+  for (const name of ['structure','identification','adresse','telephone']) await page.locator(`[name="${name}"]`).fill('Information fictive')
+  await page.locator('[name="frais"]').selectOption('aucun')
+  await page.locator('[data-field="cas1"]').selectOption('non')
+  await page.locator('[data-field="cas2"]').selectOption('non')
+  for (const input of await page.locator('[data-session="date"]').all()) await input.fill('2027-01-12')
+  await page.locator('#cm-check').click()
+  await expect(page.locator('#cm-feedback')).toContainText('Saisie complète')
+  await page.locator('[data-field="volume"]').selectOption('16')
+  await page.locator('.cm-pattern').selectOption('custom')
+  for (const [i,input] of (await page.locator('[data-session="duree"]').all()).entries()) await input.fill(String([3,1.5,2.5,1,2,2,2,2][i]))
+  await page.locator('#cm-check').click()
+  await expect(page.locator('#cm-feedback')).toContainText('Saisie complète')
+  page.on('dialog',dialog=>dialog.accept())
+  await page.locator('#cm-submit').click()
+  await expect(page.locator('#cm-state')).toContainText('Convention reçue')
+  assert.equal(sql.query('SELECT count(*) AS n FROM mission_conventions').get().n,1)
+  assert.equal(sql.query('SELECT submitted_id FROM mission_convention_drafts WHERE id=?').get(id).submitted_id,id)
+  assert.deepEqual(errors,[])
+  console.log('Conventions : brouillon incomplet, relecture, soumission, 8 h, durées libres et six largeurs vérifiés.')
+} finally { await browser.close(); server.stop(true); sql.close(); globalThis.fetch = originalFetch }

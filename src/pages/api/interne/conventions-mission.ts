@@ -4,6 +4,7 @@ import { getInternalContext, internalError, privateJson, readInternalBody, entry
 import { WorkspaceError } from '../../../lib/internal-workspace'
 import { getConvention, listConventions, normalizeStoredPayload, requestChanges, submitConvention, trainerAccountEmail } from '../../../lib/mission-convention'
 import { generateContractPdf } from '../../../lib/mission-convention-pdf'
+import { getDraft, listDrafts, saveDraft, submitDraft } from '../../../lib/mission-convention-drafts'
 
 export const prerender = false
 const requireAdmin = (team: boolean, admin: boolean) => {
@@ -39,6 +40,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       } })
     }
     return privateJson({ conventions: await listConventions(ctx.db, ctx.identity, ctx.teamMember),
+      drafts: await listDrafts(ctx.db, ctx.identity, ctx.teamMember),
       team: ctx.teamMember, admin: ctx.identity.admin, accountEmail: ctx.identity.email })
   } catch (error) { return internalError(error) }
 }
@@ -49,6 +51,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (ctx instanceof Response) return ctx
     const body = await readInternalBody(request)
     const action = body.action
+    if (action === 'save-draft' || action === 'submit-draft') {
+      const id = entryId(body.id)
+      let owner = ctx.identity
+      if (ctx.teamMember) {
+        requireAdmin(ctx.teamMember, ctx.identity.admin)
+        owner = { email: trainerAccountEmail(body.ownerEmail), admin: false }
+      }
+      if (body.revision !== 0 || action === 'submit-draft') {
+        const existing = await getDraft(ctx.db, id, ctx.identity, ctx.teamMember)
+        if (existing.owner_email !== owner.email) throw new WorkspaceError(409, 'Le compte formateur du brouillon ne peut pas être remplacé.')
+      }
+      const row = action === 'save-draft'
+        ? await saveDraft(ctx.db, owner, ctx.identity, id, body.revision, body.payload, body.note)
+        : await submitDraft(ctx.db, owner, id, body.revision, body.payload)
+      return privateJson({ id: row.id })
+    }
     if (action === 'submit') {
       const id = body.id ? entryId(body.id) : undefined
       let owner = ctx.identity
@@ -88,7 +106,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         throw new WorkspaceError(400, 'Précisez les frais autorisés et leur plafond ou refus.')
       const fees = body.feesDecision === 'accord' ? feesDetails : 'aucun'
       const payload = normalizeStoredPayload(row.payload)
-      if (!payload.missions.some(m => m.cas2 !== 'non') && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 indiqué.')
+      if (!payload.missions.some(m => m.cas2 !== 'non' || m.volume === 8) && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 ni parcours de 8 h indiqué.')
       const fontResponse = await fetch(new URL('/fonts/OpenSans-convention.ttf', request.url))
       if (!fontResponse.ok) throw new WorkspaceError(503, 'Police PDF indisponible. Réessayez plus tard.')
       const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees)

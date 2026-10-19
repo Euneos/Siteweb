@@ -24,9 +24,13 @@ const lines = (text: string) => text.replace(/\r/g, '').split('\n').map(s => s.t
 
 /** The source clauses are copied verbatim apart from blank template tables,
  * the old email exchange and the optional school visa (not a contracting party). */
-export function contractText(data: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé') {
+export function contractText(input: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé') {
+  const data = { ...input, missions: input.missions.map(m => ({ ...m, etablissement: `${m.etablissement}${m.groupe ? ` — ${m.groupe}` : ''}` })) }
   const countCase1 = data.missions.filter(m => m.cas1 === 'oui').length
-  const total = data.missions.length * 1000 + countCase1 * 200 + case2Euros
+  const fullTraining = data.missions.filter(m => m.volume !== 8).length
+  const year2 = data.missions.length - fullTraining
+  const extraLabel = year2 ? 'Cas 2 et parcours ateliers jeunes année 2 de 8 h' : 'Cas 2'
+  const total = fullTraining * 1000 + countCase1 * 200 + case2Euros
   const schools = data.missions.map(m => m.etablissement).join(', ')
   const dates = [...new Set(data.missions.flatMap(m => m.sessions.map(s => s.date)))].sort()
   const trainingDates = dates.join(', ')
@@ -44,10 +48,13 @@ export function contractText(data: MissionPayload, representative: string, case2
     ...data.missions.flatMap((m, i) => [
       `Mission ${i + 1} — Établissement : ${m.etablissement}. Adresse : ${m.adresse}. Direction : ${m.direction}. Référent : ${m.referent}. Contact professionnel : ${m.contact}.`,
     ]),
-    before(article(3), '☐ 100 %').replace('2 heures(autres', '2 heures (autres'),
+    ...(year2 ? [
+      'ARTICLE 3 — DURÉE ET MODALITÉS DE LA MISSION',
+      'Le parcours applicable est indiqué pour chaque mission : formation adultes WISE-UP de 16 h, ou formation à l’animation des ateliers avec les jeunes en année 2 de 8 h. Les durées des séances sont précisées ci-dessous.',
+    ] : [before(article(3), '☐ 100 %').replace('2 heures(autres', '2 heures (autres')]),
     'La formation entièrement à distance n’est pas autorisée.',
     ...data.missions.flatMap((m, i) => [
-      `Établissement ${i + 1} : ${m.etablissement} — ${m.sessions.filter(s => s.modalite === 'presentiel').reduce((sum, s) => sum + s.duree, 0)} h sur site + ${m.sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)} h en visioconférence.`,
+      `Établissement ${i + 1} : ${m.etablissement} — ${m.volume === 8 ? 'Animation des ateliers jeunes année 2 : 8 h. ' : ''}${m.sessions.filter(s => s.modalite === 'presentiel').reduce((sum, s) => sum + s.duree, 0)} h sur site + ${m.sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)} h en visioconférence.`,
       ...m.sessions.map((s, j) => `Séance ${j + 1} : ${s.date} ; ${s.duree} h ; ${s.modalite === 'distance' ? 'visioconférence' : 'présentiel'}.`),
     ]),
     ...[4, 5, 6].flatMap(n => lines(article(n))),
@@ -56,7 +63,7 @@ export function contractText(data: MissionPayload, representative: string, case2
     after(article(7), 'Le cas 2 intervient notamment'),
     ...[8, 9].flatMap(n => lines(article(n))),
     before(article(10), 'Formation WISE-UP 16 h'),
-    `${data.missions.length} formation(s) × 1 000 € = ${data.missions.length * 1000} €. Cas 1 : ${countCase1} × 200 € = ${countCase1 * 200} €. Cas 2 : ${case2Euros} € validés par EUNEOS. TOTAL PRÉVISIONNEL : ${total} € hors frais autorisés.`,
+    `${fullTraining} formation(s) × 1 000 € = ${fullTraining * 1000} €. Cas 1 : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} : ${case2Euros} € validés par EUNEOS. TOTAL PRÉVISIONNEL : ${total} € hors frais autorisés.`,
     before(article(11), 'Frais remboursables autorisés'),
     `Frais remboursables autorisés par EUNEOS : ${fees}.`,
     ...lines(invoicing),
@@ -65,7 +72,7 @@ export function contractText(data: MissionPayload, representative: string, case2
     `Formateur·rice : ${data.nom}. Établissement(s) : ${schools}.`,
     ...data.missions.map(m => `${m.etablissement} — Référent : ${m.referent} ; contact : ${m.contact}. Format : ${m.sessions.filter(s => s.modalite === 'presentiel').reduce((sum, s) => sum + s.duree, 0)} h en présentiel + ${m.sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)} h à distance. Cas 1 : ${m.cas1 === 'oui' ? `oui, classe ${m.classe}, ateliers 4 h : ${m.ateliers}` : 'non'}. Cas 2 : ${m.cas2 === 'non' ? 'non' : `${m.cas2} h, période ${m.periodeCas2}, autorisation ${m.accordCas2}`}.`),
     `Période des séances : du ${dates[0]} au ${dates.at(-1)}.`,
-    `Montant formation(s) : ${data.missions.length} × 1 000 € = ${data.missions.length * 1000} €. Cas 1 — atelier(s) 4 h : ${countCase1} × 200 € = ${countCase1 * 200} €. Cas 2 — formation aux ateliers : ${case2Euros} € validés par EUNEOS.`,
+    `Montant formation(s) : ${fullTraining} × 1 000 € = ${fullTraining * 1000} €. Cas 1 — atelier(s) 4 h : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} — formation aux ateliers : ${case2Euros} € validés par EUNEOS.`,
     `Frais autorisés : ${fees}. Total prévisionnel : ${total} € hors frais autorisés.`,
     'SIGNATURES — Convention prenant effet à sa date de signature.',
     `POUR EUNEOS — ${representative}. Date : ______________. Mention : « Bon pour accord ». Signature :`,

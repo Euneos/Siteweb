@@ -1,9 +1,9 @@
 import { WorkspaceError, type WorkspaceDatabase, type WorkspaceIdentity } from './internal-workspace'
 
-export type Session = { date: string; duree: 2 | 4; modalite: 'presentiel' | 'distance' }
+export type Session = { date: string; duree: number; modalite: 'presentiel' | 'distance' }
 export type Mission = {
-  etablissement: string; adresse: string; direction: string; referent: string; contact: string
-  format: 'presentiel' | 'hybride'; sessions: Session[]
+  etablissement: string; groupe?: string; adresse: string; direction: string; referent: string; contact: string
+  format: 'presentiel' | 'hybride'; volume?: 8 | 16; sessions: Session[]
   cas1: 'non' | 'oui'; classe: string; ateliers: string
   cas2: 'non' | '2' | '4'; periodeCas2: string; accordCas2: string
 }
@@ -53,45 +53,52 @@ export function trainerAccountEmail(value: unknown): string {
   return email
 }
 
-export function parseMissionPayload(value: unknown): MissionPayload {
+export function parseMissionPayload(value: unknown, draft = false): MissionPayload {
   const x = object(value)
-  const email = trainerAccountEmail(x.email)
+  const text = (v: unknown, max: number, required = true) => field(v, max, required && !draft)
+  const select = <T extends string>(v: unknown, values: readonly T[]): T => draft && v === '' ? '' as T : choice(v, values)
+  const email = draft && x.email === '' ? '' : trainerAccountEmail(x.email)
   if (!Array.isArray(x.missions) || x.missions.length < 1 || x.missions.length > 10) fail('Indiquez entre 1 et 10 établissements.')
   const names = new Set<string>()
   const missions = (x.missions as unknown[]).map((raw: unknown): Mission => {
     const m = object(raw)
-    const etablissement = field(m.etablissement, 250)
-    if (names.has(etablissement.toLowerCase())) fail('Un établissement figure plusieurs fois.')
-    names.add(etablissement.toLowerCase())
-    const format = choice(m.format, ['presentiel', 'hybride'] as const)
-    if (!Array.isArray(m.sessions) || m.sessions.length < 4 || m.sessions.length > 8)
-      fail('Indiquez entre 4 et 8 séances par établissement.')
+    const etablissement = text(m.etablissement, 250)
+    const groupe = text(m.groupe ?? '', 120, false)
+    const key = `${etablissement.toLowerCase()}|${groupe.toLowerCase()}`
+    if (names.has(key)) fail('Un établissement et son groupe figurent plusieurs fois.')
+    names.add(key)
+    const format = select(m.format, ['presentiel', 'hybride'] as const)
+    const volume = m.volume ?? 16
+    if (volume !== 8 && volume !== 16) fail('Choisissez le parcours de 16 h ou le parcours ateliers jeunes année 2 de 8 h.')
+    if (!Array.isArray(m.sessions) || m.sessions.length < (draft ? 0 : 1) || m.sessions.length > 64)
+      fail('Indiquez entre 1 et 64 séances par formation.')
     const sessions = (m.sessions as unknown[]).map((rawSession: unknown): Session => {
       const s = object(rawSession)
-      if (s.duree !== 2 && s.duree !== 4) fail('La durée d’une séance doit être de 2 h ou 4 h.')
-      return { date: date(s.date), duree: s.duree as 2 | 4, modalite: choice(s.modalite, ['presentiel', 'distance'] as const) }
+      if (typeof s.duree !== 'number' || !Number.isFinite(s.duree) || s.duree < 0 || (!draft && s.duree === 0) || s.duree > 16)
+        fail('Indiquez une durée positive, au maximum 16 h par séance.')
+      return { date: draft && s.date === '' ? '' : date(s.date), duree: s.duree as number, modalite: select(s.modalite, ['presentiel', 'distance'] as const) }
     })
-    if (sessions.reduce((sum, s) => sum + s.duree, 0) !== 16)
-      fail('Le calendrier doit totaliser 16 h par établissement.')
+    if (!draft && Math.abs(sessions.reduce((sum, s) => sum + s.duree, 0) - Number(volume)) > 0.000001)
+      fail(`Le calendrier doit totaliser ${volume} h pour le parcours choisi.`)
     const remote = sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)
-    if ((format === 'presentiel' && remote !== 0) || (format === 'hybride' && (remote === 0 || remote === 16)))
+    if (!draft && ((format === 'presentiel' && remote !== 0) || (format === 'hybride' && (remote === 0 || Math.abs(remote - Number(volume)) < 0.000001))))
       fail('Le format hybride doit comporter des séances sur site et en visioconférence.')
-    const cas1 = choice(m.cas1, ['non', 'oui'] as const)
-    const cas2 = choice(m.cas2, ['non', '2', '4'] as const)
+    const cas1 = select(m.cas1, ['non', 'oui'] as const)
+    const cas2 = select(m.cas2, ['non', '2', '4'] as const)
     return {
-      etablissement, adresse: field(m.adresse, 250), direction: field(m.direction, 250),
-      referent: field(m.referent, 250), contact: field(m.contact, 250), format, sessions,
-      cas1, classe: field(m.classe ?? '', 120, cas1 === 'oui'),
-      ateliers: field(m.ateliers ?? '', 500, cas1 === 'oui'), cas2,
-      periodeCas2: field(m.periodeCas2 ?? '', 250, cas2 !== 'non'),
-      accordCas2: field(m.accordCas2 ?? '', 250, cas2 !== 'non'),
+      etablissement, groupe, adresse: text(m.adresse, 250), direction: text(m.direction, 250),
+      referent: text(m.referent, 250), contact: text(m.contact, 250), format, volume: volume as 8 | 16, sessions,
+      cas1, classe: text(m.classe ?? '', 120, cas1 === 'oui'),
+      ateliers: text(m.ateliers ?? '', 500, cas1 === 'oui'), cas2,
+      periodeCas2: text(m.periodeCas2 ?? '', 250, cas2 !== 'non'),
+      accordCas2: text(m.accordCas2 ?? '', 250, cas2 !== 'non'),
     }
   })
-  const frais = choice(x.frais, ['aucun', 'accord', 'demande'] as const)
+  const frais = select(x.frais, ['aucun', 'accord', 'demande'] as const)
   return {
-    nom: field(x.nom, 250), structure: field(x.structure, 250), identification: field(x.identification, 250),
-    adresse: field(x.adresse, 250), email, telephone: field(x.telephone, 250), frais,
-    detailsFrais: field(x.detailsFrais ?? '', 2000, frais !== 'aucun'), missions,
+    nom: text(x.nom, 250), structure: text(x.structure, 250), identification: text(x.identification, 250),
+    adresse: text(x.adresse, 250), email, telephone: text(x.telephone, 250), frais,
+    detailsFrais: text(x.detailsFrais ?? '', 2000, frais !== 'aucun'), missions,
   }
 }
 

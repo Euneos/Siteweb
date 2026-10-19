@@ -53,8 +53,16 @@ attribué par l'audience Ressources. Avant de partager le lien, faire ajouter le
 adresses choisies à la politique Allow nominative existante, puis tester un
 compte formateur autorisé, un non-autorisé et le refus des pages équipe.
 
-Calendrier : chaque établissement reçoit entre 4 et 8 séances datées de 2 h
-ou 4 h, pour un total obligatoire de 16 h. L'hybride comprend au moins une
+Calendrier : chaque formation reçoit des séances datées de durée libre positive
+(3 h, 1,5 h, 2 h, 4 h, etc.). Le parcours choisi impose 16 h pour la formation adultes,
+ou 8 h pour la formation à l’animation des ateliers jeunes en année 2 (décision
+Candice du 19 octobre). Les anciennes conventions sans volume restent à 16 h.
+Le parcours de 8 h n'entraîne pas automatiquement le forfait de 1 000 € : sa
+rémunération est renseignée par la direction dans le montant complémentaire validé,
+avec le cas 2 éventuel. Le PDF identifie le parcours et son calendrier à l'article 3.
+La borne technique est de 1 à 64 séances. Plusieurs groupes dans un même établissement
+ont des blocs distincts, identifiés par établissement + groupe, repris dans le PDF.
+L'hybride comprend au moins une
 séance sur site et une à distance ; la proportion 8 h / 8 h est un exemple,
 pas une obligation. Aucun horaire n'est collecté ni imprimé. Les anciennes
 saisies de huit séances de 2 h qui contiennent un horaire restent lisibles :
@@ -76,6 +84,19 @@ Les PDF déjà approuvés ne sont pas régénérés automatiquement : l'essai ap
 le 15 octobre reste inchangé et n'est pas supprimé.
 
 Chaque PDF est limité à 750 Ko pour rester sous la limite de taille d'une ligne D1.
+
+### Brouillons à compléter — décision Candice du 19 octobre 2026
+
+La migration additive `0012_mission_convention_drafts.sql` crée une table privée,
+sans réécrire les conventions existantes. La direction peut préparer un brouillon
+pour une adresse autorisée ; le formateur ne voit que ses brouillons. Les données
+manquantes, dates, durées et choix (frais, cas 1/2) restent vides. Une note visible
+conserve la provenance et les points à confirmer. La sauvegarde accepte l'incomplet,
+mais vérifie les types et les bornes ; la soumission exige le formulaire complet et
+le volume de 8 h ou 16 h choisi. Les corrections d'une convention soumise suivent le circuit existant.
+La révision empêche l'écrasement d'une modification concurrente. La soumission du
+brouillon et la création de la convention partagent une transaction et un identifiant,
+sans effacement du brouillon source ni double création après une réponse perdue.
 Un scanner doit produire un PDF léger ; un PDF lourd n'est pas tronqué ni accepté.
 L'application contrôle la structure PDF, pas l'authenticité de la signature ni
 l'identité de son signataire. Comparer visuellement les versions avant contresignature.
