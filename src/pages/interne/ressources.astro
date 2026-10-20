@@ -2,6 +2,7 @@
 export const prerender = false
 import InternalLayout from '../../layouts/InternalLayout.astro'
 import MissionConvention from '../../components/internal/MissionConvention.astro'
+import AgendaFormateurs from '../../components/internal/AgendaFormateurs.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
@@ -88,7 +89,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       <section class="iw-panel" id="agenda" aria-labelledby="agenda-title">
         <h2 id="agenda-title">Agenda</h2>
         <p>Intervisions, formations complémentaires et rencontres du réseau.</p>
-        <p class="iw-muted">Dates et liens d’inscription à renseigner.</p>
+        <AgendaFormateurs />
       </section>
       <section class="iw-panel" aria-labelledby="reseau-title">
         <h2 id="reseau-title">Carte du réseau</h2>

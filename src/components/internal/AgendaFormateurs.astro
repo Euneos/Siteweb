@@ -1,0 +1,81 @@
+---
+import { agendaFormateurs } from '../../data/agenda-formateurs'
+
+const requested = Astro.url.searchParams.get('mois') ?? ''
+const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+const upcoming = agendaFormateurs.find((event) => event.start.slice(0, 10) >= today)
+const month = /^20\d{2}-(0[1-9]|1[0-2])$/.test(requested)
+  ? requested : (upcoming?.start.slice(0, 7) ?? today.slice(0, 7))
+const [year, monthNumber] = month.split('-').map(Number)
+const first = new Date(Date.UTC(year, monthNumber - 1, 1))
+const label = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(first)
+const offset = (first.getUTCDay() + 6) % 7
+const days = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+const monthLink = (delta: number) => {
+  const url = new URL(Astro.url)
+  url.searchParams.set('mois', new Date(Date.UTC(year, monthNumber - 1 + delta, 1)).toISOString().slice(0, 7))
+  return `${url.pathname}${url.search}#agenda`
+}
+const dateLabel = (value: string) => new Intl.DateTimeFormat('fr-FR', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris',
+}).format(new Date(value))
+const timeLabel = (value: string) => new Intl.DateTimeFormat('fr-FR', {
+  hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris',
+}).format(new Date(value)).replace(':', ' h ')
+const eventsThisMonth = agendaFormateurs.filter((event) => event.start.startsWith(month))
+---
+
+<div class="trainer-agenda">
+  <p class="iw-muted">Horaires de Paris.</p>
+  <nav class="trainer-agenda__navigation" aria-label="Choisir le mois de l’agenda">
+    <a class="iw-button" href={monthLink(-1)} aria-label="Mois précédent">←</a>
+    <h3>{label}</h3>
+    <a class="iw-button" href={monthLink(1)} aria-label="Mois suivant">→</a>
+  </nav>
+  <table class="trainer-agenda__month" aria-label={label}>
+    <thead><tr>{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => <th scope="col">{day}</th>)}</tr></thead>
+    <tbody>{Array.from({ length: Math.ceil((offset + days) / 7) }, (_, week) => (
+      <tr>{Array.from({ length: 7 }, (_, weekday) => {
+        const day = week * 7 + weekday - offset + 1
+        const date = `${month}-${String(day).padStart(2, '0')}`
+        const events = agendaFormateurs.filter((event) => event.start.startsWith(date))
+        return <td>{day > 0 && day <= days && (
+          events.length ? <a class="trainer-agenda__date" href={`#${events[0].id}`} aria-label={`${dateLabel(events[0].start)} : ${events.map((e) => e.title).join(', ')}`} aria-current={date === today ? 'date' : undefined}>{day}<span aria-hidden="true">●</span></a>
+            : <span class="trainer-agenda__day" aria-current={date === today ? 'date' : undefined}>{day}</span>
+        )}</td>
+      })}</tr>
+    ))}</tbody>
+  </table>
+  {eventsThisMonth.length === 0 && <p class="iw-muted">Aucun rendez-vous prévu ce mois-ci.</p>}
+  <h3 class="trainer-agenda__list-title">Les rendez-vous</h3>
+  <div class="trainer-agenda__events">
+    {agendaFormateurs.map((event) => (
+      <article id={event.id} class="trainer-agenda__event">
+        <p class="trainer-agenda__event-date">{dateLabel(event.start)}</p>
+        <h4>{event.title}</h4>
+        {event.description && <p>{event.description}</p>}
+        <p><time datetime={event.start}>{timeLabel(event.start)}</time> – <time datetime={event.end}>{timeLabel(event.end)}</time></p>
+      </article>
+    ))}
+  </div>
+</div>
+
+<style>
+  .trainer-agenda { min-width: 0; }
+  .trainer-agenda__navigation { display: flex; align-items: center; justify-content: space-between; gap: var(--s-lie); margin-block: var(--s-lie); }
+  .trainer-agenda__navigation h3 { text-align: center; text-transform: capitalize; font-size: var(--t-corps); }
+  .trainer-agenda__month { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--t-note); }
+  .trainer-agenda__month th { padding-block: .5em; text-align: center; }
+  .trainer-agenda__month td { padding: 2px; text-align: center; }
+  .trainer-agenda__day, .trainer-agenda__date { min-height: 44px; display: flex; align-items: center; justify-content: center; flex-direction: column; border-radius: .35rem; }
+  .trainer-agenda__date { background: #00382d; color: white; text-decoration: none; font-weight: 600; }
+  .trainer-agenda__date span { font-size: .45em; }
+  .trainer-agenda [aria-current='date'] { outline: 2px solid currentColor; outline-offset: -3px; }
+  .trainer-agenda__list-title { font-size: var(--t-corps); margin-block: var(--s-lie); }
+  .trainer-agenda__events { display: grid; gap: var(--s-lie); }
+  .trainer-agenda__event { border-left: 4px solid #f8c702; padding: var(--s-lie); background: #f1eeee; scroll-margin-top: var(--s-bloc); overflow-wrap: anywhere; }
+  .trainer-agenda__event:target { outline: 2px solid #00382d; }
+  .trainer-agenda__event h4 { font-size: var(--t-corps); margin-block: .35em; }
+  .trainer-agenda__event-date { font-weight: 600; }
+  .trainer-agenda__event p { margin: 0; }
+</style>
