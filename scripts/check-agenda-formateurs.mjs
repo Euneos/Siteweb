@@ -20,6 +20,10 @@ globalThis.fetch = async (input) => {
 const filename = (await readdir(new URL('../dist/_worker.js/', import.meta.url))).find((name) => name.startsWith('manifest_'))
 const { manifest } = await import(new URL(`../dist/_worker.js/${filename}`, import.meta.url))
 const app = new App({ ...manifest, sessionConfig: undefined, pageMap: new Map([['src/pages/interne/ressources.astro', async () => compiledPage]]) })
+const resources = [
+  { id: '7c315367-445f-4fe1-b680-64bc7a0758b1', title: 'Présentation Référents', category: 'Presentation PPT', description: '', url: 'https://docs.google.com/presentation/d/fixture' },
+  { id: 'bd3c90ff-b703-4036-8e8c-a952f03d3813', title: 'Groupe WhatsApp', category: 'trouver de l’aide', description: '', url: 'https://chat.whatsapp.com/fixture' },
+]
 const browser = await chromium.launch()
 try {
   const page = await browser.newPage()
@@ -30,7 +34,7 @@ try {
       assert.equal(response.status, 200)
       return route.fulfill({ status: 200, contentType: 'text/html', body: await response.text() })
     }
-    if (url.pathname.startsWith('/api/')) return route.fulfill({ json: { resources: [], identity: { email: 'trainer@example.test' } } })
+    if (url.pathname.startsWith('/api/')) return route.fulfill({ json: { resources, identity: { email: 'trainer@example.test' } } })
     try {
       return route.fulfill({ body: await readFile(new URL(`../dist${url.pathname}`, import.meta.url)), contentType: url.pathname.endsWith('.css') ? 'text/css' : url.pathname.endsWith('.js') ? 'application/javascript' : undefined })
     } catch { return route.fulfill({ status: 404, body: '' }) }
@@ -38,6 +42,16 @@ try {
   for (const width of [320, 390, 860, 861, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto('https://agenda.test/interne/ressources?mois=2026-11#agenda')
+    await page.locator('[data-resource-id] a').first().waitFor()
+    for (const resource of resources) {
+      const link = page.locator(`[data-resource-id="${resource.id}"] a`)
+      assert.equal(await link.getAttribute('href'), resource.url)
+      assert.equal(await link.getAttribute('target'), '_blank')
+    }
+    for (const section of ['guides-pratiques', 'entraide-title']) {
+      const panel = section === 'guides-pratiques' ? page.locator('#guides-pratiques') : page.locator('[aria-labelledby="entraide-title"]')
+      await panel.screenshot({ path: `${output}/${section}-${width}.png` })
+    }
     await page.locator('#agenda').scrollIntoViewIfNeeded()
     assert.equal(await page.locator('.trainer-agenda__date').innerText(), '3\n●')
     assert(await page.locator('#agenda').innerText().then((text) => text.includes('18 h 30') && text.includes('20 h 30')))

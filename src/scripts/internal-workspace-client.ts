@@ -1448,6 +1448,28 @@ function initResources() {
   const category = byId<HTMLSelectElement>('iw-resource-category')
   const grid = byId('iw-resource-grid')
   const state = byId('iw-resource-state')
+  // Réutiliser les URL du catalogue : une modification ou un retrait de ressource
+  // s'applique aussi aux accès directs dans les rubriques.
+  const directLinks = document.querySelectorAll<HTMLElement>('[data-resource-id]')
+  function renderDirectLinks(message?: string) {
+    directLinks.forEach((container) => {
+      const resource = resources?.find((item) => item.id === container.dataset.resourceId)
+      const url = resource && safeUrl(resource.url)
+      if (url) {
+        const label = container.dataset.resourceLabel || resource.title
+        const link = node('a', 'iw-button', `${label} ↗`)
+        link.href = url.href
+        link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+        link.setAttribute('aria-label', `${label} (nouvel onglet)`)
+        container.replaceChildren(link)
+      } else {
+        const status = node('p', 'iw-muted', message || 'Lien indisponible. Contactez l’équipe pour accéder à cette ressource.')
+        status.setAttribute('role', 'status')
+        container.replaceChildren(status)
+      }
+    })
+  }
   const normalize = (text: string) =>
     text
       .normalize('NFD')
@@ -1531,6 +1553,7 @@ function initResources() {
     const request = new AbortController()
     controller = request
     resources = null
+    renderDirectLinks('Chargement du lien…')
     grid.hidden = true
     grid.setAttribute('aria-busy', 'true')
     byId('iw-resource-count').textContent = 'Chargement des ressources…'
@@ -1566,6 +1589,7 @@ function initResources() {
             a.category.localeCompare(b.category, 'fr') || a.title.localeCompare(b.title, 'fr'),
         )
       const selected = category.value
+      renderDirectLinks()
       const values = [
         ...new Set(resources.map((resource) => resource.category || 'Sans catégorie')),
       ].sort((a, b) => a.localeCompare(b, 'fr'))
@@ -1578,6 +1602,7 @@ function initResources() {
     } catch (error) {
       if (request.signal.aborted) return
       byId('iw-resource-count').textContent = 'Catalogue indisponible'
+      renderDirectLinks('Le lien n’a pas pu être chargé. Utilisez « Actualiser » dans le catalogue pour réessayer.')
       setState(
         state,
         'Les ressources n’ont pas pu être chargées',

@@ -49,9 +49,12 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
           </li>
           <li>
             <strong>Présentation référents</strong> — présenter le programme aux personnes référentes.
-            <span class="iw-muted">Lien à compléter.</span>
           </li>
         </ul>
+        <div class="resource-direct-link" data-resource-id="7c315367-445f-4fe1-b680-64bc7a0758b1" data-resource-label="Ouvrir la présentation référents">
+          <p class="iw-muted" role="status">Chargement du lien…</p>
+          <noscript>Activez JavaScript pour accéder à la présentation référents.</noscript>
+        </div>
       </section>
       <section class="iw-panel" id="supports-formation" aria-labelledby="supports-title">
         <h2 id="supports-title">Préparer et animer une formation</h2>
@@ -99,7 +102,10 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       <section class="iw-panel" aria-labelledby="entraide-title">
         <h2 id="entraide-title">Partager et trouver de l’aide</h2>
         <p>Retours d’expérience, ressources issues des intervisions et contacts utiles.</p>
-        <p class="iw-muted">Ressources et contacts à compléter.</p>
+        <div class="resource-direct-link" data-resource-id="bd3c90ff-b703-4036-8e8c-a952f03d3813" data-resource-label="Rejoindre le groupe WhatsApp">
+          <p class="iw-muted" role="status">Chargement du lien…</p>
+          <noscript>Activez JavaScript pour accéder au groupe WhatsApp.</noscript>
+        </div>
       </section>
     </div>
     <h2>Catalogue des ressources</h2>
@@ -185,6 +191,9 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
     padding-left: 1.25em;
   }
   .resource-sections li + li {
+    margin-top: var(--s-lie);
+  }
+  .resource-direct-link {
     margin-top: var(--s-lie);
   }
   .resource-shortcuts a,
