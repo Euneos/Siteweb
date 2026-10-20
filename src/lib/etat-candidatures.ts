@@ -598,6 +598,9 @@ export function etapeEnVert(ligne: EtatCandidature, index: number): boolean {
   if (statutCandidature(ligne.statut).code === 'Abandonne') return false
   if (index === 4) return ligne.lettreSignee
   if (index === 5) return ligne.ficheContactRecue
+  if (index === 6) return ligne.formateurs.some(f =>
+    f.nom.trim() && f.nom !== `Formateur #${f.id} · nom non renseigné`)
+  if (index === 8) return Boolean(ligne.dateDebutFormation && isoDate(ligne.dateDebutFormation))
   return index < 4 && ligne.lettreSignee && ligne.ficheContactRecue &&
     !candidatureArretee(ligne.statut)
 }

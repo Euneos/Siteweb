@@ -16,6 +16,9 @@ const progressionAffichee = trierProgression(lignes)
     Vert : pièce reçue ; lorsque la lettre signée et la fiche contact sont reçues,
     les six premières étapes sont colorées en vert. Ce repère visuel ne modifie pas
     la décision ni la preuve d’envoi d’un accusé de réception.
+    Les cases « Formateur désigné » et « Formations & suivi » sont également vertes
+    lorsqu’un formateur est nommé dans une mission ou qu’une date de début est renseignée,
+    respectivement. Une date renseignée ne signifie pas que la formation est terminée.
     Les établissements ayant ces deux pièces sont regroupés en début de tableau,
     suivis des dossiers à compléter. Rouge : abandon enregistré, placé en fin de tableau.
   </p>
@@ -88,7 +91,9 @@ const progressionAffichee = trierProgression(lignes)
               <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, etapeEnVert(ligne, index) && 'etat__piece-recue']}>
                 <span aria-hidden="true">{cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
                 <span class="etat__mobile-label">{colonnes[index]}</span>
-                <small>{cellule.texte}</small>
+                <small>{index === 6 && ligne.formateurs.length
+                  ? ligne.formateurs.map(formateur => formateur.nom).join(' · ')
+                  : cellule.texte}</small>
               </td>
             ))}
           </tr>
