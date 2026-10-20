@@ -3,7 +3,8 @@ import { WorkspaceError, type WorkspaceDatabase, type WorkspaceIdentity } from '
 export type Session = { date: string; duree: number; modalite: 'presentiel' | 'distance' }
 export type Mission = {
   etablissement: string; groupe?: string; adresse: string; direction: string; referent: string; contact: string
-  format: 'presentiel' | 'hybride'; volume?: 8 | 16; sessions: Session[]
+  format: 'presentiel' | 'hybride'; volume?: number; sessions: Session[]
+  financement?: 'euneos' | 'externe'; financeur?: string
   cas1: 'non' | 'oui'; classe: string; ateliers: string
   cas2: 'non' | '2' | '4'; periodeCas2: string; accordCas2: string
 }
@@ -68,8 +69,13 @@ export function parseMissionPayload(value: unknown, draft = false): MissionPaylo
     if (names.has(key)) fail('Un établissement et son groupe figurent plusieurs fois.')
     names.add(key)
     const format = select(m.format, ['presentiel', 'hybride'] as const)
+    const financement = choice(m.financement ?? 'euneos', ['euneos', 'externe'] as const)
+    const financeur = text(m.financeur ?? '', 250, financement === 'externe')
     const volume = m.volume ?? 16
-    if (volume !== 8 && volume !== 16) fail('Choisissez le parcours de 16 h ou le parcours ateliers jeunes année 2 de 8 h.')
+    if (financement === 'externe') {
+      if (typeof volume !== 'number' || !Number.isFinite(volume) || volume < 0 || (!draft && volume === 0) || volume > 1024)
+        fail('Indiquez le volume horaire prévu par l’organisme financeur (supérieur à zéro, au maximum 1 024 h).')
+    } else if (volume !== 8 && volume !== 16) fail('Choisissez le parcours de 16 h ou le parcours ateliers jeunes année 2 de 8 h.')
     if (!Array.isArray(m.sessions) || m.sessions.length < (draft ? 0 : 1) || m.sessions.length > 64)
       fail('Indiquez entre 1 et 64 séances par formation.')
     const sessions = (m.sessions as unknown[]).map((rawSession: unknown): Session => {
@@ -87,7 +93,7 @@ export function parseMissionPayload(value: unknown, draft = false): MissionPaylo
     const cas2 = select(m.cas2, ['non', '2', '4'] as const)
     return {
       etablissement, groupe, adresse: text(m.adresse, 250), direction: text(m.direction, 250),
-      referent: text(m.referent, 250), contact: text(m.contact, 250), format, volume: volume as 8 | 16, sessions,
+      referent: text(m.referent, 250), contact: text(m.contact, 250), format, volume: volume as number, sessions, financement, financeur,
       cas1, classe: text(m.classe ?? '', 120, cas1 === 'oui'),
       ateliers: text(m.ateliers ?? '', 500, cas1 === 'oui'), cas2,
       periodeCas2: text(m.periodeCas2 ?? '', 250, cas2 !== 'non'),

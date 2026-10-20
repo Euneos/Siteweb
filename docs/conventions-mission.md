@@ -85,6 +85,20 @@ le 15 octobre reste inchangé et n'est pas supprimé.
 
 Chaque PDF est limité à 750 Ko pour rester sous la limite de taille d'une ligne D1.
 
+### Financement extérieur — décision Candice du 20 octobre 2026
+
+Chaque mission peut déclarer `financement: externe` et son `financeur`. Dans ce cas,
+le volume horaire est libre et positif (borne technique 1 024 h, 64 séances de 16 h maximum),
+et le calendrier doit correspondre à ce volume lors de la soumission. Le forfait de
+formation à payer par EUNEOS est nul, y compris pour un volume de 8 h. Les cas 1/2 et
+les frais restent distincts. Le récapitulatif et le PDF explicitent le financeur et
+le montant nul ; les anciens dossiers sans ce champ conservent `euneos` et leur tarif.
+Le cas confirmé est deux formations de 18 h financées par un organisme académique,
+avec seuls deux forfaits ateliers élèves à 200 € à la charge d’EUNEOS ; les frais
+d’impression restent une demande à examiner. Aucune donnée métier n'est migrée.
+La confirmation de sauvegarde distingue désormais le brouillon de la soumission ;
+elle ne prétend plus qu'il manque des informations sans les avoir contrôlées.
+
 ### Brouillons à compléter — décision Candice du 19 octobre 2026
 
 La migration additive `0012_mission_convention_drafts.sql` crée une table privée,

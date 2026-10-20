@@ -106,7 +106,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         throw new WorkspaceError(400, 'Précisez les frais autorisés et leur plafond ou refus.')
       const fees = body.feesDecision === 'accord' ? feesDetails : 'aucun'
       const payload = normalizeStoredPayload(row.payload)
-      if (!payload.missions.some(m => m.cas2 !== 'non' || m.volume === 8) && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 ni parcours de 8 h indiqué.')
+      if (!payload.missions.some(m => m.cas2 !== 'non' || (m.volume === 8 && m.financement !== 'externe')) && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 ni parcours de 8 h rémunéré par EUNEOS indiqué.')
       const fontResponse = await fetch(new URL('/fonts/OpenSans-convention.ttf', request.url))
       if (!fontResponse.ok) throw new WorkspaceError(503, 'Police PDF indisponible. Réessayez plus tard.')
       const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees)

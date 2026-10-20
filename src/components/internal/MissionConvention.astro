@@ -31,7 +31,7 @@ const schoolFields = [
       </fieldset>
       <section aria-labelledby="cm-schools-title" class="cm-stack">
         <h2 id="cm-schools-title">2. Établissements et missions</h2>
-        <p>Ajoutez un bloc par établissement ou groupe de formation. Choisissez la formation adultes de 16 h ou la formation à l’animation des ateliers jeunes en année 2 de 8 h. Les séances ont une durée libre : 1 h, 2 h, 3 h, 4 h, 1,5 h ou toute autre durée positive. Les horaires ne sont pas demandés.</p>
+        <p>Ajoutez un bloc par établissement ou groupe de formation. Choisissez la formation adultes de 16 h, le parcours ateliers jeunes année 2 de 8 h, ou une formation financée par un autre organisme avec son propre volume horaire. Les séances ont une durée libre : 1 h, 2 h, 3 h, 4 h, 1,5 h ou toute autre durée positive. Les horaires ne sont pas demandés.</p>
         <div id="cm-schools" class="cm-stack"></div>
         <button type="button" id="cm-add" class="iw-button">Ajouter un établissement</button>
       </section>
@@ -64,7 +64,13 @@ const schoolFields = [
         <legend class="cm-school-title">Établissement</legend>
         {schoolFields.map(([name, label]) => <label class="iw-field">{label} *<input data-field={name} maxlength="250" required /></label>)}
         <label class="iw-field">Groupe de formation (si plusieurs groupes dans cet établissement)<input data-field="groupe" maxlength="120" /></label>
-        <label class="iw-field">Parcours et volume total *<select data-field="volume" required><option value="16">Formation adultes WISE-UP — 16 h</option><option value="8">Animation des ateliers jeunes — année 2 — 8 h</option></select></label>
+        <label class="iw-field">Financement de la formation *<select data-field="financement" required><option value="euneos">Formation rémunérée par EUNEOS</option><option value="externe">Financée par un autre organisme — 0 € à la charge d’EUNEOS</option></select></label>
+        <div class="cm-external cm-stack" hidden>
+          <label class="iw-field">Organisme financeur *<input data-field="financeur" maxlength="250" /></label>
+          <label class="iw-field">Volume total financé, en heures *<input data-field="volumeExterne" type="number" min="0.000001" max="1024" step="any" placeholder="Ex. : 18" /></label>
+          <p>La formation représente 0 € à payer par EUNEOS. Les ateliers élèves, interventions complémentaires et frais éventuels restent distincts.</p>
+        </div>
+        <label class="iw-field cm-funded-volume">Parcours et volume total *<select data-field="volume" required><option value="16">Formation adultes WISE-UP — 16 h</option><option value="8">Animation des ateliers jeunes — année 2 — 8 h</option></select></label>
         <label class="iw-field">Format *<select data-field="format" required><option value="presentiel">Présentiel</option><option value="hybride">Hybride : présentiel et visioconférence</option></select></label>
         <p>La formation entièrement à distance n’est pas autorisée. En hybride, répartissez librement le volume choisi entre les deux modalités.</p>
         <label class="iw-field">Répartition des séances<select class="cm-pattern"><option value="8x2">8 séances de 2 h (16 h)</option><option value="4x4">4 séances de 4 h (16 h)</option><option value="mixed">2 séances de 4 h + 4 séances de 2 h (16 h)</option><option value="8x1">8 séances de 1 h (8 h)</option><option value="custom">Personnalisée — durées libres</option></select></label>
@@ -122,6 +128,8 @@ const schoolFields = [
   function sessionsOf(block: HTMLFieldSetElement) {
     return Array.from(block.querySelectorAll<HTMLFieldSetElement>('.cm-session'))
   }
+  const externallyFunded = (block: HTMLFieldSetElement) => block.querySelector<HTMLSelectElement>('[data-field="financement"]')!.value === 'externe'
+  const volumeOf = (block: HTMLFieldSetElement) => Number(block.querySelector<HTMLInputElement | HTMLSelectElement>(externallyFunded(block) ? '[data-field="volumeExterne"]' : '[data-field="volume"]')!.value)
   function addSession(block: HTMLFieldSetElement, duration = 2) {
     const fragment = sessionTemplate.content.cloneNode(true) as DocumentFragment
     const session = fragment.querySelector<HTMLFieldSetElement>('.cm-session')!
@@ -150,13 +158,19 @@ const schoolFields = [
     let workshops = 0
     let hasCase2 = false
     blocks.forEach((block, index) => {
+      const external = externallyFunded(block)
+      const externalFields = block.querySelector<HTMLDivElement>('.cm-external')!
+      externalFields.hidden = !external
+      externalFields.querySelectorAll<HTMLInputElement>('input').forEach(input => { input.disabled = !external; input.required = external })
+      block.querySelector<HTMLLabelElement>('.cm-funded-volume')!.hidden = external
+      block.querySelector<HTMLSelectElement>('[data-field="volume"]')!.disabled = external
       block.querySelector('.cm-school-title')!.textContent = `Établissement ${index + 1}`
       block.querySelector<HTMLButtonElement>('.cm-remove')!.disabled = blocks.length === 1
       const sessions = sessionsOf(block)
       const hours = sessions.reduce((sum, session) => sum + Number(session.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
       const remote = sessions.filter(session => session.querySelector<HTMLSelectElement>('[data-session="modalite"]')!.value === 'distance')
         .reduce((sum, session) => sum + Number(session.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
-      const volume = Number(block.querySelector<HTMLSelectElement>('[data-field="volume"]')!.value)
+      const volume = volumeOf(block)
       block.querySelector<HTMLOutputElement>('.cm-hours')!.textContent = `${hours} h / ${volume} h prévues · ${hours - remote} h sur site · ${remote} h en visioconférence.`
       block.querySelector<HTMLButtonElement>('.cm-add-session')!.disabled = sessions.length >= 64
       sessions.forEach((session, i) => {
@@ -174,9 +188,10 @@ const schoolFields = [
       }
     })
     const money = new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'})
-    const fullTraining = blocks.filter(b => b.querySelector<HTMLSelectElement>('[data-field="volume"]')!.value === '16').length
-    const year2 = blocks.length - fullTraining
-    document.querySelector('#cm-total')!.textContent = `${fullTraining} formation(s) de 16 h × 1 000 € + ${workshops} atelier(s) classe active × 200 € = ${money.format(fullTraining * 1000 + workshops * 200)}${year2 ? ` ; ${year2} parcours de 8 h : rémunération à confirmer par EUNEOS` : ''}${hasCase2 ? ', hors cas 2 à chiffrer par EUNEOS' : ''}, hors frais autorisés.`
+    const externalCount = blocks.filter(externallyFunded).length
+    const fullTraining = blocks.filter(b => !externallyFunded(b) && volumeOf(b) === 16).length
+    const year2 = blocks.filter(b => !externallyFunded(b) && volumeOf(b) === 8).length
+    document.querySelector('#cm-total')!.textContent = `${fullTraining} formation(s) de 16 h × 1 000 € + ${workshops} atelier(s) classe active × 200 € = ${money.format(fullTraining * 1000 + workshops * 200)}${externalCount ? ` ; ${externalCount} formation(s) financée(s) par un autre organisme : 0 € à la charge d’EUNEOS` : ''}${year2 ? ` ; ${year2} parcours de 8 h : rémunération à confirmer par EUNEOS` : ''}${hasCase2 ? ', hors cas 2 à chiffrer par EUNEOS' : ''}, hors frais autorisés.`
     feedback.textContent = ''
   }
   function add() {
@@ -216,17 +231,26 @@ const schoolFields = [
   }
   document.querySelector('#cm-add')!.addEventListener('click', add)
   form.addEventListener('change', refresh)
+  form.addEventListener('input', event => {
+    if ((event.target as HTMLInputElement).dataset.field === 'volumeExterne') refresh()
+  })
   function valid() {
-    if (!form.reportValidity()) return
+    if (!form.reportValidity()) {
+      const invalid = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:invalid, select:invalid, textarea:invalid')
+      const label = invalid?.closest('label')?.firstChild?.textContent?.trim()
+      feedback.textContent = `À compléter ou corriger${label ? ` : ${label}` : ''}. ${invalid?.validationMessage || ''}`
+      return false
+    }
     for (const block of schools.querySelectorAll<HTMLFieldSetElement>('.cm-school')) {
       const format = block.querySelector<HTMLSelectElement>('[data-field="format"]')!.value
       const sessions = sessionsOf(block)
       const hours = sessions.reduce((sum, s) => sum + Number(s.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
-      const volume = Number(block.querySelector<HTMLSelectElement>('[data-field="volume"]')!.value)
+      const volume = volumeOf(block)
       const remote = sessions.filter(s => s.querySelector<HTMLSelectElement>('[data-session="modalite"]')!.value === 'distance')
         .reduce((sum, s) => sum + Number(s.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value), 0)
       if (Math.abs(hours - volume) > 0.000001 || (format === 'presentiel' && remote !== 0) || (format === 'hybride' && (remote === 0 || Math.abs(remote - volume) < 0.000001))) {
-        feedback.textContent = `Cette formation doit totaliser ${volume} h : entièrement sur site, ou avec au moins une séance sur site et une en visioconférence.`
+        const school = block.querySelector<HTMLInputElement>('[data-field="etablissement"]')!.value
+        feedback.textContent = `${school} : ${hours} h saisies pour ${volume} h prévues. Vérifiez le total et le format : entièrement sur site, ou avec au moins une séance sur site et une en visioconférence.`
         feedback.focus(); return false
       }
     }
@@ -243,7 +267,7 @@ const schoolFields = [
       const get = (name: string) => block.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)!.value
       return {
         etablissement: get('etablissement'), groupe: get('groupe'), adresse: get('adresse'), direction: get('direction'), referent: get('referent'), contact: get('contact'),
-        format: get('format') as Mission['format'], volume: Number(get('volume')) as 8 | 16, sessions: sessionsOf(block).map(session => ({
+        format: get('format') as Mission['format'], volume: volumeOf(block), financement: get('financement') as Mission['financement'], financeur: externallyFunded(block) ? get('financeur') : '', sessions: sessionsOf(block).map(session => ({
           date: session.querySelector<HTMLInputElement>('[data-session="date"]')!.value,
           duree: Number(session.querySelector<HTMLSelectElement>('[data-session="duree"]')!.value) as Mission['sessions'][number]['duree'],
           modalite: session.querySelector<HTMLSelectElement>('[data-session="modalite"]')!.value as Mission['sessions'][number]['modalite'],
@@ -287,7 +311,10 @@ const schoolFields = [
       const block = schools.lastElementChild as HTMLFieldSetElement
       for (const key of ['etablissement','groupe','adresse','direction','referent','contact','format','cas1','classe','ateliers','cas2','periodeCas2','accordCas2'] as const)
         (block.querySelector(`[data-field="${key}"]`) as HTMLInputElement).value = mission[key] ?? ''
-      block.querySelector<HTMLSelectElement>('[data-field="volume"]')!.value = String(mission.volume ?? 16)
+      block.querySelector<HTMLSelectElement>('[data-field="financement"]')!.value = mission.financement ?? 'euneos'
+      block.querySelector<HTMLInputElement>('[data-field="financeur"]')!.value = mission.financeur ?? ''
+      block.querySelector<HTMLInputElement>('[data-field="volumeExterne"]')!.value = mission.financement === 'externe' && mission.volume ? String(mission.volume) : ''
+      block.querySelector<HTMLSelectElement>('[data-field="volume"]')!.value = String(mission.volume === 8 ? 8 : 16)
       block.querySelector('.cm-sessions')!.replaceChildren()
       const pattern = block.querySelector<HTMLSelectElement>('.cm-pattern')!
       const saved = mission.sessions.map(s => s.duree).join(',')
@@ -369,7 +396,7 @@ const schoolFields = [
         const heading = document.createElement('h3')
         heading.textContent = `${mission.etablissement}${mission.groupe ? ` — ${mission.groupe}` : ''}`
         const info = document.createElement('p')
-        info.textContent = `${mission.adresse} · Direction : ${mission.direction} · Référent : ${mission.referent} · Contact : ${mission.contact} · ${mission.format === 'hybride' ? 'Hybride' : 'Présentiel'} · ${mission.volume === 8 ? 'Ateliers jeunes année 2 — 8 h' : 'Formation adultes — 16 h'}`
+        info.textContent = `${mission.adresse} · Direction : ${mission.direction} · Référent : ${mission.referent} · Contact : ${mission.contact} · ${mission.format === 'hybride' ? 'Hybride' : 'Présentiel'} · ${mission.financement === 'externe' ? `${mission.volume} h financées par ${mission.financeur} — 0 € à la charge d’EUNEOS` : mission.volume === 8 ? 'Ateliers jeunes année 2 — 8 h' : 'Formation adultes — 16 h'}`
         const sessions = document.createElement('ol')
         for (const session of mission.sessions) {
           const item = document.createElement('li')
@@ -440,7 +467,7 @@ const schoolFields = [
       if (!saved) throw new Error('Brouillon non retrouvé. Rechargez la page.')
       edit(saved, true)
       await reload()
-      message('Brouillon enregistré et relu. Les informations manquantes restent à compléter avant soumission.')
+      message('Brouillon enregistré et relu. Il n’est pas encore soumis à EUNEOS. Cliquez sur « Vérifier la saisie » pour contrôler les champs et le calendrier, puis sur « Soumettre à la vérification EUNEOS » lorsque vous êtes prêt·e.')
     } catch (error) { message(error instanceof Error ? error.message : 'Enregistrement incertain. Rechargez la page avant tout nouvel envoi.') }
     finally { button.disabled = false }
   })

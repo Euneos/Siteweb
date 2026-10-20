@@ -37,6 +37,23 @@ function fixture() {
 }
 
 describe('convention de mission privée', () => {
+  test('formation financée ailleurs : 18 h acceptées, forfait EUNEOS nul, ateliers distincts', () => {
+    const externalMission = {...mission(),financement:'externe',financeur:'Organisme académique fictif',volume:18,format:'presentiel',sessions:Array.from({length:6},()=>({date:'2027-01-12',duree:3,modalite:'presentiel'}))}
+    const data = parseMissionPayload({...payload(),missions:[externalMission,{...externalMission,etablissement:'Second collège fictif'}],frais:'demande',detailsFrais:'Impressions : 39,79 € à examiner'})
+    const text = contractText(data,'Direction',0).join('\n')
+    expect(text).toContain('TOTAL PRÉVISIONNEL : 400 €')
+    expect(text).toContain('Formation de 18 h financée par Organisme académique fictif : 0 € à la charge d’EUNEOS')
+    expect(text).not.toContain('animer les 16 heures prévues')
+    expect(text).not.toContain('l’exécution complète des 16 heures')
+    expect(text).not.toContain('TOTAL PRÉVISIONNEL : 2400 €')
+    expect(() => parseMissionPayload({...payload(),missions:[{...externalMission,financement:'euneos'}]})).toThrow()
+    expect(() => parseMissionPayload({...payload(),missions:[{...externalMission,financeur:''}]})).toThrow()
+    expect(() => parseMissionPayload({...payload(),missions:[{...externalMission,volume:19}]})).toThrow()
+    for (const volume of [0,-1,NaN,Infinity,1025]) expect(() => parseMissionPayload({...payload(),missions:[{...externalMission,volume}]})).toThrow()
+    const eight = parseMissionPayload({...payload(),missions:[{...externalMission,volume:8,cas1:'non',sessions:Array.from({length:8},()=>({date:'2027-01-12',duree:1,modalite:'presentiel'}))}]})
+    expect(contractText(eight,'Direction',0).join('\n')).toContain('TOTAL PRÉVISIONNEL : 0 €')
+    expect(parseMissionPayload(payload()).missions[0].financement).toBe('euneos')
+  })
   test('durées libres, fractions, formats courts et groupes distincts', () => {
     const year2 = {...payload(),missions:[{...mission(),volume:8,cas1:'non',format:'presentiel',sessions:Array.from({length:8},()=>({date:'2027-01-12',duree:1,modalite:'presentiel'}))}]}
     const parsedYear2 = parseMissionPayload(year2)
