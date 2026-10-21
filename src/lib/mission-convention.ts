@@ -14,7 +14,7 @@ export type MissionPayload = {
 }
 export type ConventionRow = {
   id: string; owner_email: string; state: 'submitted' | 'changes_requested' | 'approved' | 'trainer_signed' | 'complete'
-  payload: string; case2_euros: number; fees_decision: string; fees_details: string; representative: string; reviewed_by: string; review_note: string
+  payload: string; case2_euros: number; fees_decision: string; fees_details: string; fees_euros?: number | null; representative: string; reviewed_by: string; review_note: string
   created_at: string; updated_at: string
 }
 const fail = (message: string): never => { throw new WorkspaceError(400, message) }
@@ -129,10 +129,11 @@ export async function submitConvention(db: WorkspaceDatabase, identity: Workspac
     return getConvention(db, newId, identity, false)
   }
   const result = await db.prepare(`UPDATE mission_conventions SET payload=?,state='submitted',review_note='',
-    representative='',case2_euros=0,fees_decision='',fees_details='',reviewed_by='',updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    representative='',case2_euros=0,fees_decision='',fees_details='',fees_euros=NULL,reviewed_by='',updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
     WHERE id=? AND owner_email=? AND state='changes_requested'`)
     .bind(JSON.stringify(parsed), id, identity.email).run()
-  if (result.meta.changes !== 1) throw new WorkspaceError(409, 'Cette convention n’est plus modifiable. Rechargez la page.')
+  // D1/Bun may count the notification trigger's write in meta.changes too.
+  if (result.meta.changes < 1) throw new WorkspaceError(409, 'Cette convention n’est plus modifiable. Rechargez la page.')
   return getConvention(db, id, identity, false)
 }
 export async function requestChanges(db: WorkspaceDatabase, id: string, actor: WorkspaceIdentity, note: unknown) {

@@ -28,8 +28,9 @@ avant de générer le PDF figé ; le formateur le télécharge,
 le signe et le dépose ; la direction vérifie puis dépose le PDF contresigné.
 La liste équipe voit les saisies, mais seuls les comptes admin valident et contresignent.
 Les formateurs ne voient que leurs conventions ; l'API refuse tout accès sans JWT
-Cloudflare Access. Aucune notification ou synchronisation NocoDB n'est déclenchée :
-les personnes doivent se prévenir hors de ce circuit. Le catalogue de ressources
+Cloudflare Access. Les nouvelles soumissions (dont corrections resoumises) et les
+PDF signés déposés par les formateurs déclenchent une alerte à `euneosequipe@gmail.com`.
+Le catalogue de ressources
 reste un répertoire de liens et ne stocke aucun de ces documents.
 La page équipe « Catalogue des formulaires » référence la convention dans
 « Documents à signer » et permet de copier le lien formateur
@@ -111,6 +112,49 @@ le volume de 8 h ou 16 h choisi. Les corrections d'une convention soumise suiven
 La révision empêche l'écrasement d'une modification concurrente. La soumission du
 brouillon et la création de la convention partagent une transaction et un identifiant,
 sans effacement du brouillon source ni double création après une réponse perdue.
+
+### Notifications — décision Candice du 21 octobre 2026
+
+La migration additive `0013_mission_convention_notifications.sql` crée un registre
+privé et trois triggers : soumission initiale, resoumission après correction,
+dépôt `trainer_signed`. L'événement partage la transaction de la donnée métier.
+Les brouillons, validations PDF et dépôts contresignés n'envoient pas cette alerte
+de demande de vérification ; aucun événement historique n'est rejoué.
+
+Brevo reçoit un mail texte destiné exclusivement à `euneosequipe@gmail.com`, avec
+le nom du formateur, les établissements et le lien privé vers la convention.
+Aucun PDF ni donnée bancaire n'est joint. Le destinataire n'est pas choisi côté client.
+L'adresse destinataire du mail ne reçoit aucun droit d'accès supplémentaire.
+Seuls `euneos.fr` et `www.euneos.fr`, hors `INTERNAL_WORKSPACE_PREVIEW`, peuvent envoyer.
+Le statut `sent` signifie accepté par le service d'envoi, pas livré dans la boîte.
+
+L'événement est réclamé une seule fois avant transport ; une erreur réseau laisse
+`uncertain`, sans renvoi automatique. Un arrêt pendant l'envoi peut laisser `sending` :
+vérifier Brevo et la boîte avant toute intervention. Un événement resté `pending`
+avant réclamation sera traité lors d'une prochaine action notificatrice sur la même
+convention. Pas de tâche planifiée de reprise. Une panne de notification ne remet pas
+en cause la réception du document ; l'écran montre séparément son état d'envoi.
+Le bandeau équipe indique si l'envoi est configuré, et chaque convention affiche
+le reçu de sa dernière alerte. Les tests de transport sont simulés, sans e-mail réel.
+
+### Préparation de la vérification et anciens brouillons — 21 octobre 2026
+
+La même migration additive 0013 ajoute `fees_euros`, nullable pour les anciens
+documents. La direction retrouve la demande de frais dans le texte de vérification.
+Un montant unique explicitement suivi de « € » ou « euros » est proposé, jamais
+autorisé automatiquement ; les barèmes ou montants multiples restent à renseigner.
+Les forfaits ateliers sont calculés séparément du complément cas 2, qui est masqué
+quand il n'est pas applicable. Le total préparé affiche prestations + frais retenus.
+`save-review` conserve les champs préparés en laissant l'état `submitted` ;
+`approve` exige la décision, le montant/plafond et les détails, puis fige le PDF.
+Les deux actions comparent `updated_at` pour refuser un écrasement concurrent.
+Le PDF contient aussi le montant/plafond des frais et le total prévisionnel avec frais.
+La resoumission après correction efface l'ancienne décision financière à revérifier.
+
+`supersede-draft`, réservé à la direction, rattache un ancien brouillon à une
+convention existante du même compte via `submitted_id`, avec contrôle de révision.
+Son contenu est conservé, une note précise qu'il ne s'agit pas d'une nouvelle soumission.
+Il disparaît des brouillons actifs. Aucune correspondance de noms ni fusion automatique.
 Un scanner doit produire un PDF léger ; un PDF lourd n'est pas tronqué ni accepté.
 L'application contrôle la structure PDF, pas l'authenticité de la signature ni
 l'identité de son signataire. Comparer visuellement les versions avant contresignature.

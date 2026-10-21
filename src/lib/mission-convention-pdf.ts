@@ -24,7 +24,7 @@ const lines = (text: string) => text.replace(/\r/g, '').split('\n').map(s => s.t
 
 /** The source clauses are copied verbatim apart from blank template tables,
  * the old email exchange and the optional school visa (not a contracting party). */
-export function contractText(input: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé') {
+export function contractText(input: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé', feesEuros?: number) {
   const data = { ...input, missions: input.missions.map(m => ({ ...m, etablissement: `${m.etablissement}${m.groupe ? ` — ${m.groupe}` : ''}` })) }
   const countCase1 = data.missions.filter(m => m.cas1 === 'oui').length
   const external = data.missions.filter(m => m.financement === 'externe')
@@ -71,6 +71,7 @@ export function contractText(input: MissionPayload, representative: string, case
     `${fullTraining} formation(s) × 1 000 € = ${fullTraining * 1000} €. Cas 1 : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} : ${case2Euros} € validés par EUNEOS. TOTAL PRÉVISIONNEL : ${total} € hors frais autorisés.`,
     before(article(11), 'Frais remboursables autorisés'),
     `Frais remboursables autorisés par EUNEOS : ${fees}.`,
+    ...(feesEuros !== undefined ? [`Montant / plafond des frais autorisés : ${feesEuros.toFixed(2).replace('.',',')} €. Total prévisionnel incluant ces frais : ${(total + feesEuros).toFixed(2).replace('.',',')} €.`] : []),
     ...lines(invoicing),
     ...[13, 14].flatMap(n => lines(article(n))),
     'FICHE RÉCAPITULATIVE DE LA MISSION',
@@ -80,6 +81,7 @@ export function contractText(input: MissionPayload, representative: string, case
     `Période des séances : du ${dates[0]} au ${dates.at(-1)}.`,
     `Montant formation(s) : ${fullTraining} × 1 000 € = ${fullTraining * 1000} €. Cas 1 — atelier(s) 4 h : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} — formation aux ateliers : ${case2Euros} € validés par EUNEOS.`,
     `Frais autorisés : ${fees}. Total prévisionnel : ${total} € hors frais autorisés.`,
+    ...(feesEuros !== undefined ? [`Frais autorisés chiffrés : ${feesEuros.toFixed(2).replace('.',',')} €. TOTAL PRÉVISIONNEL AVEC FRAIS : ${(total + feesEuros).toFixed(2).replace('.',',')} €.`] : []),
     'SIGNATURES — Convention prenant effet à sa date de signature.',
     `POUR EUNEOS — ${representative}. Date : ______________. Mention : « Bon pour accord ». Signature :`,
     `LE/LA FORMATEUR·RICE — ${data.nom}. Date : ______________. Mention : « Lu et approuvé — Bon pour accord ». Signature :`,
@@ -91,7 +93,7 @@ export function contractText(input: MissionPayload, representative: string, case
     : text)
 }
 
-export async function generateContractPdf(data: MissionPayload, representative: string, case2Euros: number, fontBytes: ArrayBuffer | Uint8Array, fees?: string) {
+export async function generateContractPdf(data: MissionPayload, representative: string, case2Euros: number, fontBytes: ArrayBuffer | Uint8Array, fees?: string, feesEuros?: number) {
   const document = await PDFDocument.create()
   document.registerFontkit(fontkit)
   const font = await document.embedFont(fontBytes, { subset: true })
@@ -129,7 +131,7 @@ export async function generateContractPdf(data: MissionPayload, representative: 
     if (line) result.push(line)
     return result
   }
-  const blocks = contractText(data, representative, case2Euros, fees)
+  const blocks = contractText(data, representative, case2Euros, fees, feesEuros)
     .flatMap(text => text.split(/\n+/))
     .map(text => text.trim())
     .filter(Boolean)

@@ -23,6 +23,7 @@ const { publicKey, privateKey } = await generateKeyPair('RS256')
 const jwk = { ...await exportJWK(publicKey), kid: 'convention-local', alg: 'RS256', use: 'sig' }
 const env = { INTERNAL_ACCESS_DOMAIN:'convention-local.cloudflareaccess.com', INTERNAL_ACCESS_AUD:'team', RESOURCE_ACCESS_DOMAIN:'convention-local.cloudflareaccess.com', RESOURCE_ACCESS_AUD:'trainers', INTERNAL_ADMIN_EMAILS:'manager@example.test', TEAM_WORKSPACE:db }
 const token = await new SignJWT({ email:'trainer@example.test' }).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setSubject('synthetic').setAudience('trainers').setIssuer(`https://${env.INTERNAL_ACCESS_DOMAIN}`).setExpirationTime('30m').sign(privateKey)
+const adminToken = await new SignJWT({email:'manager@example.test'}).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setSubject('synthetic-manager').setAudience('team').setIssuer(`https://${env.INTERNAL_ACCESS_DOMAIN}`).setExpirationTime('30m').sign(privateKey)
 const originalFetch = globalThis.fetch
 globalThis.fetch = async url => {
   assert.equal(String(url), `https://${env.INTERNAL_ACCESS_DOMAIN}/cdn-cgi/access/certs`)
@@ -31,13 +32,13 @@ globalThis.fetch = async url => {
 const worker = new URL('../dist/_worker.js/', import.meta.url)
 const manifestName = (await readdir(worker)).find(n => n.startsWith('manifest_') && n.endsWith('.mjs'))
 const { manifest } = await import(new URL(manifestName, worker))
-const components = ['interne/ressources.astro','api/interne/ressources.ts']
+const components = ['interne/ressources.astro','api/interne/ressources.ts','interne/convention-mission.astro','api/interne/conventions-mission.ts']
 const pageMap = new Map(components.map(path => [`src/pages/${path}`, () => import(new URL(`pages/${path.replace(/\.(ts|astro)$/,'.astro.mjs')}`, worker))]))
 const app = new App({...manifest, sessionConfig:undefined, pageMap})
 const server = Bun.serve({hostname:'127.0.0.1',port:0,async fetch(request) {
   const path = new URL(request.url).pathname
   if (path.startsWith('/_astro/') || path.startsWith('/fonts/')) return new Response(Bun.file(`dist${path}`))
-  const headers = new Headers(request.headers); headers.set('Cf-Access-Jwt-Assertion',token)
+  const headers = new Headers(request.headers); headers.set('Cf-Access-Jwt-Assertion',request.headers.get('X-Fixture-Role') === 'manager' ? adminToken : token)
   return app.render(new Request(request,{headers}),{locals:{runtime:{env}}})
 }})
 const id = crypto.randomUUID()
@@ -105,6 +106,35 @@ try {
   await expect(page.locator('#cm-state')).toContainText('Convention reçue')
   assert.equal(sql.query('SELECT count(*) AS n FROM mission_conventions').get().n,1)
   assert.equal(sql.query('SELECT submitted_id FROM mission_convention_drafts WHERE id=?').get(id).submitted_id,id)
+  const received = JSON.parse(sql.query('SELECT payload FROM mission_conventions WHERE id=?').get(id).payload)
+  received.missions.push({...received.missions[0],etablissement:'Second collège fictif'})
+  received.frais='demande'; received.detailsFrais='Impressions : 39,79 euros'
+  sql.query('UPDATE mission_conventions SET payload=? WHERE id=?').run(JSON.stringify(received),id)
+  const oldDraft=crypto.randomUUID()
+  sql.query('INSERT INTO mission_convention_drafts(id,owner_email,payload,note,created_by) VALUES(?,?,?,?,?)').run(oldDraft,'trainer@example.test',JSON.stringify(received),'Ancien préremplissage','manager@example.test')
+  await page.setExtraHTTPHeaders({'X-Fixture-Role':'manager'})
+  await page.goto(`http://127.0.0.1:${server.port}/interne/convention-mission#convention-${id}`)
+  const panel=page.locator(`#convention-${id}`)
+  await expect(panel.locator(`#fees-details-${id}`)).toHaveValue('Impressions : 39,79 euros')
+  await expect(panel.locator(`#fees-amount-${id}`)).toHaveValue('39.79')
+  await expect(panel.locator(`#amount-${id}`)).toBeHidden()
+  await panel.locator(`#fees-${id}`).selectOption('accord')
+  await expect(panel.locator('.cm-review-total')).toContainText('439,79')
+  for (const width of [390,1440]) {
+    await page.setViewportSize({width,height:900})
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth+1),true,`Vérification overflow ${width}`)
+    if (output) await panel.screenshot({path:`${output}/verification-${width}.png`})
+  }
+  await panel.getByRole('button',{name:'Enregistrer la vérification',exact:true}).click()
+  await expect(page.locator('#cm-state')).toContainText('Vérification enregistrée et relue')
+  await page.reload()
+  await expect(panel.locator(`#fees-${id}`)).toHaveValue('accord')
+  await expect(panel.locator(`#fees-amount-${id}`)).toHaveValue('39.79')
+  await expect(panel.locator('.cm-review-total')).toContainText('439,79')
+  await page.getByRole('button',{name:'Rattacher cet ancien brouillon à la convention reçue',exact:true}).click()
+  await expect(page.locator('#cm-state')).toContainText('Ancien brouillon rattaché')
+  assert.equal(sql.query('SELECT submitted_id FROM mission_convention_drafts WHERE id=?').get(oldDraft).submitted_id,id)
+  assert.equal(sql.query('SELECT state FROM mission_conventions WHERE id=?').get(id).state,'submitted')
   assert.deepEqual(errors,[])
   console.log('Conventions : brouillon incomplet, relecture, soumission, 8 h, durées libres et six largeurs vérifiés.')
 } finally { await browser.close(); server.stop(true); sql.close(); globalThis.fetch = originalFetch }

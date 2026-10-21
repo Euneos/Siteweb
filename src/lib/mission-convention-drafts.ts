@@ -44,6 +44,20 @@ export async function submitDraft(db: WorkspaceDatabase, owner: WorkspaceIdentit
       WHERE id=? AND owner_email=? AND revision=? AND submitted_id IS NULL`)
       .bind(JSON.stringify(parsed), id, owner.email, revision),
   ])
-  if (results.some(result => result.meta.changes !== 1)) throw new WorkspaceError(409, 'Soumission non confirmée. Rechargez la page.')
+  if (results.some(result => result.meta.changes < 1)) throw new WorkspaceError(409, 'Soumission non confirmée. Rechargez la page.')
   return getConvention(db, id, owner, false)
+}
+
+/** Link an obsolete preparation to the same owner's received convention; keep all source data. */
+export async function supersedeDraft(db: WorkspaceDatabase, actor: WorkspaceIdentity, id: string, revision: unknown, conventionId: string) {
+  if (!actor.admin) throw new WorkspaceError(403, 'Action réservée à la direction EUNEOS.')
+  const draft = await getDraft(db, id, actor, true)
+  const convention = await getConvention(db, conventionId, actor, true)
+  if (draft.owner_email !== convention.owner_email || draft.submitted_id || draft.revision !== revision)
+    throw new WorkspaceError(409, 'Le brouillon ou la convention a changé. Rechargez la page.')
+  const note = `${draft.note}\n\nAncien préremplissage rattaché à la convention reçue ${conventionId}. Rattachement par ${actor.email} ; aucune nouvelle soumission.`
+  const result = await db.prepare(`UPDATE mission_convention_drafts SET submitted_id=?,note=?,revision=revision+1,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    WHERE id=? AND revision=? AND submitted_id IS NULL`).bind(conventionId,note,id,draft.revision).run()
+  if (result.meta.changes !== 1) throw new WorkspaceError(409, 'Rattachement non confirmé. Rechargez la page.')
+  return getDraft(db,id,actor,true)
 }

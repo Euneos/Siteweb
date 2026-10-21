@@ -33,11 +33,14 @@ function fixture() {
   sql.exec(readFileSync('migrations/interne/0001_workspace.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0009_conventions_mission.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql','utf8'))
+  sql.exec(readFileSync('migrations/interne/0013_mission_convention_notifications.sql','utf8'))
   const db = {
+    batch: async (statements: {execute:()=>unknown}[]) => sql.transaction(()=>statements.map(s=>s.execute()))(),
     prepare: (query: string) => ({bind:(...args: unknown[]) => ({
       all: async () => ({results:sql.query(query).all(...args as [])}),
       first: async () => sql.query(query).get(...args as []),
       run: async () => ({meta:{changes:sql.query(query).run(...args as []).changes}}),
+      execute: () => ({meta:{changes:sql.query(query).run(...args as []).changes}}),
     })}),
   }
   const env = {INTERNAL_ACCESS_DOMAIN:domain,INTERNAL_ACCESS_AUD:'team',RESOURCE_ACCESS_DOMAIN:domain,
@@ -51,6 +54,28 @@ function fixture() {
 }
 
 describe('convention et audience Ressources', () => {
+  test('vérification conservée avec centimes et total ateliers ; rattachement privé sans effacement', async () => {
+    const {sql,locals,request} = fixture()
+    const teamUrl='/api/interne/conventions-mission'
+    const trainer='formateur@example.test'
+    const p={...payload(),frais:'demande',detailsFrais:'Impressions : 39,79 euros',missions:[{...payload().missions[0],cas1:'oui',classe:'5e',ateliers:'Dates à fixer',financement:'externe',financeur:'Organisme fictif'},{...payload().missions[0],etablissement:'Second collège',cas1:'oui',classe:'5e',ateliers:'Dates à fixer',financement:'externe',financeur:'Organisme fictif'}]}
+    const submitted=await conventionPost({request:await request(teamUrl,'team','manager@example.test',{action:'submit',ownerEmail:trainer,payload:p}),locals} as never)
+    expect(submitted.status).toBe(200)
+    const {id}=await submitted.json()
+    const initial=sql.query('SELECT * FROM mission_conventions WHERE id=?').get(id) as {updated_at:string}
+    const body={action:'save-review',id,expectedUpdatedAt:initial.updated_at,representativeName:'Responsable',representativeRole:'Direction',case2Euros:0,feesDecision:'accord',feesDetails:'Impressions : 39,79 euros',feesEuros:39.79}
+    expect((await conventionPost({request:await request(teamUrl,'team','manager@example.test',body),locals} as never)).status).toBe(200)
+    const saved=sql.query('SELECT fees_euros,fees_details,fees_decision,state FROM mission_conventions WHERE id=?').get(id)
+    expect(saved).toEqual({fees_euros:39.79,fees_details:'Impressions : 39,79 euros',fees_decision:'accord',state:'submitted'})
+    expect((await conventionPost({request:await request(teamUrl,'team','manager@example.test',{...body,expectedUpdatedAt:'stale'}),locals} as never)).status).toBe(409)
+    expect((await conventionPost({request:await request(teamUrl,'trainers',trainer,body),locals} as never)).status).toBe(403)
+    const draft=crypto.randomUUID()
+    expect((await conventionPost({request:await request(teamUrl,'team','manager@example.test',{action:'save-draft',id:draft,revision:0,ownerEmail:trainer,payload:p,note:'Ancien préremplissage'}),locals} as never)).status).toBe(200)
+    expect((await conventionPost({request:await request(teamUrl,'team','manager@example.test',{action:'supersede-draft',id:draft,revision:1,conventionId:id}),locals} as never)).status).toBe(200)
+    expect((sql.query('SELECT submitted_id FROM mission_convention_drafts WHERE id=?').get(draft) as {submitted_id:string}).submitted_id).toBe(id)
+    expect((sql.query('SELECT COUNT(*) AS n FROM mission_convention_drafts').get() as {n:number}).n).toBe(1)
+    sql.close()
+  })
   test('brouillons privés : création direction, refus des autres comptes et soumission incomplète', async () => {
     const {sql,locals,request} = fixture()
     const id = crypto.randomUUID()
@@ -96,6 +121,13 @@ describe('convention et audience Ressources', () => {
     expect(download.status).toBe(200)
     expect(download.headers.get('Content-Type')).toBe('application/pdf')
     expect((await resourceGet({request:await request(`${url}&id=${id}&kind=approved`,'trainers','autre@example.test'),locals} as never)).status).toBe(404)
+    const signedUpload = new Request(`https://euneos.fr${url}&id=${id}&kind=trainer_signed`, {
+      method:'PUT',headers:{'Cf-Access-Jwt-Assertion':await sign('trainers',trainer),Origin:'https://euneos.fr','Content-Type':'application/pdf'},body:Uint8Array.from(pdf),
+    })
+    const signedResult = await resourcePut({request:signedUpload,locals} as never)
+    expect(signedResult.status).toBe(200)
+    expect((await signedResult.json()).notification).toBe('unavailable')
+    expect(sql.query('SELECT kind,state FROM mission_convention_notifications WHERE convention_id=? ORDER BY id DESC LIMIT 1').get(id)).toEqual({kind:'trainer_signed',state:'unavailable'})
     expect((sql.query('SELECT COUNT(*) AS n FROM mission_conventions').get() as {n:number}).n).toBe(1)
     sql.close()
   })

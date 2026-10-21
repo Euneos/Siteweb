@@ -1,10 +1,12 @@
 import type { APIRoute } from 'astro'
 import { PDFDocument } from 'pdf-lib'
-import { getInternalContext, internalError, privateJson, readInternalBody, entryId, privateHeaders } from '../../../lib/internal-context'
+import { getInternalContext, internalError, privateJson, readInternalBody, entryId, privateHeaders, internalEnvironment } from '../../../lib/internal-context'
 import { WorkspaceError } from '../../../lib/internal-workspace'
 import { getConvention, listConventions, normalizeStoredPayload, requestChanges, submitConvention, trainerAccountEmail } from '../../../lib/mission-convention'
 import { generateContractPdf } from '../../../lib/mission-convention-pdf'
-import { getDraft, listDrafts, saveDraft, submitDraft } from '../../../lib/mission-convention-drafts'
+import { getDraft, listDrafts, saveDraft, submitDraft, supersedeDraft } from '../../../lib/mission-convention-drafts'
+import { conventionMailEnabled, conventionNotificationRecipient, conventionNotificationReceipts, notifyConventionEvents } from '../../../lib/mission-convention-notifications'
+import { parseConventionReview } from '../../../lib/mission-convention-review'
 
 export const prerender = false
 const requireAdmin = (team: boolean, admin: boolean) => {
@@ -41,6 +43,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
     return privateJson({ conventions: await listConventions(ctx.db, ctx.identity, ctx.teamMember),
       drafts: await listDrafts(ctx.db, ctx.identity, ctx.teamMember),
+      ...(ctx.teamMember ? {
+        notifications: await conventionNotificationReceipts(ctx.db),
+        notificationEmail: conventionNotificationRecipient,
+        notificationsEnabled: conventionMailEnabled(internalEnvironment(locals), new URL(request.url).origin),
+      } : {}),
       team: ctx.teamMember, admin: ctx.identity.admin, accountEmail: ctx.identity.email })
   } catch (error) { return internalError(error) }
 }
@@ -65,7 +72,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const row = action === 'save-draft'
         ? await saveDraft(ctx.db, owner, ctx.identity, id, body.revision, body.payload, body.note)
         : await submitDraft(ctx.db, owner, id, body.revision, body.payload)
-      return privateJson({ id: row.id })
+      const notification = action === 'submit-draft'
+        ? await notifyConventionEvents(ctx.db, internalEnvironment(locals), row.id, new URL(request.url).origin) : undefined
+      return privateJson({ id: row.id, notification })
     }
     if (action === 'submit') {
       const id = body.id ? entryId(body.id) : undefined
@@ -80,42 +89,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
         owner = { email, admin: false }
       }
       const row = await submitConvention(ctx.db, owner, body.payload, id)
-      return privateJson({ id: row.id, state: row.state })
+      const notification = await notifyConventionEvents(ctx.db, internalEnvironment(locals), row.id, new URL(request.url).origin)
+      return privateJson({ id: row.id, state: row.state, notification })
     }
     requireAdmin(ctx.teamMember, ctx.identity.admin)
     const id = entryId(body.id)
+    if (action === 'supersede-draft') {
+      const draft = await supersedeDraft(ctx.db,ctx.identity,id,body.revision,entryId(body.conventionId))
+      return privateJson({id:draft.id,submitted_id:draft.submitted_id})
+    }
     if (action === 'changes') {
       const row = await requestChanges(ctx.db, id, ctx.identity, body.note)
       return privateJson({ id, state: row.state })
     }
-    if (action === 'approve') {
+    if (action === 'approve' || action === 'save-review') {
       const row = await getConvention(ctx.db, id, ctx.identity, true)
       if (row.state !== 'submitted') throw new WorkspaceError(409, 'La convention a changé. Rechargez la page.')
-      if (body.confirmed !== true) throw new WorkspaceError(400, 'Vérifiez les missions et accords préalables avant validation.')
-      const representativeName = typeof body.representativeName === 'string' ? body.representativeName.trim() : ''
-      const representativeRole = typeof body.representativeRole === 'string' ? body.representativeRole.trim() : ''
-      if (!representativeName || !representativeRole || representativeName.length > 90 || representativeRole.length > 90)
-        throw new WorkspaceError(400, 'Indiquez séparément le nom et la fonction du représentant EUNEOS.')
-      const representative = `${representativeName} — ${representativeRole}`
-      const euros = body.case2Euros
-      if (typeof euros !== 'number' || !Number.isInteger(euros) || euros < 0 || euros > 100000) throw new WorkspaceError(400, 'Montant cas 2 invalide.')
-      if (body.feesDecision !== 'aucun' && body.feesDecision !== 'accord')
-        throw new WorkspaceError(400, 'Choisissez les frais autorisés par EUNEOS.')
-      const feesDetails = typeof body.feesDetails === 'string' ? body.feesDetails.trim() : ''
-      if (feesDetails.length > 2000 || (body.feesDecision === 'accord' && !feesDetails))
-        throw new WorkspaceError(400, 'Précisez les frais autorisés et leur plafond ou refus.')
-      const fees = body.feesDecision === 'accord' ? feesDetails : 'aucun'
       const payload = normalizeStoredPayload(row.payload)
-      if (!payload.missions.some(m => m.cas2 !== 'non' || (m.volume === 8 && m.financement !== 'externe')) && euros !== 0) throw new WorkspaceError(400, 'Aucun cas 2 ni parcours de 8 h rémunéré par EUNEOS indiqué.')
+      if (action === 'approve' && body.confirmed !== true) throw new WorkspaceError(400, 'Vérifiez les missions et accords préalables avant validation.')
+      const {representative,case2Euros:euros,feesDecision,feesDetails,feesEuros} = parseConventionReview(body,payload,action === 'approve')
+      if (body.expectedUpdatedAt !== row.updated_at) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page pour retrouver les dernières décisions.')
+      if (action === 'save-review') {
+        const result = await ctx.db.prepare(`UPDATE mission_conventions SET representative=?,case2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE id=? AND state='submitted' AND updated_at=?`)
+          .bind(representative,euros,feesDecision,feesDetails,feesEuros,ctx.identity.email,id,row.updated_at).run()
+        if (result.meta.changes !== 1) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page.')
+        const saved = await getConvention(ctx.db,id,ctx.identity,true)
+        if (saved.representative !== representative || saved.case2_euros !== euros || saved.fees_decision !== feesDecision || saved.fees_details !== feesDetails || saved.fees_euros !== feesEuros)
+          throw new WorkspaceError(503, 'Enregistrement de la vérification non confirmé. Rechargez la page.')
+        return privateJson({id,state:saved.state,updated_at:saved.updated_at})
+      }
+      const fees = feesDecision === 'accord' ? feesDetails : 'aucun'
       const fontResponse = await fetch(new URL('/fonts/OpenSans-convention.ttf', request.url))
       if (!fontResponse.ok) throw new WorkspaceError(503, 'Police PDF indisponible. Réessayez plus tard.')
-      const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees)
+      const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees, feesDecision === 'accord' ? feesEuros! : 0)
       if (pdf.byteLength > 750_000) throw new WorkspaceError(413, 'PDF trop volumineux pour cet espace.')
       const digest = await hash(pdf)
       const results = await ctx.db.batch([
-        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',representative=?,case2_euros=?,fees_decision=?,fees_details=?,reviewed_by=?,
-          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND state='submitted'`)
-          .bind(representative, euros, body.feesDecision, feesDetails, ctx.identity.email, id),
+        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',representative=?,case2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,
+          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND state='submitted' AND updated_at=?`)
+          .bind(representative, euros, feesDecision, feesDetails, feesDecision === 'accord' ? feesEuros : 0, ctx.identity.email, id, row.updated_at),
         ctx.db.prepare(`INSERT INTO mission_convention_files(convention_id,kind,pdf,sha256,uploaded_by)
           SELECT id,'approved',?,?,? FROM mission_conventions WHERE id=? AND state='approved'`)
           .bind(pdf, digest, ctx.identity.email, id),
@@ -159,10 +172,12 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         SELECT id,?,?,?,? FROM mission_conventions WHERE id=? AND state=?`)
         .bind(kind, pdf, digest, ctx.identity.email, id, kind),
     ])
-    if (results[0].meta.changes !== 1 || results[1].meta.changes !== 1) throw new WorkspaceError(409, 'Dépôt non confirmé. Rechargez la page.')
+    if (results[0].meta.changes < 1 || results[1].meta.changes < 1) throw new WorkspaceError(409, 'Dépôt non confirmé. Rechargez la page.')
     const verified = await getConvention(ctx.db, id, ctx.identity, ctx.teamMember)
     if (verified.state !== kind) throw new WorkspaceError(503, 'Dépôt incertain. Rechargez la page.')
     await confirmFile(ctx.db, id, kind, digest)
-    return privateJson({ id, state: verified.state, sha256: digest })
+    const notification = kind === 'trainer_signed'
+      ? await notifyConventionEvents(ctx.db, internalEnvironment(locals), id, new URL(request.url).origin) : undefined
+    return privateJson({ id, state: verified.state, sha256: digest, notification })
   } catch (error) { return internalError(error) }
 }
