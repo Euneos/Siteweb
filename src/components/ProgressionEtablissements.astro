@@ -1,11 +1,11 @@
 ---
-import { etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
+import { dateFormationFr, etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
 import { statutCandidature } from '../lib/statut-candidature'
 import { lienDernierContact, dateContactFr } from '../lib/dernier-contact'
 import { pointSituation, situationCourante } from '../lib/point-situation'
 interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
-const progressionAffichee = trierProgression(lignes)
+const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')))
 ---
 
 <details class="etat__progression" open>
@@ -16,11 +16,10 @@ const progressionAffichee = trierProgression(lignes)
     Vert : pièce reçue ; lorsque la lettre signée et la fiche contact sont reçues,
     les six premières étapes sont colorées en vert. Ce repère visuel ne modifie pas
     la décision ni la preuve d’envoi d’un accusé de réception.
-    Les cases « Formateur désigné » et « Formations & suivi » sont également vertes
-    lorsqu’un formateur est nommé dans une mission ou qu’une date de début est renseignée,
-    respectivement. Une date renseignée ne signifie pas que la formation est terminée.
-    Les établissements ayant ces deux pièces sont regroupés en début de tableau,
-    suivis des dossiers à compléter. Rouge : abandon enregistré, placé en fin de tableau.
+    Les dates passées apparaissent d’abord, puis les débuts à venir, du plus proche au plus éloigné ;
+    les dossiers sans date sont regroupés à la fin. Une date passée ne prouve pas le démarrage réel.
+    Rouge : aucune affectation renseignée. Les personnes pressenties ne sont pas des affectations.
+    Les abandons et refus sont exclus de ce tableau opérationnel.
   </p>
   <div class="etat__table-actions">
     <p class="etat__scroll-aide">Toutes les colonnes sont visibles dans la largeur de l’écran sur ordinateur.</p>
@@ -35,7 +34,7 @@ const progressionAffichee = trierProgression(lignes)
   <div data-suivi-inline>
   <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures">
     <table class="etat__table">
-      <caption>Progression des établissements — cohorte 2026–2027</caption>
+      <caption>Progression des établissements — cohorte 2026–2027 · {progressionAffichee.length} dossiers actifs · tri par début de formation</caption>
       <colgroup>
         <col style="width:12%" />
         <col style="width:15%" />
@@ -54,19 +53,27 @@ const progressionAffichee = trierProgression(lignes)
         <tr>{colonnes.map(titre => <th scope="col">{titre}</th>)}</tr>
       </thead>
       <tbody>
-        {lignes.length === 0 && <tr><td colspan="13">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier dans cette cohorte.'}</td></tr>}
+        {progressionAffichee.length === 0 && <tr><td colspan="13">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
           <tr class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
               <span class="etat__nom">{ligne.etablissement}</span>
               <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
               <span class="etat__meta">{statutCandidature(ligne.statut).label}</span>
+              <span class="etat__meta"><strong>Référent :</strong> {ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span>
+              <span class:list={['etat__debut', !ligne.dateDebutFormation && 'etat__sans-date']}>
+                {ligne.dateDebutFormation ? `Début : ${dateFormationFr(ligne.dateDebutFormation)}` : '⚠ AUCUNE DATE DE DÉBUT RENSEIGNÉE'}
+              </span>
+              {ligne.dateDebutFormation && <small>{ligne.suiviVerifie?.qualification || (ligne.anomaliesDates.length ? 'à vérifier' : 'date renseignée · confirmation à vérifier')}</small>}
               {ligne.aVerifier && <span class="etat__verification">Dossier à rapprocher</span>}
             </th>
             <td class="etat__situation">
               <span class="etat__mobile-label">Point de situation</span>
-              <span>{pointSituation(ligne)}</span>
-              {situationCourante(ligne) && <small>
+              <span>{ligne.suiviVerifie?.situation || pointSituation(ligne)}</span>
+              {ligne.suiviVerifie ? <>
+                <small>Vérification croisée le {dateContactFr(ligne.suiviVerifie.checkedAt)}</small>
+                <details><summary>Sources de vérification</summary><ul>{ligne.suiviVerifie.sources.map(source => <li>{source}</li>)}</ul></details>
+              </> : situationCourante(ligne) && <small>
                 {situationCourante(ligne)!.sourceKind === 'echange-interne' ? 'Point interne du ' : 'Mail envoyé le '}
                 {dateContactFr(situationCourante(ligne)!.sourceAt)}
               </small>}
@@ -88,11 +95,14 @@ const progressionAffichee = trierProgression(lignes)
               {ligne.dernierContact && <small>Vérifié le {dateContactFr(ligne.dernierContact.checkedAt)}</small>}
             </td>
             {ligne.progression.map((cellule, index) => (
-              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, etapeEnVert(ligne, index) && 'etat__piece-recue']}>
-                <span aria-hidden="true">{cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
+              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, etapeEnVert(ligne, index) && !(index === 8 && ligne.anomaliesDates.length) && 'etat__piece-recue', index === 6 && !ligne.formateurs.length && 'etat__sans-affectation']}>
+                <span aria-hidden="true">{index === 7 ? (ligne.suiviVerifie?.organisationRecue ? '✓' : '—') : cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
                 <span class="etat__mobile-label">{colonnes[index]}</span>
                 <small>{index === 6 && ligne.formateurs.length
                   ? ligne.formateurs.map(formateur => formateur.nom).join(' · ')
+                  : index === 6 ? 'AUCUNE AFFECTATION RENSEIGNÉE'
+                  : index === 7 ? (ligne.suiviVerifie?.organisation || 'Réception du questionnaire non vérifiée')
+                  : index === 8 && ligne.anomaliesDates.length ? 'Calendrier à vérifier — voir le point de situation'
                   : cellule.texte}</small>
               </td>
             ))}
@@ -107,7 +117,7 @@ const progressionAffichee = trierProgression(lignes)
       <h2 id="titre-suivi-agrandi">Suivi des établissements</h2>
       <button class="iw-button" type="button" data-suivi-close>Fermer la vue agrandie</button>
     </header>
-    <p class="etat__legende">Dossiers avec les deux pièces reçues en premier ; abandons en rouge à la fin. Appuyez sur Échap pour revenir à la page.</p>
+    <p class="etat__legende">Tri par début de formation ; dossiers sans date à la fin. Rouge : aucune affectation renseignée. Appuyez sur Échap pour revenir à la page.</p>
     <div data-suivi-slot></div>
   </dialog>
 </details>
@@ -134,6 +144,11 @@ const progressionAffichee = trierProgression(lignes)
 </script>
 
 <style is:global>
+  .etat__debut { display: block; margin-block: .5rem; font-weight: 700; }
+  .etat__sans-date { background: #fff3cc; color: #533b00; padding: .35rem; border-left: 3px solid #8a6100; }
+  .etat__table td.etat__sans-affectation { background: #fff0f0; color: #a11919; font-weight: 700; }
+  .etat__situation details { margin-block-start: .5rem; }
+  .etat__situation ul { padding-inline-start: 1rem; }
   .etat__table-actions {
     display: flex;
     flex-wrap: wrap;

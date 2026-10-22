@@ -203,7 +203,7 @@ const colonnes = [
               {nomRecherche && <a href={`/etat-candidatures?${new URLSearchParams({ statut, filtre, tri })}#suivi`}>Effacer la recherche</a>}
             </form>
             <p class="etat__legende">
-              {dossiersParNom.length} établissement(s) dans le tableau sur {etat.lignes.length}.
+              {dossiersParNom.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')).length} dossier(s) actif(s) dans le tableau. Les dossiers arrêtés restent consultables dans les fiches ci-dessous.
               {nomRecherche && <> Recherche : « {nomRecherche} ».</>}
             </p>
             <ProgressionEtablissements lignes={dossiersParNom} colonnes={colonnes} recherche={nomRecherche} viewerEmail={identity.email} />

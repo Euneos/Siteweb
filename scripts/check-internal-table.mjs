@@ -17,6 +17,14 @@ const env = {
   INTERNAL_ACCESS_AUD: 'fixture-app',
   NOCODB_TOKEN: 'synthetic-token',
 }
+tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_SUIVI_VERIFIE_V1]\n' + JSON.stringify({
+  version: 1, checkedAt: '2026-09-22T12:00:00.000Z',
+  dateDeReference: tables.mbunbu0f1zztce4[0].date_debut_formation,
+  qualification: 'confirmée', referent: 'Référente de démonstration',
+  situation: 'Calendrier vérifié dans les échanges de démonstration.',
+  organisation: 'Reçu le 21/09/2026', organisationRecue: true,
+  sources: ['Formulaire et mail de démonstration du 21/09/2026'],
+}) + '\n[/EUNEOS_SUIVI_VERIFIE_V1]'
 tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_LAST_CONTACT_V1]\n' + JSON.stringify({
   version: 1, account: 'charlotte@euneos.fr', checkedAt: '2026-09-22T12:00:00.000Z', status: 'found',
   sentAt: '2026-09-21T10:00:00.000Z', subject: 'Relance de démonstration',
@@ -150,7 +158,7 @@ assert.match(errorHtml, /Données momentanément indisponibles/)
 assert.doesNotMatch(errorHtml, /0<\/strong>/)
 failData = false
 empty = true
-assert.match(await (await render(env, jwt)).text(), /Aucun dossier dans cette cohorte/)
+assert.match(await (await render(env, jwt)).text(), /Aucun dossier actif dans cette cohorte/)
 globalThis.fetch = realFetch
 globalThis.Date = RealDate
 
@@ -259,12 +267,16 @@ try {
     assert.equal(await tab.locator('thead tr').count(), 2)
     assert.equal(await tab.locator('thead tr').last().locator('th').count(), 10)
     assert.equal(await tab.locator('tbody tr').first().locator('td').count(), 12)
-    if (width <= 860) assert.equal(await tab.locator('.etat__mobile-label:visible').count(), 36)
+    if (width <= 860) assert.equal(await tab.locator('.etat__mobile-label:visible').count(), 24)
     if (width <= 860) {
       assert(await tab.locator('.etat__dernier-contact .etat__mobile-label').first().evaluate(el => el.getBoundingClientRect().width > 150), 'Libellé du dernier contact lisible sur mobile')
     }
     assert(await tab.locator('.etat__table-wrap').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Toutes les colonnes tiennent sans défilement horizontal à ${width}px`)
     assert(await tab.locator('.etat__situation').first().innerText(), 'Résumé présent')
+    assert(await tab.getByText('Référente de démonstration', { exact: false }).first().isVisible())
+    assert(await tab.locator('.etat__sans-date').first().isVisible(), 'Dates absentes explicitement signalées')
+    assert.equal(await tab.locator('.etat__sans-affectation').first().evaluate(el => getComputedStyle(el).color), 'rgb(161, 25, 25)', 'Affectation manquante en rouge')
+    assert(await tab.locator('.etat__table').getByText('Reçu le 21/09/2026', { exact: true }).isVisible(), 'Organisation distingue le formulaire de la mission')
     await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
     assert(await tab.getByRole('dialog').isVisible())
     assert.equal(await tab.locator('.etat__table').count(), 1, 'Une seule table, sans duplication des dossiers')
@@ -322,7 +334,7 @@ try {
   assert.equal(await tab.locator('.etat__dossier').count(), 0)
   await tab.getByRole('link', { name: 'Effacer la recherche', exact: true }).click()
   await tab.waitForURL(url => !url.searchParams.has('nom'))
-  assert.equal(await tab.locator('.etat__table tbody tr').count(), 3)
+  assert.equal(await tab.locator('.etat__table tbody tr').count(), 2, 'Dossiers arrêtés exclus du tableau opérationnel')
   console.log('Recherche par nom sans accents, aucun résultat, effacement et ordre des rubriques : OK')
   await tab.goto(`http://127.0.0.1:${server.port}/status-demo`)
   const statusSelect = tab.getByRole('combobox', { name: 'Statut de candidature' })

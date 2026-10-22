@@ -44,6 +44,7 @@ export function pointSituation(ligne: EtatCandidature): string {
   const statut = statutCandidature(ligne.statut).code
   if (statut === 'Abandonne') return 'Établissement en abandon ; dossier arrêté.'
   if (statut === 'Refuse') return 'Candidature refusée ; dossier arrêté.'
+  if (ligne.suiviVerifie) return ligne.suiviVerifie.situation
   const situation = situationCourante(ligne)
   if (situation) return situation.text
   const faits: string[] = []

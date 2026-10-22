@@ -1,6 +1,7 @@
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
 import { lireDernierContact, type DernierContact } from './dernier-contact'
+import { lireSuiviVerifie } from './suivi-verifie'
 import { lireSituationVerifiee, type SituationVerifiee } from './point-situation'
 import { candidatureArretee, statutCandidature, sourceStatutDossier } from './statut-candidature'
 
@@ -43,9 +44,12 @@ interface EtablissementNoco {
   type_etab?: string | null
   ville?: string | null
   region?: string | null
+  referent_nom?: string | null
 }
 
 export interface EtatCandidature {
+  referent?: string | null
+  suiviVerifie?: import('./suivi-verifie').SuiviVerifie | null
   id: number
   code: string
   statut: string
@@ -227,7 +231,7 @@ export async function lireEtatCohorte(
     ? await lister<EtablissementNoco>(
         token,
         NC.tables.etablissements,
-        ['Id', 'nom', 'type_etab', 'ville', 'region'],
+        ['Id', 'nom', 'type_etab', 'ville', 'region', 'referent_nom'],
         `(Id,in,${ids.join(',')})`,
       )
     : []
@@ -291,10 +295,15 @@ export async function lireEtatCohorte(
       const etablissementId = participation.etablissements_id ?? null
       const etablissement = etablissementId ? etablissementsParId.get(etablissementId) : undefined
       const contactLu = lireSourceContact(participation.notes)
+      const suiviLu = lireSuiviVerifie(participation.notes)
+      const suiviVerifie = suiviLu?.dateDeReference === (participation.date_debut_formation ?? null) ? suiviLu : null
       const anomaliesDates = verifierDates(participation, contactLu.contact)
+      if (suiviVerifie?.qualification === 'à vérifier') anomaliesDates.push(suiviVerifie.situation)
       const missionsDossier = missions.filter((m) => m.participations_id === participation.Id)
       return {
         id: participation.Id,
+        referent: etablissement?.referent_nom?.trim() || null,
+        suiviVerifie,
         code: participation.code?.trim() || 'Sans code',
         statut: sourceStatutDossier(participation)?.trim() || 'Non renseigné',
         dateCandidature: participation.date_candidature ?? null,
@@ -609,8 +618,8 @@ export function trierProgression(lignes: EtatCandidature[]): EtatCandidature[] {
   return [...lignes].sort((a, b) => {
     const abandon = Number(statutCandidature(a.statut).code === 'Abandonne') -
       Number(statutCandidature(b.statut).code === 'Abandonne')
-    const pieces = Number(etapeEnVert(b, 0)) - Number(etapeEnVert(a, 0))
-    return abandon || pieces || (a.dateCandidature || '9999').localeCompare(b.dateCandidature || '9999') ||
+    const dates = (a.dateDebutFormation || '9999').localeCompare(b.dateDebutFormation || '9999')
+    return abandon || dates || (a.dateCandidature || '9999').localeCompare(b.dateCandidature || '9999') ||
       a.etablissement.localeCompare(b.etablissement, 'fr') || a.id - b.id
   })
 }
