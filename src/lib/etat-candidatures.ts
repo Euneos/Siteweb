@@ -34,6 +34,8 @@ interface ParticipationNoco {
   date_debut_formation?: string | null
   date_fin_formation?: string | null
   statut_formation?: string | null
+  intention_evaluation_scientifique?: string | null
+  evaluation_jeunes_demandee?: string | null
   etablissements_id?: number | null
   notes?: string | null
 }
@@ -207,6 +209,8 @@ export async function lireEtatCohorte(
       'date_debut_formation',
       'date_fin_formation',
       'statut_formation',
+      'intention_evaluation_scientifique',
+      'evaluation_jeunes_demandee',
       'etablissements_id',
       'cohortes_id',
       'fusionne_vers',
@@ -420,13 +424,25 @@ export function progression(p: ParticipationNoco, missions: MissionNoco[]): Indi
           `${missionsActives.length} mission(s) · ${[...new Set(missionsActives.map((m) => m.statut).filter(Boolean))].join(', ') || 'état non renseigné'}`,
         )
       : inconnu('Aucune mission renseignée'),
-    nombreFormes > 0
+    normaliser(p.statut_formation) === 'en cours'
+      ? encours('Formation en cours')
+      : nombreFormes > 0
       ? encours(`${nombreFormes} adulte(s) déclaré(s) formé(s) · suivi à vérifier`)
       : p.date_debut_formation
         ? encours(`Début renseigné : ${dateFr(p.date_debut_formation)}`)
         : inconnu('Formation non documentée'),
-    inconnu('Ateliers et évaluation non documentés dans cette vue'),
+    inconnu(`Évaluation scientifique : ${evaluationScientifique(p)}`),
   ]
+}
+
+/** A missing response is not a refusal; conflicting explicit choices need review. */
+export function evaluationScientifique(p: ParticipationNoco): string {
+  const values = [p.intention_evaluation_scientifique, p.evaluation_jeunes_demandee].map(normaliser)
+  const yes = values.includes('oui'), no = values.includes('non')
+  if (yes && no) return 'À confirmer — réponses contradictoires'
+  if (yes) return 'Oui'
+  if (no) return 'Non'
+  return 'À confirmer'
 }
 
 function dateFr(date: string): string {

@@ -8,6 +8,7 @@ export interface SuiviVerifie {
   situation: string
   organisation: string
   organisationRecue: boolean
+  formationPrecision?: string
   sources: string[]
 }
 
@@ -23,10 +24,12 @@ export function lireSuiviVerifie(notes?: string | null): SuiviVerifie | null {
       !(v.dateDeReference === null || (typeof v.dateDeReference === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.dateDeReference))) ||
       !['confirmée', 'prévisionnelle', 'à vérifier', 'non renseignée'].includes(v.qualification) ||
       !text(v.referent) || !text(v.situation) || !text(v.organisation) || typeof v.organisationRecue !== 'boolean' ||
+      (v.formationPrecision !== undefined && !text(v.formationPrecision)) ||
       !Array.isArray(v.sources) || v.sources.length > 10 || !v.sources.every(text)) return null
     // Explicit projection only; no arbitrary note fields or HTML.
     return { version: 1, checkedAt: v.checkedAt, dateDeReference: v.dateDeReference,
       qualification: v.qualification, referent: v.referent, situation: v.situation,
-      organisation: v.organisation, organisationRecue: v.organisationRecue, sources: v.sources }
+      organisation: v.organisation, organisationRecue: v.organisationRecue, sources: v.sources,
+      ...(v.formationPrecision !== undefined ? { formationPrecision: v.formationPrecision } : {}) }
   } catch { return null }
 }

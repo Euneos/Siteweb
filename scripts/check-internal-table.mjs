@@ -23,6 +23,7 @@ tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_SUIVI_VERIFIE_V1]\n' + JSON.string
   qualification: 'confirmée', referent: 'Référente de démonstration',
   situation: 'Calendrier vérifié dans les échanges de démonstration.',
   organisation: 'Reçu le 21/09/2026', organisationRecue: true,
+  formationPrecision: 'Période indicative de démonstration.',
   sources: ['Formulaire et mail de démonstration du 21/09/2026'],
 }) + '\n[/EUNEOS_SUIVI_VERIFIE_V1]'
 tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_LAST_CONTACT_V1]\n' + JSON.stringify({
@@ -277,6 +278,8 @@ try {
     assert(await tab.locator('.etat__sans-date').first().isVisible(), 'Dates absentes explicitement signalées')
     assert.equal(await tab.locator('.etat__sans-affectation').first().evaluate(el => getComputedStyle(el).color), 'rgb(161, 25, 25)', 'Affectation manquante en rouge')
     assert(await tab.locator('.etat__table').getByText('Reçu le 21/09/2026', { exact: true }).isVisible(), 'Organisation distingue le formulaire de la mission')
+    assert(await tab.locator('.etat__table').getByText('Période indicative de démonstration.', { exact: true }).isVisible(), 'Précision de formation affichée')
+    assert(await tab.locator('.etat__table tbody tr').first().locator('td').last().getByText('Évaluation scientifique : À confirmer', { exact: true }).isVisible(), 'Dernière colonne : absence de réponse explicite, pas un refus')
     await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
     assert(await tab.getByRole('dialog').isVisible())
     assert.equal(await tab.locator('.etat__table').count(), 1, 'Une seule table, sans duplication des dossiers')

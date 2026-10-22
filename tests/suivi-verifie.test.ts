@@ -1,8 +1,18 @@
 import { describe, expect, test } from 'bun:test'
 import { lireSuiviVerifie, type SuiviVerifie } from '../src/lib/suivi-verifie'
-import { trierProgression, type EtatCandidature } from '../src/lib/etat-candidatures'
+import { evaluationScientifique, progression, trierProgression, type EtatCandidature } from '../src/lib/etat-candidatures'
 
 describe('suivi opérationnel vérifié', () => {
+  test('l’évaluation ne transforme pas une absence de réponse en refus', () => {
+    expect(evaluationScientifique({ Id: 1 })).toBe('À confirmer')
+    expect(evaluationScientifique({ Id: 1, intention_evaluation_scientifique: 'Je ne sais pas' })).toBe('À confirmer')
+    expect(evaluationScientifique({ Id: 1, intention_evaluation_scientifique: 'Oui' })).toBe('Oui')
+    expect(evaluationScientifique({ Id: 1, evaluation_jeunes_demandee: 'Non' })).toBe('Non')
+    expect(evaluationScientifique({ Id: 1, intention_evaluation_scientifique: 'Oui', evaluation_jeunes_demandee: 'Non' })).toContain('contradictoires')
+  })
+  test('la confirmation de formation en cours prime sur un simple début renseigné', () => {
+    expect(progression({ Id: 1, statut_formation: 'En cours', date_debut_formation: '2026-09-24' }, [])[8].texte).toBe('Formation en cours')
+  })
   const summary: SuiviVerifie = { version: 1, checkedAt: '2026-10-22T12:00:00.000Z', dateDeReference: null,
     qualification: 'non renseignée', referent: 'Référente', situation: 'Janvier, sans jour fixé.',
     organisation: 'Reçu le 10/10/2026', organisationRecue: true, sources: ['Formulaire de déploiement'] }

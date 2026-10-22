@@ -102,8 +102,11 @@ const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', '
                   ? ligne.formateurs.map(formateur => formateur.nom).join(' · ')
                   : index === 6 ? 'AUCUNE AFFECTATION RENSEIGNÉE'
                   : index === 7 ? (ligne.suiviVerifie?.organisation || 'Réception du questionnaire non vérifiée')
+                  : index === 8 && ligne.statutFormation?.trim().toLocaleLowerCase('fr') === 'en cours' ? 'Formation en cours'
                   : index === 8 && ligne.anomaliesDates.length ? 'Calendrier à vérifier — voir le point de situation'
                   : cellule.texte}</small>
+                {index === 8 && ligne.suiviVerifie?.formationPrecision && <small>{ligne.suiviVerifie.formationPrecision}</small>}
+                {index === 8 && ligne.dateFinFormation && <small>Fin prévue : {dateFormationFr(ligne.dateFinFormation)}</small>}
               </td>
             ))}
           </tr>
