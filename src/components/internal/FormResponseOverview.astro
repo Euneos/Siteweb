@@ -1,0 +1,7 @@
+---
+interface Props { kind: string }
+const { kind } = Astro.props
+---
+<div class="fc-responses" data-response-kind={kind} aria-live="polite">
+  <p>Lecture des réponses…</p>
+</div>

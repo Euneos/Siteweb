@@ -1,4 +1,5 @@
 ---
+import FormResponseOverview from './FormResponseOverview.astro'
 const personalForms = [
   {
     key: 'contact',
@@ -149,6 +150,7 @@ const publicForms = [
               <h3 id={`catalog-${item.key}-title`}>{item.name}</h3>
               <p>{item.description}</p>
             </div>
+            <FormResponseOverview kind={item.key} />
             <ul class="fc-fields" aria-label="Repères du formulaire">
               {item.fields.map((field) => (
                 <li>{field}</li>
@@ -201,6 +203,7 @@ const publicForms = [
               <details class="fc-example" data-participants-complement>
                 <summary>Compléter uniquement les participants plus tard</summary>
                 <div class="fc-example-body" data-catalog-kind="participants">
+                  <FormResponseOverview kind="participants" />
                   <p>
                     Les participants peuvent être renseignés dans le formulaire n°4 ci-dessus.
                     Si l’organisation a déjà été envoyée, utilisez ce complément pour ajouter des
@@ -262,6 +265,7 @@ const publicForms = [
               <h3 id={`catalog-${item.key}-title`}>{item.name}</h3>
               <p>{item.description}</p>
             </div>
+            <FormResponseOverview kind={item.key} />
             <label class="of-field">
               URL pour les guides
               <input
@@ -311,6 +315,7 @@ const publicForms = [
           <h3 id="catalog-convention-title">Convention de mission WISE-UP</h3>
           <p>Le formateur complète son brouillon, ses établissements et groupes, les dates et les durées libres des séances : 16 h pour la formation adultes, ou 8 h pour l’animation des ateliers jeunes en année 2. Il précise les interventions et les frais. EUNEOS vérifie et complète sa partie avant de mettre le PDF à signer à disposition dans le même espace.</p>
         </div>
+        <FormResponseOverview kind="convention-mission" />
         <label class="of-field">Lien à partager avec les formateurs autorisés
           <input type="text" readonly value="https://euneos.fr/interne/ressources?convention=1" data-private-url />
         </label>

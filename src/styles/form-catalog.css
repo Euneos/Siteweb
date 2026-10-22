@@ -2,6 +2,32 @@
   display: grid;
   gap: var(--s-titre);
 }
+.fc-responses {
+  min-width: 0;
+  border-top: 1px solid var(--iw-line);
+  font-size: var(--t-note);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.fc-responses p,
+.fc-responses ul { margin: 0; }
+.fc-responses ul { list-style: none; padding: 0; }
+.fc-responses summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.fc-responses-action { text-decoration: underline; font-weight: 400; }
+.fc-responses-note { color: var(--iw-muted); }
+.fc-responses-all li { padding-block: 0.5rem; border-bottom: 1px solid var(--iw-line); }
+.fc-responses-all small,
+.fc-responses-all a { display: block; }
+.fc-responses-all a { padding-block: 0.5rem; }
 .fc-guide {
   display: grid;
   gap: var(--s-lie);
