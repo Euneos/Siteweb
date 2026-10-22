@@ -22,6 +22,29 @@ const keys: Record<string, string> = {
   bilan_formateur: 'bilan-formateur', accord_formateur: 'accord-formateur',
 }
 
+/** This overview makes read-only requests. Serialize them so opening the catalogue
+ * does not burst into several identical directory reads alongside its other API. */
+export function overviewReadQueue(wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))) {
+  let tail: Promise<unknown> = Promise.resolve()
+  return <T>(read: () => Promise<T>): Promise<T> => {
+    const result = tail.then(async () => {
+      for (let attempt = 0; ; attempt++) {
+        try { return await read() } catch (error) {
+          const transient = error instanceof Error && (
+            /NocoDB (429|502|503|504)\b/.test(error.message) ||
+            ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name) ||
+            ('code' in error && error.code === 'read_failed')
+          )
+          if (!transient || attempt >= 2) throw error
+          await wait(500 * (attempt + 1))
+        }
+      }
+    })
+    tail = result.catch(() => undefined)
+    return result
+  }
+}
+
 /** Read the full source journal, not the catalogue's 50-row detail preview. */
 export async function readResponseSources(token: string, table: string) {
   const rows: Record<string, unknown>[] = []
@@ -76,6 +99,10 @@ export async function responseOverviews(locals: unknown, workspace: WorkspaceDat
     'contact-public': 'Répondants non disponibles ici : demandes transmises par e-mail.',
     newsletter: 'Répondants non disponibles ici : inscriptions suivies dans Brevo.',
   }
+  const read = overviewReadQueue()
+  // Both summaries share these snapshots, including the archive reconciliation.
+  const schoolsRead = read(() => lireToutes(token, 'etablissements', 'Id,nom,referent_nom,referent_fonction'))
+  const partsRead = read(() => lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers'))
   // Isolate sources: a missing registry must not hide the other counts.
   await Promise.all([
     (async () => {
@@ -83,13 +110,13 @@ export async function responseOverviews(locals: unknown, workspace: WorkspaceDat
       try {
         if (typeof table !== 'string' || !/^[a-z0-9]{10,30}$/.test(table)) throw new Error('Missing source')
         const [sources, personal, parts, schools] = await Promise.all([
-          readResponseSources(token, table),
+          read(() => readResponseSources(token, table)),
           db.prepare(`SELECT s.receipt,s.kind,s.target_id,s.school_id,s.created_at
             FROM operational_submissions s WHERE s.state='complete'
             AND NOT EXISTS (SELECT 1 FROM public_form_receipts p WHERE p.receipt=s.link_hash)`)
             .bind().all<{ receipt: string; kind: string; target_id: number; school_id: number; created_at: string }>(),
-          lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers'),
-          lireToutes(token, 'etablissements', 'Id,nom'),
+          partsRead,
+          schoolsRead,
         ])
         const active = new Set(parts.map(p => p.Id))
         const collected: Record<string, ResponseOverview> = Object.fromEntries(publicKeys.map(key => [key, {
@@ -123,10 +150,10 @@ export async function responseOverviews(locals: unknown, workspace: WorkspaceDat
         const [applications, schools, trainers, parts, engagements] = await Promise.all([
           db.prepare("SELECT form_type,parent_id,record_id,created_at FROM form_submissions WHERE state='complete'")
             .bind().all<{ form_type: string; parent_id: number; record_id: number; created_at: string }>(),
-          lireToutes(token, 'etablissements', 'Id,nom,referent_nom,referent_fonction'),
-          lireToutes(token, 'formateurs', 'Id,nom,prenom,fusionne_vers'),
-          lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers'),
-          lireToutes(token, 'engagements', 'Id,formateurs_id,cohortes_id,fusionne_vers'),
+          schoolsRead,
+          read(() => lireToutes(token, 'formateurs', 'Id,nom,prenom')),
+          partsRead,
+          read(() => lireToutes(token, 'engagements', 'Id,formateurs_id,cohortes_id,fusionne_vers')),
         ])
         for (const key of applicationKeys) groups[key] = { rows: [], note: 'Candidatures reçues sur le site uniquement ; identité actuelle du dossier. Imports historiques non inclus.' }
         const seen = new Set<string>()

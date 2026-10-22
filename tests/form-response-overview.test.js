@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { readdirSync, readFileSync } from 'node:fs'
-import { publicRespondent, responseOverviews, readResponseSources } from '../src/lib/form-response-overview'
+import { publicRespondent, responseOverviews, readResponseSources, overviewReadQueue } from '../src/lib/form-response-overview'
 import { GET } from '../src/pages/api/interne/apercu-reponses'
 import { NC } from '../src/lib/nocodb'
 
@@ -35,6 +35,7 @@ test('counts durable responses once, excludes archived dossiers and unsuccessful
   insert('failed', 7, 'retryable')
   insert('archived', 8, 'complete')
   sql.query("INSERT INTO public_form_receipts(receipt,kind,answers_hash) VALUES ('public','contact','public')").run()
+  sql.query("INSERT INTO form_submissions(submission_key,form_type,cohort_id,state,phase,parent_id,record_id) VALUES ('trainer','formateur',0,'complete','complete',21,31)").run()
   const parts = [
     { Id: 7, etablissements_id: 1, cohortes_id: 2, fusionne_vers: null },
     { Id: 8, etablissements_id: 1, cohortes_id: 2, fusionne_vers: 7 },
@@ -43,10 +44,15 @@ test('counts durable responses once, excludes archived dossiers and unsuccessful
     reponses: JSON.stringify({ kind: 'contact', answers: { referrer: { name: 'Camille Test', email: 'private@example.test' } } }) }
   globalThis.fetch = async (url, init) => {
     expect(init.method).toBe('GET')
-    const table = new URL(url).pathname.split('/')[4]
+    const parsed = new URL(url), table = parsed.pathname.split('/')[4]
+    // This column exists on engagements, not on the trainer identity table.
+    if (table === NC.tables.formateurs && parsed.searchParams.get('fields')?.includes('fusionne_vers'))
+      return Response.json({ error: 'Field not found' }, { status: 422 })
     const rows = table === 'fixturetable' ? [source, { ...source, Id: 2 }, { ...source, Id: 3, cle_reponse: 'old', dossier_id: 8 }]
       : table === NC.tables.participations ? parts
-      : table === NC.tables.etablissements ? [{ Id: 1, nom: 'Collège Test' }] : []
+      : table === NC.tables.etablissements ? [{ Id: 1, nom: 'Collège Test' }]
+      : table === NC.tables.formateurs ? [{ Id: 21, nom: 'Test', prenom: 'Camille' }]
+      : table === NC.tables.engagements ? [{ Id: 31, formateurs_id: 21, cohortes_id: null, fusionne_vers: null }] : []
     return Response.json({ list: rows, pageInfo: { isLastPage: true } })
   }
   try {
@@ -57,7 +63,27 @@ test('counts durable responses once, excludes archived dossiers and unsuccessful
     expect(result.groups.newsletter).toBeUndefined()
     expect(result.unavailable.newsletter).toContain('Brevo')
     expect(result.groups['convention-mission'].rows).toHaveLength(0)
+    expect(result.groups['candidature-formateur'].rows).toHaveLength(1)
+    expect(result.groups['candidature-formateur'].rows[0].name).toBe('Camille Test')
+    expect(result.groups['candidature-etablissement'].rows).toHaveLength(0)
   } finally { sql.close() }
+})
+test('overview serializes reads and recovers from throttling without retrying schema errors', async () => {
+  const events = [], delays = []
+  const read = overviewReadQueue(async ms => { delays.push(ms) })
+  let attempts = 0
+  const first = read(async () => { events.push('first'); if (++attempts < 3) throw new Error('NocoDB 429'); return 1 })
+  const second = read(async () => { events.push('second'); return 2 })
+  expect(await Promise.all([first, second])).toEqual([1, 2])
+  expect(events).toEqual(['first', 'first', 'first', 'second'])
+  expect(delays).toEqual([500, 1000])
+  let invalidAttempts = 0
+  await expect(read(async () => { invalidAttempts++; throw new Error('NocoDB 422') })).rejects.toThrow('422')
+  expect(invalidAttempts).toBe(1)
+  expect(await read(async () => 'next')).toBe('next')
+  let exhausted = 0
+  await expect(read(async () => { exhausted++; throw new Error('NocoDB 503') })).rejects.toThrow('503')
+  expect(exhausted).toBe(3)
 })
 test('private endpoint refuses unauthenticated access before reading any source', async () => {
   let reads = 0
