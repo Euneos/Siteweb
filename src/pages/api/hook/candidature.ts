@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { brevoEnv, envoyerEmail } from '../../../lib/brevo'
 import { modeApercu } from '../../../lib/forms'
 import { IMPORT_CANDIDATURE_VERSION, separerReprises } from '../../../lib/candidature-import'
+import { NC } from '../../../lib/nocodb'
 
 /**
  * Point d'arrivee du webhook NocoDB : appele a chaque nouvelle candidature.
@@ -88,6 +89,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!selection.nouvelles.length) {
     console.log('[hook-candidature]', { etat: 'reprise-historique', nb: selection.reprises })
     return new Response('reprise-historique', { status: 200 })
+  }
+  // The trainer insert can precede linking the person. Link by the stable dossier
+  // ID instead of announcing an unrelated/missing school or guessing an identity.
+  if (d?.table_id === NC.tables.engagements) {
+    if (charge.type !== 'records.after.insert') return new Response('événement ignoré', { status: 200 })
+    const candidatures = selection.nouvelles.filter(r => r.fusionne_vers == null && r.statut === 'Candidature recue')
+    if (!candidatures.length) return new Response('aucune nouvelle candidature', { status: 200 })
+    if (candidatures.some(r => !Number.isSafeInteger(r.Id) || Number(r.Id) <= 0)) {
+      return new Response('identifiant de candidature absent', { status: 422 })
+    }
+    try {
+      const sent = await envoyerEmail(e, {
+        to: 'wiseup@euneos.fr',
+        subject: candidatures.length === 1 ? 'WISE-UP — Nouvelle candidature formateur' : `WISE-UP — ${candidatures.length} nouvelles candidatures formateurs`,
+        text: [
+          'Une nouvelle candidature formateur WISE-UP est à examiner dans l’espace interne.',
+          '',
+          ...candidatures.map(r => `Dossier #${r.Id} — https://www.euneos.fr/interne/formateurs#dossier-${r.Id}`),
+          '',
+          'Ouvrez « Consulter la candidature » pour lire les réponses et le statut enregistré.',
+          'La décision et les échanges avec la personne restent à la charge de l’équipe.',
+        ].join('\n'),
+      })
+      return new Response(sent ? 'envoye' : 'pas-de-transport', { status: sent ? 200 : 503 })
+    } catch {
+      console.error('[hook-candidature-formateur] Envoi non confirmé')
+      return new Response('erreur envoi', { status: 503 })
+    }
   }
   const resume = selection.nouvelles.map((r) => {
     const etab = (r.etablissement as { nom?: string } | undefined)?.nom ?? '(etablissement non relie)'

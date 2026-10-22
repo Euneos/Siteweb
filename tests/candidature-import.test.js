@@ -84,3 +84,32 @@ test('unauthenticated and preview posts remain disabled', async () => {
   expect((await request(payload([historique()]), { url: 'https://pr-1.euneos-site.pages.dev/api/hook/candidature' })).status).toBe(404)
   expect(fetchMock).not.toHaveBeenCalled()
 })
+
+test('trainer alerts go only to wiseup, with a dossier link even before identity linking', async () => {
+  fetchMock.mockResolvedValue(new Response(null, { status: 201 }))
+  const body = payload([{ Id: 123, statut: 'Candidature recue', motivation: 'PRIVATE-ANSWER' }])
+  body.data.table_id = NC.tables.engagements
+  expect((await request(body)).status).toBe(200)
+  const mail = JSON.parse(fetchMock.mock.calls[0][1].body)
+  expect(mail.to).toEqual([{ email: 'wiseup@euneos.fr' }])
+  expect(mail.subject).toBe('WISE-UP — Nouvelle candidature formateur')
+  expect(mail.textContent).toContain('/interne/formateurs#dossier-123')
+  expect(mail.textContent).not.toContain('PRIVATE-ANSWER')
+})
+
+test('trainer archives, training steps and status updates do not announce new applications', async () => {
+  const body = payload([{ Id: 123, statut: 'En cours de formation' }, { Id: 124, statut: 'Candidature recue', fusionne_vers: 123 }])
+  body.data.table_id = NC.tables.engagements
+  expect((await request(body)).status).toBe(200)
+  body.data.rows = [{ Id: 123, statut: 'Candidature recue' }]
+  body.type = 'records.after.update'
+  expect((await request(body)).status).toBe(200)
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('a failed trainer alert is not reported as successful', async () => {
+  fetchMock.mockRejectedValue(new Error('transport unavailable'))
+  const body = payload([{ Id: 123, statut: 'Candidature recue' }])
+  body.data.table_id = NC.tables.engagements
+  expect((await request(body)).status).toBe(503)
+})

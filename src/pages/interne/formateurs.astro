@@ -1,0 +1,328 @@
+---
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { readInternalIdentity } from '../../lib/internal-access'
+import { jeton } from '../../lib/nocodb'
+import {
+  lireSuiviFormateurs,
+  filtrerFormateurs,
+  type SuiviFormateur,
+} from '../../lib/suivi-formateurs'
+
+export const prerender = false
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+const env = (Astro.locals as { runtime?: { env?: Record<string, string> } }).runtime?.env ?? {}
+const access = await readInternalIdentity(Astro.request, env)
+if (access instanceof Response) return access
+const identity = {
+  email: access.email,
+  admin: (env.INTERNAL_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .includes(access.email),
+}
+let lignes: SuiviFormateur[] | null = null
+try {
+  const token = jeton(Astro.locals)
+  if (token) lignes = await lireSuiviFormateurs(token)
+} catch {
+  console.error('[suivi-formateurs] Lecture indisponible')
+}
+const nom = (Astro.url.searchParams.get('nom') ?? '').trim().slice(0, 120)
+const statut = Astro.url.searchParams.get('statut') ?? ''
+const alerte = Astro.url.searchParams.get('alerte') ?? ''
+const affiches = filtrerFormateurs(lignes ?? [], nom, statut, alerte)
+const statuts = [...new Set((lignes ?? []).map((l) => l.statut))].sort((a, b) =>
+  a.localeCompare(b, 'fr'),
+)
+const dateFr = (date: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(date) ? date.split('-').reverse().join('/') : 'Non renseignée'
+---
+
+<InternalLayout title="Suivi des formateurs WISE-UP" current="formateurs" identity={identity} wide>
+  <div class="iw-intro">
+    <div class="iw-intro__text">
+      <p class="iw-eyebrow">Programme WISE-UP</p>
+      <h1>Suivi des formateurs</h1>
+      <p>
+        Candidatures et parcours, toutes promotions. Les statuts et accords sont relus dans la base
+        à chaque ouverture.
+      </p>
+    </div><a class="iw-button" href="/interne/formateurs">Actualiser</a>
+  </div>
+  {
+    lignes === null ? (
+      <section class="iw-panel" role="alert">
+        <>
+          <h2>Données momentanément indisponibles</h2>
+          <p>La base n’a pas pu être lue. Actualisez la page dans quelques instants.</p>
+        </>
+      </section>
+    ) : (
+      <>
+        <dl class="iw-metrics">
+          <div class="iw-metric">
+            <>
+              <dt>Formateurs identifiés</dt>
+              <dd>{new Set(lignes.map((l) => l.personneId).filter(Boolean)).size}</dd>
+            </>
+          </div>
+          <div class="iw-metric">
+            <>
+              <dt>Parcours courants</dt>
+              <dd>{lignes.length}</dd>
+            </>
+          </div>
+          <div class="iw-metric">
+            <>
+              <dt>À examiner</dt>
+              <dd>{lignes.filter((l) => l.aExaminer).length}</dd>
+            </>
+          </div>
+        </dl>
+        <section class="iw-panel sf-alertes" aria-labelledby="alertes">
+          <h2 id="alertes">Points d’attention</h2>
+          <p>
+            <a href="?alerte=nouveaux">
+              {lignes.filter((l) => l.nouveau).length} candidature(s) datée(s) des 7 derniers jours
+            </a>
+          </p>
+          <p>
+            <a href="?alerte=anciens">
+              {lignes.filter((l) => l.ancien).length} candidature(s) d’au moins 30 jours encore à
+              examiner
+            </a>
+          </p>
+          <p class="iw-small">
+            Ces repères reposent sur la date de candidature et le statut enregistré ; ils ne
+            prouvent pas l’absence d’échanges. Les archives fusionnées sont exclues.
+          </p>
+        </section>
+        <section class="iw-panel sf-liste" aria-labelledby="dossiers">
+          <h2 id="dossiers">Candidatures et parcours</h2>
+          <form class="iw-filters" method="get">
+            <div class="iw-field">
+                <label for="sf-nom">Nom ou ville</label>
+                <input id="sf-nom" name="nom" value={nom} maxlength="120" />
+            </div>
+            <div class="iw-field">
+                <label for="sf-statut">Statut enregistré</label>
+                <select id="sf-statut" name="statut">
+                  <option value="">Tous les statuts</option>
+                  {statuts.map((s) => (
+                    <option value={s} selected={s === statut}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+            </div>
+            <div class="iw-field">
+                <label for="sf-alerte">Points d’attention</label>
+                <select id="sf-alerte" name="alerte">
+                    <option value="">Tous les parcours</option>
+                    <option value="nouveaux" selected={alerte === 'nouveaux'}>
+                      7 derniers jours
+                    </option>
+                    <option value="examiner" selected={alerte === 'examiner'}>
+                      À examiner
+                    </option>
+                    <option value="anciens" selected={alerte === 'anciens'}>
+                      À examiner depuis au moins 30 jours
+                    </option>
+                </select>
+            </div>
+            <button class="iw-button iw-button--primary" type="submit">
+              Filtrer
+            </button>
+          </form>
+          <p>
+            {affiches.length} parcours affiché(s) · Base consultée le{' '}
+            {new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}.
+          </p>
+          <p class="iw-small">
+            Les décisions restent humaines. Pour actualiser un statut, indiquez à l’agent le nom et
+            le numéro de dossier.
+          </p>
+          {!affiches.length && <p>Aucun parcours ne correspond à ces filtres.</p>}
+          <div class="sf-grille">
+            {affiches.map((l) => (
+              <article class="sf-dossier" id={`dossier-${l.id}`}>
+                <header>
+                  <h3>{l.nom}</h3>
+                  <span class="sf-statut">{l.statut}</span>
+                </header>
+                <p>
+                  {l.ville || 'Ville non renseignée'} · Dossier #{l.id}
+                </p>
+                {l.nouveau && <p class="sf-signal">Nouvelle candidature · 7 derniers jours</p>}
+                {l.ancien && <p class="sf-signal">À examiner · candidature du {dateFr(l.date)}</p>}
+                <dl class="sf-infos">
+                  <div>
+                    <dt>Candidature</dt>
+                    <dd>{dateFr(l.date)}</dd>
+                  </div>
+                  <div>
+                    <dt>Promotion</dt>
+                    <dd>{l.promotion || 'Non renseignée'}</dd>
+                  </div>
+                  <div>
+                    <dt>Accord signé</dt>
+                    <dd>{l.accord ? 'Oui' : 'Non renseigné comme signé'}</dd>
+                  </div>
+                  <div>
+                    <dt>Disponibilité 2026–2027</dt>
+                    <dd>{l.disponibilite || 'Non renseignée'}</dd>
+                  </div>
+                </dl>
+                <details>
+                  <summary>Consulter la candidature</summary>
+                  <div class="sf-detail">
+                    <p>
+                      <strong>Profession :</strong> {l.profession || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Contact :</strong> {l.email || 'Non renseigné'}
+                    </p>
+                    <p>
+                      <strong>Téléphone :</strong> {l.telephone || 'Non renseigné'}
+                    </p>
+                    <p>
+                      <strong>Localisation :</strong>{' '}
+                      {[l.cp, l.ville, l.region].filter(Boolean).join(' · ') || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Formation :</strong> {l.formation || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Expérience :</strong> {l.experience || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Pratique personnelle :</strong> {l.pratique || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Années d’expérience :</strong> {l.annees || 'Non renseignées'}
+                    </p>
+                    <p>
+                      <strong>Interventions animées :</strong>{' '}
+                      {l.interventions || 'Non renseignées'}
+                    </p>
+                    <p>
+                      <strong>Motivation :</strong> {l.motivation || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Établissement :</strong> {l.etablissement || 'Non renseigné'}
+                    </p>
+                    <p>
+                      <strong>Adresse de l’établissement :</strong>{' '}
+                      {l.adresseEtablissement || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Académie et type :</strong>{' '}
+                      {[l.academie, l.typeEtablissement].filter(Boolean).join(' · ') ||
+                        'Non renseignés'}
+                    </p>
+                    <p>
+                      <strong>Direction :</strong>{' '}
+                      {[l.direction, l.directionEmail].filter(Boolean).join(' · ') ||
+                        'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Accord de principe :</strong> {l.accordPrincipe || 'Non renseigné'}
+                    </p>
+                    <p>
+                      <strong>Compléments :</strong> {l.contexte || 'Non renseignés'}
+                    </p>
+                    <p>
+                      <strong>Consentement :</strong>{' '}
+                      {l.consentement ? 'Confirmé' : 'Non renseigné comme confirmé'}
+                    </p>
+                    <p>
+                      <strong>Priorité :</strong> {l.priorite || 'Non renseignée'}
+                    </p>
+                    <p>
+                      <strong>Notes de suivi :</strong> {l.notes || 'Aucune note renseignée'}
+                    </p>
+                  </div>
+                </details>
+              </article>
+            ))}
+          </div>
+        </section>
+      </>
+    )
+  }
+</InternalLayout>
+
+<style>
+  .sf-alertes,
+  .sf-liste {
+    padding: var(--s-int);
+    margin-bottom: var(--s-lie);
+  }
+  .sf-alertes a {
+    text-decoration: underline;
+  }
+  .sf-grille {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-lie);
+    margin-top: var(--s-lie);
+    align-items: start;
+  }
+  .sf-dossier {
+    min-width: 0;
+    border: 1px solid #d8dfdb;
+    border-radius: 0.6rem;
+    padding: var(--s-lie);
+    overflow-wrap: anywhere;
+  }
+  .sf-dossier header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.7rem;
+    justify-content: space-between;
+  }
+  .sf-dossier h3 {
+    margin: 0;
+  }
+  .sf-statut {
+    background: #e7efff;
+    color: #00382d;
+    padding: 0.3em 0.6em;
+    border-radius: 0.3rem;
+  }
+  .sf-signal {
+    background: #fff4c9;
+    padding: 0.6em;
+  }
+  .sf-infos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .sf-infos dt {
+    font-weight: 600;
+  }
+  .sf-infos dd {
+    margin: 0.2em 0 0;
+  }
+  .sf-dossier summary {
+    cursor: pointer;
+    min-height: 44px;
+    padding-top: 1rem;
+  }
+  .sf-detail {
+    white-space: pre-wrap;
+  }
+  @media (max-width: 860px) {
+    .sf-grille {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 400px) {
+    .sf-infos {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
