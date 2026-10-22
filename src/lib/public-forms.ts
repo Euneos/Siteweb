@@ -2,9 +2,10 @@ import { bilanCatalogueEntry } from './bilan-formateur-catalogue'
 import { accordCatalogueEntry } from './accord-formateur-catalogue'
 import { internalEnvironment } from './internal-context'
 import { lireToutes } from './nocodb'
+import { resolvePublicDossier, publicIdentityReasons } from './public-dossier-match'
 import { type SubmissionDatabase } from './candidature-store'
-import { identityText, operationalRequest, hashOperational, type OperationalInput, type OperationalKind, type OperationalTarget } from './operational-data'
-import { closedDossier, operationalConfig, operationalPath, OperationalLinkError } from './operational-links'
+import { operationalRequest, hashOperational, type OperationalInput, type OperationalKind, type OperationalTarget } from './operational-data'
+import { operationalConfig, operationalPath, OperationalLinkError } from './operational-links'
 import { enregistrerOperational } from './operational-store'
 import { finalQuestionnairePublicEntry } from './final-questionnaire'
 import { preformationDetails } from './preformation'
@@ -41,21 +42,14 @@ export function parsePublicIdentity(value: unknown): PublicIdentity {
   return { schoolName, city, schoolYear }
 }
 
-// Exact identity and an already-known contact are needed for automatic projection.
-// A different spelling or new contact is still collected, never guessed or rejected.
-export async function matchPublicDossier(token: string, identity: PublicIdentity, email: string): Promise<OperationalTarget | null> {
+async function diagnosePublicDossier(token: string, identity: PublicIdentity, email: string) {
   const schools = await lireToutes(token, 'etablissements', 'Id,nom,ville,referent_email,email_direction')
-  const matches = schools.filter(s => identityText(s.nom) === identityText(identity.schoolName) && identityText(s.ville) === identityText(identity.city))
-  if (matches.length !== 1) return null
   const cohorts = await lireToutes(token, 'cohortes', 'Id,annee_debut,annee_fin,active')
-  const active = cohorts.filter(c => (c.active === true || c.active === 1) && `${c.annee_debut}-${c.annee_fin}` === identity.schoolYear)
-  if (active.length !== 1) return null
-  const parts = await lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers,statut')
-  const dossiers = parts.filter(p => p.etablissements_id === matches[0].Id && p.cohortes_id === active[0].Id && p.fusionne_vers == null && !closedDossier(p.statut))
-  if (dossiers.length !== 1) return null
-  const addresses = [matches[0].referent_email, matches[0].email_direction]
-  if (!addresses.some(a => typeof a === 'string' && a.trim().toLowerCase() === email)) return null
-  return { participationId: dossiers[0].Id, schoolId: matches[0].Id, cohortId: active[0].Id }
+  const parts = await lireToutes(token, 'participations', 'Id,etablissements_id,cohortes_id,fusionne_vers,statut,apporteur_email,notes')
+  return resolvePublicDossier(schools, parts, cohorts, identity, email)
+}
+export async function matchPublicDossier(token: string, identity: PublicIdentity, email: string): Promise<OperationalTarget | null> {
+  return (await diagnosePublicDossier(token, identity, email)).target
 }
 type Receipt = { receipt: string; kind: OperationalKind; state: string; noco_id: number | null; target_id: number | null; code: string }
 const load = (db: SubmissionDatabase, receipt: string) => db.prepare('SELECT * FROM public_form_receipts WHERE receipt=?').bind(receipt).first<Receipt>()
@@ -104,8 +98,11 @@ export async function receivePublicForm(input: {
   if (row.state !== 'processing') return { state: 'complete', code: 'received', duplicate: true }
 
   let target: OperationalTarget | null = null
-  try { target = await matchPublicDossier(token, identity, data.referrer.email) } catch { /* Source is durable; team can reconcile if directory is unavailable. */ }
   let code = 'identity_review', state = 'review'
+  try {
+    const match = await diagnosePublicDossier(token, identity, data.referrer.email)
+    target = match.target; code = match.code
+  } catch { code = 'identity_read_failed' }
   if (target) {
     await db.prepare('UPDATE public_form_receipts SET target_id=?,school_id=?,cohort_id=? WHERE receipt=?')
       .bind(target.participationId, target.schoolId, target.cohortId, receipt).run()
@@ -159,6 +156,8 @@ export async function listPublicForms(locals: unknown) {
     const a = source.answers
     const details = [
       ['Référent', `${a.referrer.name} — ${a.referrer.email}`],
+      ...(publicIdentityReasons[String(receipt?.code || row.detail_reprise || '')]
+        ? [['Suivi du report', publicIdentityReasons[String(receipt?.code || row.detail_reprise)]]] : []),
       ['Direction', a.directionEmail],
       ['Établissement', [a.schoolDetails.academy, a.schoolDetails.address, a.schoolDetails.postalCode, a.schoolDetails.type].filter(Boolean).join(' · ')],
       ['Regroupement', a.operations.associatedSchools],

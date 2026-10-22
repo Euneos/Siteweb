@@ -148,6 +148,34 @@ test('changed answer is retained separately and never overwrites its previous so
   expect(replies).toHaveLength(2)
   expect(JSON.parse(replies[0].reponses).answers.schoolDetails.address).toBe('Rue fictive')
 })
+test('normalised identity projects dates and participants, with a verified receipt and no duplicate on retry', async () => {
+  schools[0].nom = 'CLG FICTIF'
+  schools[0].ville = 'Saint-Martin'
+  parts[0].apporteur_email = 'referrer@example.invalid'
+  const data = deploymentV2()
+  data.referrer.email = 'referrer@example.invalid'
+  data.participants = [{ firstName: 'Camille', lastName: 'Exemple', email: '', role: 'Enseignant' }]
+  const submission = { ...data, identity: { ...identity, schoolName: 'Collège Fictfi', city: 'Saint Martin' } }
+  const submit = () => publicPost({ request: req('/api/suivi/deploiement', { ...submission, access: 'public' }), locals: locals(), params: { kind: 'deploiement' } })
+  expect((await submit()).status).toBe(200)
+  expect(replies[0].dossier_id).toBe(7)
+  expect(replies[0].statut_reprise).toBe('Reportée dans le dossier')
+  expect(parts[0].date_debut_formation).toBe(data.formation.start)
+  expect(parts[0].date_fin_formation).toBe(data.formation.end)
+  expect(adults).toHaveLength(1)
+  expect(adults[0].participations_id).toBe(7)
+  expect(sql.query('SELECT state FROM public_form_receipts').get().state).toBe('complete')
+  expect(sql.query('SELECT state FROM operational_submissions').get().state).toBe('complete')
+  expect((await submit()).status).toBe(200)
+  expect(adults).toHaveLength(1)
+  expect(dossierWrites()).toHaveLength(1)
+})
+test('annuary transport failure is not labelled as a name mismatch', async () => {
+  hook = async call => { if (call.url.includes('/' + NC.tables.etablissements + '/')) throw new Error('offline') }
+  expect((await publicSubmit()).status).toBe(200)
+  expect(replies[0].detail_reprise).toBe('identity_read_failed')
+  expect(dossierWrites()).toHaveLength(0)
+})
 test.each(['referrer@example.invalid','wrong@example.invalid'])('public receipt cannot enumerate known or unknown contacts (%s)', async email => {
   schools[0].referent_email = 'referrer@example.invalid'
   const result = await publicSubmit({referrer:{name:'Référent Exemple',email}})

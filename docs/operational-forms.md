@@ -86,6 +86,25 @@ et n'envoient pas leur adresse comme référent de navigation.
 
 ## Vérification et incidents
 
+### Rapprochement public — correction du 22 octobre 2026
+
+Le nom est comparé sans accents, casse ni variations de ponctuation, avec une
+tolérance de deux lettres et les équivalences `CLG`/`Collège`, `St`/`Saint` et
+`Ste`/`Sainte`. Une initiale unique est reconnue si les autres mots correspondent.
+La ville normalisée et l'année scolaire doivent correspondre. Un seul dossier
+ouvert non fusionné doit correspondre ; même une correspondance exacte ne permet
+pas de choisir entre deux candidats plausibles.
+
+L'adresse doit être connue sur l'établissement, comme apporteur du dossier,
+comme formateur déclaré dans sa fiche contact ou dans un report antérieur réussi.
+Une réponse publique en attente ne constitue jamais une preuve de contact.
+Les divergences de dates et de participants restent contrôlées par le moteur de
+report. Le catalogue interne distingue désormais les causes d'identification
+(ville/nom, cohorte, contact, ambiguïté) et une panne de lecture de l'annuaire.
+
+Les tests de route vérifient la capture, le rattachement, le report des dates et
+des participants, la relecture des reçus et l'absence de doublons lors d'un renvoi.
+
 Sur une preview, `?t=demo` affiche uniquement un collège fictif. Les POST sont
 validés mais n'écrivent rien et n'envoient aucun email. Un vrai lien de production
 ne fonctionne pas en preview.
