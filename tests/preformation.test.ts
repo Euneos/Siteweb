@@ -11,6 +11,7 @@ import {
 } from '../workers/google-transition/worker'
 import { digest } from '../src/lib/google-form-sync'
 import { parsePreformation } from '../src/lib/preformation'
+import { NC } from '../src/lib/nocodb'
 import { preformationQuestions, preformationVersion } from '../src/lib/preformation-definition'
 
 import { preformationProjectionConfig } from '../src/lib/preformation-projection'
@@ -20,7 +21,7 @@ import {
   preformationDossier,
 } from './fixtures/preformation-person'
 
-let people: any[], dossier: any, adultWrites: any[], blockReadback: boolean
+let people: any[], dossier: any, directorySchools: any[], adultWrites: any[], blockReadback: boolean
 let beforeAdultWrite: (() => Promise<void>) | null
 const projection = () =>
   sql.query('SELECT * FROM public_preformation_projections LIMIT 1').get() as any
@@ -55,6 +56,7 @@ beforeEach(() => {
   setSystemTime(new Date('2026-10-01T22:30:00Z'))
   people = [preformationAdult()]
   dossier = preformationDossier()
+  directorySchools = [{ Id: 9, nom: 'École fictive' }]
   adultWrites = []
   blockReadback = false
   beforeAdultWrite = null
@@ -90,13 +92,14 @@ beforeEach(() => {
     const url = new URL(String(input)),
       method = init?.method ?? 'GET'
     calls.push({ method, url: url.href })
-    // No mail, directory or production network fallback is permitted.
+    // No mail or production network fallback is permitted. Directory is synthetic.
     if (
       url.origin !== 'https://app.nocodb.com' ||
       ![
         'publicanswerstable',
         preformationPersonConfig.tables.people,
         preformationPersonConfig.tables.records,
+        NC.tables.etablissements,
       ].some((t) => url.pathname.startsWith('/api/v2/tables/' + t + '/records'))
     )
       throw new Error('Unexpected transport')
@@ -104,12 +107,17 @@ beforeEach(() => {
     // Site sends NocoDB batches, the real Worker sends individual records.
     const payload = init?.body ? JSON.parse(init.body) : null
     const records = payload ? (Array.isArray(payload) ? payload : [payload]) : []
+    if (table === NC.tables.etablissements) {
+      if (method !== 'GET') throw new Error('Unexpected school mutation')
+      const id = /records\/(\d+)$/.exec(url.pathname)?.[1]
+      return Response.json(id ? directorySchools.find(s => s.Id === Number(id)) ?? {} : { list: directorySchools, pageInfo: { isLastPage: true } })
+    }
     if (table !== 'publicanswerstable') {
       if (behavior === 'adult-read-failure' || blockReadback)
         throw new Error('PRIVATE_ADULT_READ_ERROR')
       if (table === preformationPersonConfig.tables.records) {
         if (method !== 'GET') throw new Error('Unexpected dossier mutation')
-        return Response.json(dossier)
+        return Response.json(/records\/\d+$/.test(url.pathname) ? dossier : { list: [dossier], pageInfo: { isLastPage: true } })
       }
       if (method !== 'GET') {
         adultWrites.push({ method, body: payload })
@@ -168,7 +176,7 @@ beforeEach(() => {
       )
     const where = url.searchParams.get('where')
     const matches = where
-      ? rows.filter((row) => where === `(cle_reponse,eq,${row.cle_reponse})`)
+      ? rows.filter((row) => where === `(cle_reponse,eq,${row.cle_reponse})` || (where === '(statut_reprise,eq,Reportée dans le dossier)' && row.statut_reprise === 'Reportée dans le dossier'))
       : rows
     return Response.json({
       list: behavior === 'duplicate-source' ? [...matches, ...matches] : matches,
@@ -180,6 +188,56 @@ afterEach(() => {
   globalThis.fetch = realFetch
   sql.close()
   setSystemTime()
+})
+
+test('directory fallback projects an existing adult with missing email and a school spelling variant', async () => {
+  directorySchools[0].nom = 'CLG FICTIF'
+  people[0].email = null
+  const data = body()
+  data.answers.school = 'Collège Fictfi'
+  expect((await post(data)).status).toBe(200)
+  expect(projection().state).toBe('complete')
+  expect(projection().adult_id).toBe(50)
+  expect(projection().participation_id).toBe(7)
+  expect(people).toHaveLength(1)
+  expect(people[0].email).toBe('adult@example.invalid')
+  expect(people[0].date_pre_recu).toBe('2026-10-02')
+  expect(adultWrites.map(w => w.method)).toEqual(['PATCH'])
+  expect((await post(data)).status).toBe(200)
+  expect(adultWrites).toHaveLength(1)
+})
+
+test('fallback lost write response is resolved by readback without duplicate writes', async () => {
+  people[0].email = null
+  behavior = 'adult-lost-after-save'
+  const data = body(); data.answers.school = 'Ecole fictive'
+  expect((await post(data)).status).toBe(200)
+  expect(projection().state).toBe('complete')
+  expect((await post(data)).status).toBe(200)
+  expect(adultWrites).toHaveLength(1)
+})
+
+test('a human-classified trainer reply is terminal and shown outside stagiaire receipts', async () => {
+  people = []
+  env.PRE_FORMATION_PERSON_PROJECTION = JSON.stringify({ ...preformationPersonConfig, createMissingAdults: false })
+  await post()
+  expect(projection().state).toBe('review')
+  sql.query("UPDATE public_preformation_projections SET state='classified',code='trainer_response_classified',participation_id=7").run()
+  rows[0].statut_reprise = 'Classée — réponse formatrice'
+  rows[0].detail_reprise = 'trainer_response_classified'
+  rows[0].dossier_id = 7
+  const result = await post()
+  expect(result.status).toBe(200)
+  expect(await result.json()).toEqual({ state: 'complete', code: 'received', duplicate: true })
+  expect(adultWrites).toHaveLength(0)
+  expect(people).toHaveLength(0)
+  const catalogue = await listPublicForms(locals())
+  expect(catalogue[0].state).toBe('Réponse formatrice classée — hors stagiaires')
+  expect(catalogue[0].participationId).toBe(7)
+  expect(JSON.stringify(catalogue[0].details)).not.toContain('Adulte #null')
+  expect(sql.query('SELECT state FROM public_form_receipts').get()).toEqual({ state: 'complete' })
+  sql.query('UPDATE public_preformation_projections SET adult_id=50').run()
+  expect((await listPublicForms(locals()))[0].state).toContain('à vérifier')
 })
 
 test('all 17 exact questions are journaled, reread and visible with verified adult receipt', async () => {

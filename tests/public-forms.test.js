@@ -231,6 +231,15 @@ test('public replies are readable only after team authentication', async () => {
   expect(result.publicResponses).toHaveLength(1)
   expect(result.publicResponses[0].details[0][1]).toContain('referrer@example.invalid')
 })
+test('a superseded reply is displayed as history rather than pending or current projection', async () => {
+  await publicSubmit()
+  sql.query("UPDATE public_form_receipts SET state='complete',code='superseded_by_response_24',target_id=7").run()
+  const response = await teamGet({request:req('/api/interne/formulaires',undefined,{'Cf-Access-Jwt-Assertion':await jwt()}),locals:locals()})
+  const result = await response.json()
+  expect(result.publicResponses[0].state).toBe('Ancienne réponse classée — remplacée par la réponse n° 24')
+  expect(result.publicResponses[0].participationId).toBe(7)
+  expect(result.publicResponses[0].details.some(([label,value])=>label==='Classement' && value.includes('historique'))).toBe(true)
+})
 test('public submissions are limited server-side', async () => {
   for(let i=0;i<20;i++) expect((await publicSubmit()).status).toBe(200)
   expect((await publicSubmit()).status).toBe(429)

@@ -86,7 +86,7 @@ globalThis.fetch = async (input, init) => {
   const [, , , , table, , id] = url.pathname.split('/')
   if (table === preformationPersonConfig.tables.records) {
     assert.equal(method, 'GET')
-    return Response.json(dossier)
+    return Response.json(id ? dossier : { list: [dossier], pageInfo: { isLastPage: true } })
   }
   if (table === preformationPersonConfig.tables.people) {
     if (method === 'POST') {
@@ -118,6 +118,9 @@ globalThis.fetch = async (input, init) => {
   if (table !== 'publicanswerstable') {
     assert.equal(method, 'GET', 'No dossier/participant mutation')
     assert([NC.tables.etablissements, NC.tables.participations, NC.tables.cohortes].includes(table))
+    if (table === NC.tables.etablissements) return Response.json(id
+      ? { Id: 9, nom: 'École fictive' }
+      : { list: [{ Id: 9, nom: 'École fictive' }], pageInfo: { isLastPage: true } })
     return Response.json({
       list:
         table === NC.tables.cohortes
@@ -144,7 +147,8 @@ globalThis.fetch = async (input, init) => {
   if (id) return Response.json(rows.find((row) => row.Id === Number(id)))
   const where = url.searchParams.get('where')
   return Response.json({
-    list: where ? rows.filter((row) => where === `(cle_reponse,eq,${row.cle_reponse})`) : rows,
+    list: where ? rows.filter((row) => where === `(cle_reponse,eq,${row.cle_reponse})` || (where === '(statut_reprise,eq,Reportée dans le dossier)' && row.statut_reprise === 'Reportée dans le dossier')) : rows,
+    pageInfo: { isLastPage: true },
   })
 }
 const render = (path, { method = 'GET', body, authenticated = false, preview = false } = {}) =>
@@ -310,6 +314,17 @@ try {
     .all()
   assert(states.some((s) => s.state === 'complete' && s.adult_id === 50 && s.date_pre))
   assert(states.some((s) => s.state === 'review' && s.code === 'identity_conflict'))
+  // A team classification is terminal and is not presented as an outstanding
+  // stagiaire receipt. This SQL fixture never touches any real dossier.
+  sql.query("UPDATE public_preformation_projections SET state='classified',code='trainer_response_classified',participation_id=7 WHERE state='review'").run()
+  await page.goto(origin + '/interne/formulaires')
+  await expect(page.locator('#submissions-list')).toContainText('Réponse formatrice classée — hors stagiaires')
+  await expect(page.locator('#submissions-list')).not.toContainText('Réception préformation en attente — à vérifier')
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.locator('#submissions-list').screenshot({ path: `${output}/classement-formatrice-${width}.png` })
+  }
   const privateConfig = env.PRE_FORMATION_PERSON_PROJECTION
   delete env.PRE_FORMATION_PERSON_PROJECTION
   const closed = await render('/suivi/pre-formation')
@@ -327,6 +342,7 @@ try {
         sourceWrites: 2,
         adultWrites: 1,
         pendingCases: 1,
+        classifiedCases: 1,
         emails: 0,
         browserErrors,
       },

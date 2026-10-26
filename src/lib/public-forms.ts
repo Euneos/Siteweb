@@ -142,6 +142,15 @@ export async function listPublicForms(locals: unknown) {
     const questionnaire = preformationDetails(source)
     if (questionnaire) {
       const projection = await readPreformationProjection(db, String(row.cle_reponse))
+      const classified = projection?.state === 'classified' && projection.code === 'trainer_response_classified' &&
+        Number.isSafeInteger(projection.participation_id) && Number(projection.participation_id) > 0 &&
+        projection.adult_id == null && projection.date_pre == null
+      if (classified) return {
+        school: String(row.etablissement), city: String(row.ville ?? ''), year: String(row.annee_scolaire), form: String(row.formulaire),
+        state: 'Réponse formatrice classée — hors stagiaires',
+        details: [...questionnaire, ['Classement', 'Réponse conservée dans le dossier comme réponse de formatrice. Aucune inscription ni réception pré-formation stagiaire comptabilisée.']],
+        participationId: projection.participation_id,
+      }
       const verified = projection?.state === 'complete'
       return { school: String(row.etablissement), city: String(row.ville ?? ''), year: String(row.annee_scolaire), form: String(row.formulaire),
         state: verified ? 'Réception préformation vérifiée sur l’adulte' : 'Réception préformation en attente — à vérifier',
@@ -154,8 +163,10 @@ export async function listPublicForms(locals: unknown) {
     const agreement = await accordCatalogueEntry(db, row, source)
     if (agreement) return agreement
     const a = source.answers
+    const superseded = receipt?.state === 'complete' ? /^superseded_by_response_([1-9]\d*)$/.exec(receipt.code) : null
     const details = [
       ['Référent', `${a.referrer.name} — ${a.referrer.email}`],
+      ...(superseded ? [['Classement', `Ancienne réponse conservée pour l’historique ; remplacée par la réponse n° ${superseded[1]}.`]] : []),
       ...(publicIdentityReasons[String(receipt?.code || row.detail_reprise || '')]
         ? [['Suivi du report', publicIdentityReasons[String(receipt?.code || row.detail_reprise)]]] : []),
       ['Direction', a.directionEmail],
@@ -169,7 +180,7 @@ export async function listPublicForms(locals: unknown) {
       ['Activités jeunes', a.youth ? `${a.youth.totalClasses} classes · ${a.youth.totalStudents} élèves · ${a.youth.levels}\nÉvaluation : ${a.youth.evaluation ? 'Oui' : 'Non'}\nGroupes actifs : ${a.youth.activeClasses} (${a.youth.activeCount ?? 'à préciser'})\nGroupes contrôle : ${a.youth.controlClasses} (${a.youth.controlCount ?? 'à préciser'})\nT1 actif : ${a.youth.activeT1} · T2 actif : ${a.youth.activeT2} · T1 contrôle : ${a.youth.controlT1}\n${a.youth.workshopCount ?? 'À préciser'} ateliers · ${a.youth.workshopSchedule}` : ''],
     ].filter(([, value]) => value)
     return { school: String(row.etablissement), city: String(row.ville), year: String(row.annee_scolaire), form: String(row.formulaire),
-      state: receipt?.state === 'complete' ? 'Reportée dans le dossier' : 'Réponse reçue — à vérifier', details,
+      state: superseded ? `Ancienne réponse classée — remplacée par la réponse n° ${superseded[1]}` : receipt?.state === 'complete' ? 'Reportée dans le dossier' : 'Réponse reçue — à vérifier', details,
       participationId: receipt?.target_id ?? null,
     }
   }))

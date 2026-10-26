@@ -11,6 +11,7 @@ import {
 } from './google-form-person'
 import { preformationQuestions } from './preformation-definition'
 import type { PreformationAnswers } from './preformation'
+import { planKnownPreformationAdult } from './preformation-directory'
 
 const headers = ['receivedAt', ...preformationQuestions.map((q) => q.key)]
 const mapping = {
@@ -115,11 +116,12 @@ export async function projectPreformation(input: {
   receipt: string
   config: PersonProjectionConfig
   answers: PreformationAnswers
+  sourceTable?: string
 }): Promise<PreformationProjection> {
   const { db, token, receipt, config, answers } = input
   const read = (path: string) => operationalRequest(token, `/${path}`)
   let row = (await readPreformationProjection(db, receipt))!
-  if (row.state === 'complete' || row.state === 'review') return row
+  if (['complete', 'review', 'classified'].includes(row.state)) return row
   const owner = crypto.randomUUID(),
     now = Date.now()
   const owned = await db
@@ -157,13 +159,17 @@ export async function projectPreformation(input: {
     if (row.config_digest !== (await hashOperational(JSON.stringify(config))))
       return finish('review', 'projection_configuration_changed')
     if (!plan) {
-      const outcome = await planGooglePerson(
+      let outcome = await planGooglePerson(
         config,
         headers,
         [row.received_at, ...preformationQuestions.map((q) => answers[q.key])],
         row.received_at,
         read,
       )
+      if (outcome.state === 'review' && input.sourceTable &&
+        ['establishment_unresolved', 'identity_unresolved', 'identity_conflict'].includes(outcome.code)) {
+        outcome = await planKnownPreformationAdult(config, answers, row.received_at, input.sourceTable, read)
+      }
       if (outcome.state === 'review') return finish('review', outcome.code)
       plan = outcome.plan
       // Belt and braces: this route may only record preformation receipt, with
@@ -264,6 +270,8 @@ export async function projectPreformation(input: {
 }
 
 const reasons: Record<string, string> = {
+  establishment_not_unique: 'Plusieurs dossiers possibles pour cet établissement et cette année.',
+  identity_directory_incomplete: 'Annuaire incomplet ou incohérent ; rapprochement non effectué.',
   identity_unresolved: 'Adulte non identifié ; création non autorisée par la configuration.',
   identity_conflict: 'Le nom et l’identité retrouvée ne concordent pas.',
   identity_not_unique: 'Plusieurs personnes possibles ou inventaire incomplet.',

@@ -80,7 +80,9 @@ export function publicRespondent(row: Record<string, unknown>): { key: string; p
     : text(answers?.referrer?.name)
   // A form's intended audience does not establish a person's actual function.
   const role = questionnaire
-    ? text(answers.role) || (['bilan-formateur', 'accord-formateur'].includes(key) ? 'Formateur' : '')
+    ? (row.statut_reprise === 'Classée — réponse formatrice' && row.detail_reprise === 'trainer_response_classified'
+      ? 'Formatrice — réponse classée, hors stagiaires'
+      : text(answers.role) || (['bilan-formateur', 'accord-formateur'].includes(key) ? 'Formateur' : ''))
     : 'Référent déclaré'
   return { key, person: {
     id: `Réponse #${row.Id}`, name: name || 'Nom non recueilli',

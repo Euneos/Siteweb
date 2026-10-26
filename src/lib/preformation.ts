@@ -134,17 +134,18 @@ export async function receivePreformation(input: {
     receipt,
     config: input.personProjection,
     answers,
+    sourceTable: table,
   })
   // The durable projection row is authoritative. The source stays append-only:
   // a read/merge/PATCH of journal annotations could overwrite another writer.
-  if (projected.state === 'complete' || projected.state === 'review') {
-    const verified = projected.state === 'complete'
+  if (['complete', 'review', 'classified'].includes(projected.state)) {
+    const verified = projected.state === 'complete' || projected.state === 'classified'
     await db
       .prepare('UPDATE public_form_receipts SET state=?,code=?,target_id=? WHERE receipt=?')
       .bind(verified ? 'complete' : 'review', projected.code, projected.participation_id, receipt)
       .run()
   }
-  if (!['complete', 'review'].includes(projected.state))
+  if (!['complete', 'review', 'classified'].includes(projected.state))
     return { state: 'processing', code: 'processing', duplicate: claim.meta.changes !== 1 }
   // Uniform public receipt: never reveal whether an adult or dossier exists.
   return { state: 'complete', code: 'received', duplicate: claim.meta.changes !== 1 }

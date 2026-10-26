@@ -13,6 +13,13 @@ test('no name or role is inferred from an evaluation audience', () => {
   expect(row.person.role).toBe('Rôle non recueilli')
   expect(JSON.stringify(row)).not.toContain('private@example.test')
 })
+test('a confirmed trainer classification is visible without changing respondent counts', () => {
+  const row = { Id: 14, dossier_id: 7, etablissement: 'Collège Test', statut_reprise: 'Classée — réponse formatrice', detail_reprise: 'trainer_response_classified',
+    reponses: JSON.stringify({ kind: 'pre_formation_adultes', answers: [{ key: 'name', value: 'Camille Test' }, { key: 'role', value: 'Enseignant·e' }] }) }
+  expect(publicRespondent(row).person.role).toBe('Formatrice — réponse classée, hors stagiaires')
+  expect(publicRespondent(row).key).toBe('pre-formation')
+  expect(publicRespondent({ ...row, detail_reprise: 'projection_pending' }).person.role).toBe('Enseignant·e')
+})
 test('reads past a server-clamped page, never returns a truncated total', async () => {
   const rows = Array.from({ length: 103 }, (_, i) => ({ Id: i + 1 }))
   globalThis.fetch = async url => {

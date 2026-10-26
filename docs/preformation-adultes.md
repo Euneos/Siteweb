@@ -34,11 +34,24 @@ aucune authentification du répondant ou collecte du compte Google n'est simulé
   une source `personProjection.family=preformation_a`. Le secret dédié, s'il est
   présent, prime ; un secret dédié invalide n'autorise pas un repli silencieux.
 
-Le site adapte seulement les sélecteurs et le digest des questions : le timestamp
-est celui du serveur, les champs sont les clés du formulaire site. Les tables,
-cohortes, correspondances et autorisations de création viennent exclusivement du
-même objet privé audité. Pas de correspondance par titre du Form, campagne active,
-nom d'école approchant ou ordre supposé prénom/nom.
+Le site adapte les sélecteurs et le digest des questions : le timestamp est celui
+du serveur, les champs sont les clés du formulaire site. Les tables, cohortes et
+autorisations de création viennent du même objet privé audité.
+
+Depuis la correction du 26 octobre, si le rapprochement exact échoue sur l'école
+ou l'identité, un repli **réservé aux adultes déjà inscrits** consulte l'annuaire
+NocoDB. Il reconnaît accents, casse, ponctuation, CLG/Collège, LGT/Lycée et jusqu'à
+deux lettres d'écart dans le nom d'école. Il tient aussi compte des libellés déjà
+rattachés dans une réponse « Reportée dans le dossier », pour la même année.
+Les réponses en attente ne servent jamais de preuve de correspondance.
+
+Le dossier doit être unique, ouvert, non fusionné et dans la cohorte configurée.
+Le nom complet de l'adulte doit correspondre sans accents ni différence d'ordre
+prénom/nom, sans tolérance orthographique sur la personne. Un email connu dans
+un autre dossier, plusieurs personnes possibles ou une adresse contradictoire
+bloquent le report. `email_2` est reconnu. Si les deux adresses sont absentes,
+l'email déclaré complète la fiche après ces vérifications. Ce repli ne crée
+jamais un adulte, et ne transforme pas un formateur en stagiaire.
 
 **Sans configuration valide ou sans migration, GET et POST sont indisponibles
 (503), avant toute collecte.** Le lot ne peut pas ouvrir une collecte brute seule.
@@ -57,7 +70,9 @@ Aucun secret, réglage, migration distante ou déploiement n'est appliqué ici.
    Si l'adulte manque, seule la politique privée explicite autorise sa création,
    après recherche de collisions de noms dans le dossier. Le nom complet est
    conservé sans le découper ni attribuer un statut de formation.
-4. Seul `date_pre_recu` est modifié pour un adulte existant. Une date différente
+4. `date_pre_recu` est modifié pour un adulte existant ; le repli annuaire peut
+   aussi compléter `email` uniquement si `email` et `email_2` sont vides. Ces
+   champs font partie du plan et des relectures avant/après. Une date différente
    devient un conflit explicite. Les réponses pédagogiques restent au journal ;
    elles ne deviennent ni notes de personne, ni scores, ni statut « formé ».
 5. Le plan et son digest de configuration sont figés dans D1. Une revendication
@@ -83,6 +98,7 @@ Aucun secret, réglage, migration distante ou déploiement n'est appliqué ici.
 | `writing` | Une écriture a pu être envoyée ; toute reprise est exclusivement une relecture du plan conservé. |
 | `complete` | Personne, dossier et `date_pre_recu` relus conformes ; identifiants et date certifiés enregistrés dans D1. |
 | `review` | Cas métier ou écriture incertaine à vérifier explicitement ; aucun nouveau POST/PATCH métier automatique. |
+| `classified` | Classement humain définitif, notamment `trainer_response_classified` : dossier associé, aucun adulte ni date préformation stagiaire. Un renvoi identique reste sans effet métier. |
 
 Une configuration changée depuis la capture ne redirige jamais une réponse vers
 un autre dossier. Une revendication d'identité incertaine n'est pas libérée par un
@@ -98,7 +114,13 @@ pas leur sérialisation. Aucun verrou existant n’est expiré ou réinitialisé
 
 Le catalogue privé montre **« Réception préformation vérifiée sur l'adulte »**
 avec la date et le dossier, ou **« Réception préformation en attente — à vérifier »**
-avec un motif lisible. D1 fait foi pour ce résultat. Le site ne modifie jamais
+avec un motif lisible. D1 fait foi pour ce résultat.
+Le classement humain `classified` / `trainer_response_classified` apparaît comme
+**« Réponse formatrice classée — hors stagiaires »**, avec son dossier, sans faux
+adulte ni date de réception stagiaire. Le reçu public reste identique aux autres
+réponses et ne révèle pas ce classement privé.
+
+Le site ne modifie jamais
 la source du journal après sa création : un PATCH de résumé fondé sur une lecture
 antérieure pourrait écraser une annotation concurrente. Le statut initial du
 journal NocoDB ne constitue donc pas la preuve de projection ; celle-ci est
