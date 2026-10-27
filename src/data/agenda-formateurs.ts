@@ -11,7 +11,7 @@ export const agendaFormateurs = [
     id: 'formation-ateliers-2026-12-08',
     title: 'Formation aux ateliers',
     description: '',
-    start: '2026-12-08T18:00:00+01:00',
-    end: '2026-12-08T20:30:00+01:00',
+    start: '2026-12-01T18:00:00+01:00',
+    end: '2026-12-01T20:30:00+01:00',
   },
 ]

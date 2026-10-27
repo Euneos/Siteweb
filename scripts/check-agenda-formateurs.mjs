@@ -58,8 +58,8 @@ try {
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Débordement à ${width}px`)
     await page.locator('#agenda').screenshot({ path: `${output}/agenda-${width}.png` })
     await page.getByRole('link', { name: 'Mois suivant', exact: true }).click()
-    assert.equal(await page.locator('.trainer-agenda__date').innerText(), '8\n●')
-    await page.getByRole('link', { name: /mardi 8 décembre/ }).click()
+    assert.equal(await page.locator('.trainer-agenda__date').innerText(), '1\n●')
+    await page.getByRole('link', { name: /mardi 1 décembre/ }).click()
     assert(new URL(page.url()).hash.includes('formation-ateliers'))
     console.log(`Agenda et navigation vérifiés à ${width}px`)
   }
