@@ -58,6 +58,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (ctx instanceof Response) return ctx
     const body = await readInternalBody(request)
     const action = body.action
+    if (!ctx.teamMember && ((action === 'save-draft' && body.revision === 0) || (action === 'submit' && !body.id))) {
+      const drafts = await listDrafts(ctx.db, ctx.identity, false)
+      if (drafts.length) throw new WorkspaceError(409, 'Un brouillon existe déjà pour votre compte. Rechargez la page et utilisez « Compléter le brouillon » pour poursuivre le même dossier.')
+    }
     if (action === 'save-draft' || action === 'submit-draft') {
       const id = entryId(body.id)
       let owner = ctx.identity

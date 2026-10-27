@@ -20,7 +20,19 @@ const schoolFields = [
     <p>La signature manuscrite ou dessinée dans un PDF ne constitue pas une signature électronique certifiée. EUNEOS vérifie manuellement les documents avant la contresignature. PDF à déposer : 750 Ko maximum.</p>
     <p>Les 14 articles figurent dans le PDF finalisé par EUNEOS : vous pourrez les relire avant de le signer.</p>
     <p id="cm-state" role="status" tabindex="-1">Chargement de vos conventions…</p>
+    <section id="cm-overview" class="iw-panel cm-stack" aria-labelledby="cm-overview-title" hidden>
+      <h2 id="cm-overview-title">Retrouver une convention</h2>
+      <p id="cm-resume-help">Reprenez le brouillon préparé par EUNEOS : il devient la convention reçue après votre soumission.</p>
+      <div class="cm-filters">
+        <label class="iw-field">Rechercher un formateur ou un établissement<input id="cm-search" type="search" /></label>
+        <label class="iw-field">Étape<select id="cm-filter"><option value="">Toutes les étapes</option><option value="draft">Brouillons à compléter</option><option value="submitted">À vérifier par EUNEOS</option><option value="changes_requested">Corrections demandées</option><option value="approved">PDF prêts à signer</option><option value="trainer_signed">PDF signés à contresigner</option><option value="complete">Conventions contresignées</option></select></label>
+      </div>
+      <p id="cm-results" role="status"></p>
+      <div id="cm-index" class="cm-stack"></div>
+      <button id="cm-new" type="button" class="iw-button" hidden>Préparer une nouvelle convention</button>
+    </section>
     <form id="cm-form" class="cm-stack" hidden autocomplete="off">
+      <button id="cm-close-form" type="button" class="iw-button">Fermer le formulaire et revenir au suivi</button>
       <h2 id="cm-form-title">À compléter en ligne par le/la formateur·rice</h2>
       <p id="cm-team-instructions" hidden>L’équipe EUNEOS peut aussi préparer la saisie pour un formateur. Indiquez son adresse de connexion à « Ressources formateurs » pour qu’il retrouve ensuite son dossier. Ce champ ne lui ouvre pas l’accès : son adresse doit être autorisée séparément dans Cloudflare Access « EUNEOS — ressources ».</p>
       <label id="cm-owner-field" class="iw-field" hidden>Adresse du compte formateur autorisé *<input name="ownerEmail" type="email" maxlength="250" autocomplete="off" /></label>
@@ -116,6 +128,33 @@ const schoolFields = [
   const ownerInput = form.elements.namedItem('ownerEmail') as HTMLInputElement
   const state = document.querySelector<HTMLParagraphElement>('#cm-state')!
   const list = document.querySelector<HTMLDivElement>('#cm-list')!
+  const overview = document.querySelector<HTMLElement>('#cm-overview')!
+  const index = document.querySelector<HTMLElement>('#cm-index')!
+  const search = document.querySelector<HTMLInputElement>('#cm-search')!
+  const filter = document.querySelector<HTMLSelectElement>('#cm-filter')!
+  const newButton = document.querySelector<HTMLButtonElement>('#cm-new')!
+  const labels: Record<string, string> = { draft: 'Brouillon à compléter', submitted: 'En attente de vérification EUNEOS — PDF non généré', changes_requested: 'Corrections demandées', approved: 'PDF prêt à signer', trainer_signed: 'Signature du formateur reçue — en attente EUNEOS', complete: 'Convention contresignée disponible' }
+  const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr')
+  function applyFilters() {
+    let count = 0
+    for (const card of index.querySelectorAll<HTMLElement>('[data-target]')) {
+      const visible = (!filter.value || card.dataset.stage === filter.value) && normalize(card.dataset.search || '').includes(normalize(search.value.trim()))
+      card.hidden = !visible
+      const panel = document.getElementById(card.dataset.target!)
+      if (panel) panel.hidden = !visible
+      if (visible) count++
+    }
+    document.querySelector('#cm-results')!.textContent = `${count} dossier(s) affiché(s).`
+  }
+  function openPanel(id: string) {
+    search.value = ''; filter.value = ''; applyFilters()
+    location.hash = id
+    const panel = document.getElementById(id)
+    panel?.scrollIntoView({ behavior: 'smooth' })
+    panel?.focus({ preventScroll: true })
+  }
+  search.addEventListener('input', applyFilters)
+  filter.addEventListener('change', applyFilters)
   const endpoint = location.pathname.replace(/\/$/, '') === '/interne/ressources' ? '/api/interne/ressources?convention=1' : '/api/interne/conventions-mission'
   const apiUrl = (params: string) => `${endpoint}${endpoint.includes('?') ? '&' : '?'}${params}`
   let editing: string | undefined
@@ -124,6 +163,7 @@ const schoolFields = [
   type ListedDraft = { id: string; owner_email: string; payload: Payload; note: string; revision: number }
   const draftNote = document.querySelector<HTMLTextAreaElement>('#cm-draft-note')!
   let teamAdmin = false
+  let accountEmail = ''
   let sequence = 0
   let sessionSequence = 0
   const durations: Record<string, number[]> = { '8x2': Array(8).fill(2), '4x4': Array(4).fill(4), mixed: [4, 4, 2, 2, 2, 2], '8x1': Array(8).fill(1) }
@@ -302,6 +342,7 @@ const schoolFields = [
     return anchor
   }
   function edit(record: Listed | ListedDraft, draft = false) {
+    document.querySelector('#cm-form-title')!.textContent = draft ? `Compléter le même brouillon — ${record.payload.nom || record.owner_email}` : `Corriger la convention — ${record.payload.nom}`
     editing = draft ? undefined : record.id
     draftId = draft ? record.id : undefined
     draftRevision = draft ? (record as ListedDraft).revision : 0
@@ -338,6 +379,21 @@ const schoolFields = [
     form.hidden = false
     form.scrollIntoView({ behavior: 'smooth' })
   }
+  document.querySelector('#cm-close-form')!.addEventListener('click', () => {
+    if (!confirm('Fermer le formulaire ? Les modifications non enregistrées seront perdues.')) return
+    form.hidden = true; editing = undefined; draftId = undefined; draftRevision = 0
+    overview.scrollIntoView({ behavior: 'smooth' })
+  })
+  newButton.addEventListener('click', () => {
+    if (!form.hidden && !confirm('Ouvrir un nouveau formulaire ? Les modifications non enregistrées seront perdues.')) return
+    editing = undefined; draftId = undefined; draftRevision = 0
+    form.reset(); draftNote.value = ''; ownerInput.readOnly = false
+    if (!teamAdmin) (form.elements.namedItem('email') as HTMLInputElement).value = accountEmail
+    document.querySelector('#cm-form-title')!.textContent = teamAdmin ? 'Préparer un brouillon pour un formateur' : 'Nouvelle mission — aucun brouillon à reprendre'
+    document.querySelector<HTMLButtonElement>('#cm-save-draft')!.hidden = false
+    schools.replaceChildren(); add(); form.hidden = false
+    form.scrollIntoView({ behavior: 'smooth' })
+  })
   async function upload(id: string, kind: 'trainer_signed' | 'complete') {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = 'application/pdf,.pdf'
@@ -362,17 +418,24 @@ const schoolFields = [
     if (!response.ok) throw new Error('Impossible de charger les conventions.')
     const data = await response.json() as { conventions: Listed[]; drafts: ListedDraft[]; team: boolean; admin: boolean; accountEmail: string; notifications?: {convention_id:string;kind:string;state:string;updated_at:string}[]; notificationEmail?: string; notificationsEnabled?: boolean }
     teamAdmin = data.team && data.admin
+    accountEmail = data.accountEmail
     const notifications = document.querySelector<HTMLParagraphElement>('#cm-notifications')!
     notifications.hidden = !data.team
     notifications.textContent = data.notificationsEnabled
       ? `Alertes automatiques configurées vers ${data.notificationEmail} : conventions soumises et PDF signés déposés par les formateurs. Le résultat de chaque alerte figure ci-dessous.`
       : 'Alertes e-mail non actives dans cet environnement. Consultez les conventions en attente ci-dessous.'
     list.replaceChildren()
-    form.hidden = data.team && !data.admin
+    index.replaceChildren()
+    overview.hidden = false
+    form.hidden = (!editing && !draftId) || (data.team && !data.admin)
+    newButton.hidden = data.team ? !data.admin : !!data.drafts.length
+    newButton.textContent = teamAdmin ? 'Préparer un brouillon pour un formateur' : 'Créer une convention pour une nouvelle mission'
+    document.querySelector('#cm-resume-help')!.textContent = data.team
+      ? 'Tous les dossiers reçus et PDF sont accessibles ci-dessous. Un dossier soumis attend votre vérification : son PDF n’est généré qu’après validation.'
+      : data.drafts.length ? 'Un brouillon existe déjà : cliquez sur « Compléter le brouillon » pour reprendre les informations préparées. Votre envoi utilisera ce même dossier.' : 'Retrouvez ici vos conventions reçues et vos PDF. Une nouvelle saisie est réservée à une nouvelle mission.'
     ownerField.hidden = !teamAdmin
     ownerInput.required = teamAdmin
     document.querySelector('#cm-team-instructions')!.toggleAttribute('hidden', !teamAdmin)
-    document.querySelector('#cm-form-title')!.textContent = teamAdmin ? 'Préparer une convention en ligne pour un formateur' : 'À compléter en ligne par le/la formateur·rice'
     if (!form.hidden) {
       if (!editing && !draftId && !data.team) (form.elements.namedItem('email') as HTMLInputElement).value = data.accountEmail
       if (!editing && !draftId && teamAdmin) ownerInput.readOnly = false
@@ -380,14 +443,17 @@ const schoolFields = [
     }
     for (const draft of data.drafts || []) {
       const panel = document.createElement('section'); panel.className = 'iw-panel cm-stack'
+      panel.id = `brouillon-${draft.id}`; panel.tabIndex = -1
       const title = document.createElement('h2'); title.textContent = `${draft.payload.nom || draft.owner_email} — Brouillon à compléter`
       const info = document.createElement('p'); info.textContent = draft.payload.missions.map(m => `${m.etablissement}${m.groupe ? ` — ${m.groupe}` : ''}`).join(', ')
       const note = document.createElement('p'); note.textContent = draft.note; note.style.whiteSpace = 'pre-wrap'
-      panel.append(title, info, note)
+      const preparation = document.createElement('details'); const preparationTitle = document.createElement('summary'); preparationTitle.textContent = 'Notes de préparation EUNEOS'; preparation.append(preparationTitle, note)
+      panel.append(title, info, preparation)
       if (!data.team || data.admin) panel.append(button('Compléter le brouillon', () => edit(draft, true)))
       const received = data.conventions.filter(c => c.owner_email === draft.owner_email)
       if (received.length) {
         const warning = document.createElement('p'); warning.textContent = 'Une convention a déjà été reçue pour ce compte. Vérifiez si ce brouillon est encore utile avant de le compléter.'; panel.append(warning)
+        for (const convention of received) panel.append(button(`Ouvrir la convention reçue — ${convention.payload.missions.map(m => m.etablissement).join(', ')} — ${labels[convention.state]}`, () => openPanel(`convention-${convention.id}`)))
         if (data.admin && received.length === 1) panel.append(button('Rattacher cet ancien brouillon à la convention reçue', async () => {
           if (!confirm(`Conserver ce brouillon comme ancien préremplissage de la convention reçue (${received[0].payload.missions.map(m=>m.etablissement).join(', ')}) et le retirer des brouillons à compléter ?`)) return
           try { await send({action:'supersede-draft',id:draft.id,revision:draft.revision,conventionId:received[0].id}); await reload(); message('Ancien brouillon rattaché à la convention reçue. Son contenu est conservé.') }
@@ -395,16 +461,23 @@ const schoolFields = [
         }))
       }
       list.append(panel)
+      const card = document.createElement('article'); card.className = 'cm-index-card cm-stack'
+      card.dataset.target = panel.id; card.dataset.stage = 'draft'; card.dataset.search = `${draft.payload.nom} ${draft.owner_email} ${info.textContent}`
+      const heading = document.createElement('h3'); heading.textContent = `${draft.payload.nom || draft.owner_email} — ${info.textContent}`
+      const stage = document.createElement('p'); stage.textContent = labels.draft
+      card.append(heading, stage, button('Voir le brouillon', () => openPanel(panel.id)))
+      if (!data.team || data.admin) card.append(button('Compléter le brouillon', () => edit(draft, true)))
+      index.append(card)
     }
     for (const record of data.conventions) {
       const panel = document.createElement('section')
       panel.className = 'iw-panel cm-stack'
       panel.id = `convention-${record.id}`
+      panel.tabIndex = -1
       const title = document.createElement('h2')
       title.textContent = `${record.payload.nom} — ${record.payload.missions.map(m => m.etablissement).join(', ')}`
       panel.append(title)
       const status = document.createElement('p')
-      const labels: Record<string, string> = { submitted: 'En attente de vérification EUNEOS', changes_requested: 'Corrections demandées', approved: 'PDF prêt à signer', trainer_signed: 'Signature du formateur reçue — en attente EUNEOS', complete: 'Convention contresignée disponible' }
       status.textContent = labels[record.state] || record.state
       panel.append(status)
       if (data.team) {
@@ -512,9 +585,21 @@ const schoolFields = [
         }))
       }
       list.append(panel)
+      const card = document.createElement('article'); card.className = 'cm-index-card cm-stack'
+      card.dataset.target = panel.id; card.dataset.stage = record.state; card.dataset.search = `${record.payload.nom} ${record.owner_email} ${record.payload.missions.map(m => m.etablissement).join(' ')}`
+      const heading = document.createElement('h3'); heading.textContent = title.textContent
+      const stage = document.createElement('p'); stage.textContent = labels[record.state] || record.state
+      card.append(heading, stage, button(data.admin && record.state === 'submitted' ? 'Vérifier cette convention' : 'Ouvrir la convention', () => openPanel(panel.id)))
+      if (approved) card.append(link(record.id, 'approved', 'Télécharger le PDF validé'))
+      if (data.team && record.state === 'trainer_signed') card.append(link(record.id, 'trainer_signed', 'Vérifier le PDF signé'))
+      if (record.state === 'complete') card.append(link(record.id, 'complete', 'Télécharger l’exemplaire contresigné'))
+      index.append(card)
     }
+    // Les conventions reçues et leurs PDF passent avant les anciens brouillons.
+    for (const card of index.querySelectorAll<HTMLElement>('[data-stage="draft"]')) index.append(card)
+    applyFilters()
     message(`${data.conventions.length} convention(s) et ${(data.drafts || []).length} brouillon(s) dans cet espace.`)
-    if (/^#convention-[a-f0-9-]{36}$/.test(location.hash)) document.getElementById(location.hash.slice(1))?.scrollIntoView({behavior:'smooth'})
+    if (/^#(?:convention|brouillon)-[a-f0-9-]{36}$/.test(location.hash)) openPanel(location.hash.slice(1))
   }
   document.querySelector<HTMLButtonElement>('#cm-save-draft')!.addEventListener('click', async event => {
     if (teamAdmin && !ownerInput.reportValidity()) return
@@ -565,9 +650,19 @@ const schoolFields = [
   .cm-review-confirm { display: flex; align-items: flex-start; gap: .5em; }
   .cm-review-confirm input[type='checkbox'] { flex: none; margin-top: .25em; }
   .cm-demo .iw-button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .cm-index-card { padding: var(--s-lie); border: 1px solid #ddd; border-radius: .4rem; overflow-wrap: anywhere; }
+  .cm-index-card h3 { font-size: var(--t-corps); }
+  #cm-overview { padding: var(--s-lie); }
+  .cm-filters { display: grid; gap: var(--s-lie); }
+  #cm-list > section { scroll-margin-top: var(--s-lie); }
+  #cm-list > section:target { outline: 2px solid #00382d; }
   .cm-sessions { display: grid; gap: var(--s-lie); }
   .cm-session { display: grid; gap: var(--s-lie); padding: var(--s-lie); }
   .cm-demo [hidden] { display: none; }
   .cm-demo button:disabled { opacity: .65; cursor: not-allowed; }
   @media (min-width: 48rem) { .cm-sessions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 861px) {
+    .cm-filters { grid-template-columns: 2fr 1fr; }
+    #cm-index { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  }
 </style>

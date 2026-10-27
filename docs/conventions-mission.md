@@ -164,3 +164,19 @@ sont conditionnelles et un second dépôt ne remplace pas un document déjà enr
 Pour publier : exécuter tests et build, puis les contrôles de pages compilées et
 de largeur 390 px ; obtenir l'accord de Candice sur les deux nouvelles tables et
 l'aperçu ; suivre les reçus D1 du SHA publié et vérifier le rendu réel.
+
+### Reprendre le même dossier et retrouver les PDF — 27 octobre 2026
+
+La page commence par un index recherchable par nom, compte et établissement, avec
+filtre d'étape, accès à la vérification et téléchargement des PDF disponibles.
+« Reçue » ne signifie pas « PDF généré » : les soumissions en attente l'indiquent
+explicitement. Les anciens préremplissages proposent un accès direct aux conventions
+du même compte, sans présumer qu'elles correspondent à la même mission.
+
+Le formulaire vierge n'est plus ouvert par défaut. Le formateur reprend son brouillon
+avec « Compléter le brouillon » ; sauvegarde et soumission conservent cet identifiant.
+Tant qu'un brouillon actif existe, la création d'une autre saisie par le formateur
+est masquée et refusée par l'API, y compris depuis un ancien onglet. EUNEOS peut
+préparer plusieurs missions ; le formateur choisit alors le brouillon correspondant.
+Sans brouillon actif, une création explicite reste possible pour une nouvelle mission.
+Aucune archive ni validation automatique des dossiers existants n'est effectuée.
