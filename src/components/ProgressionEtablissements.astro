@@ -1,66 +1,79 @@
 ---
-import { dateFormationFr, etapeEnVert, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
+import { dateFormationFr, trierProgression, type EtatCandidature } from '../lib/etat-candidatures'
 import { statutCandidature } from '../lib/statut-candidature'
-import { lienDernierContact, dateContactFr } from '../lib/dernier-contact'
-import { pointSituation, situationCourante } from '../lib/point-situation'
+import { dateContactFr } from '../lib/dernier-contact'
+import DetailSuivi from './DetailSuivi.astro'
 interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')))
+const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
 ---
 
 <details class="etat__progression" open>
-  <summary>Tableau de suivi des établissements — les dix étapes</summary>
+  <summary>Tableau de suivi des établissements</summary>
   <p class="etat__legende">
     ✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée.
     Une case vide ne signifie pas que l’action n’a pas eu lieu.
-    Vert : pièce reçue ; lorsque la lettre signée et la fiche contact sont reçues,
-    les six premières étapes sont colorées en vert. Ce repère visuel ne modifie pas
-    la décision ni la preuve d’envoi d’un accusé de réception.
     Les dates passées apparaissent d’abord, puis les débuts à venir, du plus proche au plus éloigné ;
     les dossiers sans date sont regroupés à la fin. Une date passée ne prouve pas le démarrage réel.
     Rouge : aucune affectation renseignée. Les personnes pressenties ne sont pas des affectations.
     Les abandons et refus sont exclus de ce tableau opérationnel.
   </p>
   <div class="etat__table-actions">
-    <p class="etat__scroll-aide">Toutes les colonnes sont visibles dans la largeur de l’écran sur ordinateur.</p>
+    <p class="etat__scroll-aide">Cliquez sur un établissement pour le détail. Faites défiler vers la droite pour les étapes ; le nom reste visible.</p>
     <button class="iw-button" type="button" data-suivi-expand hidden>Agrandir le tableau</button>
   </div>
-  <p class="etat__legende">
+  <details class="etat__legende"><summary>Comprendre le dernier contact et les informations manquantes</summary><p>
     Dernier contact / relance : dernier e-mail envoyé retrouvé dans la boîte de Charlotte,
     y compris les envois collectifs et les échanges avec les formateurs concernant le dossier.
     La date de vérification indique la dernière consultation de la messagerie, sans synchronisation automatique.
     « Voir le mail » ouvre le webmail de Charlotte ; un message déplacé peut nécessiter une nouvelle recherche.
-  </p>
+    Blocage et aide nécessaire : non renseignés séparément dans le suivi actuel ; consultez le point de situation complet.
+  </p></details>
+  <label class="etat__filtre-rapide" hidden data-suivi-filter-label>
+    Repérer les dossiers
+    <select data-suivi-filter>
+      <option value="tous">Tous les dossiers</option>
+      <option value="sans-formateur">Sans affectation renseignée</option>
+      <option value="organisation">Réception du formulaire à vérifier</option>
+    </select>
+  </label>
+  <p data-suivi-count role="status" aria-live="polite"></p>
   <div data-suivi-inline>
   <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures">
     <table class="etat__table">
       <caption>Progression des établissements — cohorte 2026–2027 · {progressionAffichee.length} dossiers actifs · tri par début de formation</caption>
       <colgroup>
-        <col style="width:12%" />
-        <col style="width:15%" />
-        <col style="width:13%" />
-        {colonnes.map(() => <col style="width:6%" />)}
+        <col style="width:14rem" />
+        <col style="width:14rem" />
+        <col style="width:11rem" />
+        <col style="width:11rem" />
+        <col style="width:11rem" />
+        <col style="width:12rem" />
+        {etapes.map(() => <col style="width:10rem" />)}
       </colgroup>
       <thead>
         <tr>
           <th class="etat__etablissement" scope="col" rowspan="2">Établissement</th>
-          <th scope="col" rowspan="2">Point de situation</th>
-          <th scope="col" rowspan="2">Dernier contact / relance</th>
+          <th scope="col" rowspan="2">Où en est-on ?</th>
+          <th scope="col" rowspan="2">Blocage</th>
+          <th scope="col" rowspan="2">Aide nécessaire</th>
+          <th scope="col" rowspan="2">Référent</th>
+          <th scope="col" rowspan="2">Formateur</th>
           <th scope="colgroup" colspan="3">Étape 1 — Candidature</th>
-          <th scope="colgroup" colspan="4">Étape 2 — Sélection & confirmation</th>
+          <th scope="colgroup" colspan="2">Pièces d’engagement</th>
           <th scope="colgroup" colspan="3">Étapes 3 à 9 — Déploiement → Évaluation</th>
         </tr>
-        <tr>{colonnes.map(titre => <th scope="col">{titre}</th>)}</tr>
+        <tr>{etapes.map(index => <th scope="col">{colonnes[index]}</th>)}</tr>
       </thead>
       <tbody>
-        {progressionAffichee.length === 0 && <tr><td colspan="13">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
+        {progressionAffichee.length === 0 && <tr><td colspan="14">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
-          <tr class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
+          <tr data-suivi-row data-sans-formateur={!ligne.formateurs.length} data-organisation={!ligne.suiviVerifie?.organisationRecue} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
-              <span class="etat__nom">{ligne.etablissement}</span>
+              <a class="etat__nom" href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>{ligne.etablissement}</a>
               <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
-              <span class="etat__meta">{statutCandidature(ligne.statut).label}</span>
-              <span class="etat__meta"><strong>Référent :</strong> {ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span>
+              <span class="etat__meta">Dernier contact : {ligne.dernierContact?.status === 'found' ? dateContactFr(ligne.dernierContact.sentAt!) : 'Non vérifié'}</span>
               <span class:list={['etat__debut', !ligne.dateDebutFormation && 'etat__sans-date']}>
                 {ligne.dateDebutFormation ? `Début : ${dateFormationFr(ligne.dateDebutFormation)}` : '⚠ AUCUNE DATE DE DÉBUT RENSEIGNÉE'}
               </span>
@@ -68,47 +81,26 @@ const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', '
               {ligne.aVerifier && <span class="etat__verification">Dossier à rapprocher</span>}
             </th>
             <td class="etat__situation">
-              <span class="etat__mobile-label">Point de situation</span>
-              <span>{ligne.suiviVerifie?.situation || pointSituation(ligne)}</span>
-              {ligne.suiviVerifie ? <>
-                <small>Vérification croisée le {dateContactFr(ligne.suiviVerifie.checkedAt)}</small>
-                <details><summary>Sources de vérification</summary><ul>{ligne.suiviVerifie.sources.map(source => <li>{source}</li>)}</ul></details>
-              </> : situationCourante(ligne) && <small>
-                {situationCourante(ligne)!.sourceKind === 'echange-interne' ? 'Point interne du ' : 'Mail envoyé le '}
-                {dateContactFr(situationCourante(ligne)!.sourceAt)}
-              </small>}
+              <span class="etat__mobile-label">Où en est-on ?</span>
+              <strong>{statutCandidature(ligne.statut).label}</strong>
+              <small>{ligne.statutFormation || 'Avancement de formation non renseigné'}</small>
+              <a href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>Point de situation complet</a>
             </td>
-            <td class="etat__dernier-contact">
-              <span class="etat__mobile-label">Dernier contact / relance</span>
-              {ligne.dernierContact?.status === 'found' ? (
-                <>
-                  <time datetime={ligne.dernierContact.sentAt}>{dateContactFr(ligne.dernierContact.sentAt!)}</time>
-                  <small>{ligne.dernierContact.via === 'formateur' ? 'Échange avec le formateur' : ligne.dernierContact.via === 'collectif' ? 'Envoi collectif' : 'E-mail à l’établissement'}</small>
-                  <small>{ligne.dernierContact.subject}</small>
-                  {lienDernierContact(ligne.dernierContact, viewerEmail) ? (
-                    <a href={lienDernierContact(ligne.dernierContact, viewerEmail)!} target="_blank" rel="noopener noreferrer">Voir le mail</a>
-                  ) : <small>Message dans la boîte de Charlotte</small>}
-                </>
-              ) : (
-                <span>{ligne.dernierContact?.status === 'ambiguous' ? 'À vérifier : contact partagé entre établissements' : ligne.dernierContact?.status === 'not_found' ? 'Aucun envoi retrouvé' : 'Messagerie non vérifiée'}</span>
-              )}
-              {ligne.dernierContact && <small>Vérifié le {dateContactFr(ligne.dernierContact.checkedAt)}</small>}
-            </td>
-            {ligne.progression.map((cellule, index) => (
-              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, etapeEnVert(ligne, index) && !(index === 8 && ligne.anomaliesDates.length) && 'etat__piece-recue', index === 6 && !ligne.formateurs.length && 'etat__sans-affectation']}>
+            <td><span class="etat__mobile-label">Blocage</span><span>Non renseigné</span></td>
+            <td><span class="etat__mobile-label">Aide nécessaire</span><span>Non renseignée</span></td>
+            <td><span class="etat__mobile-label">Référent</span><span>{ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span></td>
+            <td class:list={[!ligne.formateurs.length && 'etat__sans-affectation']}><span class="etat__mobile-label">Formateur</span><span>{ligne.formateurs.length ? ligne.formateurs.map(f => f.nom).join(' · ') : 'Aucune affectation renseignée'}</span></td>
+            {etapes.map(index => { const cellule = ligne.progression[index]; return (
+              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`]}>
                 <span aria-hidden="true">{index === 7 ? (ligne.suiviVerifie?.organisationRecue ? '✓' : '—') : cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
                 <span class="etat__mobile-label">{colonnes[index]}</span>
-                <small>{index === 6 && ligne.formateurs.length
-                  ? ligne.formateurs.map(formateur => formateur.nom).join(' · ')
-                  : index === 6 ? 'AUCUNE AFFECTATION RENSEIGNÉE'
-                  : index === 7 ? (ligne.suiviVerifie?.organisation || 'Réception du questionnaire non vérifiée')
-                  : index === 8 && ligne.statutFormation?.trim().toLocaleLowerCase('fr') === 'en cours' ? 'Formation en cours'
-                  : index === 8 && ligne.anomaliesDates.length ? 'Calendrier à vérifier — voir le point de situation'
+                <small>{index === 7 ? (ligne.suiviVerifie?.organisationRecue ? 'Formulaire reçu' : 'Réception non vérifiée')
+                  : index === 8 ? (ligne.anomaliesDates.length ? 'Calendrier à vérifier' : ligne.statutFormation || 'Non renseigné')
+                  : index === 9 ? (cellule.etat === 'fait' ? 'Suivi enregistré' : cellule.etat === 'en-cours' ? 'Suivi partiel' : 'Non renseigné')
                   : cellule.texte}</small>
-                {index === 8 && ligne.suiviVerifie?.formationPrecision && <small>{ligne.suiviVerifie.formationPrecision}</small>}
                 {index === 8 && ligne.dateFinFormation && <small>Fin prévue : {dateFormationFr(ligne.dateFinFormation)}</small>}
               </td>
-            ))}
+            )})}
           </tr>
         ))}
       </tbody>
@@ -123,9 +115,38 @@ const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', '
     <p class="etat__legende">Tri par début de formation ; dossiers sans date à la fin. Rouge : aucune affectation renseignée. Appuyez sur Échap pour revenir à la page.</p>
     <div data-suivi-slot></div>
   </dialog>
+  {progressionAffichee.map(ligne => <DetailSuivi ligne={ligne} viewerEmail={viewerEmail} />)}
 </details>
 
 <script>
+  const filter = document.querySelector<HTMLSelectElement>('[data-suivi-filter]')
+  const filterLabel = document.querySelector<HTMLElement>('[data-suivi-filter-label]')
+  if (filter && filterLabel) {
+    filterLabel.hidden = false
+    filter.addEventListener('change', () => {
+      const rows = [...document.querySelectorAll<HTMLElement>('[data-suivi-row]')]
+      rows.forEach(row => { row.hidden = filter.value === 'sans-formateur' ? row.dataset.sansFormateur !== 'true' : filter.value === 'organisation' ? row.dataset.organisation !== 'true' : false })
+      const count = document.querySelector('[data-suivi-count]')
+      if (count) count.textContent = `${rows.filter(row => !row.hidden).length} dossier(s) affiché(s)`
+    })
+  }
+  document.querySelectorAll<HTMLAnchorElement>('[data-detail-open]').forEach(link => {
+    const detail = document.getElementById(link.dataset.detailOpen!) as HTMLDialogElement | null
+    if (!detail || typeof detail.showModal !== 'function') return
+    link.setAttribute('aria-haspopup', 'dialog')
+    link.addEventListener('click', event => {
+      event.preventDefault()
+      const card = document.getElementById(`dossier-${link.dataset.dossierId}`)?.closest('.etat__dossier')
+      const marker = document.createComment('Position de la fiche')
+      if (card) { card.before(marker); detail.querySelector('[data-dossier-slot]')?.append(card) }
+      detail.addEventListener('close', () => {
+        if (card) marker.replaceWith(card)
+        link.focus({ preventScroll: true })
+      }, { once: true })
+      detail.showModal()
+    })
+  })
+  document.querySelectorAll('[data-detail-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog')?.close()))
   const root = document.querySelector<HTMLElement>('.etat__progression')
   const trigger = root?.querySelector<HTMLButtonElement>('[data-suivi-expand]')
   const dialog = root?.querySelector<HTMLDialogElement>('.etat__plein-ecran')

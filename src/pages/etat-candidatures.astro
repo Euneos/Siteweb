@@ -544,6 +544,8 @@ const colonnes = [
   .etat__table-wrap {
     width: 100%;
     min-width: 0;
+    overflow: auto;
+    max-height: 75dvh;
     border: 1px solid color-mix(in srgb, var(--vert) 25%, transparent);
   }
   .etat__table-wrap:focus-visible {
@@ -551,12 +553,13 @@ const colonnes = [
     outline-offset: 3px;
   }
   .etat__table {
-    width: 100%;
+    width: 153rem;
     min-width: 0;
     table-layout: fixed;
-    border-collapse: collapse;
-    font-size: max(0.82rem, calc(var(--t-note) * 0.88));
-    line-height: 1.3;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--t-note);
+    line-height: 1.5;
   }
   .etat__table caption {
     text-align: left;
@@ -566,7 +569,7 @@ const colonnes = [
   }
   .etat__table th,
   .etat__table td {
-    padding: 0.6rem 0.35rem;
+    padding: 1rem .75rem;
     overflow-wrap: anywhere;
     hyphens: auto;
     text-align: left;
@@ -574,20 +577,27 @@ const colonnes = [
     border: 1px solid color-mix(in srgb, var(--vert) 18%, var(--blanc));
   }
   .etat__table thead th {
-    background: #2367b9;
+    background: var(--vert);
     color: var(--blanc);
     text-align: center;
     vertical-align: middle;
     font-weight: 700;
   }
   .etat__table thead .etat__etablissement {
-    background: #223f6d;
+    background: var(--vert);
     text-align: left;
     font-size: 1.08em;
   }
   .etat__table .etat__verification {
     white-space: normal;
   }
+  .etat__table thead { position: sticky; top: 0; z-index: 3; }
+  .etat__table tr > th:first-child { position: sticky; left: 0; z-index: 2; }
+  .etat__table tbody th { background: var(--papier); }
+  .etat__table .etat__nom { min-height: 44px; display: flex; align-items: center; text-decoration: underline; }
+  .etat__table tr[hidden] { display: none; }
+  .etat__filtre-rapide { margin-block: 1rem; font-size: var(--t-note); }
+  .etat__filtre-rapide select { max-width: 100%; padding: .65rem; font: inherit; }
   .etat__mobile-label {
     display: none;
   }
@@ -840,6 +850,7 @@ const colonnes = [
     }
     .etat__table-wrap {
       overflow: visible;
+      max-height: none;
       border: 0;
     }
     .etat__table {
@@ -873,7 +884,8 @@ const colonnes = [
       overflow-wrap: anywhere;
     }
     .etat__table tbody th {
-      background: var(--bleu-clair);
+      background: var(--papier);
+      position: static;
     }
     .etat__table td {
       display: grid;
@@ -881,6 +893,9 @@ const colonnes = [
       text-align: left !important;
       border-top: 1px solid var(--papier);
     }
+    .etat__table td:nth-child(-n+6) { grid-template-columns: minmax(0, 1fr); gap: .3rem; }
+    .etat__table td:nth-child(-n+6) > * { grid-column: 1; }
+    .etat__table tr[hidden] { display: none; }
     .etat__mobile-label {
       display: block;
       font-weight: 600;

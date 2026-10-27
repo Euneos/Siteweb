@@ -1,0 +1,55 @@
+---
+import type { EtatCandidature } from '../lib/etat-candidatures'
+import { pointSituation, situationCourante } from '../lib/point-situation'
+import { dateContactFr, lienDernierContact } from '../lib/dernier-contact'
+const { ligne, viewerEmail } = Astro.props as { ligne: EtatCandidature; viewerEmail: string }
+const titres = ['Candidature reçue', 'Accusé de réception', 'Analyse & décision', 'Candidature acceptée', 'Lettre signée', 'Fiche contact', 'Formateur désigné', 'Organisation', 'Formations & suivi', 'Ateliers & évaluation']
+---
+<dialog class="suivi-detail" id={`suivi-detail-${ligne.id}`} aria-labelledby={`suivi-titre-${ligne.id}`}>
+  <header>
+    <h2 id={`suivi-titre-${ligne.id}`}>{ligne.etablissement} · {ligne.code}</h2>
+    <button type="button" class="iw-button" data-detail-close autofocus>Fermer le détail</button>
+  </header>
+  <section>
+    <h3>Point de situation</h3>
+    <p>{pointSituation(ligne)}</p>
+    <h4>Sources de vérification</h4>
+    {ligne.suiviVerifie ? <>
+      <p>Vérification croisée le {dateContactFr(ligne.suiviVerifie.checkedAt)}</p>
+      <ul>{ligne.suiviVerifie.sources.map(source => <li>{source}</li>)}</ul>
+    </> : situationCourante(ligne) ? <p>
+      {situationCourante(ligne)!.sourceKind === 'echange-interne' ? 'Point interne du ' : 'Mail envoyé le '}
+      {dateContactFr(situationCourante(ligne)!.sourceAt)} · Vérifié le {dateContactFr(situationCourante(ligne)!.checkedAt)}
+    </p> : <p>Point établi à partir des informations enregistrées dans le dossier.</p>}
+  </section>
+  <section>
+    <h3>Dernier contact / relance</h3>
+    {ligne.dernierContact?.status === 'found' ? <>
+      <p><strong>{dateContactFr(ligne.dernierContact.sentAt!)}</strong></p>
+      <p>{ligne.dernierContact.via === 'formateur' ? 'Échange avec le formateur' : ligne.dernierContact.via === 'collectif' ? 'Envoi collectif' : 'E-mail à l’établissement'}</p>
+      <p>{ligne.dernierContact.subject}</p>
+      {lienDernierContact(ligne.dernierContact, viewerEmail) ? <a href={lienDernierContact(ligne.dernierContact, viewerEmail)!} target="_blank" rel="noopener noreferrer">Voir le mail</a> : <p>Message dans la boîte de Charlotte</p>}
+    </> : <p>{ligne.dernierContact?.status === 'ambiguous' ? 'À vérifier : contact partagé entre établissements' : ligne.dernierContact?.status === 'not_found' ? 'Aucun envoi retrouvé' : 'Messagerie non vérifiée'}</p>}
+    {ligne.dernierContact && <p class="etat__legende">Vérifié le {dateContactFr(ligne.dernierContact.checkedAt)}</p>}
+  </section>
+  <section>
+    <h3>Étapes et précisions</h3>
+    <dl>{ligne.progression.map((cellule, index) => <div><dt><strong>{titres[index]}</strong></dt><dd>{cellule.texte}</dd></div>)}</dl>
+    {ligne.suiviVerifie && <p>{ligne.suiviVerifie.organisation}</p>}
+    {ligne.suiviVerifie?.formationPrecision && <p>{ligne.suiviVerifie.formationPrecision}</p>}
+  </section>
+  <div data-dossier-slot></div>
+</dialog>
+
+<style is:global>
+  .suivi-detail { margin: 0 0 0 auto; width: min(48rem, 100%); max-width: 100%; height: 100dvh; max-height: 100dvh; padding: var(--s-int); border: 0; background: var(--papier); color: var(--vert); overflow: auto; overflow-wrap: anywhere; }
+  .suivi-detail::backdrop { background: rgb(0 56 45 / .45); }
+  .suivi-detail header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: start; justify-content: space-between; }
+  .suivi-detail h2 { font-size: var(--t-carte); }
+  .suivi-detail h3 { font-size: var(--t-nav); }
+  .suivi-detail section { margin-block: var(--s-lie); padding-block: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--vert) 20%, transparent); }
+  .suivi-detail p, .suivi-detail li, .suivi-detail dd { margin-block: .5rem; font-size: var(--t-note); }
+  .suivi-detail dd { margin-inline: 0; }
+  .suivi-detail .etat__operation-grid { grid-template-columns: 1fr; }
+  html:has(.suivi-detail[open]) { overflow: hidden; }
+</style>
