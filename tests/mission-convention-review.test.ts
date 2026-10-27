@@ -5,6 +5,20 @@ import {contractText} from '../src/lib/mission-convention-pdf'
 
 const p=()=>parseMissionPayload({nom:'Camille',structure:'Structure',identification:'Identification',adresse:'Adresse',email:'camille@example.test',telephone:'0102030405',frais:'demande',detailsFrais:'Impressions : 39,79 euros',missions:['Collège A','Collège B'].map(etablissement=>({etablissement,adresse:'Adresse',direction:'Direction',referent:'Référent',contact:'Contact',financement:'externe',financeur:'Organisme fictif',volume:18,format:'presentiel',sessions:Array.from({length:6},()=>({date:'2027-01-12',duree:3,modalite:'presentiel'})),cas1:'oui',classe:'5e',ateliers:'Dates à fixer',cas2:'non',periodeCas2:'',accordCas2:''}))})
 describe('récapitulatif de vérification',()=>{
+  test('le tarif année 2 est distinct du cas 2 dans le total et le PDF',()=>{
+    const payload=p()
+    payload.missions=[{...payload.missions[0],financement:'euneos',volume:8,cas1:'non',cas2:'4'}]
+    expect(conventionBudget(payload,150,40,500)).toMatchObject({services:650,total:690,hasYear2:true})
+    const text=contractText(payload,'Responsable — Direction',150,'Déplacement',40,500).join('\n')
+    expect(text).toContain('Formation ateliers — année 2 (8 h) — Collège A : 500 €')
+    expect(text).toContain('Cas 2 : 150 €')
+    expect(text).toContain('TOTAL PRÉVISIONNEL AVEC FRAIS : 690,00 €')
+    const body={representativeName:'Responsable',representativeRole:'Direction',case2Euros:150,year2Euros:500,feesDecision:'aucun'}
+    expect(parseConventionReview(body,payload,true).year2Euros).toBe(500)
+    expect(()=>parseConventionReview({...body,year2Euros:-1},payload,true)).toThrow()
+    expect(()=>parseConventionReview({...body,year2Euros:500.001},payload,true)).toThrow()
+    expect(()=>parseConventionReview(body,p(),true)).toThrow()
+  })
   test('les frais sont une proposition, sans décision implicite ni interprétation des barèmes',()=>{
     expect(proposedFeesAmount('Impressions : 39,79 euros')).toBe(39.79)
     expect(proposedFeesAmount('Plafond : 1 200,50 €')).toBe(1200.5)

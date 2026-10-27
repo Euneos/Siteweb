@@ -24,7 +24,7 @@ const lines = (text: string) => text.replace(/\r/g, '').split('\n').map(s => s.t
 
 /** The source clauses are copied verbatim apart from blank template tables,
  * the old email exchange and the optional school visa (not a contracting party). */
-export function contractText(input: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé', feesEuros?: number) {
+export function contractText(input: MissionPayload, representative: string, case2Euros: number, fees: string = 'Aucun frais complémentaire autorisé', feesEuros?: number, year2Euros?: number | null) {
   const data = { ...input, missions: input.missions.map(m => ({ ...m, etablissement: `${m.etablissement}${m.groupe ? ` — ${m.groupe}` : ''}` })) }
   const countCase1 = data.missions.filter(m => m.cas1 === 'oui').length
   const external = data.missions.filter(m => m.financement === 'externe')
@@ -32,8 +32,9 @@ export function contractText(input: MissionPayload, representative: string, case
   const year2 = data.missions.filter(m => m.financement !== 'externe' && m.volume === 8).length
   const customVolume = year2 > 0 || external.length > 0
   const fundingLines = external.map(m => `${m.etablissement} — Formation de ${m.volume} h financée par ${m.financeur} : 0 € à la charge d’EUNEOS pour cette formation. Les ateliers élèves, interventions complémentaires et frais autorisés restent distincts.`)
-  const extraLabel = year2 ? 'Cas 2 et parcours ateliers jeunes année 2 de 8 h' : 'Cas 2'
-  const total = fullTraining * 1000 + countCase1 * 200 + case2Euros
+  const extraLabel = year2 && year2Euros == null ? 'Cas 2 et parcours ateliers jeunes année 2 de 8 h' : 'Cas 2'
+  const year2Line = year2 && year2Euros != null ? `Formation ateliers — année 2 (8 h) — ${data.missions.filter(m => m.volume === 8 && m.financement !== 'externe').map(m => m.etablissement).join(', ')} : ${year2Euros} € validés par EUNEOS.` : ''
+  const total = fullTraining * 1000 + countCase1 * 200 + case2Euros + (year2Euros ?? 0)
   const schools = data.missions.map(m => m.etablissement).join(', ')
   const dates = [...new Set(data.missions.flatMap(m => m.sessions.map(s => s.date)))].sort()
   const trainingDates = dates.join(', ')
@@ -68,6 +69,7 @@ export function contractText(input: MissionPayload, representative: string, case
     ...[8, 9].flatMap(n => lines(article(n))),
     before(article(10), 'Formation WISE-UP 16 h'),
     ...fundingLines,
+    year2Line,
     `${fullTraining} formation(s) × 1 000 € = ${fullTraining * 1000} €. Cas 1 : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} : ${case2Euros} € validés par EUNEOS. TOTAL PRÉVISIONNEL : ${total} € hors frais autorisés.`,
     before(article(11), 'Frais remboursables autorisés'),
     `Frais remboursables autorisés par EUNEOS : ${fees}.`,
@@ -79,6 +81,7 @@ export function contractText(input: MissionPayload, representative: string, case
     ...fundingLines,
     ...data.missions.map(m => `${m.etablissement} — Référent : ${m.referent} ; contact : ${m.contact}. Format : ${m.sessions.filter(s => s.modalite === 'presentiel').reduce((sum, s) => sum + s.duree, 0)} h en présentiel + ${m.sessions.filter(s => s.modalite === 'distance').reduce((sum, s) => sum + s.duree, 0)} h à distance. Cas 1 : ${m.cas1 === 'oui' ? `oui, classe ${m.classe}, ateliers 4 h : ${m.ateliers}` : 'non'}. Cas 2 : ${m.cas2 === 'non' ? 'non' : `${m.cas2} h, période ${m.periodeCas2}, autorisation ${m.accordCas2}`}.`),
     `Période des séances : du ${dates[0]} au ${dates.at(-1)}.`,
+    year2Line,
     `Montant formation(s) : ${fullTraining} × 1 000 € = ${fullTraining * 1000} €. Cas 1 — atelier(s) 4 h : ${countCase1} × 200 € = ${countCase1 * 200} €. ${extraLabel} — formation aux ateliers : ${case2Euros} € validés par EUNEOS.`,
     `Frais autorisés : ${fees}. Total prévisionnel : ${total} € hors frais autorisés.`,
     ...(feesEuros !== undefined ? [`Frais autorisés chiffrés : ${feesEuros.toFixed(2).replace('.',',')} €. TOTAL PRÉVISIONNEL AVEC FRAIS : ${(total + feesEuros).toFixed(2).replace('.',',')} €.`] : []),
@@ -93,7 +96,7 @@ export function contractText(input: MissionPayload, representative: string, case
     : text)
 }
 
-export async function generateContractPdf(data: MissionPayload, representative: string, case2Euros: number, fontBytes: ArrayBuffer | Uint8Array, fees?: string, feesEuros?: number) {
+export async function generateContractPdf(data: MissionPayload, representative: string, case2Euros: number, fontBytes: ArrayBuffer | Uint8Array, fees?: string, feesEuros?: number, year2Euros?: number | null) {
   const document = await PDFDocument.create()
   document.registerFontkit(fontkit)
   const font = await document.embedFont(fontBytes, { subset: true })
@@ -131,7 +134,7 @@ export async function generateContractPdf(data: MissionPayload, representative: 
     if (line) result.push(line)
     return result
   }
-  const blocks = contractText(data, representative, case2Euros, fees, feesEuros)
+  const blocks = contractText(data, representative, case2Euros, fees, feesEuros, year2Euros)
     .flatMap(text => text.split(/\n+/))
     .map(text => text.trim())
     .filter(Boolean)

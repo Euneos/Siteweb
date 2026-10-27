@@ -167,6 +167,21 @@ try {
   await expect(page.locator('#cm-state')).toContainText('Ancien brouillon rattaché')
   assert.equal(sql.query('SELECT submitted_id FROM mission_convention_drafts WHERE id=?').get(oldDraft).submitted_id,id)
   assert.equal(sql.query('SELECT state FROM mission_conventions WHERE id=?').get(id).state,'submitted')
+  received.missions[0]={...received.missions[0],financement:'euneos',volume:8,cas1:'non',sessions:[{date:'2027-01-12',duree:8,modalite:'presentiel'}]}
+  sql.query("UPDATE mission_conventions SET state='changes_requested',payload=? WHERE id=?").run(JSON.stringify(received),id)
+  await page.reload()
+  await panel.locator(`#year2-${id}`).fill('500')
+  await expect(panel.getByRole('button',{name:'Valider et générer le PDF',exact:true})).toHaveCount(0)
+  await panel.getByRole('button',{name:'Enregistrer la vérification',exact:true}).click()
+  await expect(page.locator('#cm-state')).toContainText('Vérification enregistrée et relue')
+  await page.reload()
+  await expect(panel.locator(`#year2-${id}`)).toHaveValue('500')
+  assert.equal(sql.query('SELECT year2_euros FROM mission_conventions WHERE id=?').get(id).year2_euros,500)
+  for (const width of [390,860,861,1440]) {
+    await page.setViewportSize({width,height:900})
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth+1),true)
+    if (output && width===390) await panel.screenshot({path:`${output}/tarif-annee2-390.png`})
+  }
   // Les PDF disponibles ont aussi un accès direct dans l'index, selon l'étape.
   sql.query("UPDATE mission_conventions SET state='approved' WHERE id=?").run(id)
   await page.reload()

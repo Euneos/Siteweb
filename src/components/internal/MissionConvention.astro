@@ -118,7 +118,7 @@ const schoolFields = [
   import { conventionBudget, proposedFeesAmount } from '../../lib/mission-convention-review'
   type Mission = import('../../lib/mission-convention').Mission
   type Payload = import('../../lib/mission-convention').MissionPayload
-  type Listed = { id: string; owner_email: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; fees_decision: string; fees_details: string; fees_euros?: number | null; reviewed_by: string; created_at: string; updated_at: string }
+  type Listed = { id: string; owner_email: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; year2_euros?: number | null; fees_decision: string; fees_details: string; fees_euros?: number | null; reviewed_by: string; created_at: string; updated_at: string }
   const form = document.querySelector<HTMLFormElement>('#cm-form')!
   const schools = document.querySelector<HTMLDivElement>('#cm-schools')!
   const template = document.querySelector<HTMLTemplateElement>('#cm-school-template')!
@@ -516,13 +516,19 @@ const schoolFields = [
       const fees = document.createElement('p')
       const euro = (amount: number) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(amount)
       const approved = ['approved','trainer_signed','complete'].includes(record.state)
-      const budget = conventionBudget(record.payload,record.case2_euros,record.fees_decision === 'accord' ? record.fees_euros ?? 0 : 0)
+      const budget = conventionBudget(record.payload,record.case2_euros,record.fees_decision === 'accord' ? record.fees_euros ?? 0 : 0,record.year2_euros)
       fees.textContent = `Frais proposés : ${record.payload.frais} — ${record.payload.detailsFrais || 'aucun détail'}. ${approved ? 'Décision EUNEOS' : 'Décision préparée (non validée)'} : ${record.fees_decision === 'accord' ? `${record.fees_details}${record.fees_euros != null ? ` — ${euro(record.fees_euros)}` : ' — montant non chiffré'}` : record.fees_decision === 'aucun' ? 'aucun frais autorisé' : 'à décider'}.`
       details.append(fees)
       panel.append(details)
       const summaryBudget = document.createElement('p')
       summaryBudget.textContent = `${approved ? 'Prestations validées' : 'Prestations à vérifier'} : formations ${euro(budget.trainingEuros)} + ${budget.workshops} forfait(s) ateliers élèves ${euro(budget.workshopEuros)}${budget.hasComplement ? ` + compléments ${euro(record.case2_euros)}` : ''} = ${euro(budget.services)} hors frais.`
       panel.append(summaryBudget)
+      if (budget.hasYear2) {
+        const year2Summary = document.createElement('p')
+        year2Summary.textContent = `Formation ateliers — année 2 (8 h) : ${record.year2_euros == null ? 'tarif distinct à renseigner' : euro(record.year2_euros)}. Établissement(s) : ${record.payload.missions.filter(m => m.volume === 8 && m.financement !== 'externe').map(m => m.etablissement).join(', ')}.`
+        panel.append(year2Summary)
+        if (record.year2_euros != null) summaryBudget.textContent += ` Dont formation ateliers année 2 : ${euro(record.year2_euros)}.`
+      }
       if (approved && record.fees_euros != null) {
         const total = document.createElement('p'); total.textContent = `Total prévisionnel validé, frais inclus : ${euro(budget.total)}.`; panel.append(total)
       }
@@ -533,7 +539,7 @@ const schoolFields = [
       if (record.state === 'complete') panel.append(link(record.id, 'complete', 'Télécharger l’exemplaire contresigné'))
       if (data.team && record.state === 'trainer_signed') panel.append(link(record.id, 'trainer_signed', 'Vérifier le PDF signé'))
       if (data.admin && record.state === 'trainer_signed') panel.append(button('Déposer la convention contresignée', () => upload(record.id, 'complete')))
-      if (data.admin && record.state === 'submitted') {
+      if (data.admin && ['submitted','changes_requested'].includes(record.state)) {
         const savedRep = record.representative.split(' — ')
         const repName = document.createElement('input'); repName.id = `rep-name-${record.id}`; repName.maxLength = 90; repName.value = savedRep[0] || 'Candice Marro'
         const repNameLabel = document.createElement('label'); repNameLabel.className = 'iw-field'; repNameLabel.htmlFor = repName.id; repNameLabel.textContent = 'EUNEOS — Nom de la personne signataire (à confirmer)'; repNameLabel.append(repName)
@@ -541,6 +547,8 @@ const schoolFields = [
         const repRoleLabel = document.createElement('label'); repRoleLabel.className = 'iw-field'; repRoleLabel.htmlFor = repRole.id; repRoleLabel.textContent = 'EUNEOS — Fonction de la personne signataire (à confirmer)'; repRoleLabel.append(repRole)
         const amount = document.createElement('input'); amount.id = `amount-${record.id}`; amount.type = 'number'; amount.min = '0'; amount.max = '100000'; amount.step = '0.01'; amount.value = String(record.case2_euros)
         const amountLabel = document.createElement('label'); amountLabel.className = 'iw-field'; amountLabel.htmlFor = amount.id; amountLabel.textContent = 'Complément à chiffrer uniquement : cas 2 et parcours de 8 h (€ ; hors ateliers élèves et frais)'; amountLabel.append(amount); amountLabel.hidden = !budget.hasComplement
+        const year2 = document.createElement('input'); year2.id = `year2-${record.id}`; year2.type = 'number'; year2.min = '0'; year2.max = '100000'; year2.step = '0.01'; year2.value = record.year2_euros == null ? '' : String(record.year2_euros)
+        const year2Label = document.createElement('label'); year2Label.className = 'iw-field'; year2Label.htmlFor = year2.id; year2Label.textContent = 'Tarif formation ateliers — année 2 (8 h), en € — hors cas 2 et frais'; year2Label.append(year2); year2Label.hidden = !budget.hasYear2
         const requested = document.createElement('p'); requested.textContent = `Demande de frais reçue : ${record.payload.detailsFrais || 'Aucun détail renseigné'}. Le texte et l’éventuel montant ci-dessous sont repris comme proposition, à confirmer.`
         const feesChoice = document.createElement('select'); feesChoice.id = `fees-${record.id}`
         for (const [value, label] of [['', 'Choisir la décision'], ['aucun', 'Aucun frais complémentaire autorisé'], ['accord', 'Frais autorisés par EUNEOS']]) {
@@ -557,27 +565,28 @@ const schoolFields = [
         const reviewTotal = document.createElement('output'); reviewTotal.className = 'cm-review-total'; reviewTotal.setAttribute('aria-live','polite')
         const refreshReview = () => {
           const included = feesChoice.value === 'accord' && feesAmount.value !== '' ? Number(feesAmount.value) : 0
-          const b = conventionBudget(record.payload,Number(amount.value),included)
+          const b = conventionBudget(record.payload,Number(amount.value),included,year2.value === '' ? null : Number(year2.value))
+          amountLabel.firstChild!.textContent = year2.value === '' ? 'Complément : cas 2 et ancien tarif de 8 h regroupés (€)' : 'Complément cas 2 uniquement (€ ; hors formation année 2 et frais)'
           reviewTotal.textContent = `Total préparé : prestations ${euro(b.services)}${feesChoice.value === 'accord' ? ` + frais ${feesAmount.value === '' ? 'à chiffrer' : euro(included)}` : ' ; frais non inclus'} = ${euro(b.total)}${feesChoice.value === '' ? ' — décision sur les frais à compléter' : ''}. La validation finale intervient avec le PDF.`
         }
-        for (const input of [amount,feesAmount]) input.addEventListener('input',refreshReview)
+        for (const input of [amount,feesAmount,year2]) input.addEventListener('input',refreshReview)
         feesChoice.addEventListener('change',refreshReview); refreshReview()
         const check = document.createElement('input'); check.type = 'checkbox'; check.id = `review-${record.id}`
         const label = document.createElement('label'); label.className = 'cm-review-confirm'; label.htmlFor = check.id; label.textContent = 'J’ai vérifié le référencement du formateur, les établissements, les missions, les montants et les frais autorisés.'; label.prepend(check)
-        panel.append(repNameLabel, repRoleLabel, amountLabel, requested, feesLabel, feesDetailsLabel, feesAmountLabel, reviewTotal, label)
-        const reviewBody = () => ({id:record.id,expectedUpdatedAt:record.updated_at,representativeName:repName.value,representativeRole:repRole.value,case2Euros:Number(amount.value),feesDecision:feesChoice.value,feesDetails:feesDetails.value,feesEuros:feesAmount.value === '' ? null : Number(feesAmount.value),confirmed:check.checked})
+        panel.append(repNameLabel, repRoleLabel, year2Label, amountLabel, requested, feesLabel, feesDetailsLabel, feesAmountLabel, reviewTotal, label)
+        const reviewBody = () => ({id:record.id,expectedUpdatedAt:record.updated_at,representativeName:repName.value,representativeRole:repRole.value,case2Euros:Number(amount.value),year2Euros:year2.value === '' ? null : Number(year2.value),feesDecision:feesChoice.value,feesDetails:feesDetails.value,feesEuros:feesAmount.value === '' ? null : Number(feesAmount.value),confirmed:check.checked})
         panel.append(button('Enregistrer la vérification', async () => {
           try { await send({action:'save-review',...reviewBody()}); await reload(); message('Vérification enregistrée et relue. Les décisions et montants sont conservés ; le PDF reste à valider.') }
           catch (error) { message(error instanceof Error ? error.message : 'Enregistrement non confirmé. Rechargez la page.') }
         }))
-        panel.append(button('Valider et générer le PDF', async () => {
+        if (record.state === 'submitted') panel.append(button('Valider et générer le PDF', async () => {
           try {
             message('Génération et validation en cours…')
             await send({ action: 'approve', ...reviewBody() })
             await reload(); message('PDF validé et enregistré. Le formateur peut le télécharger.')
           } catch (error) { message(error instanceof Error ? error.message : 'Validation incertaine. Rechargez la page.') }
         }))
-        panel.append(button('Demander une correction', async () => {
+        if (record.state === 'submitted') panel.append(button('Demander une correction', async () => {
           const note = prompt('Quelles corrections le formateur doit-il apporter ?')
           if (!note) return
           try { await send({ action: 'changes', id: record.id, note }); await reload(); message('Demande de correction enregistrée. Prévenez le formateur : aucun e-mail automatique n’est envoyé.') }

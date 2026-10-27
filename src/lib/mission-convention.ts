@@ -16,6 +16,7 @@ export type ConventionRow = {
   id: string; owner_email: string; state: 'submitted' | 'changes_requested' | 'approved' | 'trainer_signed' | 'complete'
   payload: string; case2_euros: number; fees_decision: string; fees_details: string; fees_euros?: number | null; representative: string; reviewed_by: string; review_note: string
   created_at: string; updated_at: string
+  year2_euros?: number | null
 }
 const fail = (message: string): never => { throw new WorkspaceError(400, message) }
 const field = (value: unknown, max: number, required = true) =>
@@ -128,10 +129,14 @@ export async function submitConvention(db: WorkspaceDatabase, identity: Workspac
       .bind(newId, identity.email, 'submitted', JSON.stringify(parsed)).run()
     return getConvention(db, newId, identity, false)
   }
-  const result = await db.prepare(`UPDATE mission_conventions SET payload=?,state='submitted',review_note='',
+  const previous = await db.prepare("SELECT * FROM mission_conventions WHERE id=? AND owner_email=? AND state='changes_requested'").bind(id,identity.email).first<ConventionRow>()
+  if (!previous) throw new WorkspaceError(409, 'Cette convention n’est plus modifiable. Rechargez la page.')
+  const year2Key = (p: MissionPayload) => JSON.stringify(p.missions.filter(m => m.volume === 8 && m.financement !== 'externe').map(m => [m.etablissement,m.groupe || '']).sort())
+  const year2Euros = year2Key(normalizeStoredPayload(previous.payload)) === year2Key(parsed) ? previous.year2_euros ?? null : null
+  const result = await db.prepare(`UPDATE mission_conventions SET payload=?,year2_euros=?,state='submitted',review_note='',
     representative='',case2_euros=0,fees_decision='',fees_details='',fees_euros=NULL,reviewed_by='',updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-    WHERE id=? AND owner_email=? AND state='changes_requested'`)
-    .bind(JSON.stringify(parsed), id, identity.email).run()
+    WHERE id=? AND owner_email=? AND state='changes_requested' AND updated_at=?`)
+    .bind(JSON.stringify(parsed), year2Euros, id, identity.email, previous.updated_at).run()
   // D1/Bun may count the notification trigger's write in meta.changes too.
   if (result.meta.changes < 1) throw new WorkspaceError(409, 'Cette convention n’est plus modifiable. Rechargez la page.')
   return getConvention(db, id, identity, false)

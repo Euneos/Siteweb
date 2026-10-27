@@ -108,31 +108,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     if (action === 'approve' || action === 'save-review') {
       const row = await getConvention(ctx.db, id, ctx.identity, true)
-      if (row.state !== 'submitted') throw new WorkspaceError(409, 'La convention a changé. Rechargez la page.')
+      if (row.state !== 'submitted' && !(action === 'save-review' && row.state === 'changes_requested')) throw new WorkspaceError(409, 'La convention a changé. Rechargez la page.')
       const payload = normalizeStoredPayload(row.payload)
       if (action === 'approve' && body.confirmed !== true) throw new WorkspaceError(400, 'Vérifiez les missions et accords préalables avant validation.')
-      const {representative,case2Euros:euros,feesDecision,feesDetails,feesEuros} = parseConventionReview(body,payload,action === 'approve')
+      const {representative,case2Euros:euros,year2Euros,feesDecision,feesDetails,feesEuros} = parseConventionReview({...body,year2Euros:body.year2Euros === undefined ? row.year2_euros : body.year2Euros},payload,action === 'approve')
       if (body.expectedUpdatedAt !== row.updated_at) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page pour retrouver les dernières décisions.')
       if (action === 'save-review') {
-        const result = await ctx.db.prepare(`UPDATE mission_conventions SET representative=?,case2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-          WHERE id=? AND state='submitted' AND updated_at=?`)
-          .bind(representative,euros,feesDecision,feesDetails,feesEuros,ctx.identity.email,id,row.updated_at).run()
+        const result = await ctx.db.prepare(`UPDATE mission_conventions SET representative=?,case2_euros=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE id=? AND state=? AND updated_at=?`)
+          .bind(representative,euros,year2Euros,feesDecision,feesDetails,feesEuros,ctx.identity.email,id,row.state,row.updated_at).run()
         if (result.meta.changes !== 1) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page.')
         const saved = await getConvention(ctx.db,id,ctx.identity,true)
-        if (saved.representative !== representative || saved.case2_euros !== euros || saved.fees_decision !== feesDecision || saved.fees_details !== feesDetails || saved.fees_euros !== feesEuros)
+        if (saved.representative !== representative || saved.case2_euros !== euros || saved.year2_euros !== year2Euros || saved.fees_decision !== feesDecision || saved.fees_details !== feesDetails || saved.fees_euros !== feesEuros)
           throw new WorkspaceError(503, 'Enregistrement de la vérification non confirmé. Rechargez la page.')
         return privateJson({id,state:saved.state,updated_at:saved.updated_at})
       }
       const fees = feesDecision === 'accord' ? feesDetails : 'aucun'
       const fontResponse = await fetch(new URL('/fonts/OpenSans-convention.ttf', request.url))
       if (!fontResponse.ok) throw new WorkspaceError(503, 'Police PDF indisponible. Réessayez plus tard.')
-      const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees, feesDecision === 'accord' ? feesEuros! : 0)
+      const pdf = await generateContractPdf(payload, representative, euros, await fontResponse.arrayBuffer(), fees, feesDecision === 'accord' ? feesEuros! : 0, year2Euros)
       if (pdf.byteLength > 750_000) throw new WorkspaceError(413, 'PDF trop volumineux pour cet espace.')
       const digest = await hash(pdf)
       const results = await ctx.db.batch([
-        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',representative=?,case2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,
+        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',representative=?,case2_euros=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,
           updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND state='submitted' AND updated_at=?`)
-          .bind(representative, euros, feesDecision, feesDetails, feesDecision === 'accord' ? feesEuros : 0, ctx.identity.email, id, row.updated_at),
+          .bind(representative, euros, year2Euros, feesDecision, feesDetails, feesDecision === 'accord' ? feesEuros : 0, ctx.identity.email, id, row.updated_at),
         ctx.db.prepare(`INSERT INTO mission_convention_files(convention_id,kind,pdf,sha256,uploaded_by)
           SELECT id,'approved',?,?,? FROM mission_conventions WHERE id=? AND state='approved'`)
           .bind(pdf, digest, ctx.identity.email, id),

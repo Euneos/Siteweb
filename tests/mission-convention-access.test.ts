@@ -34,6 +34,7 @@ function fixture() {
   sql.exec(readFileSync('migrations/interne/0009_conventions_mission.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0013_mission_convention_notifications.sql','utf8'))
+  sql.exec(readFileSync('migrations/interne/0014_mission_convention_year2.sql','utf8'))
   const db = {
     batch: async (statements: {execute:()=>unknown}[]) => sql.transaction(()=>statements.map(s=>s.execute()))(),
     prepare: (query: string) => ({bind:(...args: unknown[]) => ({
@@ -54,6 +55,26 @@ function fixture() {
 }
 
 describe('convention et audience Ressources', () => {
+  test('500 euros préparés pendant les corrections, conservés seulement pour la même mission année 2', async () => {
+    const {sql,locals,request}=fixture()
+    const url='/api/interne/conventions-mission', trainer='formateur@example.test'
+    const p={...payload(),missions:[{...payload().missions[0],volume:8,sessions:[{date:'2027-01-12',duree:8,modalite:'presentiel'}]}]}
+    const post=async (body:object,email='manager@example.test') => conventionPost({request:await request(url,'team',email,body),locals} as never)
+    const {id}=await (await post({action:'submit',ownerEmail:trainer,payload:p})).json()
+    expect((await post({action:'changes',id,note:'Préciser les coordonnées'})).status).toBe(200)
+    const updated=sql.query('SELECT updated_at FROM mission_conventions WHERE id=?').get(id) as {updated_at:string}
+    const review={id,expectedUpdatedAt:updated.updated_at,representativeName:'Responsable',representativeRole:'Direction',case2Euros:0,year2Euros:500,feesDecision:'',feesDetails:''}
+    expect((await post({action:'save-review',...review},'collegue@example.test')).status).toBe(403)
+    expect((await post({action:'save-review',...review})).status).toBe(200)
+    expect(sql.query('SELECT state,year2_euros FROM mission_conventions WHERE id=?').get(id)).toEqual({state:'changes_requested',year2_euros:500})
+    expect((await post({action:'approve',...review,confirmed:true})).status).toBe(409)
+    expect((await post({action:'submit',id,ownerEmail:trainer,payload:p})).status).toBe(200)
+    expect(sql.query('SELECT state,year2_euros FROM mission_conventions WHERE id=?').get(id)).toEqual({state:'submitted',year2_euros:500})
+    await post({action:'changes',id,note:'Changer la mission'})
+    expect((await post({action:'submit',id,ownerEmail:trainer,payload:{...p,missions:[{...p.missions[0],etablissement:'Autre établissement'}]}})).status).toBe(200)
+    expect(sql.query('SELECT year2_euros FROM mission_conventions WHERE id=?').get(id)).toEqual({year2_euros:null})
+    sql.close()
+  })
   test('vérification conservée avec centimes et total ateliers ; rattachement privé sans effacement', async () => {
     const {sql,locals,request} = fixture()
     const teamUrl='/api/interne/conventions-mission'

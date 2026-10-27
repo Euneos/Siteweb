@@ -167,6 +167,15 @@ l'aperçu ; suivre les reçus D1 du SHA publié et vérifier le rendu réel.
 
 ### Reprendre le même dossier et retrouver les PDF — 27 octobre 2026
 
+Le tarif de formation aux ateliers année 2 (8 h) dispose désormais du champ
+`year2_euros` (migration 0014), séparé du complément cas 2. NULL conserve la
+lecture historique des montants regroupés ; aucun ancien montant n'est réparti
+automatiquement. La direction peut préparer les tarifs pendant une demande de
+correction, mais le PDF ne peut être validé qu'après resoumission. Le tarif année 2
+est conservé à la resoumission si les établissements/groupes de 8 h financés par
+EUNEOS sont identiques, sinon il est remis à renseigner. Les anciens PDF restent
+figés ; les nouveaux indiquent ce tarif et les établissements dans le récapitulatif.
+
 La page commence par un index recherchable par nom, compte et établissement, avec
 filtre d'étape, accès à la vérification et téléchargement des PDF disponibles.
 « Reçue » ne signifie pas « PDF généré » : les soumissions en attente l'indiquent
