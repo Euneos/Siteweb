@@ -4,6 +4,7 @@ import InternalLayout from '../../layouts/InternalLayout.astro'
 import MissionConvention from '../../components/internal/MissionConvention.astro'
 import AgendaFormateurs from '../../components/internal/AgendaFormateurs.astro'
 import FichesFormateurs from '../../components/internal/FichesFormateurs.astro'
+import CarteReseau from '../../components/internal/CarteReseau.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
@@ -36,6 +37,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       <a class="iw-button" href="#fiches-pratiques">Fiches pratiques</a>
       <a class="iw-button" href="#etudes-publications">Études et publications</a>
       <a class="iw-button" href="#agenda">Agenda</a>
+      <a class="iw-button" href="#carte-reseau">Carte du réseau</a>
     </nav>
     <div class="resource-sections">
       <section class="iw-panel resource-fiches" id="fiches-pratiques" aria-labelledby="fiches-title">
@@ -114,10 +116,9 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
           <noscript>Activez JavaScript pour accéder à l’étude européenne.</noscript>
         </div>
       </section>
-      <section class="iw-panel" aria-labelledby="reseau-title">
+      <section class="iw-panel resource-network-panel" id="carte-reseau" aria-labelledby="reseau-title">
         <h2 id="reseau-title">Carte du réseau</h2>
-        <p>Repérer les établissements et les formateurs par territoire.</p>
-        <p class="iw-muted">Accès à la carte à compléter.</p>
+        <CarteReseau />
       </section>
       <section class="iw-panel" aria-labelledby="entraide-title">
         <h2 id="entraide-title">Partager et trouver de l’aide</h2>
@@ -246,5 +247,6 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
     }
+    .resource-network-panel { grid-column: 1 / -1; }
   }
 </style>
