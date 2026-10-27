@@ -28,12 +28,13 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
     y compris les envois collectifs et les échanges avec les formateurs concernant le dossier.
     La date de vérification indique la dernière consultation de la messagerie, sans synchronisation automatique.
     « Voir le mail » ouvre le webmail de Charlotte ; un message déplacé peut nécessiter une nouvelle recherche.
-    Blocage et aide nécessaire : non renseignés séparément dans le suivi actuel ; consultez le point de situation complet.
+    Blocage et aide nécessaire : synthèse et actions proposées à partir du point de situation daté, sans nouvelle vérification des échanges. « Aucun blocage mentionné » ne signifie pas que tout est réglé. Une synthèse est à refaire lorsque son point de situation change.
   </p></details>
   <label class="etat__filtre-rapide" hidden data-suivi-filter-label>
     Repérer les dossiers
     <select data-suivi-filter>
       <option value="tous">Tous les dossiers</option>
+      <option value="aide">Avec une aide proposée</option>
       <option value="sans-formateur">Sans affectation renseignée</option>
       <option value="organisation">Réception du formulaire à vérifier</option>
     </select>
@@ -46,8 +47,8 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
       <colgroup>
         <col style="width:14rem" />
         <col style="width:14rem" />
-        <col style="width:11rem" />
-        <col style="width:11rem" />
+        <col style="width:13rem" />
+        <col style="width:17rem" />
         <col style="width:11rem" />
         <col style="width:12rem" />
         {etapes.map(() => <col style="width:10rem" />)}
@@ -69,7 +70,7 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
       <tbody>
         {progressionAffichee.length === 0 && <tr><td colspan="14">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
-          <tr data-suivi-row data-sans-formateur={!ligne.formateurs.length} data-organisation={!ligne.suiviVerifie?.organisationRecue} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
+          <tr data-suivi-row data-aide={!!ligne.aideDeduite?.actionProposee} data-sans-formateur={!ligne.formateurs.length} data-organisation={!ligne.suiviVerifie?.organisationRecue} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
               <a class="etat__nom" href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>{ligne.etablissement}</a>
               <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
@@ -86,8 +87,12 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
               <small>{ligne.statutFormation || 'Avancement de formation non renseigné'}</small>
               <a href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>Point de situation complet</a>
             </td>
-            <td><span class="etat__mobile-label">Blocage</span><span>Non renseigné</span></td>
-            <td><span class="etat__mobile-label">Aide nécessaire</span><span>Non renseignée</span></td>
+            <td><span class="etat__mobile-label">Blocage</span><span>{ligne.aideDeduite?.blocage || 'À analyser à partir du point de situation'}</span>
+              {ligne.aideDeduite && <small>Synthèse du point daté du {dateContactFr(ligne.aideDeduite.sourceCheckedAt)}</small>}
+            </td>
+            <td><span class="etat__mobile-label">Aide nécessaire</span><span>{ligne.aideDeduite?.aide || 'À préciser'}</span>
+              {ligne.aideDeduite?.actionProposee && <small>Action proposée · à confirmer</small>}
+            </td>
             <td><span class="etat__mobile-label">Référent</span><span>{ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span></td>
             <td class:list={[!ligne.formateurs.length && 'etat__sans-affectation']}><span class="etat__mobile-label">Formateur</span><span>{ligne.formateurs.length ? ligne.formateurs.map(f => f.nom).join(' · ') : 'Aucune affectation renseignée'}</span></td>
             {etapes.map(index => { const cellule = ligne.progression[index]; return (
@@ -125,7 +130,7 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
     filterLabel.hidden = false
     filter.addEventListener('change', () => {
       const rows = [...document.querySelectorAll<HTMLElement>('[data-suivi-row]')]
-      rows.forEach(row => { row.hidden = filter.value === 'sans-formateur' ? row.dataset.sansFormateur !== 'true' : filter.value === 'organisation' ? row.dataset.organisation !== 'true' : false })
+      rows.forEach(row => { row.hidden = filter.value === 'aide' ? row.dataset.aide !== 'true' : filter.value === 'sans-formateur' ? row.dataset.sansFormateur !== 'true' : filter.value === 'organisation' ? row.dataset.organisation !== 'true' : false })
       const count = document.querySelector('[data-suivi-count]')
       if (count) count.textContent = `${rows.filter(row => !row.hidden).length} dossier(s) affiché(s)`
     })

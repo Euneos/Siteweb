@@ -26,6 +26,11 @@ tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_SUIVI_VERIFIE_V1]\n' + JSON.string
   formationPrecision: 'Période indicative de démonstration.',
   sources: ['Formulaire et mail de démonstration du 21/09/2026'],
 }) + '\n[/EUNEOS_SUIVI_VERIFIE_V1]'
+tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_AIDE_V1]\n' + JSON.stringify({
+  version: 1, nature: 'deduction', analysedAt: '2026-09-22T13:00:00.000Z',
+  sourceCheckedAt: '2026-09-22T12:00:00.000Z', sourceSituation: 'Calendrier vérifié dans les échanges de démonstration.',
+  blocage: 'Aucun blocage mentionné.', aide: 'Aucune aide spécifique déductible de ce point.', actionProposee: false,
+}) + '\n[/EUNEOS_AIDE_V1]'
 tables.mbunbu0f1zztce4[0].notes += '\n[EUNEOS_LAST_CONTACT_V1]\n' + JSON.stringify({
   version: 1, account: 'charlotte@euneos.fr', checkedAt: '2026-09-22T12:00:00.000Z', status: 'found',
   sentAt: '2026-09-21T10:00:00.000Z', subject: 'Relance de démonstration',
@@ -298,6 +303,11 @@ try {
     assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 1)
     await tab.locator('[data-suivi-filter]').selectOption('organisation')
     assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 1)
+    await tab.locator('[data-suivi-filter]').selectOption('tous')
+    assert(await tab.locator('.etat__table').getByText('Aucun blocage mentionné.', { exact: true }).isVisible())
+    await tab.locator('[data-suivi-filter]').selectOption('aide')
+    assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 0, 'Une absence de blocage ne devient pas une aide à apporter')
+    assert(await tab.locator('[data-suivi-count]').getByText('0 dossier(s) affiché(s)', { exact: true }).isVisible())
     await tab.locator('[data-suivi-filter]').selectOption('tous')
     await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
     assert(await tab.getByRole('dialog').isVisible())

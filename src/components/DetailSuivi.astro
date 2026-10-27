@@ -33,6 +33,14 @@ const titres = ['Candidature reçue', 'Accusé de réception', 'Analyse & décis
     {ligne.dernierContact && <p class="etat__legende">Vérifié le {dateContactFr(ligne.dernierContact.checkedAt)}</p>}
   </section>
   <section>
+    <h3>Blocage et aide nécessaire</h3>
+    {ligne.aideDeduite ? <>
+      <p><strong>Blocage :</strong> {ligne.aideDeduite.blocage}</p>
+      <p><strong>{ligne.aideDeduite.actionProposee ? 'Aide proposée :' : 'Aide nécessaire :'}</strong> {ligne.aideDeduite.aide}</p>
+      <p>Synthèse déduite le {dateContactFr(ligne.aideDeduite.analysedAt)} du point de situation daté du {dateContactFr(ligne.aideDeduite.sourceCheckedAt)}. Les actions proposées restent à confirmer ; les échanges n’ont pas été revérifiés pour cette synthèse.</p>
+    </> : <p>À analyser à partir du point de situation actuel.</p>}
+  </section>
+  <section>
     <h3>Étapes et précisions</h3>
     <dl>{ligne.progression.map((cellule, index) => <div><dt><strong>{titres[index]}</strong></dt><dd>{cellule.texte}</dd></div>)}</dl>
     {ligne.suiviVerifie && <p>{ligne.suiviVerifie.organisation}</p>}

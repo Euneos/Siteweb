@@ -2,6 +2,7 @@ import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
 import { lireDernierContact, type DernierContact } from './dernier-contact'
 import { lireSuiviVerifie } from './suivi-verifie'
+import { lireAideDeduite, type AideDeduite } from './aide-deduite'
 import { lireSituationVerifiee, type SituationVerifiee } from './point-situation'
 import { candidatureArretee, statutCandidature, sourceStatutDossier } from './statut-candidature'
 
@@ -50,6 +51,7 @@ interface EtablissementNoco {
 }
 
 export interface EtatCandidature {
+  aideDeduite?: AideDeduite | null
   referent?: string | null
   suiviVerifie?: import('./suivi-verifie').SuiviVerifie | null
   id: number
@@ -308,6 +310,7 @@ export async function lireEtatCohorte(
         id: participation.Id,
         referent: etablissement?.referent_nom?.trim() || null,
         suiviVerifie,
+        aideDeduite: lireAideDeduite(participation.notes, suiviVerifie),
         code: participation.code?.trim() || 'Sans code',
         statut: sourceStatutDossier(participation)?.trim() || 'Non renseigné',
         dateCandidature: participation.date_candidature ?? null,
