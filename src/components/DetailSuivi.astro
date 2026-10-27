@@ -1,5 +1,6 @@
 ---
 import type { EtatCandidature } from '../lib/etat-candidatures'
+import { statutCandidature } from '../lib/statut-candidature'
 import { pointSituation, situationCourante } from '../lib/point-situation'
 import { dateContactFr, lienDernierContact } from '../lib/dernier-contact'
 const { ligne, viewerEmail } = Astro.props as { ligne: EtatCandidature; viewerEmail: string }
@@ -10,6 +11,7 @@ const titres = ['Candidature reçue', 'Accusé de réception', 'Analyse & décis
     <h2 id={`suivi-titre-${ligne.id}`}>{ligne.etablissement} · {ligne.code}</h2>
     <button type="button" class="iw-button" data-detail-close autofocus>Fermer le détail</button>
   </header>
+  <p><strong>Statut du dossier :</strong> {statutCandidature(ligne.statut).label}</p>
   <section>
     <h3>Point de situation</h3>
     <p>{pointSituation(ligne)}</p>

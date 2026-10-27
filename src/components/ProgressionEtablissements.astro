@@ -6,9 +6,17 @@ import DetailSuivi from './DetailSuivi.astro'
 interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')))
-const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
+const etapes = [0, 2, 4, 5, 7, 8, 9]
+const avancement = (ligne: EtatCandidature): string => {
+  const formation = (ligne.statutFormation ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+  if (formation === 'en cours') return 'Formation en cours'
+  if (['termine', 'terminee'].includes(formation)) return 'Formation terminée'
+  if (['annule', 'annulee'].includes(formation)) return 'Formation annulée'
+  if (ligne.anomaliesDates.length || ligne.provenanceInvalide) return 'Calendrier à vérifier'
+  if (ligne.dateDebutFormation && ligne.suiviVerifie?.qualification === 'confirmée') return 'Formation planifiée'
+  return ligne.dateDebutFormation ? 'Démarrage à confirmer' : 'Calendrier à préciser'
+}
 const informationComplete = (ligne: EtatCandidature, index: number): boolean => {
-  if (index === 3) return ligne.progression[index].etat === 'fait' && !!ligne.dateValidation
   if (index === 7) return !!ligne.suiviVerifie?.organisationRecue
   if (index === 8) return !!ligne.dateDebutFormation && !!ligne.dateFinFormation &&
     !ligne.anomaliesDates.length && !ligne.provenanceInvalide &&
@@ -24,7 +32,7 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
   <p class="etat__legende">
     ✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée.
     Une case vide ne signifie pas que l’action n’a pas eu lieu.
-    Dans les huit colonnes de suivi : texte vert lorsque l’information est reçue ou confirmée ; rouge foncé lorsqu’elle manque, reste partielle ou doit être vérifiée.
+    Dans les colonnes de suivi : case vert clair lorsque l’information est reçue ou confirmée ; texte rouge foncé lorsqu’elle manque, reste partielle ou doit être vérifiée.
     Les dates passées apparaissent d’abord, puis les débuts à venir, du plus proche au plus éloigné ;
     les dossiers sans date sont regroupés à la fin. Une date passée ne prouve pas le démarrage réel.
     Rouge : aucune affectation renseignée. Les personnes pressenties ne sont pas des affectations.
@@ -72,14 +80,14 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
           <th scope="col" rowspan="2">Aide nécessaire</th>
           <th scope="col" rowspan="2">Référent</th>
           <th scope="col" rowspan="2">Formateur</th>
-          <th scope="colgroup" colspan="3">Étape 1 — Candidature</th>
+          <th scope="colgroup" colspan="2">Étape 1 — Candidature</th>
           <th scope="colgroup" colspan="2">Pièces d’engagement</th>
           <th scope="colgroup" colspan="3">Étapes 3 à 9 — Déploiement → Évaluation</th>
         </tr>
         <tr>{etapes.map(index => <th scope="col">{colonnes[index]}</th>)}</tr>
       </thead>
       <tbody>
-        {progressionAffichee.length === 0 && <tr><td colspan="14">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
+        {progressionAffichee.length === 0 && <tr><td colspan="13">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
           <tr data-suivi-row data-aide={!!ligne.aideDeduite?.actionProposee} data-sans-formateur={!ligne.formateurs.length} data-organisation={!ligne.suiviVerifie?.organisationRecue} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
@@ -94,8 +102,7 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
             </th>
             <td class="etat__situation">
               <span class="etat__mobile-label">Où en est-on ?</span>
-              <strong>{statutCandidature(ligne.statut).label}</strong>
-              <small>{ligne.statutFormation || 'Avancement de formation non renseigné'}</small>
+              <strong>{avancement(ligne)}</strong>
               <a href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>Point de situation complet</a>
             </td>
             <td><span class="etat__mobile-label">Blocage</span><span>{ligne.aideDeduite?.blocage || 'À analyser à partir du point de situation'}</span>
@@ -188,7 +195,7 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
   .etat__debut { display: block; margin-block: .5rem; font-weight: 700; }
   .etat__sans-date { background: #fff3cc; color: #533b00; padding: .35rem; border-left: 3px solid #8a6100; }
   .etat__table td.etat__sans-affectation { background: #fff0f0; color: #a11919; font-weight: 700; }
-  .etat__table td.etat__etape--complete { color: #166534; }
+  .etat__table td.etat__etape--complete { color: #166534; background: #dceee1; }
   .etat__table td.etat__etape--incomplete { color: #991b1b; }
   .etat__table td.etat__etape--complete small,
   .etat__table td.etat__etape--incomplete small { color: inherit; opacity: 1; }
