@@ -592,7 +592,8 @@ const colonnes = [
     white-space: normal;
   }
   .etat__table thead { position: sticky; top: 0; z-index: 3; }
-  .etat__table tr > th:first-child { position: sticky; left: 0; z-index: 2; }
+  .etat__table tbody tr > th:first-child,
+  .etat__table thead .etat__etablissement { position: sticky; left: 0; z-index: 2; }
   .etat__table tbody th { background: var(--papier); }
   .etat__table .etat__nom { min-height: 44px; display: flex; align-items: center; text-decoration: underline; }
   .etat__table tr[hidden] { display: none; }
@@ -883,7 +884,7 @@ const colonnes = [
       border: 0;
       overflow-wrap: anywhere;
     }
-    .etat__table tbody th {
+    .etat__table tbody tr > th:first-child {
       background: var(--papier);
       position: static;
     }

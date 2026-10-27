@@ -7,6 +7,16 @@ interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: str
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')))
 const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
+const informationComplete = (ligne: EtatCandidature, index: number): boolean => {
+  if (index === 3) return ligne.progression[index].etat === 'fait' && !!ligne.dateValidation
+  if (index === 7) return !!ligne.suiviVerifie?.organisationRecue
+  if (index === 8) return !!ligne.dateDebutFormation && !!ligne.dateFinFormation &&
+    !ligne.anomaliesDates.length && !ligne.provenanceInvalide &&
+    ligne.suiviVerifie?.qualification === 'confirmée' &&
+    ['en cours', 'termine', 'terminee', 'planifie', 'planifiee', 'confirme', 'confirmee', 'prevu', 'prevue', 'previsionnel', 'previsionnelle']
+      .includes((ligne.statutFormation ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase())
+  return ligne.progression[index].etat === 'fait'
+}
 ---
 
 <details class="etat__progression" open>
@@ -14,6 +24,7 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
   <p class="etat__legende">
     ✓ Information enregistrée · ◔ Avancement partiel · — Information non renseignée.
     Une case vide ne signifie pas que l’action n’a pas eu lieu.
+    Dans les huit colonnes de suivi : texte vert lorsque l’information est reçue ou confirmée ; rouge foncé lorsqu’elle manque, reste partielle ou doit être vérifiée.
     Les dates passées apparaissent d’abord, puis les débuts à venir, du plus proche au plus éloigné ;
     les dossiers sans date sont regroupés à la fin. Une date passée ne prouve pas le démarrage réel.
     Rouge : aucune affectation renseignée. Les personnes pressenties ne sont pas des affectations.
@@ -96,7 +107,7 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
             <td><span class="etat__mobile-label">Référent</span><span>{ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span></td>
             <td class:list={[!ligne.formateurs.length && 'etat__sans-affectation']}><span class="etat__mobile-label">Formateur</span><span>{ligne.formateurs.length ? ligne.formateurs.map(f => f.nom).join(' · ') : 'Aucune affectation renseignée'}</span></td>
             {etapes.map(index => { const cellule = ligne.progression[index]; return (
-              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`]}>
+              <td class:list={['etat__centre', `etat__cellule--${cellule.etat}`, informationComplete(ligne, index) ? 'etat__etape--complete' : 'etat__etape--incomplete']}>
                 <span aria-hidden="true">{index === 7 ? (ligne.suiviVerifie?.organisationRecue ? '✓' : '—') : cellule.etat === 'fait' ? '✓' : cellule.etat === 'en-cours' ? '◔' : cellule.etat === 'abandon' ? '×' : '—'}</span>
                 <span class="etat__mobile-label">{colonnes[index]}</span>
                 <small>{index === 7 ? (ligne.suiviVerifie?.organisationRecue ? 'Formulaire reçu' : 'Réception non vérifiée')
@@ -104,6 +115,7 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
                   : index === 9 ? (cellule.etat === 'fait' ? 'Suivi enregistré' : cellule.etat === 'en-cours' ? 'Suivi partiel' : 'Non renseigné')
                   : cellule.texte}</small>
                 {index === 8 && ligne.dateFinFormation && <small>Fin prévue : {dateFormationFr(ligne.dateFinFormation)}</small>}
+                {index === 8 && !informationComplete(ligne, index) && !ligne.anomaliesDates.length && ligne.statutFormation && <small>Suivi ou calendrier à compléter / vérifier</small>}
               </td>
             )})}
           </tr>
@@ -176,6 +188,10 @@ const etapes = [0, 2, 3, 4, 5, 7, 8, 9]
   .etat__debut { display: block; margin-block: .5rem; font-weight: 700; }
   .etat__sans-date { background: #fff3cc; color: #533b00; padding: .35rem; border-left: 3px solid #8a6100; }
   .etat__table td.etat__sans-affectation { background: #fff0f0; color: #a11919; font-weight: 700; }
+  .etat__table td.etat__etape--complete { color: #166534; }
+  .etat__table td.etat__etape--incomplete { color: #991b1b; }
+  .etat__table td.etat__etape--complete small,
+  .etat__table td.etat__etape--incomplete small { color: inherit; opacity: 1; }
   .etat__situation details { margin-block-start: .5rem; }
   .etat__situation ul { padding-inline-start: 1rem; }
   .etat__table-actions {

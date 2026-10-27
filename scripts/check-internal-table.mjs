@@ -281,6 +281,13 @@ try {
     assert(await tab.locator('.etat__sans-date').first().isVisible(), 'Dates absentes explicitement signalées')
     assert.equal(await tab.locator('.etat__sans-affectation').first().evaluate(el => getComputedStyle(el).color), 'rgb(161, 25, 25)', 'Affectation manquante en rouge')
     assert(await tab.locator('.etat__table').getByText('Formulaire reçu', { exact: true }).isVisible(), 'Organisation distingue le formulaire de la mission')
+    const row = tab.locator('.etat__table tbody tr').first()
+    for (const text of ['Reçue le 02/09/2026', 'Décision enregistrée', 'Signée · selon le suivi', 'Fiche reçue', 'Formulaire reçu']) {
+      assert.equal(await row.getByText(text, { exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(22, 101, 52)', `Information reçue en vert : ${text}`)
+    }
+    assert.equal(await row.getByText('Acceptée · date non renseignée', { exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(153, 27, 27)', 'Date de décision manquante en rouge foncé malgré acceptation')
+    assert.equal(await tab.locator('.etat__table').getByText('Réception non vérifiée', { exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(153, 27, 27)', 'Formulaire non vérifié en rouge foncé')
+    assert.equal(await tab.locator('.etat__table').getByText('Calendrier à vérifier', { exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(153, 27, 27)', 'Calendrier contradictoire en rouge foncé')
     const opener = tab.locator('.etat__table a.etat__nom').first()
     const initialCards = await tab.locator('.etat__dossiers .etat__dossier').count()
     await opener.click()
@@ -319,6 +326,12 @@ try {
     assert(await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).evaluate(el => document.activeElement === el), 'Retour du focus après Échap')
     await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
     if ([390, 1440].includes(width)) await tab.screenshot({ path: `${output}/suivi-agrandi-${width}.png` })
+    if ([390, 1440].includes(width)) {
+      if (width > 860) await tab.locator('.etat__table-wrap').evaluate(el => { el.scrollLeft = el.scrollWidth })
+      else await tab.locator('.etat__centre').first().scrollIntoViewIfNeeded()
+      await tab.screenshot({ path: `${output}/etapes-${width}.png` })
+      await tab.locator('.etat__table-wrap').evaluate(el => { el.scrollLeft = 0 })
+    }
     await tab.getByRole('button', { name: 'Fermer la vue agrandie', exact: true }).click()
     await tab.locator('[data-suivi-inline] .etat__table').waitFor({ state: 'visible' })
     assert.equal(await tab.locator('[data-suivi-inline] .etat__table').count(), 1, 'Tableau restauré dans la page')
