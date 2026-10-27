@@ -1,6 +1,6 @@
-// Exact visible wording captured from the EUNEOS agreement on 2026-10-01.
+// Wording captured on 2026-10-01; 80 km round-trip clarification approved on 2026-10-27.
 // No private Google identifiers or account metadata.
-export const accordVersion = 'accord-formateur-v1' as const
+export const accordVersion = 'accord-formateur-v2' as const
 export const accordTitle = 'Accord formateur — Conditions d’engagement WISE-UP 2026/27' as const
 export const accordIntroduction =
   'Dans le cadre de votre participation à la formation de formateurs WISE-UP, merci de confirmer votre accord avec les conditions ci-dessous.' as const
@@ -176,7 +176,7 @@ export const accordTerms = [
       },
       {
         type: 'item',
-        text: 'Ce forfait inclue tous les frais (transports, etc), sauf situation exceptionnelle (formateur mandaté par l’association pour une formation à plus de 80 kms de chez lui-elle ou générant des frais d’hébergement (pris en charge).',
+        text: 'Ce forfait inclue tous les frais (transports, etc), sauf situation exceptionnelle (formateur mandaté par l’association pour une formation nécessitant un déplacement de plus de 80 km aller-retour entre son domicile et le lieu de formation ou générant des frais d’hébergement (pris en charge).',
       },
       {
         type: 'paragraph',
