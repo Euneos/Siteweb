@@ -57,6 +57,7 @@ const schoolFields = [
       <section class="iw-panel cm-stack" aria-labelledby="cm-total-title">
         <h2 id="cm-total-title">4. Récapitulatif prévisionnel</h2>
         <output id="cm-total" aria-live="polite"></output>
+        <a id="cm-finance-link" class="iw-button" hidden>Modifier les tarifs dans la vérification EUNEOS</a>
         <p>Le cas 2 et les frais restent soumis à validation. Le régime de TVA sera vérifié avec le statut du prestataire ; aucun taux n’est présumé ici.</p>
         <button type="button" id="cm-check" class="iw-button">Vérifier la saisie</button>
         <p id="cm-feedback" role="status" tabindex="-1"></p>
@@ -158,6 +159,7 @@ const schoolFields = [
   const endpoint = location.pathname.replace(/\/$/, '') === '/interne/ressources' ? '/api/interne/ressources?convention=1' : '/api/interne/conventions-mission'
   const apiUrl = (params: string) => `${endpoint}${endpoint.includes('?') ? '&' : '?'}${params}`
   let editing: string | undefined
+  let editingRecord: Listed | undefined
   let draftId: string | undefined
   let draftRevision = 0
   type ListedDraft = { id: string; owner_email: string; payload: Payload; note: string; revision: number }
@@ -233,7 +235,13 @@ const schoolFields = [
     const externalCount = blocks.filter(externallyFunded).length
     const fullTraining = blocks.filter(b => !externallyFunded(b) && volumeOf(b) === 16).length
     const year2 = blocks.filter(b => !externallyFunded(b) && volumeOf(b) === 8).length
-    document.querySelector('#cm-total')!.textContent = `${fullTraining} formation(s) de 16 h × 1 000 € + ${workshops} atelier(s) classe active × 200 € = ${money.format(fullTraining * 1000 + workshops * 200)}${externalCount ? ` ; ${externalCount} formation(s) financée(s) par un autre organisme : 0 € à la charge d’EUNEOS` : ''}${year2 ? ` ; ${year2} parcours de 8 h : rémunération à confirmer par EUNEOS` : ''}${hasCase2 ? ', hors cas 2 à chiffrer par EUNEOS' : ''}, hors frais autorisés.`
+    const currentYear2 = blocks.filter(b => !externallyFunded(b) && volumeOf(b) === 8).map(b => ['etablissement','groupe'].map(key => b.querySelector<HTMLInputElement>(`[data-field="${key}"]`)!.value.trim())).sort()
+    const savedYear2 = editingRecord?.payload.missions.filter(m => m.volume === 8 && m.financement !== 'externe').map(m => [m.etablissement,m.groupe || '']).sort()
+    const year2Euros = editing && JSON.stringify(currentYear2) === JSON.stringify(savedYear2) ? editingRecord?.year2_euros : null
+    document.querySelector('#cm-total')!.textContent = `${fullTraining} formation(s) de 16 h × 1 000 € + ${workshops} atelier(s) classe active × 200 €${year2Euros != null ? ` + formation ateliers année 2 (8 h) : ${money.format(year2Euros)}` : ''} = ${money.format(fullTraining * 1000 + workshops * 200 + (year2Euros ?? 0))}${externalCount ? ` ; ${externalCount} formation(s) financée(s) par un autre organisme : 0 € à la charge d’EUNEOS` : ''}${year2 && year2Euros == null ? ` ; ${year2} parcours de 8 h : rémunération à confirmer par EUNEOS` : ''}${hasCase2 ? ', hors cas 2 à chiffrer par EUNEOS' : ''}, hors frais autorisés.`
+    const financeLink = document.querySelector<HTMLAnchorElement>('#cm-finance-link')!
+    financeLink.hidden = !teamAdmin || !editing
+    if (editing) financeLink.href = `#year2-${editing}`
     feedback.textContent = ''
   }
   function add() {
@@ -344,6 +352,7 @@ const schoolFields = [
   function edit(record: Listed | ListedDraft, draft = false) {
     document.querySelector('#cm-form-title')!.textContent = draft ? `Compléter le même brouillon — ${record.payload.nom || record.owner_email}` : `Corriger la convention — ${record.payload.nom}`
     editing = draft ? undefined : record.id
+    editingRecord = draft ? undefined : record as Listed
     draftId = draft ? record.id : undefined
     draftRevision = draft ? (record as ListedDraft).revision : 0
     draftNote.value = draft ? (record as ListedDraft).note : ''
