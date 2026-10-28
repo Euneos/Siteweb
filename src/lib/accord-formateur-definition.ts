@@ -1,6 +1,6 @@
-// Wording captured on 2026-10-01; 80 km round-trip clarification approved on 2026-10-27.
+// Wording captured on 2026-10-01; travel terms updated from Conditions_WISE_UP_30km on 2026-10-28.
 // No private Google identifiers or account metadata.
-export const accordVersion = 'accord-formateur-v2' as const
+export const accordVersion = 'accord-formateur-v3' as const
 export const accordTitle = 'Accord formateur — Conditions d’engagement WISE-UP 2026/27' as const
 export const accordIntroduction =
   'Dans le cadre de votre participation à la formation de formateurs WISE-UP, merci de confirmer votre accord avec les conditions ci-dessous.' as const
@@ -176,7 +176,11 @@ export const accordTerms = [
       },
       {
         type: 'item',
-        text: 'Ce forfait inclue tous les frais (transports, etc), sauf situation exceptionnelle (formateur mandaté par l’association pour une formation nécessitant un déplacement de plus de 80 km aller-retour entre son domicile et le lieu de formation ou générant des frais d’hébergement (pris en charge).',
+        text: 'Pour les intervenantes indépendantes, les frais de transport sont en principe inclus dans le forfait de rémunération, sauf accord écrit préalable prévu dans la convention de mission. Pour chaque déplacement en présentiel, les 30 premiers kilomètres à l’aller et les 30 premiers kilomètres au retour entre le domicile déclaré et le lieu de formation restent inclus dans le forfait, soit 60 km par aller-retour. Si une prise en charge complémentaire est accordée, seuls les kilomètres parcourus au-delà de cette franchise peuvent être facturés, au taux habituellement retenu par EUNEOS de 0,40 €/km, sauf autre tarif ou forfait convenu par écrit. Les barèmes kilométriques fiscaux peuvent servir de références indicatives, mais ne constituent pas des tarifs de facturation automatiquement applicables. Les péages et les éventuels frais de stationnement sont pris en charge en supplément uniquement après accord préalable et sur justificatifs. Les frais validés sont indiqués distinctement sur la facture de l’intervenante.',
+      },
+      {
+        type: 'item',
+        text: 'Pour une formation de 16 heures organisée en plusieurs séances en présentiel (par exemple, 4 séances de 4 heures ou 8 séances de 2 heures), le nombre d’allers-retours et, le cas échéant, le montant maximal des frais de transport sont définis et validés par EUNEOS avant le début de la mission. Tout déplacement supplémentaire ou toute modification des frais convenus nécessite un accord préalable de l’association.',
       },
       {
         type: 'paragraph',

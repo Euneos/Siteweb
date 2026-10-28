@@ -30,7 +30,7 @@ test('six exact required questions and all eight full clauses', () => {
   expect(accordQuestions).toHaveLength(6)
   expect(accordQuestions.every((q) => q.required)).toBe(true)
   expect(accordTerms).toHaveLength(8)
-  expect(accordTerms.reduce((n, s) => n + s.blocks.length, 0)).toBe(34)
+  expect(accordTerms.reduce((n, s) => n + s.blocks.length, 0)).toBe(35)
   expect(JSON.stringify(accordTerms)).toContain('1000 euros')
   expect(JSON.stringify(accordTerms)).toContain('50% du forfait global')
 })
