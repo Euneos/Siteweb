@@ -21,6 +21,7 @@ function fixture() {
   sql.query("INSERT INTO mission_conventions(id,owner_email,state,payload) VALUES('historical',?,'submitted',?)").run(owner.email,JSON.stringify(payload()))
   sql.exec(readFileSync('migrations/interne/0013_mission_convention_notifications.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0014_mission_convention_year2.sql','utf8'))
+  sql.exec(readFileSync('migrations/interne/0015_mission_convention_revisions.sql','utf8'))
   const db = {
     batch: async (statements: {execute:()=>unknown}[]) => sql.transaction(()=>statements.map(s=>s.execute()))(),
     prepare: (q:string)=>({bind:(...args:unknown[])=>({

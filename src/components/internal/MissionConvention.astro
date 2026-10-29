@@ -119,7 +119,7 @@ const schoolFields = [
   import { conventionBudget, proposedFeesAmount } from '../../lib/mission-convention-review'
   type Mission = import('../../lib/mission-convention').Mission
   type Payload = import('../../lib/mission-convention').MissionPayload
-  type Listed = { id: string; owner_email: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; year2_euros?: number | null; fees_decision: string; fees_details: string; fees_euros?: number | null; reviewed_by: string; created_at: string; updated_at: string }
+  type Listed = { id: string; owner_email: string; state: string; payload: Payload; review_note: string; representative: string; case2_euros: number; case2_amount_pending?: number; year2_euros?: number | null; fees_decision: string; fees_details: string; fees_euros?: number | null; reviewed_by: string; created_at: string; updated_at: string }
   const form = document.querySelector<HTMLFormElement>('#cm-form')!
   const schools = document.querySelector<HTMLDivElement>('#cm-schools')!
   const template = document.querySelector<HTMLTemplateElement>('#cm-school-template')!
@@ -403,7 +403,7 @@ const schoolFields = [
     schools.replaceChildren(); add(); form.hidden = false
     form.scrollIntoView({ behavior: 'smooth' })
   })
-  async function upload(id: string, kind: 'trainer_signed' | 'complete') {
+  async function upload(id: string, kind: 'trainer_signed' | 'complete', version: string) {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = 'application/pdf,.pdf'
     input.addEventListener('change', async () => {
@@ -413,7 +413,7 @@ const schoolFields = [
       if (!confirm(kind === 'complete' ? 'Avez-vous vérifié la signature du formateur et la contresignature EUNEOS sur ce PDF final ?' : 'Déposer le PDF signé pour vérification par EUNEOS ?')) return
       try {
         message('Dépôt en cours…')
-        const response = await fetch(apiUrl(`id=${encodeURIComponent(id)}&kind=${kind}`), { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: file })
+        const response = await fetch(apiUrl(`id=${encodeURIComponent(id)}&kind=${kind}&version=${encodeURIComponent(version)}`), { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: file })
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || 'Dépôt non confirmé.')
         await reload()
@@ -532,6 +532,7 @@ const schoolFields = [
       const summaryBudget = document.createElement('p')
       summaryBudget.textContent = `${approved ? 'Prestations validées' : 'Prestations à vérifier'} : formations ${euro(budget.trainingEuros)} + ${budget.workshops} forfait(s) ateliers élèves ${euro(budget.workshopEuros)}${budget.hasComplement ? ` + compléments ${euro(record.case2_euros)}` : ''} = ${euro(budget.services)} hors frais.`
       panel.append(summaryBudget)
+      if (record.case2_amount_pending) summaryBudget.textContent = `Montants conservés : ${euro(budget.services)} hors frais. Formation d’adultes aux ateliers (cas 2) : montant à renseigner ; total incomplet.`
       if (budget.hasYear2) {
         const year2Summary = document.createElement('p')
         year2Summary.textContent = `Formation ateliers — année 2 (8 h) : ${record.year2_euros == null ? 'tarif distinct à renseigner' : euro(record.year2_euros)}. Établissement(s) : ${record.payload.missions.filter(m => m.volume === 8 && m.financement !== 'externe').map(m => m.etablissement).join(', ')}.`
@@ -544,17 +545,21 @@ const schoolFields = [
       if (record.review_note) { const p = document.createElement('p'); p.textContent = `Message EUNEOS : ${record.review_note}`; panel.append(p) }
       if (record.state === 'changes_requested' && (!data.team || data.admin)) panel.append(button('Corriger la convention', () => edit(record)))
       if (['approved', 'trainer_signed', 'complete'].includes(record.state)) panel.append(link(record.id, 'approved', 'Télécharger le PDF validé'))
-      if (record.state === 'approved' && !data.team) panel.append(button('Déposer mon PDF signé', () => upload(record.id, 'trainer_signed')))
+      if (record.state === 'approved' && data.admin) panel.append(button('Corriger la formation aux ateliers avant signature', () => {
+        if (!confirm('Confirmez qu’aucune signature n’a été apposée. Modifiez uniquement le cas 2 (durée, période, accord). À l’enregistrement, l’ancien PDF sera archivé et retiré de la signature ; les autres montants seront conservés.')) return
+        edit(record)
+      }))
+      if (record.state === 'approved' && !data.team) panel.append(button('Déposer mon PDF signé', () => upload(record.id, 'trainer_signed', record.updated_at)))
       if (record.state === 'complete') panel.append(link(record.id, 'complete', 'Télécharger l’exemplaire contresigné'))
       if (data.team && record.state === 'trainer_signed') panel.append(link(record.id, 'trainer_signed', 'Vérifier le PDF signé'))
-      if (data.admin && record.state === 'trainer_signed') panel.append(button('Déposer la convention contresignée', () => upload(record.id, 'complete')))
+      if (data.admin && record.state === 'trainer_signed') panel.append(button('Déposer la convention contresignée', () => upload(record.id, 'complete', record.updated_at)))
       if (data.admin && ['submitted','changes_requested'].includes(record.state)) {
         const savedRep = record.representative.split(' — ')
         const repName = document.createElement('input'); repName.id = `rep-name-${record.id}`; repName.maxLength = 90; repName.value = savedRep[0] || 'Candice Marro'
         const repNameLabel = document.createElement('label'); repNameLabel.className = 'iw-field'; repNameLabel.htmlFor = repName.id; repNameLabel.textContent = 'EUNEOS — Nom de la personne signataire (à confirmer)'; repNameLabel.append(repName)
         const repRole = document.createElement('input'); repRole.id = `rep-role-${record.id}`; repRole.maxLength = 90; repRole.value = savedRep.slice(1).join(' — ') || 'Directrice Générale'
         const repRoleLabel = document.createElement('label'); repRoleLabel.className = 'iw-field'; repRoleLabel.htmlFor = repRole.id; repRoleLabel.textContent = 'EUNEOS — Fonction de la personne signataire (à confirmer)'; repRoleLabel.append(repRole)
-        const amount = document.createElement('input'); amount.id = `amount-${record.id}`; amount.type = 'number'; amount.min = '0'; amount.max = '100000'; amount.step = '0.01'; amount.value = String(record.case2_euros)
+        const amount = document.createElement('input'); amount.id = `amount-${record.id}`; amount.type = 'number'; amount.min = '0'; amount.max = '100000'; amount.step = '0.01'; amount.value = record.case2_amount_pending ? '' : String(record.case2_euros)
         const amountLabel = document.createElement('label'); amountLabel.className = 'iw-field'; amountLabel.htmlFor = amount.id; amountLabel.textContent = 'Complément à chiffrer uniquement : cas 2 et parcours de 8 h (€ ; hors ateliers élèves et frais)'; amountLabel.append(amount); amountLabel.hidden = !budget.hasComplement
         const year2 = document.createElement('input'); year2.id = `year2-${record.id}`; year2.type = 'number'; year2.min = '0'; year2.max = '100000'; year2.step = '0.01'; year2.value = record.year2_euros == null ? '' : String(record.year2_euros)
         const year2Label = document.createElement('label'); year2Label.className = 'iw-field'; year2Label.htmlFor = year2.id; year2Label.textContent = 'Tarif formation ateliers — année 2 (8 h), en € — hors cas 2 et frais'; year2Label.append(year2); year2Label.hidden = !budget.hasYear2
@@ -575,15 +580,16 @@ const schoolFields = [
         const refreshReview = () => {
           const included = feesChoice.value === 'accord' && feesAmount.value !== '' ? Number(feesAmount.value) : 0
           const b = conventionBudget(record.payload,Number(amount.value),included,year2.value === '' ? null : Number(year2.value))
-          amountLabel.firstChild!.textContent = year2.value === '' ? 'Complément : cas 2 et ancien tarif de 8 h regroupés (€)' : 'Complément cas 2 uniquement (€ ; hors formation année 2 et frais)'
+          amountLabel.firstChild!.textContent = budget.hasYear2 && year2.value === '' ? 'Complément : cas 2 et ancien tarif de 8 h regroupés (€)' : 'Formation d’adultes à la conduite des ateliers — cas 2 (€ ; montant à renseigner)'
           reviewTotal.textContent = `Total préparé : prestations ${euro(b.services)}${feesChoice.value === 'accord' ? ` + frais ${feesAmount.value === '' ? 'à chiffrer' : euro(included)}` : ' ; frais non inclus'} = ${euro(b.total)}${feesChoice.value === '' ? ' — décision sur les frais à compléter' : ''}. La validation finale intervient avec le PDF.`
+          if (amount.value === '' && budget.hasComplement) reviewTotal.textContent += ' Total incomplet : montant de la formation aux ateliers à renseigner.'
         }
         for (const input of [amount,feesAmount,year2]) input.addEventListener('input',refreshReview)
         feesChoice.addEventListener('change',refreshReview); refreshReview()
         const check = document.createElement('input'); check.type = 'checkbox'; check.id = `review-${record.id}`
         const label = document.createElement('label'); label.className = 'cm-review-confirm'; label.htmlFor = check.id; label.textContent = 'J’ai vérifié le référencement du formateur, les établissements, les missions, les montants et les frais autorisés.'; label.prepend(check)
         panel.append(repNameLabel, repRoleLabel, year2Label, amountLabel, requested, feesLabel, feesDetailsLabel, feesAmountLabel, reviewTotal, label)
-        const reviewBody = () => ({id:record.id,expectedUpdatedAt:record.updated_at,representativeName:repName.value,representativeRole:repRole.value,case2Euros:Number(amount.value),year2Euros:year2.value === '' ? null : Number(year2.value),feesDecision:feesChoice.value,feesDetails:feesDetails.value,feesEuros:feesAmount.value === '' ? null : Number(feesAmount.value),confirmed:check.checked})
+        const reviewBody = () => ({id:record.id,expectedUpdatedAt:record.updated_at,representativeName:repName.value,representativeRole:repRole.value,case2Euros:amount.value === '' && budget.hasComplement ? null : Number(amount.value),year2Euros:year2.value === '' ? null : Number(year2.value),feesDecision:feesChoice.value,feesDetails:feesDetails.value,feesEuros:feesAmount.value === '' ? null : Number(feesAmount.value),confirmed:check.checked})
         panel.append(button('Enregistrer la vérification', async () => {
           try { await send({action:'save-review',...reviewBody()}); await reload(); message('Vérification enregistrée et relue. Les décisions et montants sont conservés ; le PDF reste à valider.') }
           catch (error) { message(error instanceof Error ? error.message : 'Enregistrement non confirmé. Rechargez la page.') }
@@ -640,11 +646,14 @@ const schoolFields = [
   form.addEventListener('submit', async event => {
     event.preventDefault()
     if (!valid()) return
+    const revising = teamAdmin && editing && editingRecord?.state === 'approved'
+    const revisionNote = revising ? prompt('Motif de la correction avant signature :') : undefined
+    if (revising && !revisionNote) return
     if (!confirm('Envoyer cette convention à EUNEOS pour vérification ?')) return
     const submit = document.querySelector<HTMLButtonElement>('#cm-submit')!
     submit.disabled = true
     try {
-      const result = await send({ action: draftId ? 'submit-draft' : 'submit', id: draftId || editing, revision: draftRevision, ownerEmail: teamAdmin ? ownerInput.value : undefined, payload: payload() })
+      const result = await send({ action: revising ? 'revise' : draftId ? 'submit-draft' : 'submit', id: draftId || editing, revision: draftRevision, ownerEmail: teamAdmin ? ownerInput.value : undefined, payload: payload(), ...(revising ? {expectedUpdatedAt:editingRecord!.updated_at,unsignedConfirmed:true,note:revisionNote} : {}) })
       editing = undefined
       draftId = undefined
       draftRevision = 0
@@ -652,7 +661,7 @@ const schoolFields = [
       document.querySelector<HTMLButtonElement>('#cm-save-draft')!.hidden = false
       form.reset()
       await reload()
-      message(`${teamAdmin ? 'Convention enregistrée pour le compte formateur indiqué, en attente de validation EUNEOS.' : 'Convention reçue dans votre espace, en attente de vérification par EUNEOS.'} ${notificationMessage(result.notification)}`)
+      message(revising ? 'Convention corrigée et relue dans le même dossier. Ancien PDF archivé et retiré de la signature. Montant de formation aux ateliers à renseigner avant de valider le nouveau PDF.' : `${teamAdmin ? 'Convention enregistrée pour le compte formateur indiqué, en attente de validation EUNEOS.' : 'Convention reçue dans votre espace, en attente de vérification par EUNEOS.'} ${notificationMessage(result.notification)}`)
     } catch (error) { message(error instanceof Error ? error.message : 'Enregistrement incertain. Rechargez la page avant tout nouvel envoi.') }
     finally { submit.disabled = false }
   })

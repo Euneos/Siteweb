@@ -17,6 +17,7 @@ export type ConventionRow = {
   payload: string; case2_euros: number; fees_decision: string; fees_details: string; fees_euros?: number | null; representative: string; reviewed_by: string; review_note: string
   created_at: string; updated_at: string
   year2_euros?: number | null
+  case2_amount_pending?: number
 }
 const fail = (message: string): never => { throw new WorkspaceError(400, message) }
 const field = (value: unknown, max: number, required = true) =>

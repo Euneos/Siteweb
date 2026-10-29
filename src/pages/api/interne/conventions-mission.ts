@@ -7,6 +7,7 @@ import { generateContractPdf } from '../../../lib/mission-convention-pdf'
 import { getDraft, listDrafts, saveDraft, submitDraft, supersedeDraft } from '../../../lib/mission-convention-drafts'
 import { conventionMailEnabled, conventionNotificationRecipient, conventionNotificationReceipts, notifyConventionEvents } from '../../../lib/mission-convention-notifications'
 import { parseConventionReview } from '../../../lib/mission-convention-review'
+import { reviseConvention } from '../../../lib/mission-convention-revisions'
 
 export const prerender = false
 const requireAdmin = (team: boolean, admin: boolean) => {
@@ -98,6 +99,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     requireAdmin(ctx.teamMember, ctx.identity.admin)
     const id = entryId(body.id)
+    if (action === 'revise') {
+      const row = await reviseConvention(ctx.db,ctx.identity,id,body)
+      return privateJson({id:row.id,state:row.state,updated_at:row.updated_at})
+    }
     if (action === 'supersede-draft') {
       const draft = await supersedeDraft(ctx.db,ctx.identity,id,body.revision,entryId(body.conventionId))
       return privateJson({id:draft.id,submitted_id:draft.submitted_id})
@@ -111,15 +116,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (row.state !== 'submitted' && !(action === 'save-review' && row.state === 'changes_requested')) throw new WorkspaceError(409, 'La convention a changé. Rechargez la page.')
       const payload = normalizeStoredPayload(row.payload)
       if (action === 'approve' && body.confirmed !== true) throw new WorkspaceError(400, 'Vérifiez les missions et accords préalables avant validation.')
-      const {representative,case2Euros:euros,year2Euros,feesDecision,feesDetails,feesEuros} = parseConventionReview({...body,year2Euros:body.year2Euros === undefined ? row.year2_euros : body.year2Euros},payload,action === 'approve')
+      const {representative,case2Euros:euros,case2AmountPending,year2Euros,feesDecision,feesDetails,feesEuros} = parseConventionReview({...body,year2Euros:body.year2Euros === undefined ? row.year2_euros : body.year2Euros},payload,action === 'approve')
       if (body.expectedUpdatedAt !== row.updated_at) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page pour retrouver les dernières décisions.')
       if (action === 'save-review') {
-        const result = await ctx.db.prepare(`UPDATE mission_conventions SET representative=?,case2_euros=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        const result = await ctx.db.prepare(`UPDATE mission_conventions SET representative=?,case2_euros=?,case2_amount_pending=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
           WHERE id=? AND state=? AND updated_at=?`)
-          .bind(representative,euros,year2Euros,feesDecision,feesDetails,feesEuros,ctx.identity.email,id,row.state,row.updated_at).run()
+          .bind(representative,euros,case2AmountPending,year2Euros,feesDecision,feesDetails,feesEuros,ctx.identity.email,id,row.state,row.updated_at).run()
         if (result.meta.changes !== 1) throw new WorkspaceError(409, 'La vérification a changé. Rechargez la page.')
         const saved = await getConvention(ctx.db,id,ctx.identity,true)
-        if (saved.representative !== representative || saved.case2_euros !== euros || saved.year2_euros !== year2Euros || saved.fees_decision !== feesDecision || saved.fees_details !== feesDetails || saved.fees_euros !== feesEuros)
+        if (saved.representative !== representative || saved.case2_euros !== euros || saved.case2_amount_pending !== case2AmountPending || saved.year2_euros !== year2Euros || saved.fees_decision !== feesDecision || saved.fees_details !== feesDetails || saved.fees_euros !== feesEuros)
           throw new WorkspaceError(503, 'Enregistrement de la vérification non confirmé. Rechargez la page.')
         return privateJson({id,state:saved.state,updated_at:saved.updated_at})
       }
@@ -130,11 +135,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (pdf.byteLength > 750_000) throw new WorkspaceError(413, 'PDF trop volumineux pour cet espace.')
       const digest = await hash(pdf)
       const results = await ctx.db.batch([
-        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',representative=?,case2_euros=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,
+        ctx.db.prepare(`UPDATE mission_conventions SET state='approved',case2_amount_pending=0,representative=?,case2_euros=?,year2_euros=?,fees_decision=?,fees_details=?,fees_euros=?,reviewed_by=?,
           updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND state='submitted' AND updated_at=?`)
           .bind(representative, euros, year2Euros, feesDecision, feesDetails, feesDecision === 'accord' ? feesEuros : 0, ctx.identity.email, id, row.updated_at),
         ctx.db.prepare(`INSERT INTO mission_convention_files(convention_id,kind,pdf,sha256,uploaded_by)
-          SELECT id,'approved',?,?,? FROM mission_conventions WHERE id=? AND state='approved'`)
+          SELECT id,'approved',?,?,? FROM mission_conventions WHERE id=? AND state='approved' AND changes()=1
+          ON CONFLICT(convention_id,kind) DO UPDATE SET pdf=excluded.pdf,sha256=excluded.sha256,uploaded_by=excluded.uploaded_by,uploaded_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
           .bind(pdf, digest, ctx.identity.email, id),
       ])
       if (results[0].meta.changes !== 1 || results[1].meta.changes !== 1) throw new WorkspaceError(409, 'Validation non confirmée. Rechargez la page.')
@@ -163,6 +169,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     const row = await getConvention(ctx.db, id, ctx.identity, ctx.teamMember)
     const expected = kind === 'trainer_signed' ? 'approved' : 'trainer_signed'
     if (row.state !== expected || (kind === 'trainer_signed' && ctx.teamMember)) throw new WorkspaceError(409, 'Étape déjà traitée ou non disponible.')
+    const revision = await ctx.db.prepare('SELECT id FROM mission_convention_revisions WHERE convention_id=? LIMIT 1').bind(id).first()
+    if (revision && url.searchParams.get('version') !== row.updated_at) throw new WorkspaceError(409, 'Cette convention a été révisée. Rechargez la page et utilisez le nouveau PDF à signer.')
     const pdf = new Uint8Array(await request.arrayBuffer())
     if (pdf.length < 100 || pdf.length > 750_000 || new TextDecoder().decode(pdf.slice(0, 5)) !== '%PDF-')
       throw new WorkspaceError(400, 'PDF invalide ou trop volumineux (750 Ko maximum).')
@@ -171,9 +179,9 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     const digest = await hash(pdf)
     const results = await ctx.db.batch([
       ctx.db.prepare(`UPDATE mission_conventions SET state=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-        WHERE id=? AND state=?`).bind(kind, id, expected),
+         WHERE id=? AND state=? AND updated_at=?`).bind(kind, id, expected, row.updated_at),
       ctx.db.prepare(`INSERT INTO mission_convention_files(convention_id,kind,pdf,sha256,uploaded_by)
-        SELECT id,?,?,?,? FROM mission_conventions WHERE id=? AND state=?`)
+         SELECT id,?,?,?,? FROM mission_conventions WHERE id=? AND state=? AND changes()=1`)
         .bind(kind, pdf, digest, ctx.identity.email, id, kind),
     ])
     if (results[0].meta.changes < 1 || results[1].meta.changes < 1) throw new WorkspaceError(409, 'Dépôt non confirmé. Rechargez la page.')

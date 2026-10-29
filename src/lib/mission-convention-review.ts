@@ -29,7 +29,9 @@ export function parseConventionReview(body: Record<string,unknown>, payload: Mis
   const name = typeof body.representativeName === 'string' ? body.representativeName.trim() : ''
   const role = typeof body.representativeRole === 'string' ? body.representativeRole.trim() : ''
   if (!name || !role || name.length > 90 || role.length > 90) throw new WorkspaceError(400, 'Indiquez séparément le nom et la fonction du représentant EUNEOS.')
-  const case2Euros = money(body.case2Euros, 'complémentaire')
+  const case2AmountPending = body.case2Euros === null
+  if (complete && case2AmountPending) throw new WorkspaceError(400, 'Renseignez le montant de la formation aux ateliers (cas 2) avant de valider le PDF.')
+  const case2Euros = case2AmountPending ? 0 : money(body.case2Euros, 'complémentaire')
   const year2Euros = body.year2Euros == null ? null : money(body.year2Euros, 'formation ateliers année 2')
   const budget = conventionBudget(payload,0,0,year2Euros)
   if (!budget.hasYear2 && year2Euros) throw new WorkspaceError(400, 'Aucune formation de 8 h en année 2 dans cette convention.')
@@ -41,5 +43,5 @@ export function parseConventionReview(body: Record<string,unknown>, payload: Mis
   if (feesDetails.length > 2000 || (complete && feesDecision === 'accord' && !feesDetails)) throw new WorkspaceError(400, 'Précisez les frais autorisés et leur montant ou plafond.')
   const feesEuros = body.feesEuros === null || body.feesEuros === undefined ? null : money(body.feesEuros,'des frais')
   if (complete && feesDecision === 'accord' && feesEuros === null) throw new WorkspaceError(400, 'Confirmez le montant ou plafond des frais autorisés.')
-  return {representative:`${name} — ${role}`,case2Euros,year2Euros,feesDecision,feesDetails,feesEuros:feesDecision === 'aucun' ? 0 : feesEuros}
+  return {representative:`${name} — ${role}`,case2Euros,case2AmountPending:case2AmountPending ? 1 : 0,year2Euros,feesDecision,feesDetails,feesEuros:feesDecision === 'aucun' ? 0 : feesEuros}
 }

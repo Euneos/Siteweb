@@ -12,7 +12,8 @@ const jwk = { ...(await exportJWK(publicKey)), kid: 'mission-test', alg: 'RS256'
 const realFetch = globalThis.fetch
 globalThis.fetch = (async (input, init) =>
   String(input) === `https://${domain}/cdn-cgi/access/certs`
-    ? Response.json({ keys: [jwk] }) : realFetch(input, init)) as typeof fetch
+    ? Response.json({ keys: [jwk] }) : String(input) === 'https://euneos.fr/fonts/OpenSans-convention.ttf'
+      ? new Response(readFileSync('public/fonts/OpenSans-convention.ttf')) : realFetch(input, init)) as typeof fetch
 afterAll(() => { globalThis.fetch = realFetch })
 
 const sign = (aud: string, email: string) => new SignJWT({email})
@@ -35,6 +36,7 @@ function fixture() {
   sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0013_mission_convention_notifications.sql','utf8'))
   sql.exec(readFileSync('migrations/interne/0014_mission_convention_year2.sql','utf8'))
+  sql.exec(readFileSync('migrations/interne/0015_mission_convention_revisions.sql','utf8'))
   const db = {
     batch: async (statements: {execute:()=>unknown}[]) => sql.transaction(()=>statements.map(s=>s.execute()))(),
     prepare: (query: string) => ({bind:(...args: unknown[]) => ({
@@ -55,6 +57,41 @@ function fixture() {
 }
 
 describe('convention et audience Ressources', () => {
+  test('révision non signée : archive, même dossier, finances conservées, nouveau PDF et refus des anciennes versions', async () => {
+    const {sql,locals,request}=fixture()
+    const url='/api/interne/conventions-mission', trainer='formateur@example.test'
+    const p={...payload(),missions:[{...payload().missions[0],cas2:'4',periodeCas2:'Janvier',accordCas2:'À confirmer'},{...payload().missions[0],etablissement:'Lycée fictif',volume:8,sessions:[{date:'2027-01-12',duree:8,modalite:'presentiel'}]}]}
+    const post=async (body:object,aud='team',email='manager@example.test')=>conventionPost({request:await request(url,aud,email,body),locals} as never)
+    const {id}=await (await post({action:'submit',ownerEmail:trainer,payload:p})).json()
+    const current=()=>sql.query('SELECT * FROM mission_conventions WHERE id=?').get(id) as {updated_at:string,state:string,payload:string}
+    const review={id,representativeName:'Responsable',representativeRole:'Direction',case2Euros:0,year2Euros:500,feesDecision:'accord',feesDetails:'Déplacements exceptionnels',feesEuros:76.56,confirmed:true}
+    expect((await post({action:'approve',...review,expectedUpdatedAt:current().updated_at})).status).toBe(200)
+    const before=current(), oldPdf=sql.query("SELECT sha256 FROM mission_convention_files WHERE convention_id=? AND kind='approved'").get(id)
+    const body={action:'revise',id,expectedUpdatedAt:before.updated_at,unsignedConfirmed:true,note:'2 h adultes pour préparer 4 ateliers, en remplacement des 4 h',payload:{...p,missions:[{...p.missions[0],cas2:'2',accordCas2:'Formation adultes à la conduite de 4 ateliers'},p.missions[1]]}}
+    expect((await post(body,'trainers',trainer)).status).toBe(403)
+    expect((await post({...body,unsignedConfirmed:false})).status).toBe(400)
+    expect((await post({...body,expectedUpdatedAt:'stale'})).status).toBe(409)
+    expect((await post({...body,payload:{...body.payload,nom:'Autre personne'}})).status).toBe(400)
+    expect((await post(body)).status).toBe(200)
+    expect(current().state).toBe('submitted')
+    expect(JSON.parse(current().payload).missions[0].cas2).toBe('2')
+    expect(sql.query('SELECT case2_amount_pending,year2_euros,fees_euros,fees_details FROM mission_conventions WHERE id=?').get(id)).toEqual({case2_amount_pending:1,year2_euros:500,fees_euros:76.56,fees_details:'Déplacements exceptionnels'})
+    expect(sql.query('SELECT sha256 FROM mission_convention_revisions WHERE convention_id=?').get(id)).toEqual(oldPdf)
+    expect((await post(body)).status).toBe(409)
+    expect((await resourceGet({request:await request(`/api/interne/ressources?convention=1&id=${id}&kind=approved`,'trainers',trainer),locals} as never)).status).toBe(404)
+    expect((await post({action:'save-review',...review,case2Euros:null,expectedUpdatedAt:current().updated_at})).status).toBe(200)
+    expect((await post({action:'approve',...review,case2Euros:null,expectedUpdatedAt:current().updated_at})).status).toBe(400)
+    expect((await post({action:'approve',...review,case2Euros:125.5,expectedUpdatedAt:current().updated_at})).status).toBe(200)
+    expect(sql.query("SELECT sha256 FROM mission_convention_files WHERE convention_id=? AND kind='approved'").get(id)).not.toEqual(oldPdf)
+    expect(sql.query('SELECT sha256 FROM mission_convention_revisions WHERE convention_id=?').get(id)).toEqual(oldPdf)
+    const signed=await PDFDocument.create(); signed.addPage(); const pdf=Uint8Array.from(await signed.save())
+    const upload=async(version:string)=>resourcePut({request:new Request(`https://euneos.fr/api/interne/ressources?convention=1&id=${id}&kind=trainer_signed&version=${encodeURIComponent(version)}`,{method:'PUT',headers:{'Cf-Access-Jwt-Assertion':await sign('trainers',trainer),Origin:'https://euneos.fr','Content-Type':'application/pdf'},body:pdf}),locals} as never)
+    expect((await upload(before.updated_at)).status).toBe(409)
+    expect((await upload(current().updated_at)).status).toBe(200)
+    expect((await post({...body,expectedUpdatedAt:current().updated_at})).status).toBe(409)
+    expect(sql.query('SELECT count(*) n FROM mission_convention_revisions').get()).toEqual({n:1})
+    sql.close()
+  })
   test('500 euros préparés pendant les corrections, conservés seulement pour la même mission année 2', async () => {
     const {sql,locals,request}=fixture()
     const url='/api/interne/conventions-mission', trainer='formateur@example.test'

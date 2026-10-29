@@ -23,6 +23,7 @@ function fixture() {
   sql.exec(readFileSync('migrations/interne/0012_mission_convention_drafts.sql', 'utf8'))
   sql.exec(readFileSync('migrations/interne/0013_mission_convention_notifications.sql', 'utf8'))
   sql.exec(readFileSync('migrations/interne/0014_mission_convention_year2.sql', 'utf8'))
+  sql.exec(readFileSync('migrations/interne/0015_mission_convention_revisions.sql', 'utf8'))
   const db = {
     prepare: (query: string) => ({ bind: (...params: unknown[]) => ({
       run: async () => ({ meta: { changes: sql.query(query).run(...params as []).changes } }),

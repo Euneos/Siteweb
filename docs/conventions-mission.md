@@ -1,5 +1,26 @@
 # Conventions de mission — espace privé
 
+## Révision avant signature — décision Candice du 29 octobre 2026
+
+Migration 0015 : `mission_convention_revisions` conserve la fiche complète et le PDF
+précédent (empreinte, auteur, motif, date), et `case2_amount_pending` distingue un
+montant à choisir d'un zéro expressément retenu. Le montant lui-même réutilise
+`case2_euros` : le cas 2 désigne déjà la formation **des adultes** à la conduite
+des ateliers (2 ou 4 h), pas l'animation élèves du cas 1.
+
+`revise`, réservé à la direction, exige l'état `approved`, la version `updated_at`,
+la confirmation d'absence de signature et un motif. Seuls les champs cas 2 sont
+modifiables ; les autres prestations, frais et coordonnées sont conservés.
+Archivage et réouverture du même dossier en `submitted` sont atomiques. Aucun
+PDF signé/contresigné ne peut être présent. L'ancien PDF n'est plus téléchargeable
+dans cette étape. La nouvelle validation remplace le PDF courant, dont l'original
+reste dans l'historique. Le montant cas 2 doit être renseigné explicitement.
+La révision administrative ne déclenche pas d'alerte de soumission formateur.
+Après révision, le dépôt signé exige la version affichée ; un ancien onglet est
+refusé. Les fichiers déjà téléchargés ne sont pas révocables : prévenir le formateur
+de n'utiliser que la nouvelle version. L'outil ne détermine pas quel PDF a été signé
+à partir du seul contenu du fichier envoyé.
+
 Source contractuelle : export texte du modèle Drive modifié le 15 octobre 2026 à 14 h 24 UTC,
 `src/content/convention-mission-modele.txt`. La génération conserve les quatorze
 articles, remplace les tableaux vierges par les missions contrôlées et supprime
