@@ -3,6 +3,7 @@ export const prerender = false
 import InternalLayout from '../../layouts/InternalLayout.astro'
 import MissionConvention from '../../components/internal/MissionConvention.astro'
 import AgendaFormateurs from '../../components/internal/AgendaFormateurs.astro'
+import FichesFormateurs from '../../components/internal/FichesFormateurs.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
@@ -32,9 +33,15 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       <a class="iw-button" href="#guides-pratiques">Guides pratiques</a>
       <a class="iw-button" href="#supports-formation">Supports de formation</a>
       <a class="iw-button" href="#documents-signer">Documents à signer</a>
+      <a class="iw-button" href="#fiches-pratiques">Fiches pratiques</a>
+      <a class="iw-button" href="#etudes-publications">Études et publications</a>
       <a class="iw-button" href="#agenda">Agenda</a>
     </nav>
     <div class="resource-sections">
+      <section class="iw-panel resource-fiches" id="fiches-pratiques" aria-labelledby="fiches-title">
+        <h2 id="fiches-title">Fiches pratiques</h2>
+        <FichesFormateurs />
+      </section>
       <section class="iw-panel" id="guides-pratiques" aria-labelledby="guides-title">
         <h2 id="guides-title">Guides pratiques</h2>
         <p>Les repères pour préparer vos interventions et accompagner les établissements.</p>
@@ -99,6 +106,13 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         <h2 id="agenda-title">Agenda</h2>
         <p>Intervisions, formations complémentaires et rencontres du réseau.</p>
         <AgendaFormateurs />
+      </section>
+      <section class="iw-panel" id="etudes-publications" aria-labelledby="etudes-title">
+        <h2 id="etudes-title">Études et publications</h2>
+        <div class="resource-direct-link" data-resource-id="465ae9f3-9fa2-4c02-84a8-76d5ea4caeb7" data-resource-label="Étude européenne WISE UP">
+          <p class="iw-muted" role="status">Chargement du lien…</p>
+          <noscript>Activez JavaScript pour accéder à l’étude européenne.</noscript>
+        </div>
       </section>
       <section class="iw-panel" aria-labelledby="reseau-title">
         <h2 id="reseau-title">Carte du réseau</h2>
@@ -171,6 +185,27 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
 </InternalLayout>
 
 <style>
+  #iw-resources .iw-resource-intro {
+    background: var(--jaune);
+    color: var(--noir, #000);
+  }
+  #iw-resources .iw-resource-intro h1,
+  #iw-resources .iw-resource-intro p {
+    color: var(--noir, #000);
+  }
+  #iw-resources .iw-resource-intro::after {
+    border-top-color: var(--jaune-fold);
+  }
+  .resource-shortcuts .iw-button {
+    background: var(--jaune-clair);
+    color: var(--noir, #000);
+  }
+  .resource-sections .iw-panel {
+    border-top: 4px solid var(--jaune);
+  }
+  .resource-fiches {
+    grid-column: 1 / -1;
+  }
   .resource-shortcuts {
     flex-wrap: wrap;
     margin-block: var(--s-titre);
