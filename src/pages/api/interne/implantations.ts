@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { requireInternalAccess } from '../../../lib/internal-access'
 import { jeton } from '../../../lib/nocodb'
 import { readMapData } from '../../../lib/map'
+import { lireReseauEtablissements } from '../../../lib/reseau-etablissements'
 export const prerender = false
 const headers = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -18,7 +19,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       { status: 503, headers },
     )
   try {
-    return Response.json(await readMapData(token), { headers })
+    return Response.json(new URL(request.url).searchParams.get('formes') === '1'
+      ? await lireReseauEtablissements(token)
+      : await readMapData(token), { headers })
   } catch {
     return Response.json(
       { error: 'La base n’a pas pu être lue intégralement. Réessayez dans un instant.' },

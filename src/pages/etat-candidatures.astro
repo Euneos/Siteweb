@@ -1,6 +1,7 @@
 ---
 import InternalLayout from '../layouts/InternalLayout.astro'
 import ProgressionEtablissements from '../components/ProgressionEtablissements.astro'
+import CarteEtablissements from '../components/internal/CarteEtablissements.astro'
 import { readInternalIdentity } from '../lib/internal-access'
 import { jeton } from '../lib/nocodb'
 import {
@@ -190,6 +191,10 @@ const colonnes = [
             </p>
           )}
 
+          <section id="carte-etablissements" class="etat__carte" aria-labelledby="titre-carte-etablissements">
+            <h2 id="titre-carte-etablissements">Les établissements, par cohorte et formation</h2>
+            <CarteEtablissements />
+          </section>
           <section id="suivi" class="etat__suivi" aria-label="Tableau de suivi des établissements">
             <form class="etat__filtres" method="get" action="#suivi" role="search">
               <label>
@@ -669,6 +674,13 @@ const colonnes = [
     font-weight: 600;
     white-space: nowrap;
   }
+  .etat__carte {
+    min-width: 0;
+    max-width: 68rem;
+    margin: var(--s-titre) auto;
+    scroll-margin-top: 1rem;
+  }
+  .etat__carte > h2 { margin-bottom: var(--s-lie); }
   .etat__operations,
   .etat__suivi,
   .etat__dossiers {

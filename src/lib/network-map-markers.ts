@@ -1,9 +1,8 @@
-import type { ReseauFormateurs } from './reseau-formateurs'
-type Member = ReseauFormateurs['members'][number]
+type LocatedMember = { location: { code: string; name: string; x: number; y: number } | null }
 
 /** Group neighbouring centres at the actual screen size, so no 44px touch target
  * masks another. A cluster is labelled as several places, never as one commune. */
-export function networkMarkers(members: Member[], width: number, height: number) {
+export function networkMarkers<Member extends LocatedMember>(members: Member[], width: number, height: number) {
   function cluster(rows: Member[]) {
     const locations = [...new Map(rows.map(m => [m.location!.code, m.location!])).values()]
     return {

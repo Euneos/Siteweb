@@ -4,6 +4,7 @@ import { App } from 'astro/app'
 import { generateKeyPair, exportJWK, SignJWT } from 'jose'
 import { chromium } from '@playwright/test'
 import { tables } from '../tests/fixtures/etat-candidatures.js'
+import { construireReseauEtablissements } from '../src/lib/reseau-etablissements'
 import * as compiledPage from '../dist/_worker.js/pages/etat-candidatures.astro.mjs'
 
 // Render the actual compiled page, with synthetic data and a local signing key.
@@ -181,6 +182,8 @@ const server = Bun.serve({
   port: 0,
   fetch(request) {
     const path = new URL(request.url).pathname
+    if (path === '/api/interne/implantations')
+      return Response.json(construireReseauEtablissements(tables.m5ayop8ul8s040l, tables.mbunbu0f1zztce4, tables.mg12klh5zv7b5n5))
     if (path === '/status-demo')
       return new Response(statusPages[queryKey(request.url)] ?? statusPages[''], {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
