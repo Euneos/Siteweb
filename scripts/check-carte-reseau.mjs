@@ -97,6 +97,27 @@ try {
   })
   for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
+    await page.goto('https://network.test/interne/ressources')
+    await expect(page.locator('.resource-section[open]')).toHaveCount(0)
+    await expect(page.locator('iframe')).toHaveCount(0)
+    for (const summary of await page.locator('.resource-section > summary').all()) {
+      await summary.focus()
+      await page.keyboard.press('Enter')
+      await expect(summary.locator('..')).toHaveAttribute('open', '')
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Rubrique ouverte à ${width}px`)
+      await page.keyboard.press('Enter')
+      await expect(summary.locator('..')).not.toHaveAttribute('open', '')
+    }
+    await page.locator('#replay-intervision > summary').click()
+    await expect(page.locator('#replay-intervision a')).toHaveCount(2)
+    await expect(page.locator('#replay-intervision a').nth(1)).toHaveAttribute('href', 'https://vimeo.com/1243742709/49de6ff9e7')
+    if ([390, 1440].includes(width)) {
+      await page.evaluate(() => scrollTo(0, 0))
+      await page.screenshot({ path: `${output}/ressources-videos-${width}.png`, fullPage: true })
+    }
+    await page.locator('#documents-signer > summary').click()
+    await page.locator('#documents-signer a[href="#guides-pratiques"]').click()
+    await expect(page.locator('#guides-pratiques')).toHaveAttribute('open', '')
     await page.goto('https://network.test/interne/ressources#carte-reseau')
     await page.reload()
     await expect(page.locator('[data-network-content]')).toBeVisible()

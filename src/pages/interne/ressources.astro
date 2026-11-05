@@ -5,6 +5,7 @@ import MissionConvention from '../../components/internal/MissionConvention.astro
 import AgendaFormateurs from '../../components/internal/AgendaFormateurs.astro'
 import FichesFormateurs from '../../components/internal/FichesFormateurs.astro'
 import CarteReseau from '../../components/internal/CarteReseau.astro'
+import ResourceSection from '../../components/internal/ResourceSection.astro'
 import { getInternalContext } from '../../lib/internal-context'
 const context = await getInternalContext(Astro.request, Astro.locals, true)
 if (context instanceof Response) return context
@@ -30,23 +31,11 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
         </p>
       </div>
     </div>
-    <nav class="iw-actions resource-shortcuts" aria-label="Accès rapides aux ressources">
-      <a class="iw-button" href="#guides-pratiques">Guides pratiques</a>
-      <a class="iw-button" href="#supports-formation">Supports de formation</a>
-      <a class="iw-button" href="#replay-intervision">Intervision — Les mouvements</a>
-      <a class="iw-button" href="#documents-signer">Documents à signer</a>
-      <a class="iw-button" href="#fiches-pratiques">Fiches pratiques</a>
-      <a class="iw-button" href="#etudes-publications">Études et publications</a>
-      <a class="iw-button" href="#agenda">Agenda</a>
-      <a class="iw-button" href="#carte-reseau">Carte du réseau</a>
-    </nav>
     <div class="resource-sections">
-      <section class="iw-panel resource-fiches" id="fiches-pratiques" aria-labelledby="fiches-title">
-        <h2 id="fiches-title">Fiches pratiques</h2>
+      <ResourceSection id="fiches-pratiques" title="Fiches pratiques">
         <FichesFormateurs />
-      </section>
-      <section class="iw-panel" id="guides-pratiques" aria-labelledby="guides-title">
-        <h2 id="guides-title">Guides pratiques</h2>
+      </ResourceSection>
+      <ResourceSection id="guides-pratiques" title="Guides pratiques">
         <p>Les repères pour préparer vos interventions et accompagner les établissements.</p>
         <ul>
           <li>
@@ -65,9 +54,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             > — présenter le programme aux personnes référentes.
           </li>
         </ul>
-      </section>
-      <section class="iw-panel" id="supports-formation" aria-labelledby="supports-title">
-        <h2 id="supports-title">Préparer et animer une formation</h2>
+      </ResourceSection>
+      <ResourceSection id="supports-formation" title="Préparer et animer une formation">
         <p>Retrouvez les documents partagés pour préparer vos séances et animer les ateliers.</p>
         <a
           class="iw-button"
@@ -75,15 +63,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
           target="_blank"
           rel="noopener noreferrer">Ouvrir les supports de formation ↗</a
         >
-      </section>
-      <section class="iw-panel" id="replay-intervision" aria-labelledby="replay-title">
-        <h2 id="replay-title">Intervision WISE UP 3 nov - Les mouvements</h2>
-        <p><a href="https://vimeo.com/1243737710" target="_blank" rel="noopener noreferrer">Voir la vidéo sur Vimeo ↗</a></p>
-        <h3>5 mouvements WISE UP animés par une formatrice</h3>
-        <p><a href="https://vimeo.com/1243742709/49de6ff9e7" target="_blank" rel="noopener noreferrer">Voir la deuxième vidéo sur Vimeo ↗</a></p>
-      </section>
-      <section class="iw-panel" aria-labelledby="programme-title">
-        <h2 id="programme-title">Présenter le programme</h2>
+      </ResourceSection>
+      <ResourceSection id="presenter-programme" title="Présenter le programme">
         <p>Brochure et supports pour vos démarches auprès des établissements.</p>
         <ul>
           <li>
@@ -92,9 +73,8 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             >
           </li>
         </ul>
-      </section>
-      <section class="iw-panel" id="documents-signer" aria-labelledby="documents-title">
-        <h2 id="documents-title">Documents à signer</h2>
+      </ResourceSection>
+      <ResourceSection id="documents-signer" title="Documents à signer">
         <ul>
           <li>
             <a href="/suivi/accord-formateur" target="_blank" rel="noopener noreferrer"
@@ -110,33 +90,28 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
             href="#guides-pratiques">guides pratiques</a
           >.
         </p>
-      </section>
-      <section class="iw-panel" id="agenda" aria-labelledby="agenda-title">
-        <h2 id="agenda-title">Agenda</h2>
+      </ResourceSection>
+      <ResourceSection id="agenda" title="Agenda">
         <p>Intervisions, formations complémentaires et rencontres du réseau.</p>
         <AgendaFormateurs />
-      </section>
-      <section class="iw-panel" id="etudes-publications" aria-labelledby="etudes-title">
-        <h2 id="etudes-title">Études et publications</h2>
+      </ResourceSection>
+      <ResourceSection id="etudes-publications" title="Études et publications">
         <div class="resource-direct-link" data-resource-id="465ae9f3-9fa2-4c02-84a8-76d5ea4caeb7" data-resource-label="Étude européenne WISE UP">
           <p class="iw-muted" role="status">Chargement du lien…</p>
           <noscript>Activez JavaScript pour accéder à l’étude européenne.</noscript>
         </div>
-      </section>
-      <section class="iw-panel resource-network-panel" id="carte-reseau" aria-labelledby="reseau-title">
-        <h2 id="reseau-title">Carte du réseau</h2>
+      </ResourceSection>
+      <ResourceSection id="carte-reseau" title="Carte du réseau">
         <CarteReseau />
-      </section>
-      <section class="iw-panel" aria-labelledby="entraide-title">
-        <h2 id="entraide-title">Partager et trouver de l’aide</h2>
+      </ResourceSection>
+      <ResourceSection id="entraide" title="Partager et trouver de l’aide">
         <p>Retours d’expérience, ressources issues des intervisions et contacts utiles.</p>
         <div class="resource-direct-link" data-resource-id="bd3c90ff-b703-4036-8e8c-a952f03d3813" data-resource-label="Rejoindre le groupe WhatsApp">
           <p class="iw-muted" role="status">Chargement du lien…</p>
           <noscript>Activez JavaScript pour accéder au groupe WhatsApp.</noscript>
         </div>
-      </section>
-    </div>
-    <h2>Catalogue des ressources</h2>
+      </ResourceSection>
+    <ResourceSection id="catalogue" title="Catalogue des ressources">
     <noscript
       ><p class="iw-feedback">
         Activez JavaScript pour consulter le catalogue de ressources.
@@ -184,6 +159,14 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
       hidden
     >
     </section>
+    </ResourceSection>
+    <ResourceSection id="replay-intervision" title="Vidéos">
+      <ul>
+        <li><a href="https://vimeo.com/1243737710" target="_blank" rel="noopener noreferrer">Intervision WISE UP 3 nov - Les mouvements ↗</a></li>
+        <li><a href="https://vimeo.com/1243742709/49de6ff9e7" target="_blank" rel="noopener noreferrer">5 mouvements WISE UP animés par une formatrice ↗</a></li>
+      </ul>
+    </ResourceSection>
+    </div>
     <p class="iw-footnote">
       Les documents s’ouvrent dans un nouvel onglet. Certains peuvent demander une connexion au
       service qui les héberge.
@@ -191,6 +174,22 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   </div>
   )}
 </InternalLayout>
+
+<script>
+  // Keep existing shared links useful when their destination is folded.
+  function revealResourceHash() {
+    const target = document.getElementById(location.hash.slice(1))
+    if (!target?.closest('#iw-resources')) return
+    let parent: HTMLElement | null = target
+    while (parent) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true
+      parent = parent.parentElement
+    }
+    target.scrollIntoView({ block: 'start' })
+  }
+  window.addEventListener('hashchange', revealResourceHash)
+  revealResourceHash()
+</script>
 
 <style>
   #iw-resources .iw-resource-intro {
@@ -204,32 +203,11 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   #iw-resources .iw-resource-intro::after {
     border-top-color: var(--jaune-fold);
   }
-  .resource-shortcuts .iw-button {
-    background: var(--jaune-clair);
-    color: var(--noir, #000);
-  }
-  .resource-sections .iw-panel {
-    border-top: 4px solid var(--jaune);
-  }
-  .resource-fiches {
-    grid-column: 1 / -1;
-  }
-  .resource-shortcuts {
-    flex-wrap: wrap;
-    margin-block: var(--s-titre);
-  }
   .resource-sections {
     display: grid;
-    gap: var(--s-grille);
-    margin-bottom: var(--s-bloc);
-  }
-  .resource-sections section {
-    scroll-margin-top: var(--s-bloc);
-    min-width: 0;
-    padding: var(--s-lie);
-  }
-  .resource-sections h2 {
-    margin-bottom: var(--s-lie);
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+    margin-block: var(--s-lie);
   }
   .resource-sections p + p,
   .resource-sections p + a,
@@ -245,15 +223,7 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   .resource-direct-link {
     margin-top: var(--s-lie);
   }
-  .resource-shortcuts a,
   .resource-sections a {
     overflow-wrap: anywhere;
-  }
-  @media (min-width: 64rem) {
-    .resource-sections {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: start;
-    }
-    .resource-network-panel { grid-column: 1 / -1; }
   }
 </style>

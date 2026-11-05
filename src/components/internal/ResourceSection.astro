@@ -1,0 +1,21 @@
+---
+interface Props { id: string; title: string }
+const { id, title } = Astro.props
+---
+<details class="resource-section" id={id}>
+  <summary><h2>{title}</h2><span aria-hidden="true" class="resource-section__toggle"></span></summary>
+  <div class="resource-section__body"><slot /></div>
+</details>
+
+<style>
+  .resource-section { min-width: 0; border: 1px solid var(--vert); border-radius: .5rem; background: var(--blanc); scroll-margin-top: var(--s-lie); }
+  summary { display: flex; align-items: center; justify-content: space-between; gap: var(--s-lie); padding: .6rem var(--s-lie); cursor: pointer; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary h2 { margin: 0; font-size: var(--t-nav); overflow-wrap: anywhere; }
+  summary:hover, details[open] > summary { background: var(--jaune-clair); border-radius: .5rem; }
+  summary:focus-visible { outline: 3px solid var(--vert); outline-offset: 3px; }
+  .resource-section__toggle { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
+  .resource-section__toggle::before { content: '+'; font-size: var(--t-corps); }
+  details[open] > summary .resource-section__toggle::before { content: '−'; }
+  .resource-section__body { padding: var(--s-lie); border-top: 1px solid var(--vert); min-width: 0; }
+</style>
