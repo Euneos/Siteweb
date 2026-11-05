@@ -91,6 +91,18 @@ describe('Synthèse CA : compteurs et projection privée', () => {
     const rows = ['https://example.org/support', 'javascript:alert(1)', 'https://user:secret@example.org', 'https://euneos.fr/interne/convention-mission'].map(url => ({ title: 'Ressource', url, secret: 'NE-PAS-TRANSMETTRE' }))
     expect(boardResources(rows)).toEqual([{ title: 'Ressource', category: '', description: '', url: 'https://example.org/support' }])
   })
+  test('catalogue CA : exclut invitations WhatsApp et présentations, conserve les guides', () => {
+    const rows = [
+      { title: 'Communauté', url: 'https://chat.whatsapp.com/invitation' },
+      { title: 'Contact', url: 'https://wa.me/123' },
+      { title: 'Module 1 PPT', url: 'https://drive.google.com/file/d/slides/view' },
+      { title: 'Module', url: 'https://docs.google.com/presentation/d/slides/edit' },
+      { title: 'Module', url: 'https://example.org/module.pptx' },
+      { title: 'Supports de formation', url: 'https://drive.google.com/drive/folders/supports' },
+      { title: 'Guide du formateur', url: 'https://drive.google.com/file/d/guide/view' },
+    ]
+    expect(boardResources(rows).map(r => r.title)).toEqual(['Guide du formateur'])
+  })
 })
 
 const { privateKey, publicKey } = await generateKeyPair('RS256')

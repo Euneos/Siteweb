@@ -99,6 +99,12 @@ export function boardResources(rows: Record<string, unknown>[]) {
     try {
       const url = new URL(text(row.url))
       if (url.protocol !== 'https:' || url.username || url.password) return []
+      // The CA catalogue excludes community invitations, slide decks and their shared folders.
+      const label = `${text(row.title)} ${text(row.category)} ${text(row.description)}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      if (/(^|\.)whatsapp\.(com|net)$/.test(url.hostname) || url.hostname === 'wa.me') return []
+      if (/whats\s*app|\bpptx?\b|powerpoint|diaporama|slides|supports? de formation/.test(label)) return []
+      if (/\.(pptx?|ppsx?)(?:$|[?#])/i.test(url.href) || (url.hostname === 'docs.google.com' && url.pathname.startsWith('/presentation/'))) return []
+      if (url.hostname === 'drive.google.com' && url.pathname.includes('/folders/')) return []
       // Internal operations are never exposed via a catalogue shortcut.
       if (['euneos.fr', 'www.euneos.fr'].includes(url.hostname) && /^\/(interne|api|etat-candidatures)(\/|$)/.test(url.pathname)) return []
       return [{ title: text(row.title), category: text(row.category), description: text(row.description), url: url.href }]

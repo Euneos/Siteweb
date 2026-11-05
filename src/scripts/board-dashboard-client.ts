@@ -73,11 +73,6 @@ function render(data: Dashboard) {
   el('ca-report').hidden = !report
   if (report) {
     el('ca-report-date').textContent = `Situation au ${frDate(report.asOf)}`
-    el('ca-report-engaged').textContent = String(report.engagedSites)
-    el('ca-report-applications-total').textContent = String(report.applications)
-    el('ca-report-applications').textContent = `${report.applicationsInProgress} en cours de candidature · objectif : ${report.goalSchools} engagés`
-    el<HTMLProgressElement>('ca-report-progress').max = report.goalSchools
-    el<HTMLProgressElement>('ca-report-progress').value = report.engagedSites
     el('ca-report-professionals').textContent = String(report.review?.professionals ?? report.professionals)
     el('ca-report-professional-scope').textContent = report.review ? `2026–2027 uniquement · minimum documenté au ${frDate(report.review.asOf)} · listes partielles` : `Sur ${report.professionalSites} sites · listes partielles · objectif annuel : ${report.goalPeople} formés`
     el('ca-review').hidden = !report.review
@@ -89,10 +84,6 @@ function render(data: Dashboard) {
     el('ca-report-started').textContent = `${report.started} démarrés · ${report.confirmedBeforeDecember - report.started} autres démarrages confirmés avant fin décembre`
     el('ca-report-regions').textContent = String(report.regions)
     el('ca-report-next').textContent = report.nextStep
-    el('ca-developments').hidden = false
-    el('ca-developments-list').replaceChildren(...report.developments.map(item => {
-      const card = node('article', '', 'ca-resource'); card.append(node('h3', item.title), node('p', item.detail)); return card
-    }))
     el('ca-report-schedule').replaceChildren(...report.schedule.map(group => {
       const card = node('article', '', 'ca-report-group'); card.append(node('h3', `${group.title} · ${group.count}`))
       const list = node('ul')
@@ -100,10 +91,7 @@ function render(data: Dashboard) {
       card.append(list); return card
     }))
   }
-  el('ca-engaged').textContent = String(data.engaged)
-  el('ca-engaged-scope').textContent = data.cohort
-  el('ca-scope-note').textContent = `${data.periods.map(p => `${p.cohort} : ${p.engaged} établissements engagés`).join(' · ')}. Total dédoublonné sur les deux années ; unités de la base, distinctes des sites du point d’étape.`
-  el('ca-total').textContent = String(data.statuses.filter(s => !['Abandon', 'Refus'].includes(s.label)).reduce((sum, s) => sum + s.count, 0))
+  el('ca-scope-note').textContent = 'Implantations enregistrées dans la base pour 2025–2026 et 2026–2027. La carte conserve les établissements des deux années.'
   el('ca-people').textContent = String(data.trainers.people)
   el('ca-evaluation').textContent = String(data.trainers.inProgress)
   el('ca-evaluation-detail').textContent = `${data.evaluation.requested} demande(s) explicite(s) d’évaluation jeunes sur ${data.evaluation.total} dossier(s) engagé(s) en 2026–2027.`
@@ -136,7 +124,7 @@ function render(data: Dashboard) {
   maps(history)
   maps({ locations: data.trainerLocations }, 'ct', 'formateur(s) validé(s)')
   const resources = el('ca-resource-list'); resources.replaceChildren()
-  if (data.resources === null) resources.append(node('p', 'La liste complète n’a pas pu être chargée. Le lien direct vers les supports de formation reste disponible ci-dessus.'))
+  if (data.resources === null) resources.append(node('p', 'La liste des ressources n’a pas pu être chargée. Actualisez pour réessayer.'))
   else if (!data.resources.length) resources.append(node('p', 'Aucune ressource publiée accessible dans cette vue.'))
   else {
     const more = node('details')

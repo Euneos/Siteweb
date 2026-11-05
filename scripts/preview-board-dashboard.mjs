@@ -5,11 +5,11 @@ import { App } from 'astro/app'
 import { generateKeyPair, exportJWK, SignJWT } from 'jose'
 import { chromium, expect } from '@playwright/test'
 import assert from 'node:assert/strict'
-import { buildBoardDashboard } from '../src/lib/board-dashboard.ts'
+import { buildBoardDashboard, boardResources } from '../src/lib/board-dashboard.ts'
 import { readBoardReport } from '../src/lib/board-report.ts'
 const snapshot = JSON.parse(await readFile(process.env.BOARD_SNAPSHOT_FILE, 'utf8'))
 const report = readBoardReport(await readFile(process.env.BOARD_REPORT_FILE, 'utf8'))
-const data = { ...buildBoardDashboard(snapshot.cohorts, snapshot.participations, snapshot.schools, snapshot.trainers, new Date(snapshot.readAt), snapshot.trainerPeople ?? []), report, resources: snapshot.resources ?? null }
+const data = { ...buildBoardDashboard(snapshot.cohorts, snapshot.participations, snapshot.schools, snapshot.trainers, new Date(snapshot.readAt), snapshot.trainerPeople ?? []), report, resources: snapshot.resources ? boardResources(snapshot.resources) : null }
 const { publicKey, privateKey } = await generateKeyPair('RS256')
 const jwk = { ...await exportJWK(publicKey), kid: 'private-review', alg: 'RS256', use: 'sig' }
 const domain = 'board-review.cloudflareaccess.com'
@@ -37,18 +37,17 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message))
   await page.goto(`http://127.0.0.1:${server.port}/interne/ca`)
   await expect(page.locator('#ca-data')).toBeVisible()
-  await expect(page.locator('#ca-report-applications-total')).toHaveText(String(report.applications))
-  await expect(page.locator('#ca-report-engaged')).toHaveText(String(report.engagedSites))
+   await expect(page.locator('#ca-project dd')).toHaveText(['30', '23', '7'])
   await expect(page.locator('#ca-report-professionals')).toHaveText(String(report.review?.professionals ?? report.professionals))
   await expect(page.locator('#ca-people')).toHaveText(String(data.trainers.people))
   const current = data.periods.find(p => p.cohort === '2026–2027')
   for (const period of data.periods) {
     await page.locator('#ca-period').selectOption(period.key)
-    await expect(page.locator('#ca-engaged')).toHaveText(String(current.engaged))
+     await expect(page.locator('#ca-project dd')).toHaveText(['30', '23', '7'])
     await expect(page.locator('#ca-report-professionals')).toHaveText(String(report.review?.professionals ?? report.professionals))
   }
   await page.locator('#ca-period').selectOption('all')
-  await expect(page.locator('#ca-engaged')).toHaveText(String(current.engaged))
+   await expect(page.locator('#ca-project dd')).toHaveText(['30', '23', '7'])
   assert(await page.locator('#ct-markers button').count() > 0, 'Carte formateurs absente')
   await page.locator('#ct-map-tabs').getByRole('button', { name: 'Guadeloupe · 3', exact: true }).click()
   await expect(page.locator('#ct-map-count')).toContainText('3 formateur(s)')
