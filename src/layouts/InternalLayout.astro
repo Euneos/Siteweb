@@ -6,6 +6,7 @@ import { internalEnvironment } from '../lib/internal-context'
 interface Props {
   title: string
   current:
+    | 'ca'
     | 'calendrier'
     | 'organisation'
     | 'suivi'
@@ -18,8 +19,9 @@ interface Props {
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
   wide?: boolean
+  boardView?: boolean
 }
-const { title, current, identity, teamAccess = true, wide = false } = Astro.props
+const { title, current, identity, teamAccess = true, wide = false, boardView = false } = Astro.props
 const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
 ---
 
@@ -60,6 +62,18 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
     </header>
     <nav class="iw-nav" aria-label="Espace interne">
       <div class="iw-nav__inner">
+        {boardView && <>
+          <a href="#ca-overview">Vue d’ensemble</a>
+          <a href="#ca-developments">En développement</a>
+          <a href="#ca-involvement">Vous investir</a>
+          <a href="#ca-territories">Implantations</a>
+          <a href="#ca-training">Formations</a>
+          <a href="#ca-trainers">Formateurs</a>
+          <a href="#ca-trainer-map">Carte formateurs</a>
+          <a href="#ca-science">À suivre</a>
+          <a href="#ca-resources">Ressources</a>
+        </>}
+        {teamAccess && <a href="/interne/ca" aria-current={current === 'ca' ? 'page' : undefined}>Espace CA</a>}
         {
           teamAccess && (
             <a href="/interne" aria-current={current === 'calendrier' ? 'page' : undefined}>
@@ -118,9 +132,9 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
             </a>
           )
         }
-        <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
+        {!boardView && <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
           >Ressources formateurs</a
-        >
+        >}
         {
           identity.admin && (
             <a
@@ -147,7 +161,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
       <slot />
     </main>
     <footer class="iw-footer">
-      {!teamAccess && <a href="/interne">Accès équipe EUNEOS</a>}
+      {!teamAccess && !boardView && <a href="/interne">Accès équipe EUNEOS</a>}
       <span>EUNEOS · Un espace pour travailler ensemble.</span><span
         >Accès réservé aux comptes autorisés.</span
       >

@@ -14,6 +14,11 @@ INTERNAL_ACCESS_DOMAIN=
 INTERNAL_ACCESS_AUD=
 RESOURCE_ACCESS_DOMAIN=
 RESOURCE_ACCESS_AUD=
+# Conseil d’administration: third, distinct Access audience (read-only dashboard).
+BOARD_ACCESS_DOMAIN=
+BOARD_ACCESS_AUD=
+# JSON du point d’étape validé, secret privé ; voir docs/espace-ca.md.
+BOARD_PROGRESS_REPORT=
 # Exact emails of team administrators (comma-separated); no default admin.
 INTERNAL_ADMIN_EMAILS=
 # Show the trial notice until the Notion migration is validated.

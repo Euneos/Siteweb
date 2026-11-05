@@ -6,6 +6,10 @@ Le [tableau des candidatures](tableau-interne.md) continue à lire NocoDB côté
 
 ## Droits et parcours
 
+La nouvelle vue de gouvernance est décrite dans [Espace CA](espace-ca.md) :
+`/interne/ca` et `/api/interne/ca`, troisième audience distincte, lecture seule.
+Elle n’élargit pas les permissions équipe ni celles des formateurs décrites ici.
+
 | Route                                              | Public                         | Opérations                                                                                              |
 | -------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | `/interne` et `/api/interne/calendrier`            | Équipe identifiée              | Calendriers, publications, propres heures et absences ; validation des heures réservée aux responsables |
