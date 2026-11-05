@@ -19,17 +19,19 @@ globalThis.fetch = async input => {
 }
 const filename = (await readdir(new URL('../dist/_worker.js/', import.meta.url))).find(name => name.startsWith('manifest_'))
 const { manifest } = await import(new URL(`../dist/_worker.js/${filename}`, import.meta.url))
-const app = new App({ ...manifest, sessionConfig: undefined, pageMap: new Map([['src/pages/interne/ressources.astro', async () => compiledPage]]) })
+const app = new App({ ...manifest, middleware: () => import('../dist/_worker.js/_astro-internal_middleware.mjs'), sessionConfig: undefined, pageMap: new Map([['src/pages/interne/ressources.astro', async () => compiledPage]]) })
 const browser = await chromium.launch()
 try {
   const page = await browser.newPage()
+  page.on('console', message => { if (message.type() === 'error') console.error(message.text()) })
   await page.route('**/*', async route => {
     const url = new URL(route.request().url())
     if (url.hostname !== 'videos.test') return route.fulfill({ contentType: 'text/html', body: '<p>Lecteur Vimeo — aperçu de mise en page</p>' })
     if (url.pathname === '/interne/ressources') {
       const response = await app.render(new Request(url, { headers: { 'Cf-Access-Jwt-Assertion': token } }), { locals: { runtime: { env } } })
       assert.equal(response.status, 200)
-      return route.fulfill({ contentType: 'text/html', body: await response.text() })
+      assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-src 'self' https:\/\/player\.vimeo\.com/)
+      return route.fulfill({ headers: Object.fromEntries(response.headers), contentType: 'text/html', body: await response.text() })
     }
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: { resources: [], members: [], identity: { email: 'trainer@example.test' } } })
     try {
@@ -48,6 +50,8 @@ try {
     for (const frame of await frames.all()) {
       const box = await frame.boundingBox()
       assert(box.width > 0 && box.height > 0 && box.x >= 0 && box.x + box.width <= width)
+      await frame.scrollIntoViewIfNeeded()
+      await frame.contentFrame().getByText('Lecteur Vimeo').waitFor()
     }
     await panel.screenshot({ path: `${output}/videos-${width}.png` })
     console.log(`Deux lecteurs vérifiés à ${width}px (réseau Vimeo simulé ; lecture réelle à vérifier en ligne).`)

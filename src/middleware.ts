@@ -14,6 +14,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const response = await next()
   const headers = new Headers(response.headers)
   for (const [name, value] of Object.entries(HEADERS)) headers.set(name, value)
+  if (/^\/interne\/ressources\/?$/.test(new URL(context.request.url).pathname)) {
+    headers.set('Content-Security-Policy', `${HEADERS['Content-Security-Policy']}; frame-src 'self' https://player.vimeo.com`)
+  }
   if (/^\/(?:suivi|api\/suivi)(?:\/|$)/.test(new URL(context.request.url).pathname)) {
     headers.set('Referrer-Policy', 'no-referrer')
     headers.set('Cache-Control', 'private, no-store, max-age=0')
