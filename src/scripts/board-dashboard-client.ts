@@ -77,7 +77,7 @@ function render(data: Dashboard) {
     el('ca-report-professional-scope').textContent = report.review ? `2026–2027 uniquement · minimum documenté au ${frDate(report.review.asOf)} · listes partielles` : `Sur ${report.professionalSites} sites · listes partielles · objectif annuel : ${report.goalPeople} formés`
     el('ca-review').hidden = !report.review
     if (report.review) {
-      el('ca-review-applications').textContent = report.review.applicationsNote
+      el('ca-review-applications').textContent = 'Décompte retenu par la direction le 5 novembre 2026 : 40 candidatures, dont 33 dossiers rattachés à 2026–2027 et 7 dont l’année reste à confirmer, abandons compris et doublons archivés exclus. Les 16 dossiers de 2025–2026 ne sont pas inclus. Le suivi de direction porte sur 30 établissements : 23 validés et 7 détails à confirmer.'
       el('ca-review-people').textContent = report.review.detail
     }
     el('ca-report-december').textContent = String(report.confirmedBeforeDecember)
