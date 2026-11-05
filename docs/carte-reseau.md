@@ -7,20 +7,22 @@ aucune extension de l’audience équipe. L’API vérifie le JWT équipe ou res
 renvoie `private, no-store` et ne publie ni email, téléphone, notes, métier ni
 adresse de rue. Aucune écriture dans les dossiers.
 
-## Périmètre et cohortes — décision Charlotte du 5 novembre 2026
+## Périmètre — retour Candice confirmé par Charlotte le 5 novembre 2026
 
-- **Seul « Formateur validé » est admis**, avec la couleur de l’année de promotion
-  (Cohorte 2025 : vert ; Cohorte 2026 : jaune).
+- **Seul « Formateur validé » est admis**, en vert. Aucune cohorte, année de
+  promotion ni date de formation n’est transmise dans les membres de l’API.
 - Formations en cours, validations en attente, candidatures, accords seuls,
   invitations, attente de confirmation, refus et abandons sont exclus **côté
   serveur** : pas de noms, points, listes ni compteurs transmis à l’interface.
-- Un seul filtre **Cohorte** remplace les filtres année et statut, avec « Toutes
-  les cohortes », « Cohorte 2025 », « Cohorte 2026 ». Aucune légende orange ni
-  statut en attente. La liste sous la carte suit le même périmètre validé.
+- Aucun filtre cohorte ni statut. La liste et les compteurs suivent le même
+  périmètre validé. La métropole est affichée à l’ouverture, selon le dernier
+  retour de Charlotte. Le filtre permet de choisir la Guadeloupe ou « Tous les
+  territoires » pour afficher les cartes ensemble.
 - Les archives `fusionne_vers` sont exclues après contrôle de leurs cibles et
-  identités, avec pagination complète. Plusieurs parcours éligibles courants
-  pour une personne provoquent une indisponibilité à qualifier : aucun choix
-  silencieux de promotion ou de validation.
+  identités, avec pagination complète. Une personne n’apparaît qu’une fois, même
+  avec plusieurs parcours validés ou une reprise de modules une autre année.
+  Des localisations confirmées contradictoires pour la même personne provoquent
+  une indisponibilité à qualifier, pas un choix arbitraire.
 
 Le croisement initial des présences et du suivi des formations sert à contrôler
 le périmètre ; une présence ou une progression à 100 % ne change jamais un
@@ -35,7 +37,7 @@ ou contact n’est envoyé à un géocodeur, un fournisseur de tuiles ou un serv
 carte tiers. Ville + code postal doivent correspondre exactement. Sans code
 postal, une commune unique au nom exact est admise ; les homonymes restent dans
 la liste. La notation générique Paris 75000 désigne le centre de Paris, pas un
-arrondissement. Les personnes sans localisation ou sans promotion restent dans
+arrondissement. Les personnes sans localisation restent dans
 la liste et les compteurs ; les points proches sont regroupés selon la largeur
 réelle de l’écran pour garder des cibles de 44 px accessibles.
 
@@ -45,12 +47,25 @@ au réseau des formateurs (`network-territories.ts`) : le référentiel partagé
 national simplifié 110m, domaine public), et le centre d’Anvers de Wikidata
 Q12892 (CC0). Une localisation belge n’est positionnée qu’après confirmation
 explicite, via la configuration privée `place: "BE-11002"`. Le statut du dossier
-reste inchangé ; le filtre cohorte fonctionne aussi sur la Belgique. Une personne
+reste inchangé ; le filtre territoire fonctionne aussi sur la Belgique. Une personne
 encore en formation n’y apparaît plus, même si sa localisation a été confirmée.
-Un territoire sans formateur validé affiche un message vide explicite.
+Seuls les territoires avec des membres localisés figurent dans le sélecteur ;
+les résidences sans point restent dans la liste « Tous les territoires ».
+
+La carte ne lit **jamais** les missions ni les communes des établissements : elle
+utilise `formateurs.ville` et `formateurs.cp`, ou une correction de résidence
+explicitement confirmée. Ces champs peuvent contenir une erreur historique : ne
+pas prétendre les avoir tous certifiés. Charlotte a confirmé **Toulouse pour
+Candice**, dont la fiche source indique encore Draguignan. L’exception privée
+`RESOURCE_NETWORK_RESIDENCES` est indexée par **personne**, sans réécrire sa fiche
+ni remplacer les exceptions de parcours
+existantes dans `RESOURCE_NETWORK_LOCATIONS`. La résidence confirmée est prioritaire
+et s’applique à tous ses parcours validés. Vérifier
+sa présence à Toulouse dans l’API après déploiement. Une exception utilisée
+uniquement par l’aperçu local ne vaut pas correction de production.
 
 Les couleurs viennent directement des variables de la charte (`--vert`,
-`--jaune`, `--papier`). Les contours locaux sont intégrés dans le SVG
+`--papier`). Les contours locaux sont intégrés dans le SVG
 de la carte avec un fond `--vert-clair` et un trait `--vert` ; les fonds partagés
 de la carte des établissements ne sont pas modifiés.
 

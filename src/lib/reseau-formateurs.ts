@@ -66,48 +66,48 @@ export function localiserFormateur(city: string, postcode: unknown) {
 
 /** Only an explicit validation grants a place in the resource directory.
  * Filter server-side: unvalidated names must not reach the map, list or counters. */
-export function construireReseauFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}) {
+export function construireReseauFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}, residences: NetworkLocations = {}) {
   const people = new Map(personnes.map(person => [person.Id, person]))
   if (people.size !== personnes.length) throw new Error('Identités formateurs ambiguës')
   const current = reconcilierActifs(parcours, ['formateurs_id', 'cohortes_id'], ['cohortes_id'])
-  const seen = new Set<number>()
-  const members = []
+  const validated = new Map<number, Row[]>()
   for (const dossier of current) {
-    const statut = text(dossier.statut)
-    if (statut !== 'Formateur validé') continue
-    const person = people.get(Number(dossier.formateurs_id))
+    if (text(dossier.statut) !== 'Formateur validé') continue
+    const personId = Number(dossier.formateurs_id)
+    validated.set(personId, [...(validated.get(personId) ?? []), dossier])
+  }
+  const members = []
+  for (const [personId, dossiers] of validated) {
+    const person = people.get(personId)
     if (!person || !text(person.nom)) throw new Error('Identité formateur absente')
-    // Never choose a promotion/status silently when two active paths disagree.
-    if (seen.has(person.Id)) throw new Error('Plusieurs parcours actifs à qualifier pour une personne')
-    seen.add(person.Id)
-    const promotion = text(dossier.promotion)
-    const year = /\b(20\d{2})\b/.exec(promotion)?.[1] ?? ''
+    // One person, regardless of the number or years of validated paths.
+    // Conflicting residence overrides still require a human decision.
+    const overrides = dossiers.map(d => locations[String(d.Id)]).filter(Boolean)
+    const residence = residences[String(person.Id)]
+    if (!residence && new Set(overrides.map(entry => JSON.stringify(entry))).size > 1)
+      throw new Error('Localisations confirmées contradictoires pour une personne')
+    const confirmed = residence ?? overrides[0]
     const city = text(person.ville)
     members.push({
-      id: dossier.Id,
+      id: person.Id,
       nom: [text(person.prenom), text(person.nom)].filter(Boolean).join(' '),
-      ville: city,
-      promotion,
-      annee: year,
-      statut,
+      statut: 'Formateur validé' as const,
       etat: 'valide' as const,
       localisation: city,
-      // Unknown promotion is visible in the list, never assigned to a guessed year.
-      ...(year
-        ? locations[String(dossier.Id)] ? confirmedLocation(locations[String(dossier.Id)]) : localiserFormateur(city, person.cp)
-        : { location: null, issue: 'Promotion à préciser' }),
+      // Only the person's residence fields, never missions or school locations.
+      ...(confirmed ? confirmedLocation(confirmed) : localiserFormateur(city, person.cp)),
     })
   }
-  members.sort((a, b) => a.annee.localeCompare(b.annee) || a.nom.localeCompare(b.nom, 'fr'))
+  members.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
   return { members, updatedAt: new Date().toISOString() }
 }
 
 export type ReseauFormateurs = ReturnType<typeof construireReseauFormateurs>
 
-export async function lireReseauFormateurs(token: string, rawLocations?: unknown) {
+export async function lireReseauFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown) {
   const [people, paths] = await Promise.all([
     lireToutes(token, 'formateurs', 'Id,nom,prenom,ville,cp'),
-    lireToutes(token, 'engagements', 'Id,statut,promotion,formateurs_id,cohortes_id,fusionne_vers'),
+    lireToutes(token, 'engagements', 'Id,statut,formateurs_id,cohortes_id,fusionne_vers'),
   ])
-  return construireReseauFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations))
+  return construireReseauFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsConfirmees(rawResidences))
 }

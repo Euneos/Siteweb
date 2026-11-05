@@ -14,7 +14,8 @@ export const GET: APIRoute = async (context) => {
     if (new URL(request.url).searchParams.get('reseau') === '1') {
       const token = jeton(locals)
       if (!token) return privateJson({ error: 'La carte du réseau est temporairement indisponible.' }, 503)
-      return privateJson(await lireReseauFormateurs(token, internalEnvironment(locals).RESOURCE_NETWORK_LOCATIONS))
+      const env = internalEnvironment(locals)
+      return privateJson(await lireReseauFormateurs(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES))
     }
     const { results } = await auth.db
       .prepare(

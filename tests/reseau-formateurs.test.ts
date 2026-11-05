@@ -12,7 +12,7 @@ describe('Carte du réseau formateurs', () => {
     const paths = statuses.map((statut, i) => path(i + 1, { formateurs_id: i + 1, statut, accord_signe: true, promotion: i ? 'Septembre 2026' : 'Septembre 2025' }))
     const data = construireReseauFormateurs(people, paths)
     expect(data.members.map(m => m.etat)).toEqual(['valide', 'valide'])
-    expect(data.members.map(m => m.annee)).toEqual(['2025', '2026'])
+    expect(data.members.every(m => !('annee' in m) && !('promotion' in m))).toBe(true)
     expect(data.members.map(m => m.id)).toEqual([1, 2])
     expect(data.members.every(m => m.statut === 'Formateur validé')).toBe(true)
     expect(JSON.stringify(data)).not.toContain('private@example.test')
@@ -25,9 +25,11 @@ describe('Carte du réseau formateurs', () => {
     expect(() => construireReseauFormateurs([person()], [path(2, { fusionne_vers: 99 })])).toThrow()
     expect(() => construireReseauFormateurs([person()], [path(), path(2, { fusionne_vers: 1, formateurs_id: 2 })])).toThrow()
   })
-  test('does not silently select between multiple paths or absent identities', () => {
-    expect(() => construireReseauFormateurs([person()], [path(), path(2)])).toThrow()
+  test('counts a validated person once, across years and repeat training', () => {
+    expect(construireReseauFormateurs([person()], [path(), path(2, { promotion: 'Septembre 2025' })]).members).toHaveLength(1)
+    expect(construireReseauFormateurs([person()], [path(), path(2, { statut: 'En cours de formation' })]).members).toHaveLength(1)
     expect(() => construireReseauFormateurs([], [path()])).toThrow()
+    expect(() => construireReseauFormateurs([person()], [path(), path(2)], { '1': { commune: '31555' }, '2': { commune: '35238' } })).toThrow()
   })
   test('locates exact cities only, preserves ambiguous/inconsistent places in list', () => {
     expect(localiserFormateur('Rennes', null).location?.name).toBe('Rennes')
@@ -37,7 +39,26 @@ describe('Carte du réseau formateurs', () => {
     expect(localiserFormateur('Rennes', '75001').location).toBeNull()
     expect(localiserFormateur('Foix', '9000').location?.name).toBe('Foix')
     expect(localiserFormateur('Paris', '75000').location?.name).toBe('Paris')
-    expect(construireReseauFormateurs([person()], [path(1, { promotion: null })]).members[0].location).toBeNull()
+    expect(construireReseauFormateurs([person()], [path(1, { promotion: null })]).members[0].location?.name).toBe('Rennes')
+  })
+  test('residence correction overrides a training-place error without exposing it or changing the source', () => {
+    const people = [person(1, { ville: 'Draguignan', cp: '83300' })]
+    const before = JSON.stringify(people)
+    const member = construireReseauFormateurs(people, [path()], { '1': { commune: '31555' } }).members[0]
+    expect(member.localisation).toBe('Toulouse')
+    expect(member.location?.name).toBe('Toulouse')
+    expect(JSON.stringify(member)).not.toContain('Draguignan')
+    expect(JSON.stringify(people)).toBe(before)
+  })
+  test('person-level residence applies across validated paths without replacing legacy configuration', () => {
+    const people = [person(1, { ville: 'Draguignan', cp: '83300' })]
+    const paths = [path(10), path(11)]
+    const config = { '10': { commune: '35238' }, '11': { commune: '31555' } }
+    const before = JSON.stringify(config)
+    const result = construireReseauFormateurs(people, paths, config, { '1': { commune: '31555' } })
+    expect(result.members).toHaveLength(1)
+    expect(result.members[0].location?.name).toBe('Toulouse')
+    expect(JSON.stringify(config)).toBe(before)
   })
   test('confirmed private overrides do not change the stored source rows', () => {
     const people = [person(1, { ville: 'Monts', cp: null })]

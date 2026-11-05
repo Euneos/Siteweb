@@ -12,32 +12,32 @@ const shapes = projections.map(({ id }) => {
 ---
 
 <div class="trainer-network" id="trainer-network">
-  <p>Les formateurs WISE-UP validés qui forment les adultes en établissement, par cohorte.</p>
-  <p class="iw-small iw-muted">Localisation par commune ou territoire, jamais à l’adresse personnelle. Les repères proches sont regroupés.</p>
+  <p>Les formateurs WISE-UP validés.</p>
+  <p class="iw-small iw-muted">Localisation selon la commune et le code postal de résidence renseignés, jamais selon le lieu de formation. Seul le centre de la commune est affiché, pas l’adresse personnelle. Les repères proches sont regroupés.</p>
   <noscript><p>Activez JavaScript pour consulter la carte et la liste du réseau.</p></noscript>
   <p data-network-status role="status" aria-live="polite">Chargement du réseau…</p>
   <button type="button" class="iw-button iw-button--plain" data-network-retry hidden>Réessayer</button>
   <div data-network-content hidden>
     <div class="trainer-network__filters">
-      <div class="iw-field"><label for="network-cohort">Cohorte</label><select id="network-cohort"><option value="">Toutes les cohortes</option></select></div>
+      <div class="iw-field"><label for="network-territory">Territoire</label><select id="network-territory"><option value="">Tous les territoires</option></select></div>
     </div>
-    <ul class="trainer-network__legend" aria-label="Légende de la carte" data-network-legend></ul>
+    <ul class="trainer-network__legend" aria-label="Légende de la carte" data-network-legend><li><span class="trainer-network__swatch" aria-hidden="true"></span>Formateurs validés</li></ul>
     <div class="trainer-network__views">
-      <div>
-        <div class="iw-field"><label for="network-territory">Territoire</label><select id="network-territory">{projections.map(p => <option value={p.id}>{p.label}</option>)}</select></div>
-        <div class="trainer-network__map" aria-label="Carte des communes du réseau">
+      {shapes.map(shape => <section data-network-panel={shape.id} hidden aria-label={projections.find(p => p.id === shape.id)!.label}>
+        <h3 data-network-count>{projections.find(p => p.id === shape.id)!.label}</h3>
+        <div class="trainer-network__map" data-map-territory={shape.id} aria-label={`Carte — ${projections.find(p => p.id === shape.id)!.label}`}>
           <svg viewBox="180 20 640 600" aria-hidden="true">
             <desc>France : contours administratifs 2026 — Etalab / IGN, Licence Ouverte, etalab-datasets.geo.data.gouv.fr. Belgique : Natural Earth, contour national simplifié 110m, domaine public.</desc>
-            {shapes.map(shape => <g data-network-territory={shape.id} style={shape.id === 'metropole' ? undefined : 'display:none'} set:html={shape.markup} />)}
+            <g data-network-territory={shape.id} set:html={shape.markup} />
           </svg>
           <div data-network-points></div>
         </div>
-        <p class="iw-small iw-muted">Choisissez un point pour voir les formateurs de cette commune. La liste ci-dessous permet aussi de les retrouver sans utiliser la carte.</p>
-      </div>
+      </section>)}
       <div class="trainer-network__selection" data-network-selection aria-live="polite">
         <h3>Les formateurs près de chez vous</h3><p>Sélectionnez une commune sur la carte.</p>
       </div>
     </div>
+    <p class="iw-small iw-muted">Choisissez un point pour voir les formateurs de cette commune. La liste ci-dessous permet aussi de les retrouver sans utiliser la carte.</p>
     <details class="trainer-network__directory">
       <summary>Liste des formateurs validés du réseau</summary>
       <ul data-network-list></ul>
@@ -56,16 +56,20 @@ const shapes = projections.map(({ id }) => {
   .trainer-network__filters { display: grid; gap: var(--s-lie); margin-block: var(--s-lie); }
   .trainer-network__legend { display: flex; flex-wrap: wrap; gap: .6em 1em; list-style: none; padding: 0 !important; margin-block: var(--s-lie); }
   .trainer-network__legend li { display: flex; gap: .4em; align-items: center; margin: 0 !important; font-size: var(--t-note); }
-  .trainer-network__swatch { display: inline-block; width: .85em; height: .85em; border: 1px solid var(--vert); background: var(--network-color); border-radius: 50%; flex-shrink: 0; }
+  .trainer-network__swatch { display: inline-block; width: .85em; height: .85em; border: 1px solid var(--vert); background: var(--vert); border-radius: 50%; flex-shrink: 0; }
   .trainer-network__views { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-lie); align-items: start; }
+  .trainer-network__views > [hidden] { display: none; }
+  .trainer-network__views > section { min-width: 0; }
+  .trainer-network__views h3 { font-size: var(--t-corps); }
   .trainer-network__map { position: relative; width: 100%; aspect-ratio: 640 / 600; background: var(--papier); margin-block: var(--s-lie); border: 1px solid var(--vert); border-radius: .5rem; }
   .trainer-network__map svg { width: 100%; height: 100%; display: block; }
   .trainer-network__point { position: absolute; transform: translate(-50%, -50%); min-width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; }
   .trainer-network__point > span { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px; padding: 3px; min-width: 24px; min-height: 24px; max-width: 44px; background: var(--blanc); border: 2px solid var(--vert); border-radius: 50%; color: var(--noir); font-size: var(--t-note); }
   .trainer-network__point:hover, .trainer-network__point:focus-visible { z-index: 2; }
   .trainer-network__point:focus-visible, .trainer-network__point[aria-pressed='true'] { outline: 3px solid var(--vert); outline-offset: -3px; border-radius: 50%; }
-  .trainer-network__selection { background: var(--papier); padding: var(--s-lie); border-radius: .5rem; overflow-wrap: anywhere; }
+  .trainer-network__selection { grid-column: 1 / -1; background: var(--papier); padding: var(--s-lie); border-radius: .5rem; overflow-wrap: anywhere; }
   .trainer-network__selection h3 { font-size: var(--t-corps); }
+  .trainer-network[data-network-single='true'] .trainer-network__selection { grid-column: auto; }
   .trainer-network__selection ul, .trainer-network__directory ul { padding-left: 1.25em; }
   .trainer-network__directory { margin-block: var(--s-lie); }
   .trainer-network__directory summary { cursor: pointer; min-height: 44px; padding-block: .5em; font-weight: 600; }
