@@ -7,11 +7,6 @@ type Row = Record<string, unknown> & { Id: number }
 type Commune = [string, string, string[], number | null, number | null, string]
 const communes = (JSON.parse(reference) as { rows: Commune[] }).rows
 const text = (value: unknown) => typeof value === 'string' ? value.trim() : ''
-const states = {
-  'Formateur validé': 'valide',
-  'En cours de formation': 'formation',
-  'Formateur en cours de validation': 'validation',
-} as const
 
 // Private deployment configuration, not a second public address book in Git.
 // Keys are dossier ids; only confirmed commune codes / broad territories are accepted.
@@ -69,7 +64,8 @@ export function localiserFormateur(city: string, postcode: unknown) {
   return locateCommune(matches[0][1], matches[0][2][0] ?? '')
 }
 
-/** A candidacy, invitation or signed agreement never proves training/validation. */
+/** Only an explicit validation grants a place in the resource directory.
+ * Filter server-side: unvalidated names must not reach the map, list or counters. */
 export function construireReseauFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}) {
   const people = new Map(personnes.map(person => [person.Id, person]))
   if (people.size !== personnes.length) throw new Error('Identités formateurs ambiguës')
@@ -78,7 +74,7 @@ export function construireReseauFormateurs(personnes: Row[], parcours: Row[], lo
   const members = []
   for (const dossier of current) {
     const statut = text(dossier.statut)
-    if (!Object.hasOwn(states, statut)) continue
+    if (statut !== 'Formateur validé') continue
     const person = people.get(Number(dossier.formateurs_id))
     if (!person || !text(person.nom)) throw new Error('Identité formateur absente')
     // Never choose a promotion/status silently when two active paths disagree.
@@ -94,7 +90,7 @@ export function construireReseauFormateurs(personnes: Row[], parcours: Row[], lo
       promotion,
       annee: year,
       statut,
-      etat: states[statut as keyof typeof states],
+      etat: 'valide' as const,
       localisation: city,
       // Unknown promotion is visible in the list, never assigned to a guessed year.
       ...(year

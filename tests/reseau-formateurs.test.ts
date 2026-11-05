@@ -7,12 +7,14 @@ const path = (Id = 1, extra = {}) => ({ Id, formateurs_id: 1, cohortes_id: null,
 
 describe('Carte du réseau formateurs', () => {
   test('distinguishes validation from participation, includes every year without agreements or candidacy deductions', () => {
-    const people = Array.from({ length: 8 }, (_, i) => person(i + 1))
-    const statuses = ['Formateur validé', 'En cours de formation', 'Formateur en cours de validation', 'Candidature validée', 'En attente confirmation formation', 'Refuse', 'Abandonne', '__proto__']
+    const people = Array.from({ length: 9 }, (_, i) => person(i + 1))
+    const statuses = ['Formateur validé', 'Formateur validé', 'En cours de formation', 'Formateur en cours de validation', 'Candidature validée', 'En attente confirmation formation', 'Refuse', 'Abandonne', '__proto__']
     const paths = statuses.map((statut, i) => path(i + 1, { formateurs_id: i + 1, statut, accord_signe: true, promotion: i ? 'Septembre 2026' : 'Septembre 2025' }))
     const data = construireReseauFormateurs(people, paths)
-    expect(data.members.map(m => m.etat)).toEqual(['valide', 'formation', 'validation'])
-    expect(data.members.map(m => m.annee)).toEqual(['2025', '2026', '2026'])
+    expect(data.members.map(m => m.etat)).toEqual(['valide', 'valide'])
+    expect(data.members.map(m => m.annee)).toEqual(['2025', '2026'])
+    expect(data.members.map(m => m.id)).toEqual([1, 2])
+    expect(data.members.every(m => m.statut === 'Formateur validé')).toBe(true)
     expect(JSON.stringify(data)).not.toContain('private@example.test')
     expect(JSON.stringify(data)).not.toContain('NE PAS DIFFUSER')
     expect(data.members[0].location?.territory).toBe('metropole')
@@ -62,14 +64,14 @@ describe('Carte du réseau formateurs', () => {
   })
   test('confirmed Antwerp appears in Belgium without altering the France-only map or source records', () => {
     const people = [person(1, { ville: 'Anvers', cp: null })]
-    const paths = [path(1, { statut: 'En cours de formation', promotion: 'Septembre 2026' })]
+    const paths = [path(1, { statut: 'Formateur validé', promotion: 'Septembre 2026' })]
     const before = JSON.stringify({ people, paths })
     const config = lireLocalisationsConfirmees('{"1":{"place":"BE-11002"}}')
     const member = construireReseauFormateurs(people, paths, config).members[0]
     expect(member.location?.territory).toBe('BE')
     expect(member.location?.name).toBe('Anvers')
     expect(member.localisation).toBe('Anvers, Belgique')
-    expect(member.etat).toBe('formation')
+    expect(member.etat).toBe('valide')
     expect(member.issue).toBeNull()
     expect(member.location!.x).toBeGreaterThan(180)
     expect(member.location!.x).toBeLessThan(820)
@@ -77,6 +79,12 @@ describe('Carte du réseau formateurs', () => {
     expect(member.location!.y).toBeLessThan(620)
     expect(JSON.stringify({ people, paths })).toBe(before)
     expect(localiserFormateur('Anvers', null).location).toBeNull()
+  })
+  test('a confirmed location never makes an unvalidated person appear in the directory', () => {
+    const people = [person(1, { ville: 'Anvers', cp: null })]
+    const paths = [path(1, { statut: 'En cours de formation', promotion: 'Septembre 2026' })]
+    expect(construireReseauFormateurs(people, paths, { '1': { place: 'BE-11002' } }).members).toEqual([])
+    expect(paths[0].statut).toBe('En cours de formation')
   })
   test('groups nearby centres for touch targets without losing a person or mixing territories', () => {
     const people = [person(1, { ville: 'Paris', cp: '75001' }), person(2, { ville: 'Orsay', cp: '91400' }), person(3, { ville: 'Rennes', cp: '35000' })]

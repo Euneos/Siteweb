@@ -12,15 +12,14 @@ const shapes = projections.map(({ id }) => {
 ---
 
 <div class="trainer-network" id="trainer-network">
-  <p>Les formateurs WISE-UP qui forment les adultes en établissement, toutes promotions confondues.</p>
-  <p class="iw-small iw-muted">Localisation par commune ou territoire, jamais à l’adresse personnelle. Les repères proches sont regroupés. Formation suivie et validation sont deux étapes distinctes.</p>
+  <p>Les formateurs WISE-UP validés qui forment les adultes en établissement, par cohorte.</p>
+  <p class="iw-small iw-muted">Localisation par commune ou territoire, jamais à l’adresse personnelle. Les repères proches sont regroupés.</p>
   <noscript><p>Activez JavaScript pour consulter la carte et la liste du réseau.</p></noscript>
   <p data-network-status role="status" aria-live="polite">Chargement du réseau…</p>
   <button type="button" class="iw-button iw-button--plain" data-network-retry hidden>Réessayer</button>
   <div data-network-content hidden>
     <div class="trainer-network__filters">
-      <div class="iw-field"><label for="network-year">Année de promotion</label><select id="network-year"><option value="">Toutes les années</option></select></div>
-      <div class="iw-field"><label for="network-state">Statut</label><select id="network-state"><option value="">Tous les statuts</option><option value="valide">Formateurs validés</option><option value="formation">En cours de formation</option><option value="validation">Validation en attente</option></select></div>
+      <div class="iw-field"><label for="network-cohort">Cohorte</label><select id="network-cohort"><option value="">Toutes les cohortes</option></select></div>
     </div>
     <ul class="trainer-network__legend" aria-label="Légende de la carte" data-network-legend></ul>
     <div class="trainer-network__views">
@@ -40,7 +39,7 @@ const shapes = projections.map(({ id }) => {
       </div>
     </div>
     <details class="trainer-network__directory">
-      <summary>Liste des formateurs et localisations à préciser</summary>
+      <summary>Liste des formateurs validés du réseau</summary>
       <ul data-network-list></ul>
     </details>
     <p class="iw-small iw-muted" data-network-updated></p>
@@ -54,11 +53,10 @@ const shapes = projections.map(({ id }) => {
 <style is:global>
   .trainer-network { min-width: 0; }
   .trainer-network p { overflow-wrap: anywhere; }
-  .trainer-network__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-lie); margin-block: var(--s-lie); }
+  .trainer-network__filters { display: grid; gap: var(--s-lie); margin-block: var(--s-lie); }
   .trainer-network__legend { display: flex; flex-wrap: wrap; gap: .6em 1em; list-style: none; padding: 0 !important; margin-block: var(--s-lie); }
   .trainer-network__legend li { display: flex; gap: .4em; align-items: center; margin: 0 !important; font-size: var(--t-note); }
   .trainer-network__swatch { display: inline-block; width: .85em; height: .85em; border: 1px solid var(--vert); background: var(--network-color); border-radius: 50%; flex-shrink: 0; }
-  .trainer-network__swatch--validation { border-radius: 0; transform: rotate(45deg); background: transparent; border: 2px solid var(--orange); }
   .trainer-network__views { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-lie); align-items: start; }
   .trainer-network__map { position: relative; width: 100%; aspect-ratio: 640 / 600; background: var(--papier); margin-block: var(--s-lie); border: 1px solid var(--vert); border-radius: .5rem; }
   .trainer-network__map svg { width: 100%; height: 100%; display: block; }

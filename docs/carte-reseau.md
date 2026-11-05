@@ -7,13 +7,16 @@ aucune extension de l’audience équipe. L’API vérifie le JWT équipe ou res
 renvoie `private, no-store` et ne publie ni email, téléphone, notes, métier ni
 adresse de rue. Aucune écriture dans les dossiers.
 
-## Périmètre et états
+## Périmètre et cohortes — décision Charlotte du 5 novembre 2026
 
-- **Formateur validé** : couleur de l’année de promotion (2025 : vert ; 2026 : jaune).
-- **En cours de formation** : point orange.
-- **Formateur en cours de validation** : losange orange vide, libellé distinct.
-- Candidatures, accords seuls, invitations, attente de confirmation, refus et
-  abandons ne figurent pas dans le réseau. Toutes les promotions sont lues.
+- **Seul « Formateur validé » est admis**, avec la couleur de l’année de promotion
+  (Cohorte 2025 : vert ; Cohorte 2026 : jaune).
+- Formations en cours, validations en attente, candidatures, accords seuls,
+  invitations, attente de confirmation, refus et abandons sont exclus **côté
+  serveur** : pas de noms, points, listes ni compteurs transmis à l’interface.
+- Un seul filtre **Cohorte** remplace les filtres année et statut, avec « Toutes
+  les cohortes », « Cohorte 2025 », « Cohorte 2026 ». Aucune légende orange ni
+  statut en attente. La liste sous la carte suit le même périmètre validé.
 - Les archives `fusionne_vers` sont exclues après contrôle de leurs cibles et
   identités, avec pagination complète. Plusieurs parcours éligibles courants
   pour une personne provoquent une indisponibilité à qualifier : aucun choix
@@ -42,10 +45,12 @@ au réseau des formateurs (`network-territories.ts`) : le référentiel partagé
 national simplifié 110m, domaine public), et le centre d’Anvers de Wikidata
 Q12892 (CC0). Une localisation belge n’est positionnée qu’après confirmation
 explicite, via la configuration privée `place: "BE-11002"`. Le statut du dossier
-reste inchangé ; les filtres année et statut fonctionnent aussi sur la Belgique.
+reste inchangé ; le filtre cohorte fonctionne aussi sur la Belgique. Une personne
+encore en formation n’y apparaît plus, même si sa localisation a été confirmée.
+Un territoire sans formateur validé affiche un message vide explicite.
 
 Les couleurs viennent directement des variables de la charte (`--vert`,
-`--jaune`, `--orange`, `--papier`). Les contours locaux sont intégrés dans le SVG
+`--jaune`, `--papier`). Les contours locaux sont intégrés dans le SVG
 de la carte avec un fond `--vert-clair` et un trait `--vert` ; les fonds partagés
 de la carte des établissements ne sont pas modifiés.
 
