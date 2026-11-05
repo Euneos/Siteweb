@@ -30,7 +30,6 @@ try {
     if (url.pathname === '/interne/ressources') {
       const response = await app.render(new Request(url, { headers: { 'Cf-Access-Jwt-Assertion': token } }), { locals: { runtime: { env } } })
       assert.equal(response.status, 200)
-      assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-src 'self' https:\/\/player\.vimeo\.com/)
       return route.fulfill({ headers: Object.fromEntries(response.headers), contentType: 'text/html', body: await response.text() })
     }
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: { resources: [], members: [], identity: { email: 'trainer@example.test' } } })
@@ -43,17 +42,18 @@ try {
     await page.goto('https://videos.test/interne/ressources#replay-intervision')
     const panel = page.locator('#replay-intervision')
     await panel.scrollIntoViewIfNeeded()
-    const frames = panel.locator('iframe')
-    assert.equal(await frames.count(), 2)
-    assert.equal(new URL(await frames.nth(1).getAttribute('src')).searchParams.get('h'), '49de6ff9e7')
+    assert.equal(await panel.locator('iframe').count(), 0)
+    const links = panel.locator('a')
+    assert.equal(await links.count(), 2)
+    assert.equal(await links.nth(0).getAttribute('href'), 'https://vimeo.com/1243737710')
+    assert.equal(await links.nth(1).getAttribute('href'), 'https://vimeo.com/1243742709/49de6ff9e7')
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Débordement à ${width}px`)
-    for (const frame of await frames.all()) {
-      const box = await frame.boundingBox()
+    for (const link of await links.all()) {
+      assert.equal(await link.getAttribute('target'), '_blank')
+      const box = await link.boundingBox()
       assert(box.width > 0 && box.height > 0 && box.x >= 0 && box.x + box.width <= width)
-      await frame.scrollIntoViewIfNeeded()
-      await frame.contentFrame().getByText('Lecteur Vimeo').waitFor()
     }
     await panel.screenshot({ path: `${output}/videos-${width}.png` })
-    console.log(`Deux lecteurs vérifiés à ${width}px (réseau Vimeo simulé ; lecture réelle à vérifier en ligne).`)
+    console.log(`Deux liens Vimeo sans lecteur intégré vérifiés à ${width}px.`)
   }
 } finally { await browser.close() }
