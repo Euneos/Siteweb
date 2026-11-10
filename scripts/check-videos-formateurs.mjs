@@ -46,7 +46,7 @@ try {
     const links = panel.locator('a')
     assert.equal(await links.count(), 2)
     assert.equal(await links.nth(0).getAttribute('href'), 'https://vimeo.com/1243737710/aaf23ddfa2?share=copy&fl=sv&fe=ci')
-    assert.equal(await links.nth(1).getAttribute('href'), 'https://vimeo.com/1245480346?share=copy&fl=sv&fe=ci')
+    assert.equal(await links.nth(1).getAttribute('href'), 'https://vimeo.com/1245480346/d12a11fedf?share=copy&fl=sv&fe=ci')
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Débordement à ${width}px`)
     for (const link of await links.all()) {
       assert.equal(await link.getAttribute('target'), '_blank')

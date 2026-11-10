@@ -110,7 +110,7 @@ try {
     }
     await page.locator('#replay-intervision > summary').click()
     await expect(page.locator('#replay-intervision a')).toHaveCount(2)
-    await expect(page.locator('#replay-intervision a').nth(1)).toHaveAttribute('href', 'https://vimeo.com/1245480346?share=copy&fl=sv&fe=ci')
+    await expect(page.locator('#replay-intervision a').nth(1)).toHaveAttribute('href', 'https://vimeo.com/1245480346/d12a11fedf?share=copy&fl=sv&fe=ci')
     if ([390, 1440].includes(width)) {
       await page.evaluate(() => scrollTo(0, 0))
       await page.screenshot({ path: `${output}/ressources-videos-${width}.png`, fullPage: true })
