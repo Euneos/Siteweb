@@ -18,6 +18,16 @@ const env = { INTERNAL_ACCESS_DOMAIN: domain, INTERNAL_ACCESS_AUD: 'team', RESOU
   },
 } }
 const tokens = {}
+let failVisual = false
+let visualReads = 0
+const visualBytes = new Uint8Array([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80])
+env.CA_VISUALS = { get: async (key, type) => {
+  visualReads++
+  assert.match(key, /^deploiement-2026-11-07-[12]$/)
+  assert.equal(type, 'arrayBuffer')
+  if (failVisual) throw new Error('Storage unavailable')
+  return visualBytes.buffer
+} }
 for (const role of ['board', 'team', 'trainers']) tokens[role] = await new SignJWT({ email: `${role}@example.test` }).setProtectedHeader({ alg: 'RS256', kid: jwk.kid }).setSubject(role).setAudience(role).setIssuer(`https://${domain}`).setExpirationTime('30m').sign(privateKey)
 const originalFetch = globalThis.fetch
 let failBase = false
@@ -87,9 +97,22 @@ try {
   const api = await originalFetch(`${base}/api/interne/ca`)
   assert.equal(api.status, 200); assert.match(api.headers.get('Cache-Control'), /no-store/)
   const body = await api.text(); assert(!body.includes('SECRET')); assert(!body.includes('example.test'))
-  for (const role of ['anonymous', 'trainers']) for (const path of ['/interne/ca', '/interne/ca/', '/api/interne/ca', '/api/interne/ca/']) {
+  for (const visual of ['1', '2']) {
+    const response = await originalFetch(`${base}/api/interne/ca?visual=${visual}`)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('Content-Type'), 'image/webp')
+    assert.match(response.headers.get('Cache-Control'), /no-store/)
+    assert.deepEqual(new Uint8Array(await response.arrayBuffer()), visualBytes)
+  }
+  assert.equal((await originalFetch(`${base}/api/interne/ca?visual=other`)).status, 404)
+  failVisual = true
+  assert.equal((await originalFetch(`${base}/api/interne/ca?visual=1`)).status, 503)
+  failVisual = false
+  const beforeDeniedReads = visualReads
+  for (const role of ['anonymous', 'trainers']) for (const path of ['/interne/ca', '/interne/ca/', '/api/interne/ca', '/api/interne/ca/', '/api/interne/ca?visual=1', '/api/interne/ca?visual=2']) {
     const r = await originalFetch(`${base}${path}`, { headers: { 'X-Fixture-Role': role } }); assert.equal(r.status, 403, `${role} ${path}`)
   }
+  assert.equal(visualReads, beforeDeniedReads, 'Refused users must never read private storage')
   for (const path of ['/interne', '/interne/ressources', '/api/interne/ressources', '/api/interne/ressources?convention=1', '/api/interne/calendrier', '/api/interne/implantations', '/api/interne/conventions-mission']) {
     const r = await originalFetch(`${base}${path}`); assert.equal(r.status, 403, `CA denied: ${path}`)
   }

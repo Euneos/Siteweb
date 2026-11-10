@@ -9,6 +9,18 @@ export const prerender = false
 export const GET: APIRoute = async ({ request, locals }) => {
   const identity = await readBoardIdentity(request, locals)
   if (identity instanceof Response) return identity
+  const visual = new URL(request.url).searchParams.get('visual')
+  if (visual !== null) {
+    if (!['1', '2'].includes(visual)) return new Response('Visuel introuvable.', { status: 404, headers: privateHeaders })
+    try {
+      const storage = internalEnvironment(locals).CA_VISUALS as { get(key: string, type: 'arrayBuffer'): Promise<ArrayBuffer | null> } | undefined
+      const image = await storage?.get(`deploiement-2026-11-07-${visual}`, 'arrayBuffer')
+      if (!image) return new Response('Visuel indisponible.', { status: 503, headers: privateHeaders })
+      return new Response(image, { headers: { ...privateHeaders, 'Content-Type': 'image/webp', 'X-Content-Type-Options': 'nosniff' } })
+    } catch {
+      return new Response('Visuel indisponible.', { status: 503, headers: privateHeaders })
+    }
+  }
   const token = jeton(locals)
   if (!token) return privateJson({ error: 'La synthèse est momentanément indisponible.' }, 503)
   try {

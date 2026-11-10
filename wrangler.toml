@@ -28,6 +28,10 @@ PUBLIC_FORMS_TABLE = "mu8yi5r8lqwiu1n"
 
 # Registre des formulaires directs : reçus techniques. Le raccord Google temporaire,
 # désactivé, y ajoute une capture privée des sources (docs/google-forms-sync.md).
+[[kv_namespaces]]
+binding = "CA_VISUALS"
+id = "33fd7c7688e54874be4a005c2b68e2b0"
+
 [[d1_databases]]
 binding = "FORM_SUBMISSIONS"
 database_name = "euneos-form-submissions"
@@ -42,6 +46,9 @@ migrations_dir = "migrations/interne"
 
 # Les calendriers de recette sont isolés de la production. Les variables
 # non héritées sont répétées pour préserver le routage des formulaires.
+[env.preview]
+kv_namespaces = []
+
 [env.preview.vars]
 BREVO_LIST_FORMATEUR = "6"
 BREVO_LIST_ENJEUX = "9"

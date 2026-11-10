@@ -1,5 +1,27 @@
 # Espace CA — vue de gouvernance
 
+## Visuels de déploiement — préparation du 9 novembre 2026
+
+Les deux images sont servies par `/api/interne/ca?visual=1` et `?visual=2`, après
+le même contrôle d’identité que la synthèse, avec les en-têtes privés `no-store`.
+Le stockage prévu est Workers KV, binding `CA_VISUALS`, clés
+`deploiement-2026-11-07-1` et `deploiement-2026-11-07-2`, contenu WebP.
+Les fichiers sources et images restent hors du dépôt public et des assets publics.
+
+Le 10 novembre, le namespace privé approuvé par Candice a été créé et les deux
+images téléversées puis relues, avec comparaison SHA-256 aux originaux locaux.
+Le binding de production est déclaré dans `wrangler.toml`. Les previews n’ont
+aucun binding vers ces images privées ; utiliser des images fictives en recette.
+Après publication, vérifier les images derrière l’accès CA.
+Sans binding ou si une image manque, l’API renvoie 503, jamais une image publique.
+
+L’aperçu local accepte `BOARD_VISUALS_DIR` (fichiers `visuel-1.webp` et
+`visuel-2.webp`) ; ce répertoire ne doit pas être versionné.
+
+Les actualités de novembre reprennent la fiche de mission du comité scientifique :
+ses cinq missions sont synthétisées en quatre axes en regroupant constitution et
+animation. La phase 1 concerne la constitution et l’installation du comité.
+
 ## Périmètre convenu avec Candice
 
 `/interne/ca` et `/api/interne/ca` : synthèse visuelle en lecture seule, objectif de
