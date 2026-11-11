@@ -114,6 +114,24 @@ export function prepareBootstrap({ dump, out, names, environment }, migrations =
   }
 }
 
+// Return fixed labels only: raw provider errors can contain SQL or private rows.
+export function d1FailureLabel(output) {
+  const labels = [
+    [/CHECK constraint failed/i, 'contrainte CHECK'],
+    [/FOREIGN KEY constraint failed/i, 'contrainte FOREIGN KEY'],
+    [/UNIQUE constraint failed/i, 'contrainte UNIQUE'],
+    [/NOT NULL constraint failed/i, 'contrainte NOT NULL'],
+    [/not authorized|unauthorized|authentication|SQLITE_AUTH|permission denied/i, 'autorisation'],
+    [/too many|too large|exceeds|SQLITE_TOOBIG/i, 'limite SQL'],
+    [/no such table|no such column/i, 'objet SQL absent'],
+    [/syntax error/i, 'syntaxe SQL'],
+    [/timed? ?out|timeout/i, 'expiration réseau'],
+    [/fetch failed|network|ECONN|ENOTFOUND/i, 'transport réseau'],
+    [/internal error|internal server|SQLITE_INTERNAL/i, 'erreur interne fournisseur'],
+  ]
+  return labels.find(([pattern]) => pattern.test(String(output)))?.[1] ?? 'cause non classée'
+}
+
 function wrangler(environment, args) {
   const target = targetConfig(environment)
   const result = spawnSync(
@@ -135,7 +153,7 @@ function wrangler(environment, args) {
   // include values from a row. No retry after a timeout/uncertain response.
   requireThat(
     result.status === 0,
-    'Commande D1 échouée; arrêter, relire le registre avant toute reprise',
+    `Commande D1 ${environment} échouée (${d1FailureLabel(result.stdout + result.stderr)}); arrêter, relire le registre avant toute reprise`,
   )
   const response = JSON.parse(result.stdout)
   requireThat(
