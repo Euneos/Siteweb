@@ -1,7 +1,8 @@
+import { purgeExpiredTasks, taskRetentionCutoff } from '../src/lib/team-task-retention'
 import { afterEach, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { readFileSync, readdirSync } from 'node:fs'
-import { listTasks, parseTask, saveTask } from '../src/lib/team-tasks'
+import { listTasks, parseTask, saveTask, deleteTask } from '../src/lib/team-tasks'
 import { notifyTaskAssignment } from '../src/lib/team-task-notifications'
 import { moveTask } from '../src/lib/task-movement'
 
@@ -332,4 +333,63 @@ test('terminer, archiver, retrouver et rouvrir une tâche conserve une seule fic
   })
   expect(sql.query('SELECT count(*) n FROM team_task_notifications').get().n).toBe(1)
   expect(reopened.created_at).toBe(completed.created_at)
+})
+
+test('suppression partagée : version contrôlée, consultation seule et aucun email', async () => {
+  const { db, sql } = fixture()
+  sql.exec('PRAGMA foreign_keys = ON')
+  const id = crypto.randomUUID()
+  await saveTask(db, actor, id, { ...task, contributors: ['Pauline'] })
+  await expect(deleteTask(db, actor, id, undefined)).rejects.toMatchObject({ status: 400 })
+  await expect(deleteTask(db, actor, id, 2)).rejects.toMatchObject({ status: 409 })
+  expect(await listTasks(db)).toHaveLength(1)
+  await deleteTask(db, actor, id, 1)
+  expect(await listTasks(db)).toEqual([])
+  expect(await listTasks(db, true)).toMatchObject([{ id, title: task.title, contributors: ['Pauline'], version: 2 }])
+  expect(sql.query('SELECT deleted_at, updated_by FROM team_tasks').get()).toMatchObject({ updated_by: actor.email })
+  expect(sql.query('SELECT * FROM team_task_notifications').all()).toHaveLength(1)
+  await expect(deleteTask(db, actor, id, 2)).rejects.toMatchObject({ status: 409 })
+  await expect(saveTask(db, actor, id, task, 2)).rejects.toMatchObject({ status: 409 })
+})
+
+test('30 jours exacts : purge atomique des expirées seulement, y compris leurs notifications', async () => {
+  const { db, sql } = fixture()
+  sql.exec('PRAGMA foreign_keys = ON')
+  const now = new Date('2026-11-12T12:34:56.123Z')
+  const cutoff = taskRetentionCutoff(now)
+  const ids = Array.from({ length: 5 }, () => crypto.randomUUID())
+  for (const id of ids) await saveTask(db, actor, id, task)
+  const dates = ['', cutoff, new Date(Date.parse(cutoff) - 1).toISOString(), new Date(Date.parse(cutoff) + 1).toISOString(), now.toISOString()]
+  ids.forEach((id, i) => sql.query('UPDATE team_tasks SET deleted_at = ? WHERE id = ?').run(dates[i], id))
+  expect(await purgeExpiredTasks(db, now)).toBeGreaterThan(0)
+  const remaining = sql.query('SELECT id FROM team_tasks ORDER BY id').all().map(row => row.id)
+  expect(remaining).toEqual([ids[0], ids[3], ids[4]].sort())
+  expect(sql.query('SELECT count(*) n FROM team_task_notifications').get().n).toBe(3)
+  expect(await purgeExpiredTasks(db, now)).toBe(0)
+  expect(sql.query('PRAGMA foreign_key_check').all()).toEqual([])
+})
+
+test('la vue supprimées exclut les expirées avant même le prochain nettoyage', async () => {
+  const { db, sql } = fixture()
+  const id = crypto.randomUUID()
+  await saveTask(db, actor, id, task)
+  sql.query('UPDATE team_tasks SET deleted_at = ? WHERE id = ?').run(new Date(Date.now() - 31 * 86400000).toISOString(), id)
+  expect(await listTasks(db)).toEqual([])
+  expect(await listTasks(db, true)).toEqual([])
+  expect(sql.query('SELECT count(*) n FROM team_tasks').get().n).toBe(1)
+})
+
+test('la migration de suppression conserve les tâches et notifications déjà présentes', () => {
+  const sql = new Database(':memory:')
+  connections.push(sql)
+  const directory = new URL('../migrations/interne/', import.meta.url)
+  for (const file of readdirSync(directory).filter(name => name.endsWith('.sql') && name < '0017').sort())
+    sql.exec(readFileSync(new URL(file, directory), 'utf8'))
+  sql.exec("INSERT INTO team_tasks(id,title,person,status,created_by,updated_by,created_at,updated_at,version,contributors) VALUES('old','Conserver','Charlotte','today','fixture','fixture','2026-11-01','2026-11-02',7,'[\"Pauline\"]')")
+  sql.exec("INSERT INTO team_task_notifications(task_id,task_version,person,title,description,task_status,assigned_by,state) VALUES('old',7,'Charlotte','Conserver','','today','fixture','sent')")
+  const before = sql.query('SELECT * FROM team_tasks').get()
+  const receipt = sql.query('SELECT * FROM team_task_notifications').get()
+  sql.exec(readFileSync(new URL('0017_team_task_deletion.sql', directory), 'utf8'))
+  expect(sql.prepare('SELECT * FROM team_tasks').get()).toEqual({ ...before, deleted_at: '' })
+  expect(sql.query('SELECT * FROM team_task_notifications').get()).toEqual(receipt)
 })

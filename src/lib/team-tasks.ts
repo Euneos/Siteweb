@@ -1,3 +1,4 @@
+import { taskRetentionCutoff } from './team-task-retention'
 import {
   WorkspaceError,
   type WorkspaceDatabase,
@@ -30,6 +31,7 @@ export type TeamTask = TaskInput & {
   updated_at: string
   completed_at: string
   archived_at: string
+  deleted_at: string
 }
 
 export function parseTask(value: unknown): TaskInput {
@@ -101,7 +103,7 @@ type StoredTask = Omit<TeamTask, 'contributors' | 'priority' | 'blocked' | 'arch
   blocked: number
 }
 const taskColumns =
-  'id, title, description, person, status, contributors, priority, due_on, blocked, blocker, completed_at, archived_at, version, created_at, updated_at'
+  'id, title, description, person, status, contributors, priority, due_on, blocked, blocker, completed_at, archived_at, deleted_at, version, created_at, updated_at'
 const hydrateTask = (row: StoredTask): TeamTask => ({
   ...row,
   contributors: JSON.parse(row.contributors),
@@ -110,11 +112,13 @@ const hydrateTask = (row: StoredTask): TeamTask => ({
   archived: row.archived_at !== '',
   status: row.completed_at ? 'terminee' : row.status,
 })
-export async function listTasks(db: WorkspaceDatabase) {
+export async function listTasks(db: WorkspaceDatabase, deleted = false) {
   return (
     await db
-      .prepare(`SELECT ${taskColumns} FROM team_tasks ORDER BY created_at, id`)
-      .bind()
+      .prepare(
+        `SELECT ${taskColumns} FROM team_tasks WHERE ${deleted ? 'deleted_at > ?' : "deleted_at = ''"} ORDER BY created_at, id`,
+      )
+      .bind(...(deleted ? [taskRetentionCutoff()] : []))
       .all<StoredTask>()
   ).results.map(hydrateTask)
 }
@@ -147,7 +151,9 @@ export async function saveTask(
     if (!Number.isSafeInteger(version) || (version as number) < 1)
       throw new WorkspaceError(400, 'Version invalide.')
     const previous = await db
-      .prepare(`SELECT ${taskColumns} FROM team_tasks WHERE id = ? AND version = ?`)
+      .prepare(
+        `SELECT ${taskColumns} FROM team_tasks WHERE id = ? AND version = ? AND deleted_at = ''`,
+      )
       .bind(id, version as number)
       .first<StoredTask>()
     // Older clients do not know this field: preserve contributors on their edits.
@@ -167,7 +173,7 @@ export async function saveTask(
     const archivedAt = task.archived ? previous?.archived_at || now : ''
     const update = db
       .prepare(
-        'UPDATE team_tasks SET title = ?, description = ?, person = ?, status = ?, contributors = ?, priority = ?, due_on = ?, blocked = ?, blocker = ?, completed_at = ?, archived_at = ?, updated_by = ?, updated_at = ?, version = version + 1 WHERE id = ? AND version = ?',
+        `UPDATE team_tasks SET title = ?, description = ?, person = ?, status = ?, contributors = ?, priority = ?, due_on = ?, blocked = ?, blocker = ?, completed_at = ?, archived_at = ?, updated_by = ?, updated_at = ?, version = version + 1 WHERE id = ? AND version = ? AND deleted_at = ''`,
       )
       .bind(
         task.title,
@@ -234,4 +240,27 @@ export async function saveTask(
     .first<StoredTask>()
   if (!saved) throw new WorkspaceError(503, 'Enregistrement non confirmé. Actualisez le tableau.')
   return hydrateTask(saved)
+}
+
+/** Keep the reviewed task in the deleted view for 30 days. No assignment email. */
+export async function deleteTask(
+  db: WorkspaceDatabase,
+  identity: WorkspaceIdentity,
+  id: string,
+  version: unknown,
+) {
+  if (!Number.isSafeInteger(version) || (version as number) < 1)
+    throw new WorkspaceError(400, 'Version invalide.')
+  const now = new Date().toISOString()
+  const result = await db
+    .prepare(
+      `UPDATE team_tasks SET deleted_at = ?, updated_at = ?, updated_by = ?, version = version + 1 WHERE id = ? AND version = ? AND deleted_at = ''`,
+    )
+    .bind(now, now, identity.email, id, version as number)
+    .run()
+  if (result.meta.changes !== 1)
+    throw new WorkspaceError(
+      409,
+      'Cette tâche a changé ou a déjà été supprimée. Actualisez le tableau avant de poursuivre.',
+    )
 }

@@ -25,7 +25,8 @@ const { identity } = Astro.props
         <p>Chaque tâche a une seule fiche, un responsable et, si nécessaire, des contributeurs.</p>
         <p>
           Voici la marche à suivre : <a href="/interne/organisation-equipe/faq"
-            >FAQ — Mode d’emploi du tableau</a>
+            >FAQ — Mode d’emploi du tableau</a
+          >
         </p>
       </aside><button type="button" class="iw-button" id="task-refresh">Actualiser</button>
     </div>
@@ -36,10 +37,14 @@ const { identity } = Astro.props
           id="task-completed-view"
           ><option value="recent">Les 14 derniers jours</option><option value="all"
             >Toutes, hors archives</option
-          ><option value="archived">Les archives</option></select
+          ><option value="archived">Les archives</option><option value="deleted">Tâches supprimées</option></select
         >
       </div>
     </div>
+    <p id="task-deleted-help" class="iw-small iw-muted" hidden>
+      Les tâches supprimées des 30 derniers jours sont consultables dans la colonne « Terminées ».
+      Elles sont ensuite effacées définitivement.
+    </p>
     <p id="task-notice" class="iw-feedback" role="status">Chargement des tâches…</p>
     <p id="task-mail-feedback" class="iw-feedback" role="status" hidden></p>
     <noscript><p>Activez JavaScript pour consulter et modifier les tâches.</p></noscript>
@@ -114,6 +119,7 @@ const { identity } = Astro.props
       >
     </header>
     <form id="task-form" class="iw-dialog__body">
+      <p id="task-deletion-note" class="iw-feedback" hidden></p>
       <div class="iw-field">
         <label for="task-title">Titre *</label><input
           id="task-title"
@@ -204,6 +210,7 @@ const { identity } = Astro.props
         <button type="submit" id="task-save" class="iw-button iw-button--primary"
           >Enregistrer</button
         ><button type="button" id="task-cancel" class="iw-button">Annuler</button>
+        <button type="button" id="task-delete" class="iw-button" hidden>Supprimer la tâche</button>
       </div>
     </form>
   </dialog>
