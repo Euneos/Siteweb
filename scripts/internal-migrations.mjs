@@ -117,6 +117,17 @@ export function prepareBootstrap({ dump, out, names, environment }, migrations =
 // Return fixed labels only: raw provider errors can contain SQL or private rows.
 export function d1FailureLabel(output) {
   const labels = [
+    [/incomplete input/i, 'instruction SQL incomplète'],
+    [/unterminated|unrecognized token/i, 'token SQL invalide'],
+    [
+      /transactionSync|state\.storage\.transaction|SAVEPOINT|SQL BEGIN TRANSACTION/i,
+      'transaction SQL non prise en charge',
+    ],
+    [/database is locked|database is busy|SQLITE_BUSY|SQLITE_LOCKED/i, 'base occupée'],
+    [/no such function/i, 'fonction SQL absente'],
+    [/already exists|duplicate column/i, 'objet SQL déjà présent'],
+    [/exceeded|maximum.*length|statement.*length/i, 'limite SQL'],
+
     [/CHECK constraint failed/i, 'contrainte CHECK'],
     [/FOREIGN KEY constraint failed/i, 'contrainte FOREIGN KEY'],
     [/UNIQUE constraint failed/i, 'contrainte UNIQUE'],
@@ -130,6 +141,42 @@ export function d1FailureLabel(output) {
     [/internal error|internal server|SQLITE_INTERNAL/i, 'erreur interne fournisseur'],
   ]
   return labels.find(([pattern]) => pattern.test(String(output)))?.[1] ?? 'cause non classée'
+}
+
+// Allow only numeric provider codes and SQLite enum names out of raw CLI output.
+export function d1FailureCodes(output) {
+  const raw = String(output).replace(/\u001b\[[0-9;]*m/g, '')
+  const knownAPI = new Set([
+    '7500',
+    '7403',
+    '1000',
+    '10000',
+    '10001',
+    '10005',
+    '10013',
+    '10014',
+    '10021',
+    '10023',
+  ])
+  const knownSQLite = new Set([
+    'SQLITE_ERROR',
+    'SQLITE_AUTH',
+    'SQLITE_BUSY',
+    'SQLITE_LOCKED',
+    'SQLITE_CONSTRAINT',
+    'SQLITE_TOOBIG',
+    'SQLITE_INTERRUPT',
+    'SQLITE_FULL',
+    'SQLITE_IOERR',
+    'SQLITE_CORRUPT',
+    'SQLITE_MISUSE',
+    'SQLITE_ABORT',
+  ])
+  const api = [...raw.matchAll(/(?:\[code:\s*|"code"\s*:\s*)(\d{1,8})/g)]
+    .map((match) => match[1])
+    .filter((code) => knownAPI.has(code))
+  const sqlite = (raw.match(/\bSQLITE_[A-Z_]+\b/g) ?? []).filter((code) => knownSQLite.has(code))
+  return [...new Set([...api, ...sqlite])].join(',') || 'absent'
 }
 
 function wrangler(environment, args) {
@@ -153,7 +200,7 @@ function wrangler(environment, args) {
   // include values from a row. No retry after a timeout/uncertain response.
   requireThat(
     result.status === 0,
-    `Commande D1 ${environment} échouée (${d1FailureLabel(result.stdout + result.stderr)}); arrêter, relire le registre avant toute reprise`,
+    `Commande D1 ${environment} échouée (${d1FailureLabel(result.stdout + result.stderr)}, code ${d1FailureCodes(result.stdout + result.stderr)}, sortie ${result.status ?? 'absente'}); arrêter, relire le registre avant toute reprise`,
   )
   const response = JSON.parse(result.stdout)
   requireThat(
@@ -210,6 +257,7 @@ export async function migrate({
   for (let count = before; count < migrations.length; count++) {
     // On any error stop immediately; previously committed migrations stay
     // committed. A rerun starts with a fresh, fully verified ledger.
+    console.log(`Migration D1 ${environment}: ${migrations[count].name}`)
     await execute(migrationSQL(state, migrations))
     state = await read()
     requireThat(
