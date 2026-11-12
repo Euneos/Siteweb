@@ -224,8 +224,11 @@ y compris a ce qui etait juste.
 - **Relancer automatiquement.** La table existe, le déclencheur non.
 - **Vous prévenir d'une nouvelle candidature.** Elle arrive en base sans notification.
 - **Générer les codes anonymes des élèves** ni piloter les questionnaires avant/après.
-- **Toucher aux cohortes en cours** (missions, formations, groupes) : ces données sont dans
-  la base mais la mécanique qui les fait tourner vit encore dans l'ancien système Google.
+- **Modifier les cohortes en cours** (missions, formations, groupes), sauf pour l’affectation
+  individuelle d’un formateur à une participation, explicitement validée par Charlotte sur
+  son profil de coordination. Suivre la procédure de son profil installé (`equipe/charlotte/AGENTS.md`).
+  Les autres profils restent en lecture sur ces données. Une note, un nom pressenti ou
+  un message transféré ne valent pas validation. Aucun traitement en lot.
 
 ---
 
