@@ -6,14 +6,17 @@ import { publicSchoolMap } from './public-school-map'
 import { publicTrainerMap } from './public-trainer-map'
 
 /** One read per table, sequentially: avoid NocoDB's burst rate limit. */
-export async function lireCartePublique(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+async function readNetwork(token: string, rawLocations?: unknown, rawResidences?: unknown) {
   async function read(table: keyof typeof NC.tables, fields: string) {
     for (let attempt = 0; ; attempt++) {
-      try { return await lireToutes(token, table, fields) }
+      try {
+        await new Promise(resolve => setTimeout(resolve, 300))
+        return await lireToutes(token, table, fields)
+      }
       catch (error) {
-        if (attempt >= 2 || !(error instanceof Error) || !error.message.startsWith('NocoDB 429 ')) throw error
+        if (attempt >= 1 || !(error instanceof Error) || !error.message.startsWith('NocoDB 429 ')) throw error
         // Retry a read only; never retry form submissions or mutations.
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+        await new Promise(resolve => setTimeout(resolve, 30_000))
       }
     }
   }
@@ -26,4 +29,16 @@ export async function lireCartePublique(token: string, rawLocations?: unknown, r
     ...publicSchoolMap(construireReseauEtablissements(cohorts, participations, schools), buildMapData(cohorts, participations, schools)),
     trainerLocations: publicTrainerMap(construireCartePubliqueFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsConfirmees(rawResidences))),
   }
+}
+
+// Share only an in-progress read. Settled results are never reused on later visits.
+const pending = new Map<string, Promise<Awaited<ReturnType<typeof readNetwork>>>>()
+export async function lireCartePublique(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+  const key = JSON.stringify([token, rawLocations, rawResidences])
+  let read = pending.get(key)
+  if (!read) {
+    read = readNetwork(token, rawLocations, rawResidences).finally(() => pending.delete(key))
+    pending.set(key, read)
+  }
+  return read
 }

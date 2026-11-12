@@ -12,7 +12,8 @@ avec leur pagination et la réconciliation des doublons archivés. Aucun cron, w
 supplémentaire n’est nécessaire. Une page déjà ouverte conserve sa sélection et ses données
 jusqu’à son actualisation ; elle ne lance pas de scrutation en arrière-plan.
 Les cinq tables sont lues une seule fois, successivement, pour éviter les rafales NocoDB.
-Une réponse de limitation HTTP 429 déclenche au plus deux nouvelles lectures différées ;
+Les requêtes sont espacées et les visites simultanées partagent uniquement la lecture en cours.
+Une réponse de limitation HTTP 429 déclenche une nouvelle lecture après 30 secondes ;
 aucune écriture ni soumission de formulaire n’est répétée.
 
 La page utilise `NOCODB_TOKEN`, `RESOURCE_NETWORK_LOCATIONS` et `RESOURCE_NETWORK_RESIDENCES`
