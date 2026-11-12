@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro'
+import Cta from '../components/Cta.astro'
+import PublicNetworkMap from '../components/PublicNetworkMap.astro'
+import { lireCartesPage } from '../lib/public-network-page'
+export const prerender = false
+const maps = await lireCartesPage(Astro.locals)
+Astro.response.headers.set('Cache-Control', 'no-store, max-age=0')
+if (!maps) Astro.response.status = 503
+---
+<Base title="Où nous trouver ? — EUNEOS" description="Retrouvez les établissements engagés dans notre Programme Clé et le réseau de formateurs dans votre région." heroSurface="vert" heroFold="none" sectionFlow>
+  <div class="page trouver">
+    <PublicNetworkMap maps={maps} kind="school" heading="h1" title="Les établissements engagés dans notre Programme Clé">
+      <Cta href="/programme" surface="bleu-fonce">Revenir au Programme</Cta>
+    </PublicNetworkMap>
+    <PublicNetworkMap maps={maps} kind="trainer" title="À la recherche d’un formateur dans votre région ?">
+      <Cta href="/candidater/formateur" surface="jaune">Devenir formateur-ice</Cta>
+    </PublicNetworkMap>
+  </div>
+</Base>
+<style is:global>
+  body:has(.trouver) #main { background: var(--vert); padding: 0; }
+  .trouver { padding-top: var(--s-titre); padding-bottom: var(--s-bloc); display: grid; gap: var(--s-bloc); width: 100%; color: white; }
+  body:has(.trouver) footer { border-top: 1px solid white; }
+</style>

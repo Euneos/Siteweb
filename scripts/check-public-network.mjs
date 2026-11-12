@@ -42,11 +42,12 @@ const manifestName = (await readdir(worker)).find(n=>n.startsWith('manifest_')&&
 const {manifest} = await import(new URL(manifestName,worker))
 const app = new App({...manifest,sessionConfig:undefined,pageMap:new Map([
   ['src/pages/oùnoustrouver.astro',()=>import(new URL('pages/oùnoustrouver.astro.mjs',worker))],
+  ['src/pages/ounoustrouver.astro',()=>import(new URL('pages/ounoustrouver.astro.mjs',worker))],
   ['src/pages/api/reseau-public.ts',()=>import(new URL('pages/api/reseau-public.astro.mjs',worker))],
   ['src/pages/candidater/formateur.astro',()=>import(new URL('pages/candidater/formateur.astro.mjs',worker))],
 ])})
 const render = request => app.render(request,{locals:{runtime:{env}}})
-const request = (path='/o%C3%B9noustrouver') => new Request(`http://localhost${path}`)
+const request = (path='/ounoustrouver') => new Request(`http://localhost${path}`)
 function payload(html) {
   const read = id => {
     const match = html.match(new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))
@@ -58,10 +59,14 @@ function payload(html) {
 const output = process.env.CHECK_SCREENSHOTS
 let server, browser, snapshotSql
 try {
+  const legacy = await render(request('/o%C3%B9noustrouver'))
+  assert.equal(legacy.status,301)
+  assert.equal(legacy.headers.get('location'),'/ounoustrouver')
   const response = await render(request())
   assert.equal(response.status,200)
   assert.match(response.headers.get('cache-control'),/no-store/)
   let html = await response.text(), data = payload(html)
+  assert.doesNotMatch(html,/Données mises à jour le/)
   assert.equal(data.locations.length,4)
   assert.equal(data.trainerLocations.length,3)
   assert.equal(data.trainerLocations.filter(t=>t.trainingState==='en_formation').length,2)
@@ -80,7 +85,7 @@ try {
   assert.match(trainerHtml,/Revenir au Programme/)
   assert(!/DOS-|SECRET_|PRIVATE|synthetic-public-map-token/.test(programmeHtml+trainerHtml))
   const home=await readFile(new URL('../dist/index.html',import.meta.url),'utf8')
-  assert.match(home,/href="\/oùnoustrouver"[^>]*>\s*Où nous trouver \?/)
+  assert.match(home,/href="\/ounoustrouver"[^>]*>\s*Où nous trouver \?/)
   // A change in the internal database must be reflected on the very next request.
   const before = reads
   participations[3].statut='Candidature acceptée'
@@ -108,7 +113,7 @@ try {
   browser=await chromium.launch({headless:true})
   const page=await browser.newPage()
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
-  await page.goto(`http://127.0.0.1:${server.port}/o%C3%B9noustrouver`)
+  await page.goto(`http://127.0.0.1:${server.port}/ounoustrouver`)
   assert.equal(await page.getByRole('button',{name:/Belgique/}).count(),0)
   const textSizes = await page.evaluate(() => {
     const size = selector => getComputedStyle(document.querySelector(selector)).fontSize

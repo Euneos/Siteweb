@@ -143,11 +143,6 @@ async function loadWidget(prefix: 'ca' | 'ct') {
       return null
     }
   }
-  if (data?.updatedAt && Number.isFinite(Date.parse(data.updatedAt))) {
-    const date = new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(data.updatedAt))
-    el(`${prefix}-map-updated`).textContent = `Données mises à jour le ${date}`
-    el(`${prefix}-map-updated`).hidden = false
-  }
   return data
 }
 void loadWidget('ca').then((data: SchoolData | null) => {

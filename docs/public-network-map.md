@@ -1,15 +1,15 @@
 # Carte publique du réseau
 
-`/oùnoustrouver` est une page publique, dans le sous-menu Programme, au même niveau que FAQ.
+`/ounoustrouver` (ancienne adresse accentuée redirigée en 301) est une page publique, dans le sous-menu Programme, au même niveau que FAQ.
 Elle partage l’en-tête et le pied de page du site. Les sources restent NocoDB et les corrections
 de résidence configurées côté serveur ; aucune copie locale de données réelles n’est versionnée.
-La carte des établissements est également intégrée à `/programme`, dans un encart vert plié, sans silhouette, après la FAQ.
+La carte des établissements est également intégrée à `/programme`, dans un encart bleu foncé plié, sans silhouette, après la FAQ.
 La carte des formateurs figure en bas de `/candidater/formateur`, avant le retour au Programme
 et le trait blanc qui sépare le pied de page. `PublicNetworkMap` et `lireCartesPage` sont communs
 aux trois pages : seuls le fond, le titre et le bouton d’action changent. Le Programme conserve
 sa page statique et ses photos optimisées ; sa carte charge les données à chaque ouverture via
 `GET /api/reseau-public?carte=school`, sans cache. Les deux autres pages sont rendues à la demande.
-Une panne temporaire de NocoDB conserve la dernière carte complète avec sa date de mise à jour.
+Une panne temporaire de NocoDB conserve la dernière carte complète ; la date technique reste dans la réponse API sans être affichée.
 Sans aucune lecture initiale réussie, la carte affiche son indisponibilité ; aucun effectif n’est inventé.
 
 ## Mise à jour automatique
@@ -22,7 +22,7 @@ réutilisent la dernière lecture complète ; au premier démarrage elles attend
 
 Après une minute, une visite sert la carte existante et lance sa mise à jour via `waitUntil`.
 Les visites suivantes voient les nouvelles données une fois cette lecture terminée. En cas de panne,
-la dernière carte reste affichée avec sa date exacte ; une nouvelle tentative est autorisée après 30 secondes.
+la dernière carte reste affichée ; une nouvelle tentative est autorisée après 30 secondes.
 Une page déjà ouverte conserve ses données et sa sélection jusqu’à son actualisation.
 La migration est appliquée en preview puis production par le workflow habituel, avant Pages.
 Les cinq tables NocoDB sont lues successivement, avec pagination et réconciliation des doublons.
