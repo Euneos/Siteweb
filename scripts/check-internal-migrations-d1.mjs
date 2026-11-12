@@ -271,16 +271,64 @@ try {
   )
   query(`INSERT INTO communication_sheets VALUES('media-fixture','suivimedias','Médias','["Nom média","Contact","Statut","Attribution"]',0,0);
     INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('media-row','media-fixture','["Revue fictive","À trouver","À contacter","Pauline"]','fixture');`)
-  const mediaTask = query("SELECT id,person,status FROM team_tasks WHERE title='Média : Revue fictive'")[0].results[0]
-  assert.equal(mediaTask.person,'Pauline')
-  assert.equal(mediaTask.status,'en-cours')
-  assert.match(mediaTask.id,/^[a-f0-9-]{36}$/)
-  query(`UPDATE communication_rows SET cells_json='["Revue fictive","À trouver","À contacter","Charlotte"]',version=version+1 WHERE id='media-row';`)
-  const reassigned = query("SELECT id,person,version FROM team_tasks WHERE title='Média : Revue fictive'")[0].results
-  assert.equal(reassigned.length,1)
-  assert.equal(reassigned[0].id,mediaTask.id)
-  assert.equal(reassigned[0].person,'Charlotte')
-  assert.equal(reassigned[0].version,2)
+  const mediaTask = query(
+    "SELECT id,person,status FROM team_tasks WHERE title='Média : Revue fictive'",
+  )[0].results[0]
+  assert.equal(mediaTask.person, 'Pauline')
+  assert.equal(mediaTask.status, 'en-cours')
+  assert.match(mediaTask.id, /^[a-f0-9-]{36}$/)
+  query(
+    `UPDATE communication_rows SET cells_json='["Revue fictive","À trouver","À contacter","Charlotte"]',version=version+1 WHERE id='media-row';`,
+  )
+  const reassigned = query(
+    "SELECT id,person,version FROM team_tasks WHERE title='Média : Revue fictive'",
+  )[0].results
+  assert.equal(reassigned.length, 1)
+  assert.equal(reassigned[0].id, mediaTask.id)
+  assert.equal(reassigned[0].person, 'Charlotte')
+  assert.equal(reassigned[0].version, 2)
+  query(`INSERT INTO communication_sheets VALUES('partnership-assigned','partenariats','Attributions','["Nom","Statut","Attribution","Notes"]',0,0);
+    INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('assigned-partner','partnership-assigned','["Partenaire fictif","À contacter","Candice","Source complète"]','fixture');
+    INSERT INTO communication_sheets VALUES('move-destination','veille','Ressources','["Nom","Notes"]',0,0);`)
+  assert.equal(
+    query("SELECT person,status FROM team_tasks WHERE title='Partenariat : Partenaire fictif'")[0]
+      .results[0].person,
+    'Candice',
+  )
+  const moveRows = ids.map((id) => ({ id, version: 3 }))
+  await assert.rejects(() =>
+    mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      {
+        bulkAction: 'move',
+        targetTable: 'veille',
+        targetSheet: 'move-destination',
+        rows: [moveRows[0], { ...moveRows[1], version: 99 }],
+      },
+      'fixture',
+    ),
+  )
+  assert.equal(
+    await mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      {
+        bulkAction: 'move',
+        targetTable: 'veille',
+        targetSheet: 'move-destination',
+        rows: moveRows,
+      },
+      'fixture',
+    ),
+    2,
+  )
+  assert.equal(query('SELECT count(*) n FROM communication_row_moves')[0].results[0].n, 2)
+  assert.equal(
+    query("SELECT count(*) n FROM communication_rows WHERE sheet_id='move-destination'")[0]
+      .results[0].n,
+    2,
+  )
   console.log(
     'D1 local: bootstrap idempotent, heures conservées, 0003 refusée, rollback SQL/FK, concurrence et reprise vérifiés.',
   )

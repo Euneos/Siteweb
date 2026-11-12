@@ -1826,7 +1826,7 @@ try {
   // Private Communication tables: actual compiled routes, writes and synchronized views.
   const columns = ['Nom', 'Priorité', 'Statut', 'Notes'],
     personIds = [crypto.randomUUID(), crypto.randomUUID()]
-  for (const [i, title] of ['Ma selection - Top 10 Parrainag', 'Parrainage'].entries()) {
+  for (const [i, title] of ['Comité scientifique', 'Parrainage'].entries()) {
     sql
       .query('INSERT INTO communication_sheets VALUES(?,?,?,?,?,?)')
       .run('partner-' + i, 'partenariats', title, JSON.stringify(columns), 0, i)
@@ -1846,7 +1846,7 @@ try {
     assert.equal((await call('/api/interne/communication/partenariats', role)).status, 403)
   await page.goto(`${origin}/interne/communication/partenariats`)
   await expect(page.locator('#com-content')).toHaveAttribute('aria-busy', 'false')
-  await expect(page.getByRole('tab', { name: 'TOP 10', exact: true })).toHaveCount(1)
+  await expect(page.getByRole('tab', { name: 'Comité scientifique', exact: true })).toHaveCount(1)
   await expect(page.locator('.com-table')).toHaveCount(1)
   await page.locator('tbody button').click()
   const statusSelect = page.locator('#com-field-2')
@@ -2113,6 +2113,95 @@ try {
   }
   checks.push(
     'communication-all-three-tables-shared-options-checkboxes-duplicate-trash-restore-csrf-roles',
+  )
+  // User-selected destination, real compiled route, no dropped source-specific values.
+  sql
+    .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,99)')
+    .run('move-target', 'veille', 'Destination déplacements', '["Nom","Type","Lien","Notes"]')
+  sql
+    .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,0)')
+    .run(
+      'assign-partner',
+      'partenariats',
+      'Attributions',
+      '["Nom","Priorité","Statut","Notes","Attribution"]',
+    )
+  const assignmentRow = crypto.randomUUID()
+  sql
+    .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
+    .run(
+      assignmentRow,
+      'assign-partner',
+      '["Partenaire attribué","A","À contacter","Note à conserver",""]',
+      'fixture',
+    )
+  await page.goto(`${origin}/interne/communication/partenariats`)
+  await page.getByRole('tab', { name: 'Attributions', exact: true }).click()
+  await page.getByLabel('Attribution de Partenaire attribué').selectOption('Candice')
+  await expect(page.getByLabel('Attribution de Partenaire attribué')).toBeEnabled()
+  assert.equal(
+    sql.query("SELECT person FROM team_tasks WHERE title='Partenariat : Partenaire attribué'").get()
+      .person,
+    'Candice',
+  )
+  await expect(page.locator('tbody td p').first()).toHaveCSS('-webkit-line-clamp', '5')
+  await page.locator('#com-select-all').check()
+  await page.locator('#com-move').click()
+  await page.locator('#com-move-table').selectOption('veille')
+  await page.locator('#com-move-sheet').selectOption('move-target')
+  await page.locator('#com-move-confirm').click()
+  await expect(page.locator('tbody tr')).toHaveCount(0)
+  assert.equal(
+    sql.query('SELECT sheet_id FROM communication_rows WHERE id=?').get(assignmentRow).sheet_id,
+    'move-target',
+  )
+  await page.goto(`${origin}/interne/communication/veille`)
+  await page.getByRole('tab', { name: 'Destination déplacements', exact: true }).click()
+  await expect(page.locator('tbody tr')).toContainText('Partenaire attribué')
+  await expect(page.locator('tbody tr')).toContainText('Note à conserver')
+  await expect(page.locator('tbody tr')).toContainText('Attribution : Candice')
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.screenshot({
+      path: `${output}/communication-deplacement-${width}.png`,
+      fullPage: true,
+    })
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  }
+  sql
+    .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,100)')
+    .run('five-lines', 'veille', 'Cinq lignes', '["Nom","Notes"]')
+  for (let i = 0; i < 6; i++)
+    sql
+      .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
+      .run(
+        crypto.randomUUID(),
+        'five-lines',
+        JSON.stringify([
+          `Fiche ${i + 1}`,
+          'Un aperçu de contenu sur plusieurs lignes. '.repeat(12),
+        ]),
+        'fixture',
+      )
+  await page.reload()
+  await page.getByRole('tab', { name: 'Cinq lignes', exact: true }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(6)
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const region = document.querySelector('.com-scroll').getBoundingClientRect()
+          const rows = [...document.querySelectorAll('tbody tr')].map((row) =>
+            row.getBoundingClientRect(),
+          )
+          return rows[4].bottom <= region.bottom && rows[5].bottom > region.bottom
+        }),
+      )
+      .toBe(true)
+  }
+  checks.push(
+    'communication-partnership-attribution-one-task-move-preserves-fields-five-line-preview',
   )
 
   assert.deepEqual(errors, [])

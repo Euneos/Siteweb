@@ -95,3 +95,25 @@ Les opérations groupées vérifient la collection, l’autorisation, l’origin
 versions de toutes les lignes. Une sélection périmée échoue sans action partielle.
 Aucune nouvelle importation des XLSX n’est effectuée : les modifications faites
 sur le site depuis la publication initiale sont conservées.
+
+### Attribution et déplacements Communication
+
+Suivi médias et Partenariats proposent une attribution à Charlotte, Candice ou
+Pauline, directement dans le tableau ou la fiche. Une attribution crée une tâche
+« En cours » dans Organisation équipe ; la réattribution reprend la même tâche.
+Les fiches de partenariat liées entre plusieurs vues partagent cette tâche.
+Une modification des notes ne recrée pas de tâche.
+
+Le tableau montre cinq fiches complètes avant défilement ; les aperçus de texte montrent cinq lignes. Dans Parrainage, le filtre Priorité A
+remplace l’ancienne vue TOP 10. TOP 10 et Qui parraine quoi sont retirées de
+l’interface ; les données source restent archivées. La migration remplit les
+statuts vides avec « À contacter », sans remplacer les statuts renseignés.
+
+La sélection de lignes propose Déplacer, avec le choix d’un autre tableau puis
+d’une feuille. Les colonnes communes sont reprises ; le nom et le lien sont
+rapprochés lorsque leurs intitulés diffèrent. Les autres champs sont conservés
+dans Notes, avec leurs libellés. Un historique privé conserve aussi les valeurs
+source. Une fiche déplacée sort de sa feuille de départ et devient indépendante
+des anciennes vues liées. Les versions sont contrôlées pour l’ensemble du lot :
+si une ligne a changé, aucune n’est déplacée. Un déplacement qui produirait des
+notes de plus de 10 000 caractères est refusé sans modification.
