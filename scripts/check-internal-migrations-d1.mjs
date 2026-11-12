@@ -269,6 +269,18 @@ try {
     ),
     2,
   )
+  query(`INSERT INTO communication_sheets VALUES('media-fixture','suivimedias','Médias','["Nom média","Contact","Statut","Attribution"]',0,0);
+    INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('media-row','media-fixture','["Revue fictive","À trouver","À contacter","Pauline"]','fixture');`)
+  const mediaTask = query("SELECT id,person,status FROM team_tasks WHERE title='Média : Revue fictive'")[0].results[0]
+  assert.equal(mediaTask.person,'Pauline')
+  assert.equal(mediaTask.status,'en-cours')
+  assert.match(mediaTask.id,/^[a-f0-9-]{36}$/)
+  query(`UPDATE communication_rows SET cells_json='["Revue fictive","À trouver","À contacter","Charlotte"]',version=version+1 WHERE id='media-row';`)
+  const reassigned = query("SELECT id,person,version FROM team_tasks WHERE title='Média : Revue fictive'")[0].results
+  assert.equal(reassigned.length,1)
+  assert.equal(reassigned[0].id,mediaTask.id)
+  assert.equal(reassigned[0].person,'Charlotte')
+  assert.equal(reassigned[0].version,2)
   console.log(
     'D1 local: bootstrap idempotent, heures conservées, 0003 refusée, rollback SQL/FK, concurrence et reprise vérifiés.',
   )

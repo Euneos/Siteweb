@@ -21,7 +21,7 @@ export type CommunicationChoice = {
 export type ChoiceAlias = { scope: string; column_name: string; value: string; choice_id: string }
 export type ChoiceCatalog = { choices: CommunicationChoice[]; aliases: ChoiceAlias[] }
 export const choiceScope = (table: string, column: string) =>
-  column === 'Statut' ? 'status' : table
+  column === 'Statut' ? (table === 'suivimedias' ? 'suivimedias' : 'status') : table
 export const splitChoices = (column: string, value: string) =>
   column === 'Tags'
     ? value

@@ -22,12 +22,20 @@ const definition = communicationTables[table]
   <div id="communication-table" data-table={table}>
     <header class="iw-intro">
       <div class="iw-intro__text">
-        <p class="iw-eyebrow">Espace Communication</p><h1>{definition.title}</h1><p>
+        <p class="iw-eyebrow">Espace Communication</p><h1>{definition.title}</h1><p
+          id={table === 'suivimedias' ? 'media-summary' : undefined}
+        >
           {definition.description}
         </p>
       </div><button class="iw-button iw-button--primary" id="com-new" disabled
-        >＋ Nouvelle fiche</button>
+        >＋ Nouvelle fiche</button
+      >
     </header>
+    {
+      table === 'suivimedias' && (
+        <section id="media-dashboard" aria-label="Synthèse du suivi médias" hidden />
+      )
+    }
     <noscript
       ><p class="iw-feedback">
         Activez JavaScript pour consulter et modifier le tableau.
@@ -44,7 +52,8 @@ const definition = communicationTables[table]
           />
         </div><button id="com-trash" class="iw-button" type="button">Corbeille</button><button
           id="com-refresh"
-          class="iw-button">Actualiser</button>
+          class="iw-button">Actualiser</button
+        >
       </div>
       <div class="iw-toolbar">
         <div id="com-filters" class="iw-toolbar"></div><p id="com-count" aria-live="polite"></p>
@@ -68,7 +77,8 @@ const definition = communicationTables[table]
       <h2 id="com-title">Fiche</h2><button
         id="com-close"
         class="iw-button"
-        aria-label="Fermer la fiche">✕</button>
+        aria-label="Fermer la fiche">✕</button
+      >
     </header><div class="iw-dialog__body">
       <form id="com-form">
         <div id="com-fields" class="iw-formgrid"></div><p
@@ -78,7 +88,8 @@ const definition = communicationTables[table]
         >
         </p><div class="iw-form-actions">
           <button type="submit" id="com-save" class="iw-button iw-button--primary"
-            >Enregistrer</button>
+            >Enregistrer</button
+          >
         </div><p id="com-audit" class="iw-footnote"></p>
       </form>
     </div>
@@ -89,7 +100,8 @@ const definition = communicationTables[table]
       </p><div class="iw-form-actions">
         <button id="com-bulk-cancel" class="iw-button">Annuler</button><button
           id="com-bulk-confirm"
-          class="iw-button iw-button--primary">Supprimer</button>
+          class="iw-button iw-button--primary">Supprimer</button
+        >
       </div>
     </div>
   </dialog>
@@ -415,5 +427,91 @@ const definition = communicationTables[table]
   .com-choice__value:active:not(:disabled) {
     background: var(--vert);
     color: white;
+  }
+</style>
+
+<style is:global>
+  #communication-table[data-table='suivimedias'] .com-table td p {
+    -webkit-line-clamp: 5;
+  }
+  #communication-table[data-table='suivimedias'] .iw-intro {
+    background: var(--vert);
+    color: white;
+    padding: var(--iw-gap, 1.5rem);
+    border-radius: 1rem;
+  }
+  #communication-table[data-table='suivimedias'] .iw-intro h1 {
+    color: white;
+  }
+  #communication-table[data-table='suivimedias'] .iw-intro__text > p:last-child {
+    color: white;
+  }
+  .media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .media-card {
+    background: white;
+    border: 1px solid var(--iw-line);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    min-width: 0;
+  }
+  .media-card h2 {
+    font-size: var(--iw-text);
+    margin: 0 0 1rem;
+  }
+  .media-value {
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  .media-wide {
+    grid-column: 1/-1;
+  }
+  .media-bar {
+    display: flex;
+    height: 1rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: #eee;
+    margin-bottom: 1rem;
+  }
+  .media-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+  }
+  .media-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .media-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.15rem;
+  }
+  .media-list {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .media-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 700px) {
+    .media-grid {
+      grid-template-columns: 1fr;
+    }
+    .media-wide {
+      grid-column: auto;
+    }
   }
 </style>

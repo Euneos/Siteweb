@@ -1977,8 +1977,8 @@ try {
     [
       'suivimedias',
       'Type de média',
-      ['Nom média', 'Type de média', 'Statut'],
-      ['Média fictif', 'Journal', 'Accepté'],
+      ['Nom média', 'Type de média', 'Statut', 'Contact', 'Attribution'],
+      ['Média fictif', 'Journal', 'Contacté', 'À trouver', ''],
     ],
     ['veille', 'Type', ['Nom', 'Type', 'Tags'], ['Ressource fictive', 'Podcast', '']],
   ]) {
@@ -2003,6 +2003,67 @@ try {
       .run(rowId, sheetId, JSON.stringify(fixtureCells), 'fixture')
     await page.goto(`${origin}/interne/communication/${collection}`)
     await expect(page.locator('tbody tr')).toHaveCount(1)
+    if (collection === 'suivimedias') {
+      await expect(page.locator('#media-summary')).toContainText(
+        '1 média ciblé, 0 contact trouvé, 1 média contacté',
+      )
+      await page.getByLabel('Attribution de Média fictif').selectOption('Pauline')
+      await expect(page.getByLabel('Attribution de Média fictif')).toBeEnabled()
+      await expect(page.getByLabel('Attribution de Média fictif')).toHaveValue('Pauline')
+      assert.equal(
+        sql
+          .query(
+            "SELECT count(*) AS n FROM team_tasks WHERE title='Média : Média fictif' AND person='Pauline' AND status='en-cours'",
+          )
+          .get().n,
+        1,
+      )
+      await page.getByLabel('Attribution de Média fictif').selectOption('Charlotte')
+      await expect(page.getByLabel('Attribution de Média fictif')).toBeEnabled()
+      await expect(page.getByLabel('Attribution de Média fictif')).toHaveValue('Charlotte')
+      assert.equal(
+        sql.query("SELECT count(*) AS n FROM team_tasks WHERE title='Média : Média fictif'").get()
+          .n,
+        1,
+      )
+      const staleMedia = await call(`/api/interne/communication/${collection}`, 'member', 'POST', {
+        id: rowId,
+        sheet_id: sheetId,
+        version: 1,
+        cells: [...fixtureCells.slice(0, -1), 'Pauline'],
+      })
+      assert.equal(staleMedia.status, 409)
+      assert.equal(
+        sql.query("SELECT person FROM team_tasks WHERE title='Média : Média fictif'").get().person,
+        'Charlotte',
+      )
+      assert.equal(
+        (
+          await call(`/api/interne/communication/${collection}`, 'member', 'POST', {
+            id: rowId,
+            sheet_id: sheetId,
+            version: 3,
+            cells: [...fixtureCells.slice(0, -1), 'Inconnue'],
+          })
+        ).status,
+        400,
+      )
+      assert.equal(
+        await page
+          .locator('tbody td p')
+          .first()
+          .evaluate((p) => getComputedStyle(p).webkitLineClamp),
+        '5',
+      )
+      for (const width of [390, 1440]) {
+        await page.setViewportSize({ width, height: 1000 })
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+          false,
+        )
+        await page.screenshot({ path: `${output}/media-dashboard-${width}.png`, fullPage: true })
+      }
+    }
     await page.locator('tbody button').click()
     const menu = page.locator(`#com-fields .com-choice[data-column="${typeColumn}"]`)
     await menu.locator('summary').click()

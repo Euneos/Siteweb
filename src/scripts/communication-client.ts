@@ -1,3 +1,4 @@
+import { renderMediaDashboard } from './media-dashboard'
 import { categoricalColumns, splitChoices, choiceScope } from '../lib/communication-choices'
 import type { ChoiceCatalog, CommunicationChoice } from '../lib/communication-choices'
 import type { CommunicationRow, CommunicationSheet } from '../lib/communication'
@@ -112,7 +113,7 @@ if (root) {
     return data
   }
   const allowedFilters: Record<string, string[]> = {
-    suivimedias: ['Type de média', 'Nom média', 'Public principal', 'Statut'],
+    suivimedias: ['Type de média', 'Nom média', 'Public principal', 'Statut', 'Attribution'],
     partenariats: ['Priorité', 'Vivier', 'Statut'],
     veille: ['Nom', 'Type', 'Tags'],
   }
@@ -432,6 +433,7 @@ if (root) {
     render()
   }
   function render() {
+    if (root!.dataset.table === 'suivimedias') renderMediaDashboard(sheets, rows)
     content.replaceChildren()
     currentVisible = []
     add.disabled = trash || !sheets.some((s) => !s.guide)
@@ -583,7 +585,36 @@ if (root) {
             url = new URL(cell.startsWith('www.') ? 'https://' + cell : cell)
             if (!['http:', 'https:'].includes(url.protocol)) url = null
           } catch {}
-          if (url) {
+          if (root!.dataset.table === 'suivimedias' && selected.columns[index] === 'Attribution') {
+            const select = el('select')
+            select.setAttribute('aria-label', `Attribution de ${rowName}`)
+            select.append(
+              option('Non attribué', ''),
+              ...['Charlotte', 'Candice', 'Pauline'].map((v) => option(v, v)),
+            )
+            select.value = cell
+            select.disabled = trash
+            select.addEventListener('change', async () => {
+              select.disabled = true
+              try {
+                const cells = [...row.cells]
+                cells[index] = select.value
+                await request({
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...row, cells }),
+                })
+                await load()
+              } catch (error) {
+                select.value = cell
+                feedback.textContent =
+                  error instanceof Error ? error.message : 'Attribution non confirmée.'
+              } finally {
+                select.disabled = trash
+              }
+            })
+            td.append(select)
+          } else if (url) {
             const link = el('a', cell)
             link.href = url.href
             link.target = '_blank'
@@ -679,19 +710,23 @@ if (root) {
       wrapper.className = 'iw-field iw-field--wide'
       const l = el('label', label)
       l.htmlFor = `com-field-${i}`
-      const input = categorical.includes(label) ? el('select') : el('textarea')
+      const input =
+        categorical.includes(label) || label === 'Attribution' ? el('select') : el('textarea')
       input.id = l.htmlFor
       input.name = String(i)
       input.dataset.cell = String(i)
       if (input instanceof HTMLSelectElement) {
         input.multiple = label === 'Tags'
         if (!input.multiple) input.append(option('Non renseigné', ''))
-        for (const v of choices(label)) {
+        for (const v of label === 'Attribution'
+          ? ['Charlotte', 'Candice', 'Pauline']
+          : choices(label)) {
           const o = option(v, v)
           o.selected = split(label, cells[i] ?? '').includes(v)
           input.append(o)
         }
-        wrapper.append(l, input, choiceControl(input, label))
+        wrapper.append(l, input)
+        if (label !== 'Attribution') wrapper.append(choiceControl(input, label))
       } else {
         input.rows = label === 'Notes' ? 4 : 2
         input.maxLength = 10000

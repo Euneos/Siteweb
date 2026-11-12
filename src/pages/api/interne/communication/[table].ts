@@ -93,6 +93,13 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
       .first<{ columns_json: string; guide: number }>()
     if (!sheet || sheet.guide) throw new WorkspaceError(400, 'Onglet non modifiable.')
     const columns: string[] = JSON.parse(sheet.columns_json)
+    if (table === 'suivimedias') {
+      const attribution = Array.isArray(body.cells)
+        ? body.cells[columns.indexOf('Attribution')]
+        : null
+      if (!['', 'Candice', 'Charlotte', 'Pauline'].includes(attribution as string))
+        throw new WorkspaceError(400, 'Attribution invalide.')
+    }
     const catalog = await readChoices(context.db, table)
     const cells = resolveCells(
       validateCommunicationRow(body, columns),
