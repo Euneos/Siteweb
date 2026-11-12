@@ -116,6 +116,7 @@ export function prepareBootstrap({ dump, out, names, environment }, migrations =
 
 // Return fixed labels only: raw provider errors can contain SQL or private rows.
 export function d1FailureLabel(output) {
+  output = String(output).replace(/\u001b\[[0-9;]*m/g, '')
   const labels = [
     [/incomplete input/i, 'instruction SQL incomplète'],
     [/unterminated|unrecognized token/i, 'token SQL invalide'],
@@ -179,6 +180,26 @@ export function d1FailureCodes(output) {
   return [...new Set([...api, ...sqlite])].join(',') || 'absent'
 }
 
+// A narrow SQL vocabulary can reveal provider failure wording without printing
+// identifiers, values, SQL excerpts, account paths, email addresses or tokens.
+export function d1FailureWords(output) {
+  const allowed = new Set(
+    'error sql sqlite query queries request failed statement statements bind binding bindings parameter parameters begin end transaction transactions commit rollback table schema database readonly read only locked busy no not such missing invalid syntax near limit maximum length exceeded exceeds too many few incorrect wrong number of is are was were the a an to in for on as and or has have be been from with cannot can could did does do contain contains found expected unexpected unsupported expression parser parse parsing empty argument arguments type types token input incomplete overflow stack function column columns unique constraint constraints primary key foreign mismatch datatype malformed json integer text blob result results return returning rows row abort aborted authorized authorization denied use please execute execution executed code must reserved within outside supplied supplied running detected recursive recursion failure bad invalid format value values identifier identifiers null conflict clause match matches any abort at'.split(
+      ' ',
+    ),
+  )
+  const raw = String(output)
+    .replace(/\u001b\[[0-9;]*m/g, '')
+    .slice(0, 16000)
+  return (
+    (raw.match(/\b[a-z]+\b/gi) ?? [])
+      .map((word) => word.toLowerCase())
+      .filter((word) => allowed.has(word))
+      .slice(0, 100)
+      .join(' ') || 'absent'
+  )
+}
+
 function wrangler(environment, args) {
   const target = targetConfig(environment)
   const result = spawnSync(
@@ -200,7 +221,7 @@ function wrangler(environment, args) {
   // include values from a row. No retry after a timeout/uncertain response.
   requireThat(
     result.status === 0,
-    `Commande D1 ${environment} échouée (${d1FailureLabel(result.stdout + result.stderr)}, code ${d1FailureCodes(result.stdout + result.stderr)}, sortie ${result.status ?? 'absente'}); arrêter, relire le registre avant toute reprise`,
+    `Commande D1 ${environment} échouée (${d1FailureLabel(result.stdout + result.stderr)}, code ${d1FailureCodes(result.stdout + result.stderr)}, sortie ${result.status ?? 'absente'}, vocabulaire SQL: ${d1FailureWords(result.stdout + result.stderr)}); arrêter, relire le registre avant toute reprise`,
   )
   const response = JSON.parse(result.stdout)
   requireThat(

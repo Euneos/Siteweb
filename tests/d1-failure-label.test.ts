@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { d1FailureLabel, d1FailureCodes } from '../scripts/internal-migrations.mjs'
+import { d1FailureLabel, d1FailureCodes, d1FailureWords } from '../scripts/internal-migrations.mjs'
 
 test('D1 diagnostics classify failures without echoing SQL, credentials or private rows', () => {
   for (const [message, label] of [
@@ -27,4 +27,12 @@ test('D1 diagnostics expose only provider numbers and fixed SQLite enum names', 
   expect(
     d1FailureLabel('To execute a transaction use state.storage.transaction() private-row'),
   ).toBe('transaction SQL non prise en charge')
+})
+
+test('SQL failure vocabulary cannot emit identifiers, personal values or secret codes', () => {
+  const words = d1FailureWords(
+    'Error: SQL code did not contain a statement [code: 7500] privateTable secretToken pauline@example.test',
+  )
+  expect(words).toBe('error sql code did not contain a statement code')
+  expect(d1FailureLabel('syntax\u001b[1m error: private-row')).toBe('syntaxe SQL')
 })
