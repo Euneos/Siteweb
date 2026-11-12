@@ -1,4 +1,5 @@
 import { bilanCatalogueEntry } from './bilan-formateur-catalogue'
+import { surveyQuestions } from './sondage-annee2'
 import { accordCatalogueEntry } from './accord-formateur-catalogue'
 import { internalEnvironment } from './internal-context'
 import { lireToutes } from './nocodb'
@@ -134,7 +135,19 @@ export async function listPublicForms(locals: unknown) {
   const pending = await pendingQuestionnaireSources(db, new Set(response.list.map(row => String(row.cle_reponse))))
   const entries = await Promise.all(response.list.map(async row => {
     const receipt = results.find(r => r.receipt === row.cle_reponse)
-    const source = JSON.parse(String(row.reponses)) as { answers: OperationalInput }
+    const source = JSON.parse(String(row.reponses)) as { answers: OperationalInput; version?: string }
+    if (source.version === 'sondage-annee2-v1') {
+      const answers = source.answers as unknown as Record<string, string | string[]>
+      return {
+        school: String(row.etablissement), city: String(row.ville ?? ''), year: '', form: String(row.formulaire),
+        state: 'Réponse reçue — à examiner par l’équipe', participationId: null,
+        details: surveyQuestions.flatMap(q => {
+          const value = answers[q.key]
+          const detail = Array.isArray(value) ? value.map((item, i) => q.type === 'ranking' ? `${i + 1}. ${item}` : item).join('\n') : value
+          return [...(detail ? [[q.label, detail]] : []), ...(answers[`${q.key}Other`] ? [['Précision', String(answers[`${q.key}Other`])]] : [])]
+        }),
+      }
+    }
     const postformation = await postformationPublicEntry(db, row, source)
     if (postformation) return postformation
     const finalEntry = await finalQuestionnairePublicEntry(db, row, source)

@@ -39,6 +39,25 @@ pas être utilisé pour appliquer le registre FORM_SUBMISSIONS.
 
 ## Périmètre
 
+### Sondage de poursuite WISE-UP
+
+`/suivi/sondage-annee2`, référencé dans `/interne/formulaires`, s’adresse aux
+établissements ayant réalisé les 16 heures de formation et les quatre ateliers.
+Le questionnaire validé par Charlotte est défini dans `src/lib/sondage-annee2.ts`.
+Il réutilise `reponses_formulaires_site` et `public_form_receipts`, sans migration.
+Les réponses sont consultables dans les réceptions du catalogue interne, sans report
+automatique sur un dossier ni déduction de cohorte. L’identité est obligatoire ;
+les questions de besoins sont facultatives. Les champs conditionnels masqués ne
+sont pas conservés. La question 3 conserve les activités dans l’ordre d’intérêt,
+avec « Autre » en dernière position dans la liste proposée. Le serveur refuse les
+doublons et un classement associé à une réponse sans classement. Les questions
+6, 7 et 8 disposent d’un champ de précision sous leur option « Autre ».
+
+Un accusé d’écriture perdu est réconcilié par lecture de la source, sans nouvelle
+création aveugle. La confirmation publique suit la relecture des champs enregistrés.
+`bun scripts/check-sondage-annee2.mjs` vérifie les petites largeurs, les conditions
+et un envoi simulé uniquement sur localhost ; `CHECK_SCREENSHOTS` conserve les captures.
+
 Les candidatures établissement et formateur restent déjà publiques sur leurs URL.
 Cette évolution rend publics les formulaires de suivi existants, sans inventer les
 questionnaires encore non migrés du parcours formateur ou de l’évaluation.

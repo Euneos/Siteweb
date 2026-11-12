@@ -1,0 +1,208 @@
+---
+import Base from '../../layouts/Base.astro'
+import '../../styles/operational-forms.css'
+import { surveyTitle, surveyQuestions, surveyThanks } from '../../lib/sondage-annee2'
+import { modeApercu } from '../../lib/forms'
+import { operationalHeaders } from '../../lib/operational-links'
+export const prerender = false
+for (const [key, value] of Object.entries(operationalHeaders))
+  Astro.response.headers.set(key, value)
+const preview = modeApercu(Astro.request)
+const sections = [...new Set(surveyQuestions.map((q) => q.section))]
+---
+
+<Base
+  title={`${surveyTitle} — EUNEOS`}
+  description={surveyTitle}
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="page of-page survey">
+    <div class="of-intro">
+      <p class="of-eyebrow">Programme WISE-UP</p>
+      <h1>{surveyTitle}</h1>
+      <p>
+        Après les 16 heures de formation de votre équipe et les quatre ateliers menés avec les
+        élèves, nous souhaitons prendre de vos nouvelles et réfléchir avec vous aux suites possibles
+        de WISE-UP.
+      </p>
+      <p>
+        Ce questionnaire nous aidera à identifier les activités les plus utiles pour votre
+        établissement, les personnes à impliquer et l’accompagnement nécessaire. <strong
+          >Vos réponses ne vous engagent pas à participer aux actions proposées.</strong>
+      </p>
+    </div>
+    <div class="of-panel">
+      {
+        preview && (
+          <p class="of-feedback">
+            Aperçu de démonstration : utilisez des informations fictives. Aucune réponse ne sera
+            enregistrée.
+          </p>
+        )
+      }
+      <p class="of-note">
+        Les champs marqués d’un astérisque sont obligatoires. Les autres réponses sont facultatives.
+      </p>
+      <noscript><p class="of-feedback">Activez JavaScript pour envoyer le sondage.</p></noscript>
+      <form
+        id="survey-form"
+        class="of-stack"
+        action="/api/questionnaires/sondage-annee2"
+        method="post"
+      >
+        <div hidden aria-hidden="true">
+          <label>Site web<input name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+        {
+          sections.map((section) => (
+            <fieldset class="of-section">
+              <legend>{section}</legend>
+              {surveyQuestions
+                .filter((q) => q.section === section)
+                .map((q) => (
+                  <div class="survey-question" data-when={q.when} hidden={!!q.when}>
+                    {q.type === 'ranking' ? (
+                      <fieldset class="survey-choices">
+                        <legend>{q.label}</legend>
+                        <p class="of-note survey-ranking-instructions"><strong>Consigne :</strong> utilisez chaque rang une seule fois. Laissez « Autre » sans rang si vous n’avez pas de proposition supplémentaire.</p>
+                        {q.choices!.map((choice, i) => <label class="survey-rank of-field">
+                          <span>{choice}</span>
+                          <select name={`${q.key}Rank${i}`} data-rank-choice={choice}>
+                            <option value="">Non classée</option>
+                            {q.choices!.map((_, rank) => <option value={rank + 1}>{rank + 1}{rank === 0 ? ' — le plus d’intérêt' : ''}</option>)}
+                          </select>
+                        </label>)}
+                      </fieldset>
+                    ) : q.choices ? (
+                      <fieldset class="survey-choices">
+                        <legend>{q.label}</legend>
+                        <p class="of-note">
+                          {q.type === 'checkbox'
+                            ? 'Plusieurs réponses possibles.'
+                            : 'Une seule réponse.'}
+                        </p>
+                        {q.choices.map((choice, i) => (
+                          <div>
+                          <label class="survey-option">
+                            <input
+                              id={`${q.key}-${i}`}
+                              type={q.type === 'checkbox' ? 'checkbox' : 'radio'}
+                              name={q.key}
+                              value={choice}
+                              disabled={!!q.when}
+                            />
+                            <span>{choice}</span>
+                          </label>
+                          {q.other && choice === 'Autre' && <label class="of-field survey-other" data-other={q.key}>
+                            Précisez votre réponse
+                            <textarea name={`${q.key}Other`} rows="3" maxlength="2000" />
+                          </label>}
+                          </div>
+                        ))}
+                      </fieldset>
+                    ) : (
+                      <label class="of-field">
+                        <span class:list={{ 'survey-question-title': q.key === 'needs' || q.key === 'priority' }}>{q.label}</span>
+                        {q.required ? ' *' : ''}
+                        {q.description && <span class="of-note" id={`${q.key}-description`}>{q.description}</span>}
+                        {q.type === 'textarea' ? (
+                          <textarea name={q.key} rows="4" maxlength="5000" aria-describedby={q.description ? `${q.key}-description` : undefined} />
+                        ) : (
+                          <input
+                            name={q.key}
+                            type={q.type}
+                            required={q.required}
+                            maxlength="300"
+                            disabled={!!q.when}
+                          />
+                        )}
+                      </label>
+                    )}
+                    {q.other && q.type === 'ranking' && (
+                      <label class="of-field" data-other={q.key}>
+                        Précisez votre réponse « Autre »
+                        <textarea name={`${q.key}Other`} rows="3" maxlength="2000" />
+                      </label>
+                    )}
+                  </div>
+                ))}
+            </fieldset>
+          ))
+        }
+        <p class="of-note">
+          Vos réponses sont destinées à l’équipe EUNEOS pour préparer l’accompagnement de votre
+          établissement. <a href="/politique-de-confidentialite"
+            >Protection des données personnelles</a
+          >.
+        </p>
+        <p>{surveyThanks}</p>
+        <button class="cta s-vert cta--sm" type="submit">Envoyer mes réponses</button>
+      </form>
+      <p
+        id="survey-feedback"
+        class="of-feedback"
+        role="status"
+        aria-live="polite"
+        tabindex="-1"
+        hidden
+      >
+      </p>
+    </div>
+  </section>
+</Base>
+<script src="../../scripts/sondage-annee2.ts"></script>
+<style>
+  .survey .of-section > legend {
+    text-decoration-line: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  .survey-question {
+    min-width: 0;
+  }
+  .survey-rank { margin-bottom: var(--s-lie); }
+  .survey-rank > span { font-size: var(--t-corps); }
+  .survey-question-title {
+    font-size: var(--t-carte);
+    font-weight: 600;
+    color: var(--vert);
+  }
+  .survey-ranking-instructions {
+    padding: var(--s-lie);
+    border-left: 3px solid var(--ink-titre);
+    margin: 0 0 var(--s-titre);
+  }
+  .survey-other { margin: 0 0 var(--s-lie); }
+  .survey-choices {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .survey-choices legend {
+    font-weight: 600;
+    margin-bottom: var(--s-lie);
+  }
+  .survey-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65em;
+    min-height: 44px;
+    padding: 0.35em 0;
+    cursor: pointer;
+  }
+  .survey-option input {
+    flex: 0 0 auto;
+    margin-top: 0.35em;
+    width: 1.1em;
+    height: 1.1em;
+  }
+  .survey [hidden] {
+    display: none !important;
+  }
+  .survey-question + .survey-question {
+    margin-top: var(--s-lie);
+  }
+</style>
