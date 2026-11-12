@@ -368,9 +368,11 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     </div>
   </section>
 
-  <section class="section programme-network" data-section="deploiement" data-section-surface>
+  <section class="section programme-network" data-section="deploiement">
     <div class="page">
-      <PublicNetworkMap maps={null} kind="school" title="Déploiement du Programme" titleClass="c-t temoins__t" light remote />
+      <Paper surface="vert" fold="tr" foldSize="md" class="programme-network__panel">
+        <PublicNetworkMap maps={null} kind="school" title="Déploiement du Programme" titleClass="c-t temoins__t" remote />
+      </Paper>
     </div>
   </section>
 
@@ -1031,5 +1033,5 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
 </style>
 
 <style is:global>
-  .programme-network { background: white; }
+  .programme-network__panel { padding: var(--s-int); --fx: var(--fold-md); --fy: calc(var(--fold-md) * .33); }
 </style>

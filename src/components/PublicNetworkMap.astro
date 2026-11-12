@@ -12,7 +12,8 @@ interface Props {
 }
 const { maps, kind, title, heading: Heading = 'h2', titleClass = '', light = false, remote = false } = Astro.props
 const prefix = kind === 'school' ? 'ca' : 'ct'
-const widgetData = !maps ? null : kind === 'school' ? {locations:maps.locations,periods:maps.periods} : {locations:maps.trainerLocations}
+const widgetData = !maps ? null : kind === 'school' ? {locations:maps.locations,periods:maps.periods,updatedAt:maps.updatedAt} : {locations:maps.trainerLocations,updatedAt:maps.updatedAt}
+const dateLabel = maps?.updatedAt ? new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(maps.updatedAt)) : ''
 ---
 <section class:list={['network-map trouver__section', {'network-map--light': light}]} aria-labelledby={`${prefix}-title`}>
         <Heading id={`${prefix}-title`} class:list={['network-map__title', titleClass]}>{title}</Heading>
@@ -22,6 +23,7 @@ const widgetData = !maps ? null : kind === 'school' ? {locations:maps.locations,
           <div class="trouver__map"><div class="trouver__map-stage"><img id={`${prefix}-map-image`} src="/maps/outline/metropole.svg" alt="Contours des régions du territoire sélectionné" width="1000" height="650" /><div id={`${prefix}-markers`}></div></div></div>
           <aside aria-live="polite"><h3 id={`${prefix}-map-selection`}>Sélectionnez un repère</h3><p id={`${prefix}-map-count`}></p><ul id={`${prefix}-map-schools`}></ul><button id={`${prefix}-map-all`} class="trouver__button" type="button" hidden>Fermer la sélection</button></aside>
         </div>
+        <p class="network-map__updated" id={`${prefix}-map-updated`} hidden={!dateLabel}>{dateLabel && `Données mises à jour le ${dateLabel}`}</p>
         {Astro.slots.has('default') && <div class="trouver__action"><slot /></div>}
         <p role="status" id={`${prefix}-map-status`} hidden={!!maps}>{remote ? 'Chargement de la carte…' : 'Les cartes sont momentanément indisponibles. Merci de réessayer dans quelques instants.'}</p>
         <noscript><p>Activez JavaScript pour utiliser les filtres et afficher les repères des cartes.</p></noscript>

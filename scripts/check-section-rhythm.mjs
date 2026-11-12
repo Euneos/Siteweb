@@ -27,7 +27,7 @@ const pages = {
     candidater: '.final',
     temoignages: '.temoins__t,.temoins,.temoins__cta',
     faq: '.faq__col,.faq__media .ph,.faq__picto,.faq__cartouche',
-    deploiement: '.network-map',
+    deploiement: '.programme-network__panel',
     formateurs: '.formateur',
   },
   '/qui-sommes-nous': {

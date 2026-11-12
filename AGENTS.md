@@ -512,8 +512,10 @@ largeur proportionnelle trop étroite. Le logo garde une largeur plafonnée.
 
 ## Carte publique « Où nous trouver ? »
 
-La page `/oùnoustrouver` et son actualisation à chaque ouverture sont décrites dans
+Les cartes publiques et leur lecture partagée, actualisée automatiquement à la minute, sont décrites dans
 [docs/public-network-map.md](docs/public-network-map.md). Les filtres publics sont distincts
 des statuts en base ; ne pas élargir le répertoire privé des ressources pour ajouter les effectifs
 anonymes des personnes en formation. Après compilation, `bun scripts/check-public-network.mjs`
-vérifie la lecture en direct, les listes blanches et le rendu responsive avec une source simulée.
+vérifie la lecture, la conservation du dernier résultat complet en cas de panne, les listes blanches
+et le rendu responsive avec une source simulée. La projection anonyme et son bail sont stockés dans
+`TEAM_WORKSPACE.public_network_snapshots` (migration 0018), sans lignes NocoDB privées.

@@ -7,5 +7,5 @@ export const GET: APIRoute = async ({locals,url}) => {
   if (kind !== 'school' && kind !== 'trainer') return new Response('null',{status:400,headers})
   const maps = await lireCartesPage(locals)
   if (!maps) return new Response('null',{status:503,headers})
-  return new Response(JSON.stringify(kind === 'school' ? {locations:maps.locations,periods:maps.periods} : {locations:maps.trainerLocations}),{headers})
+  return new Response(JSON.stringify(kind === 'school' ? {locations:maps.locations,periods:maps.periods,updatedAt:maps.updatedAt} : {locations:maps.trainerLocations,updatedAt:maps.updatedAt}),{headers})
 }

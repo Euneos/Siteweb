@@ -2,6 +2,7 @@
  .network-map--light { --map-ink: var(--vert); --map-bg: white; --map-line: #00382d40; background: white; }
  .network-map--light .trouver__map img { filter: brightness(0); }
  .network-map--light .network-map__title { color: var(--vert); }
+ .network-map__updated { font-size: var(--t-note); margin-top: var(--s-lie); }
   .trouver__action { display: flex; justify-content: center; margin-top: var(--s-titre); }
   .trouver__section { min-width: 0; }
   .network-map__title { color: var(--map-ink); font-size: var(--t-titre); font-weight: 600; line-height: 1.2; text-align: center; max-width: 30ch; text-wrap: balance; margin: 0 auto var(--s-titre); }

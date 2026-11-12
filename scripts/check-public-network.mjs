@@ -4,6 +4,7 @@ import { readdir, mkdir, readFile } from 'node:fs/promises'
 import { App } from 'astro/app'
 import { chromium, expect } from '@playwright/test'
 import { NC } from '../src/lib/nocodb'
+import { Database } from 'bun:sqlite'
 
 const cohorts = [{Id:1,nom:'2025-2026',annee_debut:2025,annee_fin:2026},{Id:2,nom:'2026-2027',annee_debut:2026,annee_fin:2027,active:true}]
 const schools = [
@@ -55,7 +56,7 @@ function payload(html) {
   return schools || trainers ? {locations:schools?.locations??[],periods:schools?.periods??[],trainerLocations:trainers?.locations??[]} : null
 }
 const output = process.env.CHECK_SCREENSHOTS
-let server, browser
+let server, browser, snapshotSql
 try {
   const response = await render(request())
   assert.equal(response.status,200)
@@ -79,7 +80,7 @@ try {
   assert.match(trainerHtml,/Revenir au Programme/)
   assert(!/DOS-|SECRET_|PRIVATE|synthetic-public-map-token/.test(programmeHtml+trainerHtml))
   const home=await readFile(new URL('../dist/index.html',import.meta.url),'utf8')
-  assert.match(home,/href="\/oùnoustrouver"[^>]*>\s*Où nous trouver/)
+  assert.match(home,/href="\/oùnoustrouver"[^>]*>\s*Où nous trouver \?/)
   // A change in the internal database must be reflected on the very next request.
   const before = reads
   participations[3].statut='Candidature acceptée'
@@ -149,9 +150,25 @@ try {
     for (const width of [320,390,768,860,861,1024,1440,2560,3840]) {
       await page.setViewportSize({width,height:1000})
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} overflow at ${width}`)
-      if(output&&[390,1440].includes(width)) await page.locator('.network-map').screenshot({path:`${output}/${prefix}-embedded-${width}.png`})
+      if(output&&[390,1440].includes(width)) await page.locator(prefix==='ca'?'[data-section="deploiement"]':'.network-map').screenshot({path:`${output}/${prefix}-embedded-${width}.png`})
     }
   }
   assert.deepEqual(errors,[])
-  console.log('Public map: live refresh, no cache, privacy, filtering, regional grouping and responsive layout verified.')
-} finally {await browser?.close();server?.stop(true);globalThis.fetch=originalFetch}
+  snapshotSql=new Database(':memory:')
+  snapshotSql.exec(await readFile(new URL('../migrations/interne/0018_public_network_snapshot.sql',import.meta.url),'utf8'))
+  env.TEAM_WORKSPACE={prepare(query){return {bind(...values){const stmt=snapshotSql.query(query);return {first:async()=>stmt.get(...values),run:async()=>({meta:{changes:stmt.run(...values).changes}})}}}}}
+  const complete=payload(await (await render(request())).text())
+  assert(!/DOS-|SECRET_|PRIVATE|synthetic-public-map-token/.test(snapshotSql.query('SELECT payload FROM public_network_snapshots').get().payload),'Shared storage must contain anonymous public data only')
+  fail=true
+  const readCount=reads
+  const shared=await render(request())
+  assert.equal(shared.status,200,'An existing public snapshot must survive a source outage')
+  assert.deepEqual(payload(await shared.text()),complete)
+  assert.equal(reads,readCount,'Fresh shared snapshots must avoid new NocoDB requests')
+  snapshotSql.exec(`UPDATE public_network_snapshots SET refreshed_at = ${Date.now()-61_000}`)
+  const older=await render(request())
+  assert.equal(older.status,200,'A failed refresh must keep the previous complete map')
+  assert.deepEqual(payload(await older.text()),complete)
+  delete env.TEAM_WORKSPACE;fail=false
+  console.log('Public maps: identical data, shared refresh, outage recovery, privacy, filtering and responsive layout verified.')
+} finally {await browser?.close();server?.stop(true);snapshotSql?.close();globalThis.fetch=originalFetch}

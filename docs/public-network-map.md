@@ -3,30 +3,35 @@
 `/oùnoustrouver` est une page publique, dans le sous-menu Programme, au même niveau que FAQ.
 Elle partage l’en-tête et le pied de page du site. Les sources restent NocoDB et les corrections
 de résidence configurées côté serveur ; aucune copie locale de données réelles n’est versionnée.
-La carte des établissements est également intégrée à `/programme`, sur fond blanc après la FAQ.
+La carte des établissements est également intégrée à `/programme`, dans un encart vert plié, sans silhouette, après la FAQ.
 La carte des formateurs figure en bas de `/candidater/formateur`, avant le retour au Programme
 et le trait blanc qui sépare le pied de page. `PublicNetworkMap` et `lireCartesPage` sont communs
 aux trois pages : seuls le fond, le titre et le bouton d’action changent. Le Programme conserve
 sa page statique et ses photos optimisées ; sa carte charge les données à chaque ouverture via
 `GET /api/reseau-public?carte=school`, sans cache. Les deux autres pages sont rendues à la demande.
-Une panne de NocoDB laisse le formulaire et le contenu du Programme accessibles et affiche
-l’indisponibilité de la carte sans anciens effectifs.
+Une panne temporaire de NocoDB conserve la dernière carte complète avec sa date de mise à jour.
+Sans aucune lecture initiale réussie, la carte affiche son indisponibilité ; aucun effectif n’est inventé.
 
 ## Mise à jour automatique
 
-La route Astro est rendue à la demande (`prerender = false`) et répond avec
-`Cache-Control: no-store, max-age=0`. Chaque ouverture ou actualisation relit les sources complètes,
-avec leur pagination et la réconciliation des doublons archivés. Aucun cron, webhook ou envoi
-supplémentaire n’est nécessaire. Une page déjà ouverte conserve sa sélection et ses données
-jusqu’à son actualisation ; elle ne lance pas de scrutation en arrière-plan.
-Les cinq tables sont lues une seule fois, successivement, pour éviter les rafales NocoDB.
-Les requêtes sont espacées et les visites simultanées partagent uniquement la lecture en cours.
-Une réponse de limitation HTTP 429 déclenche une nouvelle lecture après 30 secondes ;
-aucune écriture ni soumission de formulaire n’est répétée.
+Les réponses publiques et l’API gardent `Cache-Control: no-store, max-age=0` pour le navigateur.
+La projection anonyme est partagée dans `TEAM_WORKSPACE.public_network_snapshots` (migration 0018).
+Une seule lecture complète de NocoDB est autorisée par minute pour l’ensemble des visiteurs,
+des instances Workers et des trois emplacements, grâce à un bail atomique D1. Les requêtes concurrentes
+réutilisent la dernière lecture complète ; au premier démarrage elles attendent le propriétaire du bail.
 
-La page utilise `NOCODB_TOKEN`, `RESOURCE_NETWORK_LOCATIONS` et `RESOURCE_NETWORK_RESIDENCES`
-déjà disponibles côté serveur. Aucun secret n’est transmis au navigateur. Si une lecture échoue,
-la réponse est une indisponibilité HTTP 503, sans ancien résultat présenté comme actuel.
+Après une minute, une visite sert la carte existante et lance sa mise à jour via `waitUntil`.
+Les visites suivantes voient les nouvelles données une fois cette lecture terminée. En cas de panne,
+la dernière carte reste affichée avec sa date exacte ; une nouvelle tentative est autorisée après 30 secondes.
+Une page déjà ouverte conserve ses données et sa sélection jusqu’à son actualisation.
+La migration est appliquée en preview puis production par le workflow habituel, avant Pages.
+Les cinq tables NocoDB sont lues successivement, avec pagination et réconciliation des doublons.
+Aucune écriture NocoDB ni soumission de formulaire n’est répétée.
+
+Les secrets `NOCODB_TOKEN`, `RESOURCE_NETWORK_LOCATIONS` et `RESOURCE_NETWORK_RESIDENCES`
+restent côté serveur. Le stockage partagé contient uniquement la projection publique autorisée,
+jamais les lignes privées, les contacts ou les identifiants des dossiers. La clé `network-v1` doit
+être versionnée si le contrat public ou son périmètre de confidentialité change.
 
 ## Périmètre éditorial confirmé
 
@@ -63,7 +68,10 @@ sort des lecteurs serveur.
 - `bun run test` couvre les filtres, les états, les personnes sans localisation, le dédoublonnage
   et le maintien du périmètre privé.
 - Après `bun run build`, `bun scripts/check-public-network.mjs` vérifie la route compilée,
-  la mise à jour à la requête suivante, l’absence de cache et de données privées, les sélections,
-  l’unicité des régions et le balayage de 320 à 3840 px avec une base entièrement simulée.
+  les données communes aux emplacements, l’absence de cache navigateur et de données privées,
+  la conservation d’une lecture complète lors d’une panne, les sélections, l’unicité des régions
+  et le balayage de 320 à 3840 px avec une base entièrement simulée.
+- Les tests `public-network-store` utilisent SQLite et vérifient le bail partagé, l’absence
+  de rafales concurrentes, la reprise après panne et la protection contre un propriétaire expiré.
 - Ce contrôle est inclus dans le workflow Deploiement. Aucun envoi ni changement réel en base
   n’est effectué pendant la recette.
