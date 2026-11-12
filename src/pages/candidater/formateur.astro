@@ -15,10 +15,15 @@
  */
 import Candidature, { type Champ } from '../../components/Candidature.astro'
 import Base from '../../layouts/Base.astro'
+import Cta from '../../components/Cta.astro'
+import PublicNetworkMap from '../../components/PublicNetworkMap.astro'
+import { lireCartesPage } from '../../lib/public-network-page'
 
 export const prerender = false
 
 const url = Astro.url.searchParams
+const maps = await lireCartesPage(Astro.locals)
+Astro.response.headers.set('Cache-Control', 'no-store, max-age=0')
 
 const CHAMPS: readonly Champ[] = [
   {
@@ -288,4 +293,16 @@ const CHAMPS: readonly Champ[] = [
     manquants={url.get('manquants')}
   />
   </div>
+  <section class="trainer-network s-vert" data-section="carte-formateurs">
+    <div class="page">
+      <PublicNetworkMap maps={maps} kind="trainer" title="À la recherche d’un formateur dans votre région ?">
+        <Cta href="/programme" surface="bleu-fonce">Revenir au Programme</Cta>
+      </PublicNetworkMap>
+    </div>
+  </section>
 </Base>
+<style is:global>
+  .trainer-network { padding-block: var(--s-bloc); background: var(--vert); }
+  body:has(.trainer-network) footer { border-top: 1px solid white; }
+  body:has(.trainer-network) .ftr--spaced { margin-top: 0; }
+</style>

@@ -3,6 +3,14 @@
 `/oùnoustrouver` est une page publique, dans le sous-menu Programme, au même niveau que FAQ.
 Elle partage l’en-tête et le pied de page du site. Les sources restent NocoDB et les corrections
 de résidence configurées côté serveur ; aucune copie locale de données réelles n’est versionnée.
+La carte des établissements est également intégrée à `/programme`, sur fond blanc après la FAQ.
+La carte des formateurs figure en bas de `/candidater/formateur`, avant le retour au Programme
+et le trait blanc qui sépare le pied de page. `PublicNetworkMap` et `lireCartesPage` sont communs
+aux trois pages : seuls le fond, le titre et le bouton d’action changent. Le Programme conserve
+sa page statique et ses photos optimisées ; sa carte charge les données à chaque ouverture via
+`GET /api/reseau-public?carte=school`, sans cache. Les deux autres pages sont rendues à la demande.
+Une panne de NocoDB laisse le formulaire et le contenu du Programme accessibles et affiche
+l’indisponibilité de la carte sans anciens effectifs.
 
 ## Mise à jour automatique
 

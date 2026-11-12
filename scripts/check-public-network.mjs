@@ -39,13 +39,20 @@ const routes = JSON.parse(await readFile(new URL('../dist/_routes.json',import.m
 assert(routes.include.includes('/o%C3%B9noustrouver'), 'Cloudflare must invoke Astro for the encoded public URL')
 const manifestName = (await readdir(worker)).find(n=>n.startsWith('manifest_')&&n.endsWith('.mjs'))
 const {manifest} = await import(new URL(manifestName,worker))
-const app = new App({...manifest,sessionConfig:undefined,pageMap:new Map([['src/pages/oùnoustrouver.astro',()=>import(new URL('pages/oùnoustrouver.astro.mjs',worker))]])})
+const app = new App({...manifest,sessionConfig:undefined,pageMap:new Map([
+  ['src/pages/oùnoustrouver.astro',()=>import(new URL('pages/oùnoustrouver.astro.mjs',worker))],
+  ['src/pages/api/reseau-public.ts',()=>import(new URL('pages/api/reseau-public.astro.mjs',worker))],
+  ['src/pages/candidater/formateur.astro',()=>import(new URL('pages/candidater/formateur.astro.mjs',worker))],
+])})
 const render = request => app.render(request,{locals:{runtime:{env}}})
-const request = () => new Request('http://localhost/o%C3%B9noustrouver')
+const request = (path='/o%C3%B9noustrouver') => new Request(`http://localhost${path}`)
 function payload(html) {
-  const match = html.match(/<script[^>]*id="trouver-data"[^>]*>([\s\S]*?)<\/script>/)
-  assert(match,'Public map data absent')
-  return JSON.parse(match[1])
+  const read = id => {
+    const match = html.match(new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))
+    return match ? JSON.parse(match[1]) : null
+  }
+  const schools=read('ca-data'), trainers=read('ct-data')
+  return schools || trainers ? {locations:schools?.locations??[],periods:schools?.periods??[],trainerLocations:trainers?.locations??[]} : null
 }
 const output = process.env.CHECK_SCREENSHOTS
 let server, browser
@@ -61,6 +68,18 @@ try {
   assert(data.locations.some(s=>s.name==='Collège Charloun Rieu'))
   assert(data.locations.some(s=>s.name==='Collège Paul Emile Victor'))
   assert(!/DOS-|SECRET_|PRIVATE|synthetic-public-map-token|Aperçu local/.test(html))
+  const programmeResponse=await render(request('/api/reseau-public?carte=school'))
+  assert.match(programmeResponse.headers.get('cache-control'),/no-store/)
+  assert.deepEqual((await programmeResponse.json()).locations,data.locations,'Programme must use identical school data')
+  const programmeHtml=await readFile(new URL('../dist/programme/index.html',import.meta.url),'utf8')
+  assert(programmeHtml.indexOf('data-section="faq"') < programmeHtml.indexOf('data-section="deploiement"'))
+  assert(programmeHtml.indexOf('data-section="deploiement"') < programmeHtml.indexOf('data-section="formateurs"'))
+  const trainerHtml=await (await render(request('/candidater/formateur'))).text()
+  assert.deepEqual(payload(trainerHtml).trainerLocations,data.trainerLocations,'Candidature must use identical trainer data')
+  assert.match(trainerHtml,/Revenir au Programme/)
+  assert(!/DOS-|SECRET_|PRIVATE|synthetic-public-map-token/.test(programmeHtml+trainerHtml))
+  const home=await readFile(new URL('../dist/index.html',import.meta.url),'utf8')
+  assert.match(home,/href="\/oùnoustrouver"[^>]*>\s*Où nous trouver/)
   // A change in the internal database must be reflected on the very next request.
   const before = reads
   participations[3].statut='Candidature acceptée'
@@ -81,6 +100,7 @@ try {
   server=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(request) {
     const path=decodeURI(new URL(request.url).pathname)
     if(path.startsWith('/_astro/')||path.startsWith('/maps/')||path.startsWith('/fonts/')) return new Response(Bun.file(`dist${path}`))
+    if(path==='/programme') return new Response(Bun.file('dist/programme/index.html'),{headers:{'Content-Type':'text/html'}})
     return render(request)
   }})
   browser=await chromium.launch({headless:true})
@@ -117,6 +137,20 @@ try {
       assert.equal(names.length,new Set(names).size,`Repeated region at ${width}`)
     }
     if(output&&[390,1440].includes(width)) await page.screenshot({path:`${output}/public-network-${width}.png`,fullPage:true})
+  }
+  assert.deepEqual(errors,[])
+  for (const [path,prefix] of [['/programme','ca'],['/candidater/formateur','ct']]) {
+    await page.goto(`http://127.0.0.1:${server.port}${path}`)
+    const dismiss=page.getByRole('button',{name:'Fermer la fenêtre',exact:true})
+    if(await dismiss.isVisible()) await dismiss.click()
+    await expect(page.locator(`#${prefix}-markers button`)).not.toHaveCount(0)
+    await page.locator(`#${prefix}-markers button`).first().click()
+    await expect(page.locator(`#${prefix}-map-schools`)).not.toBeEmpty()
+    for (const width of [320,390,768,860,861,1024,1440,2560,3840]) {
+      await page.setViewportSize({width,height:1000})
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} overflow at ${width}`)
+      if(output&&[390,1440].includes(width)) await page.locator('.network-map').screenshot({path:`${output}/${prefix}-embedded-${width}.png`})
+    }
   }
   assert.deepEqual(errors,[])
   console.log('Public map: live refresh, no cache, privacy, filtering, regional grouping and responsive layout verified.')

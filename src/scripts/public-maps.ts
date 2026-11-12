@@ -125,8 +125,28 @@ function maps(data: { locations: Place[] }, prefix = 'ca', unit = 'établissemen
   mapObservers.set(prefix, observer)
 }
 
-const data = JSON.parse(el('trouver-data').textContent || 'null') as null | { locations: Place[]; trainerLocations: Place[]; periods: {key: string; locations: Place[]}[] }
-if(data) {
+type SchoolData = { locations: Place[]; periods: {key: string; locations: Place[]}[] }
+async function loadWidget(prefix: 'ca' | 'ct') {
+  const element = document.getElementById(`${prefix}-data`)
+  if (!element) return null
+  let data = JSON.parse(element.textContent || 'null')
+  const source = element.dataset.source
+  if (!data && source) {
+    try {
+      const response = await fetch(source, {cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(90_000)})
+      if (!response.ok) throw new Error('Carte indisponible')
+      data = await response.json()
+      if (!data || !Array.isArray(data.locations)) throw new Error('Carte indisponible')
+      el(`${prefix}-map-status`).hidden = true
+    } catch {
+      el(`${prefix}-map-status`).textContent = 'Les cartes sont momentanément indisponibles. Merci de réessayer dans quelques instants.'
+      return null
+    }
+  }
+  return data
+}
+void loadWidget('ca').then((data: SchoolData | null) => {
+  if (!data) return
   const updateSchools = () => {
     const value = el<HTMLSelectElement>('ca-period').value
     const state = el<HTMLSelectElement>('ca-training').value
@@ -136,8 +156,14 @@ if(data) {
       return formations.length ? [{ ...s, formations }] : []
     }) })
   }
+  const years=el<HTMLSelectElement>('ca-period')
+  if (years.options.length === 1) for(const period of data.periods) years.add(new Option((period as {label?:string}).label ?? period.key,period.key))
+  years.disabled=false
+  el<HTMLSelectElement>('ca-training').disabled=false
   updateSchools()
-  maps({ locations: data.trainerLocations }, 'ct', 'formateur(s)')
-  el<HTMLSelectElement>('ca-period').onchange = updateSchools
+  years.onchange = updateSchools
   el<HTMLSelectElement>('ca-training').onchange = updateSchools
-}
+})
+void loadWidget('ct').then((trainers: {locations:Place[]} | null) => {
+  if (trainers) maps(trainers, 'ct', 'formateur(s)')
+})

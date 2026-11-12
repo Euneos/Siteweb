@@ -14,6 +14,7 @@ import Paper from '../components/Paper.astro'
 import Photo from '../components/Photo.astro'
 import PictoBox from '../components/PictoBox.astro'
 import Base from '../layouts/Base.astro'
+import PublicNetworkMap from '../components/PublicNetworkMap.astro'
 import photoProgramme from '../assets/photos/programme-javier-trueba.jpg'
 import cartoucheProgramme from '../assets/brand/cartouche-programme-violet.svg'
 import photoFormation from '../assets/photos/programme-formation-parabol.jpg'
@@ -364,6 +365,12 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
         <Photo src={photoFaq} ratio="4/3" alt="Des participantes et participants échangent pendant une formation sur l’attention consciente" width={1600} widths={[480, 800, 1200, 1600]} quality={75} sizes="(max-width: 860px) 100vw, 50vw" />
         <div class="faq__cartouche"><img src={cartoucheFaq.src} alt="Euneos" width="354" height="500" class="programme__cartouche-image" loading="lazy" /></div>
       </div>
+    </div>
+  </section>
+
+  <section class="section programme-network" data-section="deploiement" data-section-surface>
+    <div class="page">
+      <PublicNetworkMap maps={null} kind="school" title="Déploiement du Programme" titleClass="c-t temoins__t" light remote />
     </div>
   </section>
 
@@ -1021,4 +1028,8 @@ const faq = [1, 5, 10, 7, 13].map((numero) => toutesQuestions.find((q) => q.id =
     }
   }
 
+</style>
+
+<style is:global>
+  .programme-network { background: white; }
 </style>

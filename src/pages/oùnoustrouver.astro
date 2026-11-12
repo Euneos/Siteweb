@@ -1,84 +1,25 @@
 ---
 import Base from '../layouts/Base.astro'
 import Cta from '../components/Cta.astro'
-import { lireCartePublique } from '../lib/public-network'
-import { publicTrainerMap } from '../lib/public-trainer-map'
-import { type PublicSchool } from '../lib/public-school-map'
-import { jeton } from '../lib/nocodb'
+import PublicNetworkMap from '../components/PublicNetworkMap.astro'
+import { lireCartesPage } from '../lib/public-network-page'
 export const prerender = false
-type PublicNetworkData = { locations: PublicSchool[]; periods: {key: string; cohort: string; locations: PublicSchool[]}[]; trainerLocations: ReturnType<typeof publicTrainerMap>; readAt?: string }
-let data: PublicNetworkData | null = null
-try {
-  const token = jeton(Astro.locals)
-  if (token) {
-    const env = (Astro.locals as { runtime?: { env?: Record<string, unknown> } }).runtime?.env ?? {}
-    data = await lireCartePublique(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES)
-  }
-
-} catch { /* Show an honest unavailable state, never partial totals. */ }
-const maps = data ? {
-  locations: data.locations,
-  periods: data.periods.map(p => ({ key: p.key, label: p.cohort, locations: p.locations })),
-  trainerLocations: data.trainerLocations,
-} : null
+const maps = await lireCartesPage(Astro.locals)
 Astro.response.headers.set('Cache-Control', 'no-store, max-age=0')
 if (!maps) Astro.response.status = 503
 ---
 <Base title="Où nous trouver ? — EUNEOS" description="Retrouvez les établissements engagés dans notre Programme Clé et le réseau de formateurs dans votre région." heroSurface="vert" heroFold="none" sectionFlow>
   <div class="page trouver">
-    {!maps && <p role="status">Les cartes sont momentanément indisponibles. Merci de réessayer dans quelques instants.</p>}
-    {[{prefix: 'ca', title: 'Les établissements engagés dans notre Programme Clé'}, {prefix: 'ct', title: 'À la recherche d’un formateur dans votre région ?'}].map(({prefix, title}, i) => (
-      <section class="trouver__section" aria-labelledby={`${prefix}-title`}>
-        {i === 0 ? <h1 id={`${prefix}-title`}>{title}</h1> : <h2 id={`${prefix}-title`}>{title}</h2>}
-        {i === 0 && <div class="trouver__period"><label for="ca-period">Années</label><select id="ca-period" disabled={!maps}><option value="all">Toutes les années</option>{maps?.periods.map(p => <option value={p.key}>{p.label}</option>)}</select><label for="ca-training">État de formation</label><select id="ca-training" disabled={!maps}><option value="all">Tous les établissements</option><option value="terminee">Formations terminées</option><option value="en_cours">Formations en cours</option><option value="engage">Établissements engagés</option></select></div>}
-        <div id={`${prefix}-map-tabs`} class="trouver__tabs" role="group" aria-label={i ? 'Territoire des formateurs' : 'Territoire des établissements'}></div>
-        <div class="trouver__grid">
-          <div class="trouver__map"><div class="trouver__map-stage"><img id={`${prefix}-map-image`} src="/maps/outline/metropole.svg" alt="Contours des régions du territoire sélectionné" width="1000" height="650" /><div id={`${prefix}-markers`}></div></div></div>
-          <aside aria-live="polite"><h3 id={`${prefix}-map-selection`}>Sélectionnez un repère</h3><p id={`${prefix}-map-count`}></p><ul id={`${prefix}-map-schools`}></ul><button id={`${prefix}-map-all`} class="trouver__button" type="button" hidden>Fermer la sélection</button></aside>
-        </div>
-        <div class="trouver__action">
-          {i === 0
-            ? <Cta href="/programme" surface="bleu-fonce">Revenir au Programme</Cta>
-            : <Cta href="/candidater/formateur" surface="jaune">Devenir formateur-ice</Cta>}
-        </div>
-      </section>
-    ))}
-    <noscript><p>Activez JavaScript pour utiliser les filtres et afficher les repères des cartes.</p></noscript>
-    <script is:inline id="trouver-data" type="application/json" set:html={JSON.stringify(maps).replace(/</g, '\\u003c')} />
+    <PublicNetworkMap maps={maps} kind="school" heading="h1" title="Les établissements engagés dans notre Programme Clé">
+      <Cta href="/programme" surface="bleu-fonce">Revenir au Programme</Cta>
+    </PublicNetworkMap>
+    <PublicNetworkMap maps={maps} kind="trainer" title="À la recherche d’un formateur dans votre région ?">
+      <Cta href="/candidater/formateur" surface="jaune">Devenir formateur-ice</Cta>
+    </PublicNetworkMap>
   </div>
 </Base>
-<script src="../scripts/public-maps.ts"></script>
 <style is:global>
   body:has(.trouver) #main { background: var(--vert); padding: 0; }
   .trouver { padding-top: var(--s-titre); padding-bottom: var(--s-bloc); display: grid; gap: var(--s-bloc); width: 100%; color: white; }
   body:has(.trouver) footer { border-top: 1px solid white; }
-  .trouver__action { display: flex; justify-content: center; margin-top: var(--s-titre); }
-  .trouver__section { min-width: 0; }
-  .trouver h1, .trouver h2 { color: white; font-size: var(--t-titre); font-weight: 600; line-height: 1.2; text-align: center; max-width: 30ch; text-wrap: balance; margin: 0 auto var(--s-titre); }
-  .trouver__period { display: flex; flex-wrap: wrap; gap: var(--s-lie); align-items: center; margin-bottom: var(--s-lie); font-size: var(--t-note); }
-  .trouver select { color: white; background: var(--vert); border: 1px solid white; padding: .6em 2em .6em .7em; max-width: 100%; font: inherit; }
-  .trouver select:focus { outline: 2px solid var(--jaune); outline-offset: 3px; }
-  .trouver__tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: var(--s-lie); }
-  .trouver__button { font: inherit; font-size: var(--t-note); line-height: 1.3; min-height: 44px; padding: .6em 1em; border: 1px solid white; color: white; background: transparent; cursor: pointer; }
-  .trouver__button:hover, .trouver__button[aria-pressed='true'] { background: var(--jaune); color: black; border-color: var(--jaune); }
-  .trouver button:focus-visible { outline: 3px solid var(--jaune); outline-offset: 3px; }
-  .trouver__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-grille); align-items: start; }
-  .trouver__grid--unlocated { grid-template-columns: 1fr; }
-  .trouver__grid--unlocated .trouver__map { display: none; }
-  .trouver__map { position: relative; aspect-ratio: 1000 / 650; overflow: clip; }
-  .trouver__map-stage { position: absolute; inset: 0; transform: scale(1.18); }
-  .trouver__map img { width: 100%; height: 100%; }
-  .trouver__grid aside { border-top: 1px solid white; padding-top: var(--s-lie); }
-  .trouver__grid h3 { font-size: var(--t-note); line-height: 1.3; color: white; margin-bottom: .5rem; }
-  .trouver__grid p, .trouver__grid li { font-size: var(--t-note); }
-  .trouver__grid ul { list-style: none; padding: 0; margin-block: var(--s-lie); display: grid; gap: .8rem; }
-  .trouver__grid li { border-bottom: 1px solid #ffffff40; padding-bottom: .8rem; }
-  .trouver__grid li.trouver__region { border: 0; padding: 0; }
-  .trouver__formation { display: block; margin-top: .35rem; }
-  .trouver__region-title { font-size: var(--t-corps); line-height: 1.3; font-weight: 600; color: white; padding-bottom: .5rem; border-bottom: 1px solid white; }
-  .trouver__grid .trouver__region + .trouver__region { margin-top: var(--s-lie); }
-  .trouver__marker { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; border: 0; background: transparent; color: black; cursor: pointer; display: grid; place-items: center; padding: 0; }
-  .trouver__marker span { display: grid; place-items: center; width: 26px; height: 26px; border: 2px solid var(--vert); border-radius: 50%; background: white; font-size: var(--t-note); font-weight: 600; }
-  .trouver__marker[aria-pressed='true'] span, .trouver__marker:hover span { background: var(--jaune); }
-  @media(max-width: 860px) { .trouver__grid { grid-template-columns: 1fr; } .trouver__tabs { gap: .5rem; } .trouver__period { align-items: start; flex-direction: column; gap: .5rem; } }
 </style>

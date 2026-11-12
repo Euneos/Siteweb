@@ -1,0 +1,30 @@
+---
+import '../styles/public-network-map.css'
+import type { PublicMaps } from '../lib/public-network-page'
+interface Props {
+  maps: PublicMaps | null
+  kind: 'school' | 'trainer'
+  title: string
+  heading?: 'h1' | 'h2'
+  titleClass?: string
+  light?: boolean
+  remote?: boolean
+}
+const { maps, kind, title, heading: Heading = 'h2', titleClass = '', light = false, remote = false } = Astro.props
+const prefix = kind === 'school' ? 'ca' : 'ct'
+const widgetData = !maps ? null : kind === 'school' ? {locations:maps.locations,periods:maps.periods} : {locations:maps.trainerLocations}
+---
+<section class:list={['network-map trouver__section', {'network-map--light': light}]} aria-labelledby={`${prefix}-title`}>
+        <Heading id={`${prefix}-title`} class:list={['network-map__title', titleClass]}>{title}</Heading>
+        {kind === 'school' && <div class="trouver__period"><label for="ca-period">Années</label><select id="ca-period" disabled={!maps}><option value="all">Toutes les années</option>{maps?.periods.map(p => <option value={p.key}>{p.label}</option>)}</select><label for="ca-training">État de formation</label><select id="ca-training" disabled={!maps}><option value="all">Tous les établissements</option><option value="terminee">Formations terminées</option><option value="en_cours">Formations en cours</option><option value="engage">Établissements engagés</option></select></div>}
+        <div id={`${prefix}-map-tabs`} class="trouver__tabs" role="group" aria-label={kind === 'trainer' ? 'Territoire des formateurs' : 'Territoire des établissements'}></div>
+        <div class="trouver__grid">
+          <div class="trouver__map"><div class="trouver__map-stage"><img id={`${prefix}-map-image`} src="/maps/outline/metropole.svg" alt="Contours des régions du territoire sélectionné" width="1000" height="650" /><div id={`${prefix}-markers`}></div></div></div>
+          <aside aria-live="polite"><h3 id={`${prefix}-map-selection`}>Sélectionnez un repère</h3><p id={`${prefix}-map-count`}></p><ul id={`${prefix}-map-schools`}></ul><button id={`${prefix}-map-all`} class="trouver__button" type="button" hidden>Fermer la sélection</button></aside>
+        </div>
+        {Astro.slots.has('default') && <div class="trouver__action"><slot /></div>}
+        <p role="status" id={`${prefix}-map-status`} hidden={!!maps}>{remote ? 'Chargement de la carte…' : 'Les cartes sont momentanément indisponibles. Merci de réessayer dans quelques instants.'}</p>
+        <noscript><p>Activez JavaScript pour utiliser les filtres et afficher les repères des cartes.</p></noscript>
+        <script is:inline id={`${prefix}-data`} data-source={remote ? `/api/reseau-public?carte=${kind}` : undefined} type="application/json" set:html={JSON.stringify(widgetData).replace(/</g, '\\u003c')} />
+</section>
+<script src="../scripts/public-maps.ts"></script>
