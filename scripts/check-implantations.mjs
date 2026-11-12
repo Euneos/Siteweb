@@ -317,10 +317,9 @@ try {
   await check('responsive de 320 à 1920 px, repères 44 px et captures', async () => {
     await tab.locator('#im-cohort').selectOption('2')
     await tab.locator('[data-area="metropole"]').click()
-    await expect(tab.locator('[data-area="metropole"]')).toHaveCSS(
-      'background-color',
-      'rgb(0, 50, 41)',
-    )
+    await expect(tab.locator('[data-area="metropole"]')).toHaveCSS('background-color','rgb(128, 155, 150)')
+    await tab.mouse.move(0,0)
+    await expect(tab.locator('[data-area="metropole"]')).toHaveCSS('background-color','rgb(0, 56, 45)')
     for (const width of [320, 390, 768, 1024, 1440, 1920]) {
       await tab.setViewportSize({ width, height: 1200 })
       await tab.evaluate(() => document.fonts.ready)
