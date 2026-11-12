@@ -17,7 +17,7 @@ const nav = [
   { href: '/contact', label: 'Nous contacter' },
 ]
 
-const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+const path = decodeURI(Astro.url.pathname).replace(/\/+$/, '') || '/'
 ---
 
 <header class="hdr">
@@ -42,6 +42,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
               </div>
               <div class="hdr__submenu" id="menu-programme">
                 <a href="/faq" class:list={["hdr__link", path === "/faq" && "is-active"]} aria-current={path === "/faq" ? "page" : undefined}>FAQ</a>
+                <a href="/oùnoustrouver" class:list={["hdr__link", path === "/oùnoustrouver" && "is-active"]} aria-current={path === "/oùnoustrouver" ? "page" : undefined}>Où nous trouver ?</a>
               </div>
             </div>
           ) : (
@@ -127,7 +128,7 @@ const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
   .hdr__programme:hover .hdr__submenu,
   .hdr__programme:focus-within .hdr__submenu { display: block; }
   .hdr__programme-row { display: flex; align-items: center; }
-  .hdr__submenu { display: none; position: absolute; top: 100%; left: 0; min-width: 100%; background: var(--vert-clair); color: var(--blanc); padding: .5rem 1rem; box-shadow: 0 4px 12px #0002; }
+  .hdr__submenu { display: none; position: absolute; top: 100%; left: 0; min-width: max-content; background: var(--vert-clair); color: var(--blanc); padding: .5rem 1rem; box-shadow: 0 4px 12px #0002; }
   .hdr__submenu .hdr__link { display: block; }
   :global(.hero-zone.s-bleu) .hdr__submenu { background: var(--bleu-fold); }
   .hdr__burger {

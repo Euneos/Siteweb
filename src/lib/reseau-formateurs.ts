@@ -64,15 +64,14 @@ export function localiserFormateur(city: string, postcode: unknown) {
   return locateCommune(matches[0][1], matches[0][2][0] ?? '')
 }
 
-/** Only an explicit validation grants a place in the resource directory.
- * Filter server-side: unvalidated names must not reach the map, list or counters. */
-export function construireReseauFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}, residences: NetworkLocations = {}) {
+/** Residence-based network for one explicitly selected status; server-side only. */
+function construireReseauParStatut(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}, residences: NetworkLocations = {}, statut: 'Formateur validé' | 'En cours de formation' = 'Formateur validé') {
   const people = new Map(personnes.map(person => [person.Id, person]))
   if (people.size !== personnes.length) throw new Error('Identités formateurs ambiguës')
   const current = reconcilierActifs(parcours, ['formateurs_id', 'cohortes_id'], ['cohortes_id'])
   const validated = new Map<number, Row[]>()
   for (const dossier of current) {
-    if (text(dossier.statut) !== 'Formateur validé') continue
+    if (text(dossier.statut) !== statut) continue
     const personId = Number(dossier.formateurs_id)
     validated.set(personId, [...(validated.get(personId) ?? []), dossier])
   }
@@ -91,8 +90,8 @@ export function construireReseauFormateurs(personnes: Row[], parcours: Row[], lo
     members.push({
       id: person.Id,
       nom: [text(person.prenom), text(person.nom)].filter(Boolean).join(' '),
-      statut: 'Formateur validé' as const,
-      etat: 'valide' as const,
+      statut,
+      etat: statut === 'Formateur validé' ? 'valide' as const : 'en_formation' as const,
       localisation: city,
       // Only the person's residence fields, never missions or school locations.
       ...(confirmed ? confirmedLocation(confirmed) : localiserFormateur(city, person.cp)),
@@ -100,6 +99,28 @@ export function construireReseauFormateurs(personnes: Row[], parcours: Row[], lo
   }
   members.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
   return { members, updatedAt: new Date().toISOString() }
+}
+
+/** Resource directory: explicit validation only; public trainee counts use a separate reader. */
+export function construireReseauFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}, residences: NetworkLocations = {}) {
+  const network = construireReseauParStatut(personnes, parcours, locations, residences)
+  return { ...network, members: network.members.map(m => ({ ...m, statut: 'Formateur validé' as const, etat: 'valide' as const })) }
+}
+
+/** Separate public map scope: does not expand the validated resource directory. */
+export function construireCartePubliqueFormateurs(personnes: Row[], parcours: Row[], locations: NetworkLocations = {}, residences: NetworkLocations = {}) {
+  const formed = construireReseauParStatut(personnes, parcours, locations, residences)
+  const training = construireReseauParStatut(personnes, parcours, locations, residences, 'En cours de formation')
+  const formedIds = new Set(formed.members.map(m => m.id))
+  return { members: [...formed.members, ...training.members.filter(m => !formedIds.has(m.id))], updatedAt: formed.updatedAt }
+}
+
+export async function lireCartePubliqueFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+  const [people, paths] = await Promise.all([
+    lireToutes(token, 'formateurs', 'Id,nom,prenom,ville,cp'),
+    lireToutes(token, 'engagements', 'Id,statut,formateurs_id,cohortes_id,fusionne_vers'),
+  ])
+  return construireCartePubliqueFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsConfirmees(rawResidences))
 }
 
 export type ReseauFormateurs = ReturnType<typeof construireReseauFormateurs>

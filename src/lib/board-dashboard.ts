@@ -1,3 +1,4 @@
+import { schoolDisplayName } from './school-display-name'
 import { lireToutes, reconcilierActifs } from './nocodb'
 import { locateCommune, normalizePostcode } from './map'
 import projections from '../data/map-projections.json'
@@ -25,7 +26,7 @@ function buildBoardPeriod(cohorts: Row[], raw: Row[], establishments: Row[], tra
   const locations = schools.map(id => {
     const s = schoolById.get(id)!
     const { location } = locateCommune(text(s.ville), normalizePostcode(s.cp))
-    return { name: text(s.nom) || 'Établissement sans nom', city: text(s.ville), location: location ? { territory: location.territory, x: location.x, y: location.y, code: location.code } : null }
+    return { name: schoolDisplayName(text(s.nom)) || 'Établissement sans nom', city: text(s.ville), location: location ? { territory: location.territory, x: location.x, y: location.y, code: location.code } : null }
   }).sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   // Trainer promotions, unlike school participations, are usually NOT linked to a cohort.
   // Keep the complete network, with explicit statuses and promotions, in every school view.
@@ -35,7 +36,7 @@ function buildBoardPeriod(cohorts: Row[], raw: Row[], establishments: Row[], tra
   const statusCounts = STATUTS_CANDIDATURE.map(s => ({ label: s.label, count: rows.filter(p => valeurStatutCandidature(p.statut) === s.label).length }))
   const upcoming = engaged.filter(p => date(p.date_debut_formation) && date(p.date_debut_formation)! >= today)
     .sort((a, b) => text(a.date_debut_formation).localeCompare(text(b.date_debut_formation)))
-    .slice(0, 6).map(p => ({ date: date(p.date_debut_formation)!, name: text(schoolById.get(Number(p.etablissements_id))?.nom) || 'Établissement à préciser' }))
+    .slice(0, 6).map(p => ({ date: date(p.date_debut_formation)!, name: schoolDisplayName(text(schoolById.get(Number(p.etablissements_id))?.nom)) || 'Établissement à préciser' }))
   return {
     cohort: selectedCohort === null ? '2025–2026 et 2026–2027' : selectedCohort === cohort.Id ? '2026–2027' : '2025–2026', goal: 30, readAt: now.toISOString(), total: rows.length,
     engaged: schools.length, engagedDossiers: engaged.length,

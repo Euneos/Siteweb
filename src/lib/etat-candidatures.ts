@@ -1,3 +1,4 @@
+import { schoolDisplayName } from './school-display-name'
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
 import { lireDernierContact, type DernierContact } from './dernier-contact'
@@ -321,7 +322,7 @@ export async function lireEtatCohorte(
         dateFinFormation: participation.date_fin_formation ?? null,
         statutFormation: participation.statut_formation?.trim() || null,
         etablissementId,
-        etablissement: etablissement?.nom?.trim() || 'Établissement non relié',
+        etablissement: schoolDisplayName(etablissement?.nom?.trim() || '') || 'Établissement non relié',
         typeEtablissement: etablissement?.type_etab?.trim() || null,
         ville: etablissement?.ville?.trim() || null,
         region: etablissement?.region?.trim() || null,

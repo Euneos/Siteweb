@@ -508,3 +508,12 @@ Le texte sous le logo du cartouche rose tient sur exactement deux lignes :
 « Association d’intérêt général » puis « Loi 1901 fondée en avril 2026 ».
 Sa largeur dépend du corps de la note et de ses marges ; ne pas revenir à une
 largeur proportionnelle trop étroite. Le logo garde une largeur plafonnée.
+
+
+## Carte publique « Où nous trouver ? »
+
+La page `/oùnoustrouver` et son actualisation à chaque ouverture sont décrites dans
+[docs/public-network-map.md](docs/public-network-map.md). Les filtres publics sont distincts
+des statuts en base ; ne pas élargir le répertoire privé des ressources pour ajouter les effectifs
+anonymes des personnes en formation. Après compilation, `bun scripts/check-public-network.mjs`
+vérifie la lecture en direct, les listes blanches et le rendu responsive avec une source simulée.

@@ -1,3 +1,4 @@
+import { schoolDisplayName } from './school-display-name'
 import { lireToutes, reconcilierActifs } from './nocodb'
 import { sourceStatutDossier } from './statut-candidature'
 import reference from '../data/map-communes.json?raw'
@@ -164,7 +165,7 @@ function buildActiveMapData(cohorts: Row[], participations: Row[], establishment
         key,
         establishmentId,
         establishmentKnown: !!school,
-        name: value(school?.nom) || 'Établissement non renseigné',
+        name: schoolDisplayName(value(school?.nom)) || 'Établissement non renseigné',
         type: value(school?.type_etab),
         city,
         postcode,
