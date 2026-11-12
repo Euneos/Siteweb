@@ -41,9 +41,9 @@ const path = decodeURI(Astro.url.pathname).replace(/\/+$/, '') || '/'
                 <a href={item.href} class:list={["hdr__link", active && "is-active"]} aria-current={active ? "page" : undefined}>{item.label}</a>
               </div>
               <div class="hdr__submenu" id="menu-programme">
-                <a href="/candidater/formateur" class:list={["hdr__link", path === "/candidater/formateur" && "is-active"]} aria-current={path === "/candidater/formateur" ? "page" : undefined}>Devenir Formateur·ice</a>
                 <a href="/faq" class:list={["hdr__link", path === "/faq" && "is-active"]} aria-current={path === "/faq" ? "page" : undefined}>FAQ</a>
                 <a href="/oùnoustrouver" class:list={["hdr__link", path === "/oùnoustrouver" && "is-active"]} aria-current={path === "/oùnoustrouver" ? "page" : undefined}>Où nous trouver ?</a>
+                <a href="/candidater/formateur" class:list={["hdr__link", path === "/candidater/formateur" && "is-active"]} aria-current={path === "/candidater/formateur" ? "page" : undefined}>Devenir Formateur·ice</a>
               </div>
             </div>
           ) : (
