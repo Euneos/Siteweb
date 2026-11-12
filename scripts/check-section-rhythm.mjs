@@ -32,7 +32,7 @@ const pages = {
   },
   '/qui-sommes-nous': {
     fondements: '.fond__in,.fond__cta',
-    mission: '.mission__media .ph,.mission__badge,.mission__picto,.mission__card',
+    mission: '.mission__media .ph,.mission__badge,.mission__picto,.mission__card,.mission__cta',
     'notre-mission': '.page',
     approche: '.page',
     niveaux: '.page',
