@@ -600,6 +600,85 @@ try {
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const origin = `http://127.0.0.1:${server.port}`
+  // Partnership summary uses all canonical tabs, never the synchronized TOP 10.
+  const partnerColumns = [
+    'Nom',
+    'Statut',
+    'Priorité',
+    'Vivier',
+    'Nature de la relation à viser',
+    'Attribution',
+    'Point de vigilance',
+  ]
+  const summarySheets = ['Parrainage', 'Comité scientifique', 'Partenaires', 'TOP 10']
+  for (const [i, title] of summarySheets.entries()) {
+    sql
+      .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,?)')
+      .run('summary-' + i, 'partenariats', title, JSON.stringify(partnerColumns), i)
+  }
+  const summaryRows = [
+    ['0', ['Parrain engagé', 'Partenariat', 'A', 'Science', '', 'Candice', '']],
+    [
+      '0',
+      [
+        'Parrain en discussion',
+        'En discussion',
+        'A',
+        'Culture',
+        '',
+        'Charlotte',
+        'Relire le compte rendu\nConfirmer la disponibilité.',
+      ],
+    ],
+    ['0', ['Parrain à contacter', 'À contacter', 'B', 'Sport', '', '', '']],
+    ['1', ['Scientifique contacté', 'Contacté', 'A', '', '', 'Pauline', 'Préparer les questions.']],
+    ['2', ['Structure active', 'Partenariat', '', '', 'Réseau', '', '']],
+    ['2', ['Structure à contacter', 'À contacter', '', '', 'Financement', 'Candice', '']],
+    ['3', ['Parrain engagé', 'Partenariat', 'A', 'Science', '', 'Candice', '']],
+  ]
+  const summaryIds = []
+  for (const [sheet, cells] of summaryRows) {
+    const id = crypto.randomUUID()
+    summaryIds.push(id)
+    sql
+      .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
+      .run(id, 'summary-' + sheet, JSON.stringify(cells), 'fixture@example.test')
+  }
+  for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto(`${origin}/interne/communication/partenariats`)
+    await expect(page.locator('#partnership-dashboard')).toBeVisible()
+    await expect(page.locator('.iw-intro h1')).toHaveText('Parrains et partenaires')
+    await expect(page.locator('#partnership-updated')).toContainText('Mise à jour :')
+    await expect(page.locator('#partnership-dashboard [role="progressbar"]')).toHaveCount(3)
+    await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('1 / 5')
+    await expect(page.locator('#partnership-dashboard .media-value').nth(2)).toHaveText('1 / 2')
+    await expect(page.locator('.partner-missing')).toContainText('Sport')
+    await expect(page.locator('.partner-alert').last()).toContainText('2')
+    await expect(page.locator('.partner-vigilance').first()).toHaveText(
+      'Relire le compte rendu\nConfirmer la disponibilité.',
+    )
+    await page.locator('#com-search').fill('aucun résultat')
+    await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('1 / 5')
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    if ([390, 1440].includes(width))
+      await page.screenshot({ path: `${output}/partnership-summary-${width}.png`, fullPage: true })
+  }
+  // A saved row is reflected after the same reload used by the editor.
+  const changed = [...summaryRows[1][1]]
+  changed[1] = 'Partenariat'
+  sql
+    .query('UPDATE communication_rows SET cells_json=?,version=version+1 WHERE id=?')
+    .run(JSON.stringify(changed), summaryIds[1])
+  await page.getByRole('button', { name: 'Actualiser', exact: true }).click()
+  await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('2 / 5')
+  await expect(page.locator('.partner-ongoing li')).toHaveCount(1)
+  for (const id of summaryIds) sql.query('DELETE FROM communication_rows WHERE id=?').run(id)
+  for (const [i] of summarySheets.entries())
+    sql.query('DELETE FROM communication_sheets WHERE id=?').run('summary-' + i)
+  checks.push(
+    'partnership-summary-counts-priorities-pools-assignments-vigilance-responsive-refresh',
+  )
   async function switchToTeam() {
     if (new URL(page.url()).pathname === '/interne/equipeheures') return
     const month = await page.locator('#iw-month').inputValue()
