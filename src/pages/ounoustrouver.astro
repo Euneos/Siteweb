@@ -21,5 +21,6 @@ if (!maps) Astro.response.status = 503
 <style is:global>
   body:has(.trouver) #main { background: var(--vert); padding: 0; }
   .trouver { padding-top: var(--s-titre); padding-bottom: var(--s-bloc); display: grid; gap: var(--s-bloc); width: 100%; color: white; }
+  .trouver > .trouver__section ~ .trouver__section { border-top: 1px solid white; padding-top: var(--s-titre); }
   body:has(.trouver) footer { border-top: 1px solid white; }
 </style>
