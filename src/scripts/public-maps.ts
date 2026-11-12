@@ -1,4 +1,5 @@
-import { networkTerritories as projections } from '../data/network-territories'
+import { networkTerritories } from '../data/network-territories'
+const projections = networkTerritories.filter(p => p.id !== 'BE')
 import regionReference from '../data/map-regions.json'
 type Place = { trainingState?: 'valide' | 'en_formation'; formations?: { year: string; state: 'terminee' | 'en_cours' | 'engage' }[]; name: string; city: string; location: { territory: string; x: number; y: number; code: string } | null }
 const regionsByDepartment: Record<string, string> = regionReference.departments

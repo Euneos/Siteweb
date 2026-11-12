@@ -39,6 +39,11 @@ Les deux cartes regroupent leurs repères par région administrative. Le détail
 clic et regroupe les villes, en gras. Les personnes sans localisation fiable restent accessibles
 par « Sans repère » ; aucun repère n’est inventé. Les établissements sont dédoublonnés entre
 années et les deux années restent consultables séparément.
+La carte publique est limitée à la France (métropole et outre-mer), sans onglet Belgique.
+Les cinq établissements dont le code postal importé empêchait la localisation ont une correspondance
+publique vérifiée dans `src/data/public-school-communes.json`, avec une source par établissement.
+Ce secours ne s’applique qu’au couple nom/ville confirmé et ne remplace jamais une localisation
+déjà renseignée correctement dans la source. Les données internes ne sont pas réécrites.
 
 ## Données publiques et contrôles
 

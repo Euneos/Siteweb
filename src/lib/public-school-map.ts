@@ -1,4 +1,5 @@
 import { schoolDisplayName } from './school-display-name'
+import { publicSchoolLocation } from './public-school-location'
 import type { MapData } from './map'
 import { valeurStatutCandidature } from './statut-candidature'
 import type { ReseauEtablissements } from './reseau-etablissements'
@@ -50,7 +51,7 @@ export function publicSchoolMap(network: ReseauEtablissements, applications?: Ma
       if (!existing) school.formations.push({ year: group.cohortLabel, state: accepted ? 'en_cours' : 'engage' })
       schools.set(key, school)
     }
-    return [...schools.values()].sort((a,b) => a.name.localeCompare(b.name, 'fr'))
+    return [...schools.values()].map(publicSchoolLocation).filter(s => s.location?.territory !== 'BE').sort((a,b) => a.name.localeCompare(b.name, 'fr'))
   }
   return {
     locations: places(),

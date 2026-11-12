@@ -87,6 +87,12 @@ try {
   const page=await browser.newPage()
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.goto(`http://127.0.0.1:${server.port}/o%C3%B9noustrouver`)
+  assert.equal(await page.getByRole('button',{name:/Belgique/}).count(),0)
+  const textSizes = await page.evaluate(() => {
+    const size = selector => getComputedStyle(document.querySelector(selector)).fontSize
+    return ['.trouver__period label','.trouver__period select','.trouver__grid h3'].map(selector=>size(selector)===size('.trouver__tabs button'))
+  })
+  assert(textSizes.every(Boolean),'Filters and selection headings must match territory text size')
   const popup=page.getByRole('button',{name:'Fermer la fenêtre',exact:true})
   if(await popup.isVisible()) await popup.click()
   await expect(page.locator('#ca-markers button')).not.toHaveCount(0)
