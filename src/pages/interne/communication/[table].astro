@@ -22,15 +22,34 @@ const definition = communicationTables[table]
   <div id="communication-table" data-table={table}>
     <header class="iw-intro">
       <div class="iw-intro__text">
-        <p class="iw-eyebrow">Espace Communication</p><h1>{definition.title}</h1><p
-          id={table === 'suivimedias' ? 'media-summary' : undefined}
+        <p class="iw-eyebrow" hidden={table === 'partenariats'}>Espace Communication</p><h1>
+          {table === 'partenariats' ? 'Parrains et partenaires' : definition.title}
+        </h1><p
+          id={table === 'suivimedias'
+            ? 'media-summary'
+            : table === 'partenariats'
+              ? 'partnership-updated'
+              : undefined}
         >
-          {definition.description}
+          {table === 'partenariats' ? 'Mise à jour : chargement…' : definition.description}
         </p>
-      </div><button class="iw-button iw-button--primary" id="com-new" disabled
-        >＋ Nouvelle fiche</button
-      >
+      </div>{
+        table !== 'partenariats' && (
+          <button class="iw-button iw-button--primary" id="com-new" disabled>
+            ＋ Nouvelle fiche
+          </button>
+        )
+      }
     </header>
+    {
+      table === 'partenariats' && (
+        <section
+          id="partnership-dashboard"
+          aria-label="Synthèse des parrains et partenaires"
+          hidden
+        />
+      )
+    }
     {
       table === 'suivimedias' && (
         <section id="media-dashboard" aria-label="Synthèse du suivi médias" hidden />
@@ -44,6 +63,13 @@ const definition = communicationTables[table]
     <p id="com-feedback" class="iw-feedback" role="status">Chargement du tableau…</p>
     <section class="iw-panel" aria-label={definition.title}>
       <div class="iw-toolbar">
+        {
+          table === 'partenariats' && (
+            <button class="iw-button iw-button--primary" id="com-new" disabled>
+              ＋ Nouvelle fiche
+            </button>
+          )
+        }
         <div class="iw-field com-search">
           <label for="com-search">Rechercher dans tous les champs</label><input
             id="com-search"
@@ -459,13 +485,13 @@ const definition = communicationTables[table]
   #communication-table[data-table='suivimedias'] .com-table td p {
     -webkit-line-clamp: 5;
   }
-  #communication-table[data-table='suivimedias'] .iw-intro {
+  #communication-table:is([data-table='suivimedias'], [data-table='partenariats']) .iw-intro {
     background: var(--vert);
     color: white;
     padding: var(--iw-gap, 1.5rem);
     border-radius: 1rem;
   }
-  #communication-table[data-table='suivimedias'] .iw-intro h1 {
+  #communication-table:is([data-table='suivimedias'], [data-table='partenariats']) .iw-intro h1 {
     color: white;
   }
   #communication-table[data-table='suivimedias'] .iw-intro__text > p:last-child {
@@ -537,6 +563,79 @@ const definition = communicationTables[table]
     }
     .media-wide {
       grid-column: auto;
+    }
+  }
+</style>
+
+<style is:global>
+  #communication-table[data-table='partenariats'] .iw-intro__text > p {
+    color: white;
+  }
+  #communication-table[data-table='partenariats'] .iw-intro [hidden] {
+    display: none;
+  }
+  #communication-table[data-table='partenariats'] > .iw-panel .iw-toolbar:first-child {
+    flex-wrap: wrap;
+  }
+  .partner-grid[hidden] {
+    display: none;
+  }
+  #partnership-dashboard .media-card h2 {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #536d63;
+    font-weight: 600;
+  }
+  .partner-grid h3 {
+    font-size: var(--iw-text);
+    margin: 1rem 0 0.75rem;
+  }
+  .partner-grid .media-value {
+    margin: 0.5rem 0 1rem;
+  }
+  .partner-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .partner-tile {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border: 1px solid var(--iw-line);
+    border-radius: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+  .partner-missing {
+    border: 2px dashed #8c9e96;
+  }
+  .partner-alert {
+    background: #fff0e8;
+    padding: 0.75rem !important;
+    border-left: 4px solid #bc5225;
+    font-weight: 600;
+  }
+  .partner-ongoing {
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .partner-ongoing li {
+    min-width: 0;
+    border-top: 1px solid var(--iw-line);
+    padding-top: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+  .partner-vigilance {
+    white-space: pre-wrap;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 700px) {
+    .partner-ongoing {
+      grid-template-columns: 1fr;
     }
   }
 </style>

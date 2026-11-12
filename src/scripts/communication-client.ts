@@ -1,3 +1,4 @@
+import { renderPartnershipDashboard } from './partnership-dashboard'
 import { communicationTables } from '../lib/communication'
 import { renderMediaDashboard } from './media-dashboard'
 import { categoricalColumns, splitChoices, choiceScope } from '../lib/communication-choices'
@@ -445,6 +446,7 @@ if (root) {
   }
   function render() {
     if (root!.dataset.table === 'suivimedias') renderMediaDashboard(sheets, rows)
+    if (root!.dataset.table === 'partenariats') renderPartnershipDashboard(sheets, rows, catalog)
     previewObserver?.disconnect()
     content.replaceChildren()
     currentVisible = []
