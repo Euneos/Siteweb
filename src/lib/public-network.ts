@@ -7,18 +7,11 @@ import { publicTrainerMap } from './public-trainer-map'
 
 /** One read per table, sequentially: avoid NocoDB's burst rate limit. */
 async function readNetwork(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+  // Finish below Cloudflare's 30-second waitUntil limit, including D1 cleanup.
+  const signal = AbortSignal.timeout(20_000)
   async function read(table: keyof typeof NC.tables, fields: string) {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 300))
-        return await lireToutes(token, table, fields)
-      }
-      catch (error) {
-        if (attempt >= 1 || !(error instanceof Error) || !error.message.startsWith('NocoDB 429 ')) throw error
-        // Retry a read only; never retry form submissions or mutations.
-        await new Promise(resolve => setTimeout(resolve, 30_000))
-      }
-    }
+    signal.throwIfAborted()
+    return lireToutes(token, table, fields, signal)
   }
   const cohorts = await read('cohortes', 'Id,nom,annee_debut,annee_fin,active')
   const participations = await read('participations', 'Id,code,statut,statut_origine,statut_formation,date_debut_formation,date_fin_formation,etablissements_id,cohortes_id,fusionne_vers')
@@ -31,14 +24,7 @@ async function readNetwork(token: string, rawLocations?: unknown, rawResidences?
   }
 }
 
-// Share only an in-progress read. Settled results are never reused on later visits.
-const pending = new Map<string, Promise<Awaited<ReturnType<typeof readNetwork>>>>()
+/** The shared D1 lease owns concurrency; no cross-request I/O promises in global scope. */
 export async function lireCartePublique(token: string, rawLocations?: unknown, rawResidences?: unknown) {
-  const key = JSON.stringify([token, rawLocations, rawResidences])
-  let read = pending.get(key)
-  if (!read) {
-    read = readNetwork(token, rawLocations, rawResidences).finally(() => pending.delete(key))
-    pending.set(key, read)
-  }
-  return read
+  return readNetwork(token, rawLocations, rawResidences)
 }

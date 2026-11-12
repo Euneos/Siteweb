@@ -28,12 +28,12 @@ export function jeton(locals: unknown): string | null {
   return env?.NOCODB_TOKEN ?? null
 }
 
-async function appel(token: string, chemin: string, corps?: unknown) {
+async function appel(token: string, chemin: string, corps?: unknown, signal?: AbortSignal) {
   const r = await fetch(API + chemin, {
     method: corps === undefined ? 'GET' : 'POST',
     headers: { 'xc-token': token, 'Content-Type': 'application/json' },
     body: corps === undefined ? undefined : JSON.stringify(corps),
-    signal: AbortSignal.timeout(12_000),
+    signal: signal ?? AbortSignal.timeout(12_000),
   })
   if (!r.ok) throw new Error(`NocoDB ${r.status} ${chemin} : ${(await r.text()).slice(0, 200)}`)
   return r.json()
@@ -124,7 +124,7 @@ export function reconcilierActifs<T extends { Id: number; fusionne_vers?: unknow
 }
 
 /** Read every raw page before reconciliation, even when NocoDB clamps the limit. */
-export async function lireToutes(token: string, table: keyof typeof NC.tables, fields: string): Promise<(Record<string, unknown> & { Id: number })[]> {
+export async function lireToutes(token: string, table: keyof typeof NC.tables, fields: string, signal?: AbortSignal): Promise<(Record<string, unknown> & { Id: number })[]> {
   const rows: (Record<string, unknown> & { Id: number })[] = []
   const liens = table === 'participations' ? ['etablissements_id', 'cohortes_id']
     : table === 'engagements' ? ['formateurs_id', 'cohortes_id'] : []
@@ -134,7 +134,11 @@ export async function lireToutes(token: string, table: keyof typeof NC.tables, f
   ])].join(',')
   const ids = new Set<number>()
   for (;;) {
-    const result = await appel(token, `/tables/${NC.tables[table]}/records?limit=200&offset=${rows.length}&fields=${encodeURIComponent(projection)}`) as {
+    if (signal) {
+      await new Promise(resolve => setTimeout(resolve, 300))
+      signal.throwIfAborted()
+    }
+    const result = await appel(token, `/tables/${NC.tables[table]}/records?limit=200&offset=${rows.length}&fields=${encodeURIComponent(projection)}`, undefined, signal) as {
       list: (Record<string, unknown> & { Id: number })[]
       pageInfo?: { isLastPage?: boolean }
     }

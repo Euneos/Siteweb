@@ -26,6 +26,9 @@ la dernière carte reste affichée avec sa date exacte ; une nouvelle tentative 
 Une page déjà ouverte conserve ses données et sa sélection jusqu’à son actualisation.
 La migration est appliquée en preview puis production par le workflow habituel, avant Pages.
 Les cinq tables NocoDB sont lues successivement, avec pagination et réconciliation des doublons.
+Leur lecture complète dispose d’un budget de 20 secondes, inférieur aux 30 secondes de `waitUntil`.
+Une limitation 429 libère le bail avec un délai partagé de 30 secondes ; aucune attente longue ni
+promesse d’I/O n’est partagée en mémoire entre requêtes Cloudflare.
 Aucune écriture NocoDB ni soumission de formulaire n’est répétée.
 
 Les secrets `NOCODB_TOKEN`, `RESOURCE_NETWORK_LOCATIONS` et `RESOURCE_NETWORK_RESIDENCES`

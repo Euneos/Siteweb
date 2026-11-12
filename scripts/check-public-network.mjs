@@ -96,7 +96,8 @@ try {
   assert.equal(payload(await unavailable.text()),null)
   fail=false
   throttleNext=true
-  assert.equal((await render(request())).status,200,'A temporary NocoDB rate limit should recover')
+  assert.equal((await render(request())).status,503,'Without an initial snapshot a rate limit is reported honestly')
+  assert.equal((await render(request())).status,200,'The next successful read must recover without a stuck promise')
   assert.equal(throttled,1)
   server=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(request) {
     const path=decodeURI(new URL(request.url).pathname)
