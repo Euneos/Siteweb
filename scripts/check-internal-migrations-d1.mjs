@@ -1,3 +1,4 @@
+import { mutateCommunicationRows } from '../src/lib/communication-bulk.ts'
 // Real workerd/D1, temporary local persistence, synthetic rows only. No remote
 // bindings, credentials, exports, resources or production writes.
 import assert from 'node:assert/strict'
@@ -182,8 +183,92 @@ try {
     INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('comm-row-a','comm-a','["Fixture","","B"]','fixture'),('comm-row-b','comm-b','["Fixture","","B"]','fixture');
     INSERT INTO communication_partnership_entities VALUES('comm-row-a','fixture-entity'),('comm-row-b','fixture-entity');
     UPDATE communication_rows SET cells_json='["Fixture","Accepté","A"]',version=version+1 WHERE id='comm-row-a';`)
-  const synced=query("SELECT cells_json,version FROM communication_rows ORDER BY id")[0].results
-  assert.equal(synced.length,2);assert(synced.every(r=>r.cells_json==='["Fixture","Accepté","A"]'&&r.version===2),'Synchronisation effective dans workerd/D1')
+  const synced = query('SELECT cells_json,version FROM communication_rows ORDER BY id')[0].results
+  assert.equal(synced.length, 2)
+  assert(
+    synced.every((r) => r.cells_json === '["Fixture","Accepté","A"]' && r.version === 2),
+    'Synchronisation effective dans workerd/D1',
+  )
+  const ids = [crypto.randomUUID(), crypto.randomUUID()]
+  query(
+    ids
+      .map(
+        (id) =>
+          `INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('${id}','comm-a','["Sélection","Accepté","A"]','fixture');`,
+      )
+      .join('\n'),
+  )
+  const fixtureDb = {
+    async batch() {
+      throw new Error('Unused in this fixture')
+    },
+    prepare(statement) {
+      return {
+        bind(...params) {
+          const inline = () => {
+            let i = 0
+            return statement.replace(/\?/g, () => {
+              const p = params[i++]
+              return p == null
+                ? 'NULL'
+                : typeof p === 'number'
+                  ? String(p)
+                  : "'" + String(p).replaceAll("'", "''") + "'"
+            })
+          }
+          return {
+            all: async () => ({ results: query(inline())[0].results }),
+            first: async () => query(inline())[0].results[0] ?? null,
+            run: async () => ({ meta: { changes: query(inline())[0].meta.changes } }),
+          }
+        },
+      }
+    },
+  }
+  const picked = ids.map((id) => ({ id, version: 1 }))
+  assert.equal(
+    await mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      { bulkAction: 'duplicate', rows: picked },
+      'fixture',
+    ),
+    2,
+  )
+  await assert.rejects(() =>
+    mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      { bulkAction: 'delete', rows: [picked[0], { ...picked[1], version: 99 }] },
+      'fixture',
+    ),
+  )
+  assert.equal(
+    query('SELECT count(*) n FROM communication_rows WHERE deleted_at IS NOT NULL')[0].results[0].n,
+    0,
+  )
+  assert.equal(
+    await mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      { bulkAction: 'delete', rows: picked },
+      'fixture',
+    ),
+    2,
+  )
+  assert.equal(
+    query('SELECT count(*) n FROM communication_rows WHERE deleted_at IS NOT NULL')[0].results[0].n,
+    2,
+  )
+  assert.equal(
+    await mutateCommunicationRows(
+      fixtureDb,
+      'partenariats',
+      { bulkAction: 'restore', rows: ids.map((id) => ({ id, version: 2 })) },
+      'fixture',
+    ),
+    2,
+  )
   console.log(
     'D1 local: bootstrap idempotent, heures conservées, 0003 refusée, rollback SQL/FK, concurrence et reprise vérifiés.',
   )

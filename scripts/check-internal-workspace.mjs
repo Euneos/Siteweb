@@ -31,8 +31,16 @@ const db = {
         return {
           all: async () => ({ results: statement.all(...values) }),
           first: async () => statement.get(...values),
-          run: async () => ({ meta: { changes: (statement.run(...values),sql.query('SELECT changes() AS n').get().n) } }),
-          execute: () => ({ meta: { changes: (statement.run(...values),sql.query('SELECT changes() AS n').get().n) } }),
+          run: async () => ({
+            meta: {
+              changes: (statement.run(...values), sql.query('SELECT changes() AS n').get().n),
+            },
+          }),
+          execute: () => ({
+            meta: {
+              changes: (statement.run(...values), sql.query('SELECT changes() AS n').get().n),
+            },
+          }),
         }
       },
     }
@@ -99,7 +107,11 @@ const pageMap = new Map(
     () =>
       import(
         new URL(
-          `pages/${path.replace('/index.astro', '.astro').replace(/\.(ts|astro)$/, '.astro.mjs').replaceAll('[','_').replaceAll(']','_')}`,
+          `pages/${path
+            .replace('/index.astro', '.astro')
+            .replace(/\.(ts|astro)$/, '.astro.mjs')
+            .replaceAll('[', '_')
+            .replaceAll(']', '_')}`,
           worker,
         )
       ),
@@ -150,7 +162,11 @@ const routes = [
 ]
 for (const path of routes) assert.equal((await call(path, null)).status, 403, `Anonymous: ${path}`)
 assert.equal(reads, 0)
-assert.equal((await call('/interne/communication/calendriereditorial', 'member', 'GET', undefined, {}, {})).status, 503)
+assert.equal(
+  (await call('/interne/communication/calendriereditorial', 'member', 'GET', undefined, {}, {}))
+    .status,
+  503,
+)
 for (const role of ['trainer', 'trainerManager']) {
   for (const path of [
     '/interne/organisation-equipe',
@@ -165,11 +181,29 @@ for (const role of ['trainer', 'trainerManager']) {
 }
 assert.equal(reads, 0, 'Wrong audiences cannot reach the database')
 for (const role of [null, 'trainer', 'trainerManager'])
-  assert.equal((await call('/api/interne/taches', role, 'DELETE', { id: crypto.randomUUID(), version: 1 })).status, 403)
-assert.equal((await call('/api/interne/taches', 'member', 'DELETE', { id: crypto.randomUUID(), version: 1 }, { Origin: 'https://other.example' })).status, 403)
+  assert.equal(
+    (await call('/api/interne/taches', role, 'DELETE', { id: crypto.randomUUID(), version: 1 }))
+      .status,
+    403,
+  )
+assert.equal(
+  (
+    await call(
+      '/api/interne/taches',
+      'member',
+      'DELETE',
+      { id: crypto.randomUUID(), version: 1 },
+      { Origin: 'https://other.example' },
+    )
+  ).status,
+  403,
+)
 
 assert.equal((await call('/interne/catalogue', 'member')).status, 403)
-assert.match(await (await call('/interne/communication/calendriereditorial', 'member')).text(), /Espace d’essai\./)
+assert.match(
+  await (await call('/interne/communication/calendriereditorial', 'member')).text(),
+  /Espace d’essai\./,
+)
 assert.doesNotMatch(
   await (
     await call(
@@ -375,56 +409,163 @@ assert.deepEqual(totals.totals, [{ person: 'member@example.test', declared: 6, a
 assert(!('source_payload' in totals.entries[0]))
 // Deletion uses the same compiled route and real SQL, with synthetic records only.
 const deletionId = crypto.randomUUID()
-await call('/api/interne/calendrier', 'member', 'POST', { requestId: deletionId, entry: baseEntry() })
-await call('/api/interne/commentaires', 'member', 'POST', { entryId: deletionId, content: 'Commentaire fictif', requestId: crypto.randomUUID() })
+await call('/api/interne/calendrier', 'member', 'POST', {
+  requestId: deletionId,
+  entry: baseEntry(),
+})
+await call('/api/interne/commentaires', 'member', 'POST', {
+  entryId: deletionId,
+  content: 'Commentaire fictif',
+  requestId: crypto.randomUUID(),
+})
 const deletionBody = { id: deletionId, version: 1, confirmed: true }
 for (const role of [null, 'trainer', 'trainerManager'])
   assert.equal((await call('/api/interne/calendrier', role, 'DELETE', deletionBody)).status, 403)
-assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody, { Origin: 'https://untrusted.example' })).status, 403)
-assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, confirmed: false })).status, 400)
-assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 0 })).status, 400)
-assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 2 })).status, 409)
-assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 1)
-sql.query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?").run(deletionId)
+assert.equal(
+  (
+    await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody, {
+      Origin: 'https://untrusted.example',
+    })
+  ).status,
+  403,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, confirmed: false }))
+    .status,
+  400,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 0 }))
+    .status,
+  400,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'DELETE', { ...deletionBody, version: 2 }))
+    .status,
+  409,
+)
+assert.equal(
+  sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n,
+  1,
+)
+sql
+  .query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?")
+  .run(deletionId)
 assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody)).status, 403)
-sql.query("UPDATE workspace_entries SET created_by='member@example.test', status='valide' WHERE id=?").run(deletionId)
+sql
+  .query(
+    "UPDATE workspace_entries SET created_by='member@example.test', status='valide' WHERE id=?",
+  )
+  .run(deletionId)
 assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', deletionBody)).status, 403)
 // A parent deletion failure must roll back the child deletion as well.
-sql.exec("CREATE TRIGGER fail_delete BEFORE DELETE ON workspace_entries BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END")
+sql.exec(
+  "CREATE TRIGGER fail_delete BEFORE DELETE ON workspace_entries BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END",
+)
 assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 503)
-assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 1)
+assert.equal(
+  sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n,
+  1,
+)
 sql.exec('DROP TRIGGER fail_delete')
 assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 200)
-assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n, 0)
+assert.equal(
+  sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(deletionId).n,
+  0,
+)
 assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(deletionId).n, 0)
 assert.equal((await call('/api/interne/calendrier', 'manager', 'DELETE', deletionBody)).status, 404)
 for (const kind of ['equipe', 'editorial']) {
   const ownId = crypto.randomUUID()
-  await call('/api/interne/calendrier', 'member', 'POST', { requestId: ownId, entry: baseEntry({ kind }) })
-  if (kind === 'editorial') sql.query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?").run(ownId)
-  assert.equal((await call('/api/interne/calendrier', 'member', 'DELETE', { id: ownId, version: 1, confirmed: true })).status, 200)
+  await call('/api/interne/calendrier', 'member', 'POST', {
+    requestId: ownId,
+    entry: baseEntry({ kind }),
+  })
+  if (kind === 'editorial')
+    sql
+      .query("UPDATE workspace_entries SET created_by='manager@example.test' WHERE id=?")
+      .run(ownId)
+  assert.equal(
+    (
+      await call('/api/interne/calendrier', 'member', 'DELETE', {
+        id: ownId,
+        version: 1,
+        confirmed: true,
+      })
+    ).status,
+    200,
+  )
   assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(ownId).n, 0)
 }
 const moveId = crypto.randomUUID()
-await call('/api/interne/calendrier', 'member', 'POST', { requestId: moveId, entry: baseEntry({ kind: 'editorial', title: 'Publication mobile de recette', person: 'Pauline', notes: 'Texte à préserver' }) })
+await call('/api/interne/calendrier', 'member', 'POST', {
+  requestId: moveId,
+  entry: baseEntry({
+    kind: 'editorial',
+    title: 'Publication mobile de recette',
+    person: 'Pauline',
+    notes: 'Texte à préserver',
+  }),
+})
 const moveBody = { action: 'move', id: moveId, version: 1, date: '2026-09-23' }
-for (const role of [null, 'trainer', 'trainerManager']) assert.equal((await call('/api/interne/calendrier', role, 'PATCH', moveBody)).status, 403)
-assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody, { Origin: 'https://untrusted.example' })).status, 403)
-assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, date: '2026-02-30' })).status, 400)
-assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, version: 0 })).status, 400)
-assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, id, version: 2 })).status, 400)
+for (const role of [null, 'trainer', 'trainerManager'])
+  assert.equal((await call('/api/interne/calendrier', role, 'PATCH', moveBody)).status, 403)
+assert.equal(
+  (
+    await call('/api/interne/calendrier', 'member', 'PATCH', moveBody, {
+      Origin: 'https://untrusted.example',
+    })
+  ).status,
+  403,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, date: '2026-02-30' }))
+    .status,
+  400,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, version: 0 })).status,
+  400,
+)
+assert.equal(
+  (await call('/api/interne/calendrier', 'member', 'PATCH', { ...moveBody, id, version: 2 }))
+    .status,
+  400,
+)
 assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody)).status, 200)
 assert.equal((await call('/api/interne/calendrier', 'member', 'PATCH', moveBody)).status, 409)
-assert.deepEqual(sql.query('SELECT starts_on,ends_on,notes,person FROM workspace_entries WHERE id=?').get(moveId), { starts_on: '2026-09-23', ends_on: '2026-09-23', notes: 'Texte à préserver', person: 'Pauline' })
+assert.deepEqual(
+  sql.query('SELECT starts_on,ends_on,notes,person FROM workspace_entries WHERE id=?').get(moveId),
+  { starts_on: '2026-09-23', ends_on: '2026-09-23', notes: 'Texte à préserver', person: 'Pauline' },
+)
 const outsideMonthId = crypto.randomUUID()
-await call('/api/interne/calendrier', 'manager', 'POST', { requestId: outsideMonthId, entry: baseEntry({ person: 'alex@example.test', activity: 'Activité historique hors mois', starts_on: '2025-01-03', ends_on: '2025-01-03' }) })
-const options = await (await call('/api/interne/calendrier?month=2026-09&kind=equipe', 'member')).json()
+await call('/api/interne/calendrier', 'manager', 'POST', {
+  requestId: outsideMonthId,
+  entry: baseEntry({
+    person: 'alex@example.test',
+    activity: 'Activité historique hors mois',
+    starts_on: '2025-01-03',
+    ends_on: '2025-01-03',
+  }),
+})
+const options = await (
+  await call('/api/interne/calendrier?month=2026-09&kind=equipe', 'member')
+).json()
 assert(options.filterOptions.people.includes('alex@example.test'))
 assert(options.filterOptions.activities.includes('Activité historique hors mois'))
 assert(!options.entries.some((entry) => entry.id === outsideMonthId))
 const duplicatePaulineId = crypto.randomUUID()
-await call('/api/interne/calendrier', 'member', 'POST', { requestId: duplicatePaulineId, entry: baseEntry({ kind: 'editorial', person: 'pauline.fixture@example.test', title: 'Doublon prénom fictif' }) })
-console.log('Routes compilées : JWT, rôles, CSRF, SQL, versions, idempotence, auteurs, filtres tous mois et totaux OK.')
+await call('/api/interne/calendrier', 'member', 'POST', {
+  requestId: duplicatePaulineId,
+  entry: baseEntry({
+    kind: 'editorial',
+    person: 'pauline.fixture@example.test',
+    title: 'Doublon prénom fictif',
+  }),
+})
+console.log(
+  'Routes compilées : JWT, rôles, CSRF, SQL, versions, idempotence, auteurs, filtres tous mois et totaux OK.',
+)
 
 let comparisonGate = null,
   comparisonStarted = () => {}
@@ -485,7 +626,13 @@ try {
       await page.screenshot({ path: `${output}/calendrier-${width}.png`, fullPage: true })
     checks.push(`calendar-${width}`)
   }
-  assert.equal(await page.locator('#iw-person option').filter({ hasText: /^Pauline$/ }).count(), 1)
+  assert.equal(
+    await page
+      .locator('#iw-person option')
+      .filter({ hasText: /^Pauline$/ })
+      .count(),
+    1,
+  )
   await page.locator('#iw-person').selectOption('Pauline')
   await expect(page.locator('#iw-calendar-content')).toContainText('Doublon prénom fictif')
   await page.locator('#iw-person').selectOption('')
@@ -493,37 +640,68 @@ try {
   const movingCard = () => page.locator(`.iw-event[data-entry-id="${moveId}"]`)
   await movingCard().dragTo(page.locator('.iw-day[data-date="2026-09-24"]'))
   await expect(page.locator('#iw-notice')).toContainText('Publication déplacée')
-  await expect(page.locator(`.iw-day[data-date="2026-09-24"] [data-entry-id="${moveId}"]`)).toHaveCount(1)
-  assert.equal(sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on, '2026-09-24')
+  await expect(
+    page.locator(`.iw-day[data-date="2026-09-24"] [data-entry-id="${moveId}"]`),
+  ).toHaveCount(1)
+  assert.equal(
+    sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on,
+    '2026-09-24',
+  )
   sql.query('UPDATE workspace_entries SET version=version+1 WHERE id=?').run(moveId)
   await movingCard().dragTo(page.locator('.iw-day[data-date="2026-09-25"]'))
   await expect(page.locator('#iw-notice')).toContainText('Déplacement non confirmé')
-  assert.equal(sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on, '2026-09-24')
+  assert.equal(
+    sql.query('SELECT starts_on FROM workspace_entries WHERE id=?').get(moveId).starts_on,
+    '2026-09-24',
+  )
   await page.locator('#iw-refresh').click()
   await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
   await movingCard().focus()
   await page.keyboard.press('Alt+ArrowRight')
   await expect(page.locator('#iw-notice')).toContainText('Publication déplacée')
-  await expect(page.locator(`.iw-day[data-date="2026-09-25"] [data-entry-id="${moveId}"]`)).toHaveCount(1)
+  await expect(
+    page.locator(`.iw-day[data-date="2026-09-25"] [data-entry-id="${moveId}"]`),
+  ).toHaveCount(1)
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     const card = page.locator(`[data-entry-id="${moveId}"]`).filter({ visible: true }).first()
     await card.scrollIntoViewIfNeeded()
-    await card.evaluate((element) => element.addEventListener('click', () => { window.__beforeCardScroll = window.scrollY }, { capture: true, once: true }))
+    await card.evaluate((element) =>
+      element.addEventListener(
+        'click',
+        () => {
+          window.__beforeCardScroll = window.scrollY
+        },
+        { capture: true, once: true },
+      ),
+    )
     await card.click()
     const beforeOpen = await page.evaluate(() => window.__beforeCardScroll)
     await expect(page.locator('#iw-open-link')).toHaveCount(0)
     await expect(page.locator('#iw-starts')).toHaveValue('2026-09-25')
-    assert.deepEqual(await page.locator('#iw-entry-person option').allTextContents(), ['Sélectionner une personne', 'Pauline', 'Candice', 'Charlotte', 'Partenaires'])
+    assert.deepEqual(await page.locator('#iw-entry-person option').allTextContents(), [
+      'Sélectionner une personne',
+      'Pauline',
+      'Candice',
+      'Charlotte',
+      'Partenaires',
+    ])
     await page.locator('#iw-entry-person').selectOption('Candice')
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-    assert.equal(sql.query('SELECT person FROM workspace_entries WHERE id=?').get(moveId).person, 'Candice')
+    assert.equal(
+      sql.query('SELECT person FROM workspace_entries WHERE id=?').get(moveId).person,
+      'Candice',
+    )
     await expect(page.locator('#iw-notice')).not.toContainText('enregistrée')
     await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
     await page.screenshot({ path: `${output}/publication-personne-${width}.png` })
     await page.locator('#iw-close').click()
-    await expect.poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - beforeOpen), { message: `Closing a saved card preserves the page position (${width}px, initial ${beforeOpen})` }).toBeLessThan(3)
+    await expect
+      .poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - beforeOpen), {
+        message: `Closing a saved card preserves the page position (${width}px, initial ${beforeOpen})`,
+      })
+      .toBeLessThan(3)
   }
   checks.push('publication-drag-keyboard-date-persist-conflict-person-select-mobile-desktop')
   // Confirmation cancellation, errors and deletion on mobile and desktop.
@@ -531,35 +709,64 @@ try {
     await page.setViewportSize({ width, height: 1000 })
     const deleteTitle = `Fiche fictive à supprimer ${width}`
     const browserDeleteId = crypto.randomUUID()
-    await call('/api/interne/calendrier', 'member', 'POST', { requestId: browserDeleteId, entry: baseEntry({ kind: 'editorial', title: deleteTitle }) })
-    await call('/api/interne/commentaires', 'member', 'POST', { entryId: browserDeleteId, content: 'Commentaire fictif', requestId: crypto.randomUUID() })
+    await call('/api/interne/calendrier', 'member', 'POST', {
+      requestId: browserDeleteId,
+      entry: baseEntry({ kind: 'editorial', title: deleteTitle }),
+    })
+    await call('/api/interne/commentaires', 'member', 'POST', {
+      entryId: browserDeleteId,
+      content: 'Commentaire fictif',
+      requestId: crypto.randomUUID(),
+    })
     await page.locator('#iw-refresh').click()
-    await page.getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) }).first().click()
+    await page
+      .getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) })
+      .first()
+      .click()
     const deleteControl = page.locator('#iw-delete')
     await expect(deleteControl).toBeVisible()
     await deleteControl.scrollIntoViewIfNeeded()
     const bounds = await deleteControl.boundingBox()
     assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width)
     await page.screenshot({ path: `${output}/supprimer-fiche-${width}.png` })
-    page.once('dialog', (dialog) => { assert.match(dialog.message(), /tous ses commentaires/); return dialog.dismiss() })
+    page.once('dialog', (dialog) => {
+      assert.match(dialog.message(), /tous ses commentaires/)
+      return dialog.dismiss()
+    })
     await deleteControl.click()
     assert(sql.query('SELECT id FROM workspace_entries WHERE id=?').get(browserDeleteId))
     // Failure preserves the open editor and never reports success.
     await page.route('**/api/interne/calendrier', async (route) => {
-      if (route.request().method() === 'DELETE') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Erreur fictive' }) })
+      if (route.request().method() === 'DELETE')
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Erreur fictive' }),
+        })
       return route.continue()
     })
     page.once('dialog', (dialog) => dialog.accept())
     await deleteControl.click()
-    await expect(page.locator('#iw-save-feedback')).toContainText('La suppression n’est pas confirmée')
+    await expect(page.locator('#iw-save-feedback')).toContainText(
+      'La suppression n’est pas confirmée',
+    )
     assert(sql.query('SELECT id FROM workspace_entries WHERE id=?').get(browserDeleteId))
     await page.unroute('**/api/interne/calendrier')
     page.once('dialog', (dialog) => dialog.accept())
     await deleteControl.click()
     await expect(page.locator('#iw-notice')).toContainText(`« ${deleteTitle} » a été supprimée.`)
-    await expect(page.getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) })).toHaveCount(0)
-    assert.equal(sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(browserDeleteId).n, 0)
-    assert.equal(sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(browserDeleteId).n, 0)
+    await expect(
+      page.getByRole('button', { name: new RegExp(`^Ouvrir ${deleteTitle},`) }),
+    ).toHaveCount(0)
+    assert.equal(
+      sql.query('SELECT count(*) n FROM workspace_comments WHERE entry_id=?').get(browserDeleteId)
+        .n,
+      0,
+    )
+    assert.equal(
+      sql.query('SELECT count(*) n FROM workspace_entries WHERE id=?').get(browserDeleteId).n,
+      0,
+    )
     checks.push(`delete-confirm-cancel-error-comments-${width}`)
   }
   // PR18: editing another field must not erase a legacy free-text channel.
@@ -754,16 +961,25 @@ try {
   checks.push('explicit-channel-change-and-programme-status-sql-reload')
   await switchToTeam()
   await expect(page.locator('#iw-person option[value="Alex"]')).toHaveCount(1)
-  await expect(page.locator('#iw-activity option[value="Activité historique hors mois"]')).toHaveCount(1)
+  await expect(
+    page.locator('#iw-activity option[value="Activité historique hors mois"]'),
+  ).toHaveCount(1)
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await expect(page.locator('#iw-person-totals')).toContainText('Heures réalisées par personne')
-    await expect(page.locator('#iw-person-totals thead th')).toHaveText(['Personne', 'Heures réalisées'])
+    await expect(page.locator('#iw-person-totals thead th')).toHaveText([
+      'Personne',
+      'Heures réalisées',
+    ])
     await expect(page.locator('#iw-person-totals tbody th')).toHaveText(['Member'])
     await expect(page.locator('#iw-person-totals tbody td')).toHaveText(['6 h'])
     // Pauline (2 octobre) : tableau Personne / Heures réalisées, sans ligne de total.
     await expect(page.locator('#iw-person-totals tfoot')).toHaveCount(0)
-    assert(await page.locator('#iw-person-totals').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    assert(
+      await page
+        .locator('#iw-person-totals')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    )
   }
   await page.locator('#iw-person').selectOption('Alex')
   await expect(page.locator('#iw-calendar-state')).toContainText('Aucune fiche ne correspond')
@@ -795,7 +1011,8 @@ try {
     201,
   )
   await page.locator('#iw-refresh').click()
-  const openTeamText = () => page.locator(`[data-entry-id="${teamTextId}"]`).filter({ visible: true }).first().click()
+  const openTeamText = () =>
+    page.locator(`[data-entry-id="${teamTextId}"]`).filter({ visible: true }).first().click()
   await openTeamText()
   await expect(page.getByLabel('Détails complémentaires', { exact: true })).toBeVisible()
   await expect(page.locator('#iw-content')).toBeEditable()
@@ -858,7 +1075,12 @@ try {
   await expect(page.locator('#iw-status-help')).toBeHidden()
   await expect(page.locator('#iw-title')).toBeHidden()
   await expect(page.locator('#iw-entry-activity')).toBeVisible()
-  assert.deepEqual(await page.locator('#iw-entry-activity option').allTextContents(), ['Sélectionner une activité', 'Communication', 'Direction générale', 'Coordination'])
+  assert.deepEqual(await page.locator('#iw-entry-activity option').allTextContents(), [
+    'Sélectionner une activité',
+    'Communication',
+    'Direction générale',
+    'Coordination',
+  ])
   await expect(page.locator('#iw-calendar-content')).not.toContainText('@')
   await expect(page.locator('#iw-activity')).toBeVisible()
   await expect(page.locator('#iw-entry-channel')).toBeHidden()
@@ -866,7 +1088,12 @@ try {
   await expect(page.locator('#iw-content')).toBeHidden()
   await expect(page.locator('#iw-notes')).toBeHidden()
   await page.locator('#iw-entry-activity').selectOption('Coordination')
-  const beforeUiIds = new Set(sql.query('SELECT id FROM workspace_entries').all().map((entry) => entry.id))
+  const beforeUiIds = new Set(
+    sql
+      .query('SELECT id FROM workspace_entries')
+      .all()
+      .map((entry) => entry.id),
+  )
   await page.locator('#iw-starts').fill('2026-09-17')
   await page.locator('#iw-ends').fill('2026-09-17')
   await page.locator('#iw-hours').fill('1.5')
@@ -874,7 +1101,10 @@ try {
   await expect(page.locator('#iw-location')).toBeHidden()
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const newUiEntries = sql.query('SELECT * FROM workspace_entries').all().filter((entry) => !beforeUiIds.has(entry.id))
+  const newUiEntries = sql
+    .query('SELECT * FROM workspace_entries')
+    .all()
+    .filter((entry) => !beforeUiIds.has(entry.id))
   assert.equal(newUiEntries.length, 1)
   const uiEntry = newUiEntries[0]
   assert.equal(uiEntry.notes, '')
@@ -960,14 +1190,26 @@ try {
   checks.push('team-fields-permissions-and-explicit-month-no-autosave')
   await page.locator('#iw-new').click()
   await expect(page.locator('#iw-notes')).toBeHidden()
-  const beforeDailyIds = new Set(sql.query('SELECT id FROM workspace_entries').all().map((entry) => entry.id))
+  const beforeDailyIds = new Set(
+    sql
+      .query('SELECT id FROM workspace_entries')
+      .all()
+      .map((entry) => entry.id),
+  )
   await page.locator('#iw-fill-month').click()
   await expect(page.locator('#iw-starts')).toHaveValue('2026-09-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-09-30')
   await expect(page.locator('#iw-entry-status')).toBeHidden()
-  await expect(page.getByRole('button', { name: 'Saisir les heures par jour', exact: true })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Saisir les heures par jour', exact: true }),
+  ).toHaveCount(0)
   await expect(page.locator('#iw-link')).toBeHidden()
-  await expect(page.getByRole('spinbutton', { name: 'Heures déjà enregistrées le jeudi 17 septembre', exact: true })).toHaveValue('6')
+  await expect(
+    page.getByRole('spinbutton', {
+      name: 'Heures déjà enregistrées le jeudi 17 septembre',
+      exact: true,
+    }),
+  ).toHaveValue('6')
   await expect(page.getByRole('spinbutton', { name: /Heures prévues/ })).toHaveCount(0)
   await page
     .getByRole('spinbutton', { name: 'Heures réalisées le vendredi 4 septembre', exact: true })
@@ -977,7 +1219,10 @@ try {
     .fill('8')
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const newDailyEntries = sql.query('SELECT * FROM workspace_entries').all().filter((entry) => !beforeDailyIds.has(entry.id))
+  const newDailyEntries = sql
+    .query('SELECT * FROM workspace_entries')
+    .all()
+    .filter((entry) => !beforeDailyIds.has(entry.id))
   assert.equal(newDailyEntries.length, 1)
   const dailyEntry = newDailyEntries[0]
   assert.equal(dailyEntry.notes, '')
@@ -1029,11 +1274,28 @@ try {
   // Existing monthly records remain editable on the actual compiled UI/API, using only this in-memory
   // database: weekdays, half-days, custom exception, reload and same-record edits.
   const existingMonthlyId = crypto.randomUUID()
-  assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId: existingMonthlyId, entry: baseEntry({ title: 'Member', activity: 'Disponibilités mensuelles', starts_on: '2026-10-01', ends_on: '2026-10-31', hours: 0, daily_hours: JSON.stringify([{ date: '2026-10-01', planned: null, actual: 0 }]) }) })).status, 201)
+  assert.equal(
+    (
+      await call('/api/interne/calendrier', 'member', 'POST', {
+        requestId: existingMonthlyId,
+        entry: baseEntry({
+          title: 'Member',
+          activity: 'Disponibilités mensuelles',
+          starts_on: '2026-10-01',
+          ends_on: '2026-10-31',
+          hours: 0,
+          daily_hours: JSON.stringify([{ date: '2026-10-01', planned: null, actual: 0 }]),
+        }),
+      })
+    ).status,
+    201,
+  )
   await page.locator('#iw-month').fill('2026-10')
   await page.locator('#iw-month').press('Tab')
   await expect(page.locator('#iw-result-count')).toContainText('octobre 2026')
-  const existingMonthlyRecord = sql.query("SELECT id FROM workspace_entries WHERE activity='Disponibilités mensuelles'").get()
+  const existingMonthlyRecord = sql
+    .query("SELECT id FROM workspace_entries WHERE activity='Disponibilités mensuelles'")
+    .get()
   await page.locator(`.iw-event[data-entry-id="${existingMonthlyRecord.id}"]`).first().click()
   await expect(page.locator('#iw-starts')).toHaveValue('2026-10-01')
   await expect(page.locator('#iw-ends')).toHaveValue('2026-10-31')
@@ -1041,18 +1303,26 @@ try {
   await page.getByText('Répéter des jours chaque semaine', { exact: true }).click()
   await page.getByRole('combobox', { name: 'Chaque mardi', exact: true }).selectOption('day')
   await page.getByRole('combobox', { name: 'Chaque jeudi', exact: true }).selectOption('day')
-  await page.getByRole('combobox', { name: 'Chaque vendredi', exact: true }).selectOption('afternoon')
+  await page
+    .getByRole('combobox', { name: 'Chaque vendredi', exact: true })
+    .selectOption('afternoon')
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-daily-feedback')).toContainText('Appliquez les jours récurrents')
-  assert.equal(sql.query("SELECT COUNT(*) n FROM workspace_entries WHERE activity='Disponibilités mensuelles'").get().n, 1)
+  assert.equal(
+    sql
+      .query("SELECT COUNT(*) n FROM workspace_entries WHERE activity='Disponibilités mensuelles'")
+      .get().n,
+    1,
+  )
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.locator('#iw-daily-controls').scrollIntoViewIfNeeded()
-    assert(await page.locator('#iw-editor').evaluate(e => e.scrollWidth <= e.clientWidth + 1))
+    assert(await page.locator('#iw-editor').evaluate((e) => e.scrollWidth <= e.clientWidth + 1))
     await page.screenshot({ path: `${output}/monthly-recurrence-${width}.png` })
   }
   await page.getByRole('button', { name: 'Appliquer les jours à la période', exact: true }).click()
-  const dayRow = text => page.locator('.iw-daily-day').filter({ has: page.getByText(text, { exact: true }) })
+  const dayRow = (text) =>
+    page.locator('.iw-daily-day').filter({ has: page.getByText(text, { exact: true }) })
   await dayRow('jeudi 8 octobre').locator('summary').click()
   await dayRow('jeudi 8 octobre').getByRole('combobox').selectOption('')
   await dayRow('jeudi 8 octobre').getByRole('button', { name: 'Appliquer à ce jour' }).click()
@@ -1060,28 +1330,46 @@ try {
   await dayRow('mercredi 7 octobre').getByRole('combobox').selectOption('custom')
   await page.getByLabel('Début — Prévision le mercredi 7 octobre', { exact: true }).fill('14:00')
   await page.getByLabel('Fin — Prévision le mercredi 7 octobre', { exact: true }).fill('16:15')
-  await page.getByRole('checkbox', { name: 'Second créneau — Prévision le mercredi 7 octobre', exact: true }).check()
-  await page.getByLabel('Début du second créneau — Prévision le mercredi 7 octobre', { exact: true }).fill('17:00')
-  await page.getByLabel('Fin du second créneau — Prévision le mercredi 7 octobre', { exact: true }).fill('18:00')
+  await page
+    .getByRole('checkbox', {
+      name: 'Second créneau — Prévision le mercredi 7 octobre',
+      exact: true,
+    })
+    .check()
+  await page
+    .getByLabel('Début du second créneau — Prévision le mercredi 7 octobre', { exact: true })
+    .fill('17:00')
+  await page
+    .getByLabel('Fin du second créneau — Prévision le mercredi 7 octobre', { exact: true })
+    .fill('18:00')
   await dayRow('mercredi 7 octobre').getByRole('button', { name: 'Appliquer à ce jour' }).click()
   await dayRow('mercredi 7 octobre').locator('summary').click()
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await dayRow('mercredi 7 octobre').locator('details').scrollIntoViewIfNeeded()
-    assert(await page.locator('#iw-editor').evaluate(e => e.scrollWidth <= e.clientWidth + 1))
+    assert(await page.locator('#iw-editor').evaluate((e) => e.scrollWidth <= e.clientWidth + 1))
     await page.screenshot({ path: `${output}/monthly-custom-slots-${width}.png` })
   }
-  await page.getByRole('spinbutton', { name: 'Heures réalisées le jeudi 1 octobre', exact: true }).fill('8')
+  await page
+    .getByRole('spinbutton', { name: 'Heures réalisées le jeudi 1 octobre', exact: true })
+    .fill('8')
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  const monthlyRecord = sql.query("SELECT * FROM workspace_entries WHERE activity='Disponibilités mensuelles' AND person='member@example.test' AND starts_on='2026-10-01'").get()
+  const monthlyRecord = sql
+    .query(
+      "SELECT * FROM workspace_entries WHERE activity='Disponibilités mensuelles' AND person='member@example.test' AND starts_on='2026-10-01'",
+    )
+    .get()
   assert.equal(monthlyRecord.hours, 8)
   let monthRows = JSON.parse(monthlyRecord.daily_hours)
   assert.equal(monthRows.length, 14)
-  assert(!monthRows.some(d => d.date === '2026-10-08'))
-  assert.deepEqual(monthRows.find(d => d.date === '2026-10-07').slots, [{ start: '14:00', end: '16:15' }, { start: '17:00', end: '18:00' }])
-  assert.equal(monthRows.find(d => d.date === '2026-10-07').planned, 3.25)
-  assert.equal(monthRows.find(d => d.date === '2026-10-02').planned, 3.5)
+  assert(!monthRows.some((d) => d.date === '2026-10-08'))
+  assert.deepEqual(monthRows.find((d) => d.date === '2026-10-07').slots, [
+    { start: '14:00', end: '16:15' },
+    { start: '17:00', end: '18:00' },
+  ])
+  assert.equal(monthRows.find((d) => d.date === '2026-10-07').planned, 3.25)
+  assert.equal(monthRows.find((d) => d.date === '2026-10-02').planned, 3.5)
   await page.locator('#iw-close').click()
   await page.reload()
   await switchToTeam()
@@ -1090,65 +1378,110 @@ try {
   await expect(page.locator(`.iw-event[data-entry-id="${monthlyRecord.id}"]`)).toHaveCount(14)
   await expect(page.locator('#iw-calendar-content')).toContainText('14:00–16:15')
   await page.locator(`.iw-event[data-entry-id="${monthlyRecord.id}"]`).first().click()
-  await expect(page.getByRole('spinbutton', { name: 'Heures réalisées le jeudi 1 octobre', exact: true })).toHaveValue('8')
+  await expect(
+    page.getByRole('spinbutton', { name: 'Heures réalisées le jeudi 1 octobre', exact: true }),
+  ).toHaveValue('8')
   await dayRow('mercredi 7 octobre').locator('summary').click()
-  await expect(page.getByRole('checkbox', { name: 'Second créneau — Prévision le mercredi 7 octobre', exact: true })).toBeChecked()
-  await expect(page.getByLabel('Début du second créneau — Prévision le mercredi 7 octobre', { exact: true })).toHaveValue('17:00')
+  await expect(
+    page.getByRole('checkbox', {
+      name: 'Second créneau — Prévision le mercredi 7 octobre',
+      exact: true,
+    }),
+  ).toBeChecked()
+  await expect(
+    page.getByLabel('Début du second créneau — Prévision le mercredi 7 octobre', { exact: true }),
+  ).toHaveValue('17:00')
   await page.getByText('Répéter des jours chaque semaine', { exact: true }).click()
   await page.getByRole('combobox', { name: 'Chaque lundi', exact: true }).selectOption('morning')
   await page.getByRole('combobox', { name: 'Chaque mardi', exact: true }).selectOption('day')
-  page.once('dialog', d => d.dismiss())
+  page.once('dialog', (d) => d.dismiss())
   await page.getByRole('button', { name: 'Appliquer les jours à la période', exact: true }).click()
   assert.equal(JSON.parse(await page.locator('input[name="daily_hours"]').inputValue()).length, 14)
-  page.once('dialog', d => d.accept())
+  page.once('dialog', (d) => d.accept())
   await page.getByRole('button', { name: 'Appliquer les jours à la période', exact: true }).click()
   await page.locator('#iw-save').click()
   await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-  assert.equal(sql.query("SELECT COUNT(*) n FROM workspace_entries WHERE activity='Disponibilités mensuelles' AND person='member@example.test' AND starts_on='2026-10-01'").get().n, 1)
+  assert.equal(
+    sql
+      .query(
+        "SELECT COUNT(*) n FROM workspace_entries WHERE activity='Disponibilités mensuelles' AND person='member@example.test' AND starts_on='2026-10-01'",
+      )
+      .get().n,
+    1,
+  )
   const revisedMonth = sql.query('SELECT * FROM workspace_entries WHERE id=?').get(monthlyRecord.id)
   assert.equal(revisedMonth.version, monthlyRecord.version + 1)
   assert.equal(revisedMonth.hours, 8)
   monthRows = JSON.parse(revisedMonth.daily_hours)
   assert.equal(monthRows.length, 9)
-  assert.deepEqual(monthRows.find(d => d.date === '2026-10-01'), { date: '2026-10-01', planned: null, actual: 8 })
+  assert.deepEqual(
+    monthRows.find((d) => d.date === '2026-10-01'),
+    { date: '2026-10-01', planned: null, actual: 8 },
+  )
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.locator('#iw-daily-rows').scrollIntoViewIfNeeded()
-    assert(await page.locator('#iw-editor').evaluate(e => e.scrollWidth <= e.clientWidth + 1))
+    assert(await page.locator('#iw-editor').evaluate((e) => e.scrollWidth <= e.clientWidth + 1))
     await page.screenshot({ path: `${output}/monthly-exceptions-${width}.png` })
   }
   await page.locator('#iw-close').click()
   checks.push('monthly-recurrence-slots-exceptions-reopen-no-duplicates-actual-preserved')
-  for (const [width, month] of [[390, '2027-03'], [1440, '2027-11']]) {
+  for (const [width, month] of [
+    [390, '2027-03'],
+    [1440, '2027-11'],
+  ]) {
     await page.setViewportSize({ width, height: 1000 })
-    const ownId = crypto.randomUUID(), sourceId = crypto.randomUUID()
-    for (const [requestId, day, hours] of [[ownId, '01', 2], [sourceId, '02', 6]]) {
-      assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId, entry: baseEntry({ starts_on: `${month}-${day}`, ends_on: `${month}-${day}`, hours }) })).status, 201)
+    const ownId = crypto.randomUUID(),
+      sourceId = crypto.randomUUID()
+    for (const [requestId, day, hours] of [
+      [ownId, '01', 2],
+      [sourceId, '02', 6],
+    ]) {
+      assert.equal(
+        (
+          await call('/api/interne/calendrier', 'member', 'POST', {
+            requestId,
+            entry: baseEntry({ starts_on: `${month}-${day}`, ends_on: `${month}-${day}`, hours }),
+          })
+        ).status,
+        201,
+      )
     }
     await page.locator('#iw-month').fill(month)
     await page.locator('#iw-month').press('Tab')
     await page.locator(`button[data-entry-id="${ownId}"]:visible`).first().click()
     await expect(page.locator('#iw-link')).toBeHidden()
-    await expect(page.getByText('Cette fiche couvre toute la période.', { exact: false })).toHaveCount(0)
+    await expect(
+      page.getByText('Cette fiche couvre toute la période.', { exact: false }),
+    ).toHaveCount(0)
     await page.locator('#iw-fill-month').click()
-    await expect(page.getByRole('spinbutton', { name: /^Heures déjà enregistrées le mardi 2 / })).toHaveValue('6')
+    await expect(
+      page.getByRole('spinbutton', { name: /^Heures déjà enregistrées le mardi 2 / }),
+    ).toHaveValue('6')
     await page.getByRole('button', { name: '7 h', exact: true }).click()
     await page.getByRole('combobox', { name: 'Jour à préremplir', exact: true }).selectOption('1')
-    await page.getByRole('button', { name: 'Préremplir les jours correspondants', exact: true }).click()
+    await page
+      .getByRole('button', { name: 'Préremplir les jours correspondants', exact: true })
+      .click()
     await page.getByRole('button', { name: '8 h', exact: true }).click()
     await page.getByRole('combobox', { name: 'Jour à préremplir', exact: true }).selectOption('2')
-    await page.getByRole('button', { name: 'Préremplir les jours correspondants', exact: true }).click()
+    await page
+      .getByRole('button', { name: 'Préremplir les jours correspondants', exact: true })
+      .click()
     const filled = JSON.parse(await page.locator('input[name="daily_hours"]').inputValue())
-    assert.equal(filled.find(row => row.date === `${month}-01`).actual, 2)
-    assert(!filled.some(row => row.date === `${month}-02`), 'Other fiches must never be copied')
-    assert.equal(filled.find(row => row.date === `${month}-08`).actual, 7)
-    assert.equal(filled.find(row => row.date === `${month}-09`).actual, 8)
-    assert(await page.locator('#iw-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    assert.equal(filled.find((row) => row.date === `${month}-01`).actual, 2)
+    assert(!filled.some((row) => row.date === `${month}-02`), 'Other fiches must never be copied')
+    assert.equal(filled.find((row) => row.date === `${month}-08`).actual, 7)
+    assert.equal(filled.find((row) => row.date === `${month}-09`).actual, 8)
+    assert(await page.locator('#iw-editor').evaluate((el) => el.scrollWidth <= el.clientWidth + 1))
     await page.screenshot({ path: `${output}/heures-recurrentes-${width}.png` })
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
     const saved = sql.query('SELECT * FROM workspace_entries WHERE id=?').get(ownId)
-    assert.equal(saved.hours, filled.reduce((sum, row) => sum + (row.actual ?? 0), 0))
+    assert.equal(
+      saved.hours,
+      filled.reduce((sum, row) => sum + (row.actual ?? 0), 0),
+    )
     assert.equal(sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(sourceId).hours, 6)
     await page.locator('#iw-close').click()
     checks.push(`weekly-7-8-preserve-existing-no-duplicates-${width}`)
@@ -1160,10 +1493,18 @@ try {
     await page.locator('#iw-entry-person').selectOption({ label: 'Candice' })
     await page.locator('#iw-entry-activity').selectOption('Coordination')
     await page.locator('#iw-hours').fill('3.5')
-    const before = new Set(sql.query('SELECT id FROM workspace_entries').all().map(row => row.id))
+    const before = new Set(
+      sql
+        .query('SELECT id FROM workspace_entries')
+        .all()
+        .map((row) => row.id),
+    )
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-    const delegated = sql.query('SELECT * FROM workspace_entries').all().find(row => !before.has(row.id))
+    const delegated = sql
+      .query('SELECT * FROM workspace_entries')
+      .all()
+      .find((row) => !before.has(row.id))
     assert(delegated)
     assert.equal(delegated.person.toLowerCase(), 'candice')
     assert.equal(delegated.created_by, 'member@example.test')
@@ -1172,8 +1513,11 @@ try {
     await page.locator('#iw-hours').fill('4')
     await page.locator('#iw-save').click()
     await expect(page.locator('#iw-save-feedback')).toContainText('Fiche enregistrée')
-    assert.equal(sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(delegated.id).hours, 4)
-    assert(await page.locator('#iw-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    assert.equal(
+      sql.query('SELECT hours FROM workspace_entries WHERE id=?').get(delegated.id).hours,
+      4,
+    )
+    assert(await page.locator('#iw-editor').evaluate((el) => el.scrollWidth <= el.clientWidth + 1))
     await page.screenshot({ path: `${output}/saisie-collegue-${width}.png` })
     await page.locator('#iw-close').click()
     checks.push(`delegated-create-edit-creator-${width}`)
@@ -1230,15 +1574,20 @@ try {
   await page.locator('#task-person').selectOption('Pauline')
   await page.locator('#task-status').selectOption('today')
   await page.locator('#task-save').click()
-  await expect(page.locator('.task-cell[data-person=Pauline][data-status=today] .task-card')).toHaveCount(1)
+  await expect(
+    page.locator('.task-cell[data-person=Pauline][data-status=today] .task-card'),
+  ).toHaveCount(1)
   assert.equal(sql.query('SELECT count(*) n FROM team_task_notifications').get().n, 2)
   for (const width of [320, 390, 860, 861, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     await page.locator('.task-card').click()
     await expect(page.locator('#task-editor')).toBeVisible()
-    assert(await page.locator('#task-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
-    if ([390, 1440].includes(width)) await page.screenshot({ path: `${output}/notification-tache-${width}.png`, fullPage: true })
+    assert(
+      await page.locator('#task-editor').evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    )
+    if ([390, 1440].includes(width))
+      await page.screenshot({ path: `${output}/notification-tache-${width}.png`, fullPage: true })
     await page.locator('#task-cancel').click()
     checks.push(`task-notification-${width}`)
   }
@@ -1255,15 +1604,30 @@ try {
   await page.locator('#task-save').click()
   await expect(page.locator('.task-card')).toHaveCount(3)
   await expect(page.locator('.task-cell[data-person=Pauline] .task-role')).toHaveText('Responsable')
-  await expect(page.locator('.task-cell[data-person=Charlotte] .task-role')).toHaveText('Contributeur')
+  await expect(page.locator('.task-cell[data-person=Charlotte] .task-role')).toHaveText(
+    'Contributeur',
+  )
   assert.equal(sql.query('SELECT count(*) n FROM team_tasks').get().n, 1)
-  const card = person => page.locator(`.task-cell[data-person=${person}] .task-card`)
-  const zone = (person, status) => page.locator(`.task-dropzone[data-person=${person}][data-status=${status}]`)
+  const card = (person) => page.locator(`.task-cell[data-person=${person}] .task-card`)
+  const zone = (person, status) =>
+    page.locator(`.task-dropzone[data-person=${person}][data-status=${status}]`)
   await card('Pauline').dragTo(zone('Charlotte', 'en-cours'))
-  await expect(page.locator('.task-cell[data-person=Charlotte] .task-role')).toHaveText('Responsable')
+  await expect(page.locator('.task-cell[data-person=Charlotte] .task-role')).toHaveText(
+    'Responsable',
+  )
   await expect(page.locator('.task-card')).toHaveCount(2)
-  assert.deepEqual(sql.query('SELECT person,contributors FROM team_tasks').get(), { person: 'Charlotte', contributors: '["Candice"]' })
-  assert.deepEqual(sql.query('SELECT state,previous_state FROM team_task_notifications ORDER BY task_version DESC LIMIT 1').get(), { state: 'preview', previous_state: 'preview' })
+  assert.deepEqual(sql.query('SELECT person,contributors FROM team_tasks').get(), {
+    person: 'Charlotte',
+    contributors: '["Candice"]',
+  })
+  assert.deepEqual(
+    sql
+      .query(
+        'SELECT state,previous_state FROM team_task_notifications ORDER BY task_version DESC LIMIT 1',
+      )
+      .get(),
+    { state: 'preview', previous_state: 'preview' },
+  )
   await card('Candice').dragTo(zone('Pauline', 'today'))
   await expect(zone('Pauline', 'today').locator('.task-role')).toHaveText('Contributeur')
   await expect(zone('Charlotte', 'today').locator('.task-role')).toHaveText('Responsable')
@@ -1290,8 +1654,11 @@ try {
   await expect(zone('Pauline', 'en-attente').locator('.task-card')).toHaveCount(1)
   assert.equal(sql.query('SELECT count(*) n FROM team_task_notifications').get().n, 3)
   // A failed move never changes the cards optimistically or silently retries.
-  await page.route('**/api/interne/taches', route => route.request().method() === 'PATCH'
-    ? route.fulfill({ status: 409, json: { error: 'Cette tâche a changé.' } }) : route.continue())
+  await page.route('**/api/interne/taches', (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ status: 409, json: { error: 'Cette tâche a changé.' } })
+      : route.continue(),
+  )
   await card('Charlotte').dragTo(zone('Candice', 'today'))
   await expect(page.locator('#task-notice')).toContainText('Actualiser')
   await expect(zone('Charlotte', 'en-attente').locator('.task-card')).toHaveCount(1)
@@ -1318,14 +1685,27 @@ try {
   assert.equal(sql.query('SELECT count(*) n FROM team_task_notifications').get().n, 3)
   await page.locator('#task-completed-view').selectOption('recent')
   // Column/row order is an explicit product requirement.
-  await expect(page.locator('.task-board thead th')).toHaveText(['Équipe', 'À faire aujourd’hui', 'En cours', 'En file d’attente', 'Terminées'])
-  await expect(page.locator('.task-board tbody th > span:first-child')).toHaveText(['Candice', 'Charlotte', 'Pauline'])
+  await expect(page.locator('.task-board thead th')).toHaveText([
+    'Équipe',
+    'À faire aujourd’hui',
+    'En cours',
+    'En file d’attente',
+    'Terminées',
+  ])
+  await expect(page.locator('.task-board tbody th > span:first-child')).toHaveText([
+    'Candice',
+    'Charlotte',
+    'Pauline',
+  ])
   for (const width of [320, 390, 860, 861, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
-    if ([390, 1440].includes(width)) await page.screenshot({ path: `${output}/kanban-tableau-${width}.png`, fullPage: true })
+    if ([390, 1440].includes(width))
+      await page.screenshot({ path: `${output}/kanban-tableau-${width}.png`, fullPage: true })
     await card('Charlotte').click()
-    assert(await page.locator('#task-editor').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
+    assert(
+      await page.locator('#task-editor').evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    )
     if ([390, 1440].includes(width)) {
       await page.locator('#task-delete').scrollIntoViewIfNeeded()
       await page.screenshot({ path: `${output}/kanban-fiche-${width}.png` })
@@ -1336,11 +1716,11 @@ try {
   await expect(page.locator('#task-delete')).toBeHidden()
   await page.locator('#task-cancel').click()
   await card('Charlotte').click()
-  page.once('dialog', dialog => dialog.dismiss())
+  page.once('dialog', (dialog) => dialog.dismiss())
   await page.locator('#task-delete').click()
   assert.equal(sql.query('SELECT count(*) n FROM team_tasks').get().n, 1)
   await expect(page.locator('#task-editor')).toBeVisible()
-  page.once('dialog', dialog => dialog.accept())
+  page.once('dialog', (dialog) => dialog.accept())
   await page.locator('#task-delete').click()
   await expect(page.locator('#task-editor')).not.toBeVisible()
   await expect(page.locator('.task-card')).toHaveCount(0)
@@ -1354,7 +1734,8 @@ try {
   for (const width of [320, 390, 860, 861, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
-    if ([390, 1440].includes(width)) await page.screenshot({ path: `${output}/taches-supprimees-${width}.png`, fullPage: true })
+    if ([390, 1440].includes(width))
+      await page.screenshot({ path: `${output}/taches-supprimees-${width}.png`, fullPage: true })
     await card('Charlotte').click()
     await expect(page.locator('#task-editor-title')).toHaveText('Tâche supprimée')
     await expect(page.locator('#task-title')).toBeDisabled()
@@ -1365,9 +1746,20 @@ try {
     await page.locator('#task-cancel').click()
   }
   const deleted = sql.query('SELECT id,version FROM team_tasks').get()
-  assert.equal((await call('/api/interne/taches', 'member', 'PATCH', { id: deleted.id, version: deleted.version, task: { title: 'Ne pas rouvrir', description: '', person: 'Charlotte', status: 'today' } })).status, 409)
+  assert.equal(
+    (
+      await call('/api/interne/taches', 'member', 'PATCH', {
+        id: deleted.id,
+        version: deleted.version,
+        task: { title: 'Ne pas rouvrir', description: '', person: 'Charlotte', status: 'today' },
+      })
+    ).status,
+    409,
+  )
   assert.equal((await call('/api/interne/taches', 'member', 'DELETE', deleted)).status, 409)
-  sql.query('UPDATE team_tasks SET deleted_at = ?').run(new Date(Date.now() - 31 * 86400000).toISOString())
+  sql
+    .query('UPDATE team_tasks SET deleted_at = ?')
+    .run(new Date(Date.now() - 31 * 86400000).toISOString())
   await page.locator('#task-refresh').click()
   await expect(page.locator('.task-card')).toHaveCount(0)
   await page.locator('#task-new').click()
@@ -1378,12 +1770,34 @@ try {
   checks.push('task-roles-shared-edit-drag-owner-contributor-status-conflict')
   // A mixed fiche must use each day's hours, not the fiche's total or today's date.
   for (const entry of [
-    baseEntry({ title: 'Charlotte', person: 'charlotte@euneos.fr', starts_on: '2026-11-02', ends_on: '2026-11-03', daily_hours: JSON.stringify([
-      { date: '2026-11-02', planned: 7, actual: 7 },
-      { date: '2026-11-03', planned: 3.5, actual: null },
-    ]) }),
-    baseEntry({ title: 'Charlotte', person: 'charlotte@euneos.fr', starts_on: '2026-11-05', ends_on: '2026-11-05', attendance: 'absence', hours: null }),
-  ]) assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId: crypto.randomUUID(), entry })).status, 201)
+    baseEntry({
+      title: 'Charlotte',
+      person: 'charlotte@euneos.fr',
+      starts_on: '2026-11-02',
+      ends_on: '2026-11-03',
+      daily_hours: JSON.stringify([
+        { date: '2026-11-02', planned: 7, actual: 7 },
+        { date: '2026-11-03', planned: 3.5, actual: null },
+      ]),
+    }),
+    baseEntry({
+      title: 'Charlotte',
+      person: 'charlotte@euneos.fr',
+      starts_on: '2026-11-05',
+      ends_on: '2026-11-05',
+      attendance: 'absence',
+      hours: null,
+    }),
+  ])
+    assert.equal(
+      (
+        await call('/api/interne/calendrier', 'member', 'POST', {
+          requestId: crypto.randomUUID(),
+          entry,
+        })
+      ).status,
+      201,
+    )
   await page.goto(`${origin}/interne/communication/calendriereditorial`)
   await switchToTeam()
   await page.locator('#iw-month').fill('2026-11')
@@ -1391,8 +1805,16 @@ try {
   await expect(page.locator('#iw-result-count')).toContainText('novembre 2026')
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
-    for (const [state, color, label] of [['realise', 'rgb(0, 56, 45)', 'Réalisé'], ['prevu', 'rgb(248, 199, 2)', 'Prévu'], ['absence', 'rgb(242, 179, 240)', 'Absence']]) {
-      const item = page.locator(`${width === 390 ? '.iw-attendance-chip' : '.iw-event'}[data-attendance-state="${state}"]`).first()
+    for (const [state, color, label] of [
+      ['realise', 'rgb(0, 56, 45)', 'Réalisé'],
+      ['prevu', 'rgb(248, 199, 2)', 'Prévu'],
+      ['absence', 'rgb(242, 179, 240)', 'Absence'],
+    ]) {
+      const item = page
+        .locator(
+          `${width === 390 ? '.iw-attendance-chip' : '.iw-event'}[data-attendance-state="${state}"]`,
+        )
+        .first()
       await expect(item).toBeVisible()
       await expect(item).toHaveCSS('background-color', color)
       await expect(item).toContainText(label)
@@ -1402,33 +1824,236 @@ try {
   }
   checks.push('team-daily-colors-brand-mobile-desktop')
   // Private Communication tables: actual compiled routes, writes and synchronized views.
-  const columns=['Nom','Priorité','Statut','Notes'],personIds=[crypto.randomUUID(),crypto.randomUUID()]
-  for(const [i,title]of ['Ma selection - Top 10 Parrainag','Parrainage'].entries()){
-    sql.query('INSERT INTO communication_sheets VALUES(?,?,?,?,?,?)').run('partner-'+i,'partenariats',title,JSON.stringify(columns),0,i)
-    sql.query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)').run(personIds[i],'partner-'+i,JSON.stringify(['Personne fictive','B','','Note']),'fixture@example.test')
-    sql.query('INSERT INTO communication_partnership_entities VALUES(?,?)').run(personIds[i],personIds[0])
+  const columns = ['Nom', 'Priorité', 'Statut', 'Notes'],
+    personIds = [crypto.randomUUID(), crypto.randomUUID()]
+  for (const [i, title] of ['Ma selection - Top 10 Parrainag', 'Parrainage'].entries()) {
+    sql
+      .query('INSERT INTO communication_sheets VALUES(?,?,?,?,?,?)')
+      .run('partner-' + i, 'partenariats', title, JSON.stringify(columns), 0, i)
+    sql
+      .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
+      .run(
+        personIds[i],
+        'partner-' + i,
+        JSON.stringify(['Personne fictive', 'B', '', 'Note']),
+        'fixture@example.test',
+      )
+    sql
+      .query('INSERT INTO communication_partnership_entities VALUES(?,?)')
+      .run(personIds[i], personIds[0])
   }
-  for(const role of [null,'trainer'])assert.equal((await call('/api/interne/communication/partenariats',role)).status,403)
+  for (const role of [null, 'trainer'])
+    assert.equal((await call('/api/interne/communication/partenariats', role)).status, 403)
   await page.goto(`${origin}/interne/communication/partenariats`)
-  await expect(page.locator('#com-content')).toHaveAttribute('aria-busy','false')
-  await expect(page.getByRole('tab',{name:'TOP 10',exact:true})).toHaveCount(1)
+  await expect(page.locator('#com-content')).toHaveAttribute('aria-busy', 'false')
+  await expect(page.getByRole('tab', { name: 'TOP 10', exact: true })).toHaveCount(1)
   await expect(page.locator('.com-table')).toHaveCount(1)
   await page.locator('tbody button').click()
-  const statusSelect=page.locator('#com-field-2')
-  assert.deepEqual(await statusSelect.locator('option').allTextContents(),['À contacter','En attente de réponse','À relancer','Annulé','Accepté'])
-  await statusSelect.selectOption('Accepté');await page.locator('#com-field-1').selectOption('A');await page.locator('#com-save').click()
+  const statusSelect = page.locator('#com-field-2')
+  assert.deepEqual(
+    (await statusSelect.locator('option').allTextContents()).filter((v) => v !== 'Non renseigné'),
+    ['À contacter', 'En attente de réponse', 'À relancer', 'Annulé', 'Accepté'],
+  )
+  await page.locator('#com-field-2-trigger').click()
+  await page.locator('#com-fields [data-column="Statut"] [data-option="Accepté"]').click()
+  await page.locator('#com-field-1-trigger').click()
+  await page.locator('#com-fields [data-column="Priorité"] [data-option="A"]').click()
+  await page.locator('#com-save').click()
   await expect(page.locator('#com-editor')).not.toBeVisible()
   await expect(page.locator('tbody tr')).toHaveClass('com-vert')
-  await expect(page.locator('.com-priority')).toHaveCSS('background-color','rgb(255, 224, 204)')
-  await page.getByRole('tab',{name:'Parrainage',exact:true}).click()
+  await expect(page.locator('.com-priority')).toHaveCSS('background-color', 'rgb(255, 224, 204)')
+  await page.getByRole('tab', { name: 'Parrainage', exact: true }).click()
   await expect(page.locator('tbody tr')).toContainText('Accepté')
   await expect(page.locator('.com-priority')).toHaveText('A')
-  await page.reload();await expect(page.locator('tbody tr')).toContainText('Accepté')
-  await page.locator('select[data-column="Statut"]').selectOption('Accepté');await expect(page.locator('tbody tr')).toHaveCount(1)
-  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if([390,1440].includes(width))await page.screenshot({path:`${output}/communication-${width}.png`,fullPage:true})}
-  const stale=await call('/api/interne/communication/partenariats','member','POST',{id:personIds[0],sheet_id:'partner-0',version:1,cells:['Écrasement','B','Annulé','']})
-  assert.equal(stale.status,409)
+  await page.reload()
+  await expect(page.locator('tbody tr')).toContainText('Accepté')
+  await page.locator('#com-filters .com-choice[data-column="Statut"] summary').click()
+  await page
+    .locator('#com-filters .com-choice[data-column="Statut"] [data-option="Accepté"]')
+    .click()
+  await expect(page.locator('tbody tr')).toHaveCount(1)
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    if ([390, 1440].includes(width))
+      await page.screenshot({ path: `${output}/communication-${width}.png`, fullPage: true })
+  }
+  const stale = await call('/api/interne/communication/partenariats', 'member', 'POST', {
+    id: personIds[0],
+    sheet_id: 'partner-0',
+    version: 1,
+    cells: ['Écrasement', 'B', 'Annulé', ''],
+  })
+  assert.equal(stale.status, 409)
   checks.push('communication-private-views-save-status-colors-sync-conflicts-responsive')
+  // Manage vocabulary in the dropdown itself, preserving draft notes and stable colors.
+  await page.locator('tbody button').click()
+  await page.locator('#com-field-3').fill('Brouillon conservé')
+  const priorityMenu = page.locator('#com-fields .com-choice[data-column="Priorité"]')
+  await priorityMenu.locator('summary').click()
+  await priorityMenu.getByLabel('Ajouter une valeur à Priorité').fill('Choix temporaire')
+  const choiceGate = { open: () => {} }
+  const choicePending = new Promise((resolve) => {
+    choiceGate.open = () => resolve(null)
+  })
+  const holdChoice = async (route) => {
+    if (
+      route.request().method() === 'POST' &&
+      route.request().postDataJSON()?.value === 'Choix temporaire'
+    )
+      await choicePending
+    await route.continue()
+  }
+  await page.route('**/api/interne/communication/partenariats', holdChoice)
+  await priorityMenu.getByRole('button', { name: 'Ajouter', exact: true }).click()
+  await page.locator('#com-field-3').fill('Brouillon modifié pendant l’ajout')
+  choiceGate.open()
+
+  await expect(priorityMenu.locator('[data-option="Choix temporaire"]')).toBeVisible()
+  await expect(page.locator('#com-field-3')).toHaveValue('Brouillon modifié pendant l’ajout')
+  await page.unroute('**/api/interne/communication/partenariats', holdChoice)
+  await priorityMenu.getByRole('button', { name: 'Renommer A', exact: true }).click()
+  await priorityMenu.getByLabel('Nouveau nom de A', { exact: true }).fill('Prioritaire A')
+  await priorityMenu.getByRole('button', { name: 'Enregistrer le nom', exact: true }).click()
+  await expect(priorityMenu.locator('[data-option="Prioritaire A"]')).toBeVisible()
+  await priorityMenu
+    .getByRole('button', { name: 'Supprimer Choix temporaire', exact: true })
+    .click()
+  await priorityMenu.getByRole('button', { name: 'Confirmer la suppression', exact: true }).click()
+  await expect(priorityMenu.locator('[data-option="Choix temporaire"]')).toHaveCount(0)
+  await priorityMenu.locator('[data-option="Prioritaire A"]').click()
+  await page.locator('#com-save').click()
+  await expect(page.locator('#com-editor')).not.toBeVisible()
+  await expect(page.locator('.com-priority')).toHaveText('Prioritaire A')
+  await expect(page.locator('.com-priority')).toHaveCSS('background-color', 'rgb(255, 224, 204)')
+  await expect(page.locator('tbody tr')).toContainText('Brouillon modifié pendant l’ajout')
+  // Select all, duplicate, send to trash and restore: actual guarded writes.
+  await page.locator('#com-select-all').check()
+  await page.locator('#com-duplicate').click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await page.locator('#com-select-all').check()
+  await page.locator('#com-delete').click()
+  await expect(page.locator('#com-bulk-dialog')).toBeVisible()
+  await page.locator('#com-bulk-cancel').click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await page.locator('#com-delete').click()
+  await page.locator('#com-bulk-confirm').click()
+  await expect(page.locator('tbody tr')).toHaveCount(0)
+  await page.locator('#com-trash').click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await page.locator('#com-select-all').check()
+  await page.locator('#com-restore').click()
+  await expect(page.locator('tbody tr')).toHaveCount(0)
+  await page.locator('#com-trash').click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await page.reload()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.locator('tbody button').first().click()
+    await page.locator('#com-field-1-trigger').click()
+    await expect(page.locator('#com-fields .com-choice[open]')).toBeVisible()
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    await page.screenshot({ path: `${output}/communication-choix-${width}.png`, fullPage: true })
+    await page.locator('#com-close').click()
+  }
+  checks.push(
+    'communication-dropdown-add-rename-delete-preserve-draft-bulk-duplicate-trash-restore',
+  )
+  const filterChoice = page.locator('#com-filters .com-choice[data-column="Priorité"]')
+  await filterChoice.locator('summary').click()
+  await filterChoice.getByLabel('Ajouter une valeur à Priorité').fill('Choix sans fiche')
+  await filterChoice.getByRole('button', { name: 'Ajouter', exact: true }).click()
+  await expect(page.locator('select[data-column="Priorité"]')).toHaveValue('Choix sans fiche')
+  await filterChoice.locator('summary').click()
+  await expect(filterChoice.locator('[data-option="Choix sans fiche"]')).toBeVisible()
+  await filterChoice
+    .getByRole('button', { name: 'Supprimer Choix sans fiche', exact: true })
+    .click()
+  await filterChoice.getByRole('button', { name: 'Confirmer la suppression', exact: true }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+
+  for (const [collection, typeColumn, fixtureColumns, fixtureCells] of [
+    [
+      'suivimedias',
+      'Type de média',
+      ['Nom média', 'Type de média', 'Statut'],
+      ['Média fictif', 'Journal', 'Accepté'],
+    ],
+    ['veille', 'Type', ['Nom', 'Type', 'Tags'], ['Ressource fictive', 'Podcast', '']],
+  ]) {
+    const sheetId = crypto.randomUUID(),
+      rowId = crypto.randomUUID()
+    sql
+      .query('INSERT INTO communication_sheets VALUES(?,?,?,?,?,?)')
+      .run(sheetId, collection, collection, JSON.stringify(fixtureColumns), 0, 0)
+    if (collection === 'suivimedias')
+      assert.equal(
+        (
+          await call(`/api/interne/communication/${collection}`, 'member', 'POST', {
+            choiceAction: 'add',
+            column: typeColumn,
+            value: 'Journal',
+          })
+        ).status,
+        200,
+      )
+    sql
+      .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
+      .run(rowId, sheetId, JSON.stringify(fixtureCells), 'fixture')
+    await page.goto(`${origin}/interne/communication/${collection}`)
+    await expect(page.locator('tbody tr')).toHaveCount(1)
+    await page.locator('tbody button').click()
+    const menu = page.locator(`#com-fields .com-choice[data-column="${typeColumn}"]`)
+    await menu.locator('summary').click()
+    await menu.getByLabel(`Ajouter une valeur à ${typeColumn}`).fill('Nouveau choix partagé')
+    await menu.getByRole('button', { name: 'Ajouter', exact: true }).click()
+    await expect(menu.locator('[data-option="Nouveau choix partagé"]')).toBeVisible()
+    await page.locator('#com-save').click()
+    await expect(page.locator('#com-editor')).not.toBeVisible()
+    await page.locator('#com-select-all').check()
+    await page.locator('#com-duplicate').click()
+    await expect(page.locator('tbody tr')).toHaveCount(2)
+    await page.locator('input[data-row]').first().check()
+    await expect(page.locator('#com-select-all')).toHaveJSProperty('indeterminate', true)
+    await page.locator('#com-clear-selection').click()
+    await page.locator('#com-select-all').check()
+    await page.locator('#com-delete').click()
+    await page.locator('#com-bulk-confirm').click()
+    await expect(page.locator('tbody tr')).toHaveCount(0)
+    await page.locator('#com-trash').click()
+    await expect(page.locator('tbody tr')).toHaveCount(2)
+    await page.locator('#com-select-all').check()
+    await page.locator('#com-restore').click()
+    await expect(page.locator('tbody tr')).toHaveCount(0)
+    await page.locator('#com-trash').click()
+    await expect(page.locator('tbody tr')).toHaveCount(2)
+    assert.equal(
+      (
+        await call(`/api/interne/communication/${collection}`, 'trainer', 'POST', {
+          bulkAction: 'delete',
+          rows: [{ id: rowId, version: 1 }],
+        })
+      ).status,
+      403,
+    )
+    assert.equal(
+      (
+        await call(
+          `/api/interne/communication/${collection}`,
+          'member',
+          'POST',
+          { bulkAction: 'delete', rows: [{ id: rowId, version: 1 }] },
+          { Origin: 'https://foreign.example' },
+        )
+      ).status,
+      403,
+    )
+  }
+  checks.push(
+    'communication-all-three-tables-shared-options-checkboxes-duplicate-trash-restore-csrf-roles',
+  )
+
   assert.deepEqual(errors, [])
   await writeFile(
     `${output}/result.json`,
@@ -1440,7 +2065,10 @@ try {
   )
   console.log(`${checks.length} scénarios navigateur compilé réussis ; aucune erreur JavaScript.`)
 } catch (error) {
-  const detail = String(error?.stack ?? error).replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A')
+  const detail = String(error?.stack ?? error)
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A')
   console.error(`::error title=Recette des fiches internes::${detail}`)
   throw error
 } finally {

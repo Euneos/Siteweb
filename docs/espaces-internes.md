@@ -21,13 +21,14 @@ Partenariats comporte six vues par feuille et un seul tableau visible à la fois
 La première s’appelle TOP 10 ; le mode d’emploi n’est pas affiché. Recherche et
 filtres portent sur la vue active. Toutes les feuilles proposent Statut.
 
-Les cinq statuts sont À contacter, En attente de réponse, À relancer, Annulé et
+Les cinq statuts initiaux sont À contacter, En attente de réponse, À relancer, Annulé et
 Accepté. Après vingt jours d’attente, la lecture retourne À relancer. Le compteur
 démarre au changement de statut et n’est pas remis à zéro par une note. Le tableau
 visible s’actualise chaque minute, hors édition. Dans Partenariats le statut teinte
 la ligne sauf Priorité : A orange #ffe0cc, B rose #f3c8ef, C jaune #f5d76e.
-Les champs catégoriels sont des sélecteurs ; les valeurs personnalisées, sauf les
-cinq statuts fixes, deviennent réutilisables après enregistrement d’une fiche.
+Les champs catégoriels sont des sélecteurs dont les valeurs se gèrent directement
+dans chaque menu, y compris les statuts. Les modifications de menu sont enregistrées
+immédiatement et deviennent disponibles pour toute l’équipe, indépendamment de la fiche.
 
 Les fiches de personnes présentes dans plusieurs feuilles sont liées par leur Nom
 lors de l’import initial. La synchronisation porte sur les champs communs et
@@ -69,3 +70,28 @@ jours, compteurs, synchronisation et reprise de l’import. La recette compilée
 les couleurs, la synchronisation entre vues et le mobile avec des données fictives.
 Le contrôle D1 local vérifie les nouvelles migrations et leurs triggers. Les tests
 publics de layout, rythme et responsive restent obligatoires avant publication.
+
+## Menus modifiables et sélection multiple
+
+Les migrations 0024 et 0025 ajoutent le registre des choix et la corbeille.
+Chaque menu catégoriel, dans les filtres et les fiches, permet d’ajouter, renommer
+ou retirer une valeur. Les statuts sont communs à Médias et Partenariats. Les
+autres choix appartiennent au tableau et à leur colonne. Les libellés ont des
+identités stables et des alias : les fiches existantes affichent le nouveau nom
+sans réécriture de leurs cellules privées ; un renommage conserve la couleur et
+le compteur de relance. Les versions des choix empêchent les modifications
+concurrentes. Une valeur retirée est masquée, pas détruite ; l’ajouter à nouveau
+la rétablit. Les couleurs et le délai de vingt jours suivent les rôles des
+valeurs initiales, même renommées. Les nouvelles valeurs n’acquièrent pas de
+couleur ou d’automatisation par simple ressemblance de nom.
+
+La première colonne contient les cases de sélection. La case d’en-tête cible
+toutes les lignes visibles après recherche et filtres dans la vue active.
+Une nouvelle recherche ou vue efface la sélection ; aucun rafraîchissement
+automatique ne l’interrompt. Dupliquer crée des lignes indépendantes dans la
+même feuille. Supprimer nécessite une confirmation puis déplace uniquement les
+lignes choisies dans une corbeille récupérable. Restaurer conserve les données.
+Les opérations groupées vérifient la collection, l’autorisation, l’origine et les
+versions de toutes les lignes. Une sélection périmée échoue sans action partielle.
+Aucune nouvelle importation des XLSX n’est effectuée : les modifications faites
+sur le site depuis la publication initiale sont conservées.
