@@ -144,6 +144,11 @@ const path = decodeURI(Astro.url.pathname).replace(/\/+$/, '') || '/'
   }
 
   @media (max-width: 860px) {
+    /* Le menu ouvert doit dépasser le pli du bandeau sans être coupé. */
+    :global(.hero-zone.paper:has(.hdr__nav.is-open)) {
+      clip-path: none;
+      z-index: 10;
+    }
     .hdr__programme { width: 100%; }
     .hdr__programme-row { justify-content: space-between; padding-right: 1rem; }
     .hdr__submenu { display: block; position: static; box-shadow: none; padding: 0 0 0 1.5rem; }
