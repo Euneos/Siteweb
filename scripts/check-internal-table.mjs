@@ -217,7 +217,7 @@ try {
       'page',
     )
     assert.equal(
-      await navigation.getByRole('link', { name: 'Calendriers de l’équipe' }).getAttribute('href'),
+      await navigation.getByRole('link', { name: 'Retour' }).getAttribute('href'),
       '/interne',
     )
     assert.equal(

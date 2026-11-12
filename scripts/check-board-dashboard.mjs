@@ -113,7 +113,8 @@ try {
     const r = await originalFetch(`${base}${path}`, { headers: { 'X-Fixture-Role': role } }); assert.equal(r.status, 403, `${role} ${path}`)
   }
   assert.equal(visualReads, beforeDeniedReads, 'Refused users must never read private storage')
-  for (const path of ['/interne', '/interne/ressources', '/api/interne/ressources', '/api/interne/ressources?convention=1', '/api/interne/calendrier', '/api/interne/implantations', '/api/interne/conventions-mission']) {
+  assert.equal((await originalFetch(`${base}/interne`)).status,200,'Le CA peut revenir au portail sans accès équipe')
+  for (const path of ['/interne/ressources', '/api/interne/ressources', '/api/interne/ressources?convention=1', '/api/interne/calendrier', '/api/interne/implantations', '/api/interne/conventions-mission']) {
     const r = await originalFetch(`${base}${path}`); assert.equal(r.status, 403, `CA denied: ${path}`)
   }
   for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
