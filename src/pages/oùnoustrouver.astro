@@ -1,11 +1,9 @@
 ---
 import Base from '../layouts/Base.astro'
 import Cta from '../components/Cta.astro'
-import { lireCartePubliqueFormateurs } from '../lib/reseau-formateurs'
+import { lireCartePublique } from '../lib/public-network'
 import { publicTrainerMap } from '../lib/public-trainer-map'
-import { lireReseauEtablissements } from '../lib/reseau-etablissements'
-import { publicSchoolMap, type PublicSchool } from '../lib/public-school-map'
-import { readMapData } from '../lib/map'
+import { type PublicSchool } from '../lib/public-school-map'
 import { jeton } from '../lib/nocodb'
 export const prerender = false
 type PublicNetworkData = { locations: PublicSchool[]; periods: {key: string; cohort: string; locations: PublicSchool[]}[]; trainerLocations: ReturnType<typeof publicTrainerMap>; readAt?: string }
@@ -14,12 +12,7 @@ try {
   const token = jeton(Astro.locals)
   if (token) {
     const env = (Astro.locals as { runtime?: { env?: Record<string, unknown> } }).runtime?.env ?? {}
-    const [schools, trainers, applications] = await Promise.all([
-      lireReseauEtablissements(token),
-      lireCartePubliqueFormateurs(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES),
-      readMapData(token),
-    ])
-    data = { ...publicSchoolMap(schools, applications), trainerLocations: publicTrainerMap(trainers) }
+    data = await lireCartePublique(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES)
   }
 
 } catch { /* Show an honest unavailable state, never partial totals. */ }

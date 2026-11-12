@@ -11,6 +11,9 @@ La route Astro est rendue à la demande (`prerender = false`) et répond avec
 avec leur pagination et la réconciliation des doublons archivés. Aucun cron, webhook ou envoi
 supplémentaire n’est nécessaire. Une page déjà ouverte conserve sa sélection et ses données
 jusqu’à son actualisation ; elle ne lance pas de scrutation en arrière-plan.
+Les cinq tables sont lues une seule fois, successivement, pour éviter les rafales NocoDB.
+Une réponse de limitation HTTP 429 déclenche au plus deux nouvelles lectures différées ;
+aucune écriture ni soumission de formulaire n’est répétée.
 
 La page utilise `NOCODB_TOKEN`, `RESOURCE_NETWORK_LOCATIONS` et `RESOURCE_NETWORK_RESIDENCES`
 déjà disponibles côté serveur. Aucun secret n’est transmis au navigateur. Si une lecture échoue,

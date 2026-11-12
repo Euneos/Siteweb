@@ -19,7 +19,7 @@ const people = [{Id:1,nom:'SECRET_FORMED',prenom:'PRIVATE',ville:'Toulouse',cp:'
 const paths = [{Id:1,formateurs_id:1,statut:'Formateur validé'},{Id:2,formateurs_id:1,cohortes_id:2,statut:'En cours de formation'},{Id:3,formateurs_id:2,statut:'En cours de formation'},{Id:4,formateurs_id:3,statut:'En cours de formation'},{Id:5,formateurs_id:4,statut:'Refuse'}]
 const tables = {[NC.tables.cohortes]:cohorts,[NC.tables.etablissements]:schools,[NC.tables.participations]:participations,[NC.tables.formateurs]:people,[NC.tables.engagements]:paths}
 const env = {NOCODB_TOKEN:'synthetic-public-map-token'}
-let fail = false, reads = 0
+let fail = false, reads = 0, throttleNext = false, throttled = 0
 const originalFetch = globalThis.fetch
 // The production readers, including pagination and residence overrides, run unchanged.
 globalThis.fetch = async (input, options) => {
@@ -27,6 +27,7 @@ globalThis.fetch = async (input, options) => {
   assert.equal(url.hostname,'app.nocodb.com')
   assert.equal(options?.method,'GET')
   reads++
+  if (throttleNext) { throttleNext=false; throttled++; return new Response('Too Many Requests',{status:429}) }
   if (fail) return new Response('Unavailable',{status:503})
   const rows = tables[url.pathname.split('/')[4]]
   assert(rows, 'Unexpected private source')
@@ -74,6 +75,9 @@ try {
   assert.equal(unavailable.status,503)
   assert.equal(payload(await unavailable.text()),null)
   fail=false
+  throttleNext=true
+  assert.equal((await render(request())).status,200,'A temporary NocoDB rate limit should recover')
+  assert.equal(throttled,1)
   server=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(request) {
     const path=decodeURI(new URL(request.url).pathname)
     if(path.startsWith('/_astro/')||path.startsWith('/maps/')||path.startsWith('/fonts/')) return new Response(Bun.file(`dist${path}`))
