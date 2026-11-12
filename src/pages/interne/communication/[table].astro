@@ -89,11 +89,13 @@ const definition = communicationTables[table]
       <div id="com-selection" class="iw-toolbar" hidden>
         <strong id="com-selected-count"></strong><button id="com-duplicate" class="iw-button"
           >Dupliquer</button
-        ><button id="com-delete" class="iw-button">Supprimer</button><button
-          id="com-restore"
-          class="iw-button"
-          hidden>Restaurer</button
-        ><button id="com-clear-selection" class="iw-button">Annuler la sélection</button>
+        ><button id="com-move" class="iw-button">Déplacer</button><button
+          id="com-delete"
+          class="iw-button">Supprimer</button
+        ><button id="com-restore" class="iw-button" hidden>Restaurer</button><button
+          id="com-clear-selection"
+          class="iw-button">Annuler la sélection</button
+        >
       </div>
       <div id="com-content" aria-busy="true"></div>
     </section>
@@ -120,6 +122,29 @@ const definition = communicationTables[table]
       </form>
     </div>
   </dialog>
+  <dialog id="com-move-dialog" class="iw-dialog" aria-labelledby="com-move-title">
+    <div class="iw-dialog__body">
+      <h2 id="com-move-title">Déplacer les lignes sélectionnées</h2>
+      <p>
+        Les champs sans équivalent sont conservés dans les notes. Les lignes quittent la feuille
+        actuelle.
+      </p>
+      <div class="iw-field">
+        <label for="com-move-table">Tableau de destination</label><select id="com-move-table"
+        ></select>
+      </div>
+      <div class="iw-field">
+        <label for="com-move-sheet">Feuille de destination</label><select id="com-move-sheet"
+        ></select>
+      </div>
+      <div class="iw-form-actions">
+        <button id="com-move-cancel" class="iw-button">Annuler</button><button
+          id="com-move-confirm"
+          class="iw-button iw-button--primary">Déplacer</button
+        >
+      </div>
+    </div>
+  </dialog>
   <dialog id="com-bulk-dialog" class="iw-dialog" aria-labelledby="com-bulk-title">
     <div class="iw-dialog__body">
       <h2 id="com-bulk-title">Supprimer les lignes sélectionnées ?</h2><p id="com-bulk-description">
@@ -139,7 +164,7 @@ const definition = communicationTables[table]
     min-width: min(100%, 16rem);
   }
   .com-scroll {
-    max-height: 70dvh;
+    max-height: none;
     overflow: auto;
     border-top: 1px solid var(--iw-line);
   }
@@ -204,7 +229,7 @@ const definition = communicationTables[table]
   }
   .com-table td p {
     display: -webkit-box;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }

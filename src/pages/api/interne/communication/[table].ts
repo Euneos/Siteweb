@@ -55,7 +55,14 @@ export const GET: APIRoute = async ({ request, locals, params }) => {
         r.status_changed_at || r.updated_at,
       ),
     }))
+    const destinations = await context.db
+      .prepare(
+        'SELECT id,collection,title FROM communication_sheets WHERE guide=0 ORDER BY position',
+      )
+      .bind()
+      .all<{ id: string; collection: string; title: string }>()
     return privateJson({
+      destinations: destinations.results,
       ...catalog,
       sheets: sheets.results.map(({ columns_json, guide, ...s }) => ({
         ...s,
@@ -93,7 +100,7 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
       .first<{ columns_json: string; guide: number }>()
     if (!sheet || sheet.guide) throw new WorkspaceError(400, 'Onglet non modifiable.')
     const columns: string[] = JSON.parse(sheet.columns_json)
-    if (table === 'suivimedias') {
+    if (['suivimedias', 'partenariats'].includes(table) && columns.includes('Attribution')) {
       const attribution = Array.isArray(body.cells)
         ? body.cells[columns.indexOf('Attribution')]
         : null

@@ -1,4 +1,5 @@
 import { renderPartnershipDashboard } from './partnership-dashboard'
+import { communicationTables } from '../lib/communication'
 import { renderMediaDashboard } from './media-dashboard'
 import { categoricalColumns, splitChoices, choiceScope } from '../lib/communication-choices'
 import type { ChoiceCatalog, CommunicationChoice } from '../lib/communication-choices'
@@ -15,6 +16,8 @@ if (root) {
     bulkSaving = false,
     currentVisible: CommunicationRow[] = []
   const selection = new Map<string, number>()
+  let destinations: { id: string; collection: string; title: string }[] = []
+  let previewObserver: ResizeObserver | null = null
   let activeSheetId = ''
   const currentSheet = () => sheets.find((s) => s.id === activeSheetId)
   function renderViews() {
@@ -115,7 +118,7 @@ if (root) {
   }
   const allowedFilters: Record<string, string[]> = {
     suivimedias: ['Type de média', 'Nom média', 'Public principal', 'Statut', 'Attribution'],
-    partenariats: ['Priorité', 'Vivier', 'Statut'],
+    partenariats: ['Priorité', 'Vivier', 'Statut', 'Attribution'],
     veille: ['Nom', 'Type', 'Tags'],
   }
   const categorical = categoricalColumns
@@ -349,6 +352,7 @@ if (root) {
     }
     get<HTMLButtonElement>('com-duplicate').hidden = trash
     get<HTMLButtonElement>('com-delete').hidden = trash
+    get<HTMLButtonElement>('com-move').hidden = trash
     get<HTMLButtonElement>('com-restore').hidden = !trash
   }
   async function bulk(action: string) {
@@ -360,6 +364,7 @@ if (root) {
       .querySelectorAll<HTMLInputElement>('input[type=checkbox]')
       .forEach((c) => (c.disabled = true))
     get<HTMLDialogElement>('com-bulk-dialog').close()
+    get<HTMLDialogElement>('com-move-dialog').close()
     feedback.textContent = 'Enregistrement de la sélection…'
     get('com-selection')
       .querySelectorAll('button')
@@ -370,13 +375,19 @@ if (root) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bulkAction: action,
+          ...(action === 'move'
+            ? {
+                targetTable: get<HTMLSelectElement>('com-move-table').value,
+                targetSheet: get<HTMLSelectElement>('com-move-sheet').value,
+              }
+            : {}),
           rows: [...selection].map(([id, version]) => ({ id, version })),
         }),
       })
       selection.clear()
       await load()
       const plural = result.count > 1 ? 's' : ''
-      feedback.textContent = `${result.count} ligne${plural} ${action === 'duplicate' ? `dupliquée${plural}` : action === 'delete' ? `placée${plural} dans la corbeille` : `restaurée${plural}`}.`
+      feedback.textContent = `${result.count} ligne${plural} ${action === 'duplicate' ? `dupliquée${plural}` : action === 'delete' ? `placée${plural} dans la corbeille` : action === 'move' ? `déplacée${plural}` : `restaurée${plural}`}.`
     } catch (error) {
       feedback.textContent =
         error instanceof Error
@@ -436,6 +447,7 @@ if (root) {
   function render() {
     if (root!.dataset.table === 'suivimedias') renderMediaDashboard(sheets, rows)
     if (root!.dataset.table === 'partenariats') renderPartnershipDashboard(sheets, rows, catalog)
+    previewObserver?.disconnect()
     content.replaceChildren()
     currentVisible = []
     add.disabled = trash || !sheets.some((s) => !s.guide)
@@ -505,7 +517,15 @@ if (root) {
       })
       selectTh.append(allCheck)
       tr.append(selectTh, el('th', 'Fiche'))
-      selected.columns.forEach((label, i) => {
+      const columnOrder = selected.columns
+        .map((_, i) => i)
+        .sort(
+          (a, b) =>
+            Number(selected.columns[b] === 'Attribution') -
+            Number(selected.columns[a] === 'Attribution'),
+        )
+      columnOrder.forEach((i) => {
+        const label = selected.columns[i]
         const th = el('th')
         th.scope = 'col'
         const b = button(label, () => {
@@ -574,7 +594,8 @@ if (root) {
               )[type]
             : ''
         if (color) tr.className = `com-${color}`
-        for (const [index, cell] of row.cells.entries()) {
+        for (const index of columnOrder) {
+          const cell = row.cells[index] || ''
           const td = el('td')
           if (root!.dataset.table === 'partenariats') {
             if (selected.columns[index] === 'Priorité') {
@@ -587,7 +608,10 @@ if (root) {
             url = new URL(cell.startsWith('www.') ? 'https://' + cell : cell)
             if (!['http:', 'https:'].includes(url.protocol)) url = null
           } catch {}
-          if (root!.dataset.table === 'suivimedias' && selected.columns[index] === 'Attribution') {
+          if (
+            ['suivimedias', 'partenariats'].includes(root!.dataset.table!) &&
+            selected.columns[index] === 'Attribution'
+          ) {
             const select = el('select')
             select.setAttribute('aria-label', `Attribution de ${rowName}`)
             select.append(
@@ -631,6 +655,17 @@ if (root) {
       scroll.append(table)
       section.append(scroll)
       content.append(section)
+      const fitFiveRows = () => {
+        const height =
+          head.getBoundingClientRect().height +
+          [...body.rows]
+            .slice(0, 5)
+            .reduce((sum, row) => sum + row.getBoundingClientRect().height, 0)
+        scroll.style.maxHeight = `${Math.ceil(height) + 20}px`
+      }
+      fitFiveRows()
+      previewObserver = new ResizeObserver(fitFiveRows)
+      previewObserver.observe(table)
     }
     updateSelection()
     get<HTMLButtonElement>('com-trash').textContent = trash
@@ -658,8 +693,16 @@ if (root) {
       catalog = { choices: result.choices, aliases: result.aliases }
       deletedRows = result.deletedRows
       selection.clear()
+      destinations = result.destinations ?? []
       sheets = result.sheets
-        .filter((s: CommunicationSheet) => !s.guide)
+        .filter(
+          (s: CommunicationSheet) =>
+            !s.guide &&
+            !(
+              root!.dataset.table === 'partenariats' &&
+              (/top\s*10/i.test(s.title) || norm(s.title) === 'qui parraine quoi')
+            ),
+        )
         .map((s: CommunicationSheet) => ({
           ...s,
           title: /top\s*10/i.test(s.title) ? 'TOP 10' : s.title,
@@ -811,6 +854,8 @@ if (root) {
   setInterval(() => {
     if (
       !dialog.open &&
+      !get<HTMLDialogElement>('com-move-dialog').open &&
+      !get<HTMLDialogElement>('com-bulk-dialog').open &&
       !choiceSaving &&
       !bulkSaving &&
       !selection.size &&
@@ -823,6 +868,30 @@ if (root) {
     selection.clear()
     updateSelection()
   })
+  const moveTable = get<HTMLSelectElement>('com-move-table')
+  const moveSheet = get<HTMLSelectElement>('com-move-sheet')
+  function updateMoveSheets() {
+    moveSheet.replaceChildren(
+      ...destinations
+        .filter((s) => s.collection === moveTable.value)
+        .map((s) => option(s.title, s.id)),
+    )
+    get<HTMLButtonElement>('com-move-confirm').disabled = !moveSheet.options.length
+  }
+  get('com-move').addEventListener('click', () => {
+    moveTable.replaceChildren(
+      ...Object.entries(communicationTables)
+        .filter(([key]) => key !== root!.dataset.table)
+        .map(([key, value]) => option(value.title, key)),
+    )
+    updateMoveSheets()
+    get<HTMLDialogElement>('com-move-dialog').showModal()
+  })
+  moveTable.addEventListener('change', updateMoveSheets)
+  get('com-move-cancel').addEventListener('click', () =>
+    get<HTMLDialogElement>('com-move-dialog').close(),
+  )
+  get('com-move-confirm').addEventListener('click', () => void bulk('move'))
   get('com-duplicate').addEventListener('click', () => void bulk('duplicate'))
   get('com-restore').addEventListener('click', () => void bulk('restore'))
   get('com-delete').addEventListener('click', () => {

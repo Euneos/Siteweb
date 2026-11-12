@@ -1,3 +1,4 @@
+import { moveCommunicationRows } from './communication-move'
 import type { WorkspaceDatabase } from './internal-workspace'
 import { WorkspaceError } from './internal-workspace'
 export async function mutateCommunicationRows(
@@ -8,7 +9,7 @@ export async function mutateCommunicationRows(
 ) {
   const action = body.bulkAction
   if (
-    !['duplicate', 'delete', 'restore'].includes(String(action)) ||
+    !['duplicate', 'delete', 'restore', 'move'].includes(String(action)) ||
     !Array.isArray(body.rows) ||
     !body.rows.length ||
     body.rows.length > 200
@@ -27,6 +28,7 @@ export async function mutateCommunicationRows(
     new Set(rows.map((r) => r.id)).size !== rows.length
   )
     throw new WorkspaceError(400, 'Sélection invalide.')
+  if (action === 'move') return moveCommunicationRows(db, table, body, actor)
   const payload = JSON.stringify(rows.map((r) => ({ ...r, newId: crypto.randomUUID() }))),
     state = action === 'restore' ? 'IS NOT NULL' : 'IS NULL'
   const matched = `SELECT count(*) FROM json_each(?) picked JOIN communication_rows r ON r.id=json_extract(picked.value,'$.id') AND r.version=json_extract(picked.value,'$.version') JOIN communication_sheets s ON s.id=r.sheet_id WHERE s.collection=? AND s.guide=0 AND r.deleted_at ${state}`
