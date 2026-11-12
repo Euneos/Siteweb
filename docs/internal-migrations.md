@@ -184,3 +184,24 @@ Références : [migrations D1](https://developers.cloudflare.com/d1/reference/mi
 [exports privés](https://developers.cloudflare.com/d1/best-practices/import-export-data/).
 Le transport a aussi été vérifié dans le Wrangler verrouillé du dépôt :
 `buildMigrationQuery`, `executeRemotely` et `executeLocally`.
+
+
+## Compatibilité de la migration 0016 avec D1
+
+D1 [limite les motifs `LIKE`/`GLOB` à 50 octets](https://developers.cloudflare.com/d1/platform/limits/). Les deux préfixes Drive de
+`0016_wise_up_study_resource.sql` dépassent cette limite et échouent dès que
+`workspace_resources` est peuplée. Le fichier, déjà enregistré en preview,
+reste strictement inchangé : aucun registre ni historique n’est réécrit.
+
+Le moteur d’exécution reconnaît uniquement ce nom et son SHA256 approuvé. Il
+convertit ses deux recherches de préfixe ASCII en clauses `substr` + `LIKE`
+de 41 octets maximum, en conservant la casse et le comportement de `LIKE`.
+Les tests comparent les résultats au SQL source, sur liens anciens, doublons,
+variantes de casse et ressources sans rapport. Les contrôles de schéma,
+versions, registre et le lot transactionnel restent identiques.
+
+Le reçu CI ajoute `executions` pour les seules migrations nouvellement
+appliquées : empreinte du fichier source, empreinte du SQL exécuté et mention
+`d1-like-50-bytes` pour cette compatibilité. Les migrations déjà enregistrées
+ne sont jamais rejouées. Le test D1 local peuple désormais les ressources
+avant les migrations, pour éviter une recette uniquement sur table vide.

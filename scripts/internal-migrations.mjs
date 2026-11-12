@@ -18,6 +18,7 @@ import {
   bootstrapSQL,
   validateState,
   migrationSQL,
+  executionSQL,
   executeSQLite,
 } from './lib/internal-migrations.mjs'
 
@@ -118,6 +119,7 @@ export function prepareBootstrap({ dump, out, names, environment }, migrations =
 export function d1FailureLabel(output) {
   output = String(output).replace(/\u001b\[[0-9;]*m/g, '')
   const labels = [
+    [/LIKE or GLOB pattern too complex/i, 'motif LIKE/GLOB trop long'],
     [/incomplete input/i, 'instruction SQL incomplète'],
     [/unterminated|unrecognized token/i, 'token SQL invalide'],
     [
@@ -299,6 +301,13 @@ export async function migrate({
     restorePoint,
     before: migrations.slice(0, before).map((m) => m.name),
     after: migrations.map(({ name, sha256 }) => ({ name, sha256 })),
+    executions: migrations.slice(before).map((migration) => ({
+      name: migration.name,
+      sourceSha256: migration.sha256,
+      executionSha256: sha256(executionSQL(migration)),
+      compatibility:
+        migration.name === '0016_wise_up_study_resource.sql' ? 'd1-like-50-bytes' : null,
+    })),
   }
 }
 async function main() {

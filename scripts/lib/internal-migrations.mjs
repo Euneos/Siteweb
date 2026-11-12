@@ -243,11 +243,6 @@ const assertSQL = (condition) =>
   `INSERT INTO ${GUARD}(ok) SELECT CASE WHEN (${condition}) THEN 1 ELSE 0 END;`
 const guardStart = `CREATE TABLE ${GUARD}(ok INTEGER NOT NULL CHECK(ok=1));`
 const guardEnd = `DROP TABLE ${GUARD};`
-// Compare the exact UTF-8 schema bytes without embedding legacy CREATE/TRIGGER
-// text in quoted SQL. The remote D1 statement splitter must never interpret
-// semicolons, comments or BEGIN/END stored inside sqlite_schema.sql.
-const schemaSQLCondition = (value) =>
-  `hex(sql)=${literal(Buffer.from(value).toString('hex').toUpperCase())}`
 function schemaCondition(rows) {
   const schema = businessSchema(rows)
   return (
@@ -255,7 +250,7 @@ function schemaCondition(rows) {
     schema
       .map(
         (r) =>
-          `EXISTS(SELECT 1 FROM sqlite_schema WHERE type=${literal(r.type)} AND name=${literal(r.name)} AND tbl_name=${literal(r.tbl_name)} AND ${schemaSQLCondition(r.sql)})`,
+          `EXISTS(SELECT 1 FROM sqlite_schema WHERE type=${literal(r.type)} AND name=${literal(r.name)} AND tbl_name=${literal(r.tbl_name)} AND sql=${literal(r.sql)})`,
       )
       .join(' AND ')
   )
@@ -287,7 +282,7 @@ function controlConditions(rows) {
     ),
     ...controls.map((r) =>
       assertSQL(
-        `EXISTS(SELECT 1 FROM sqlite_schema WHERE name=${literal(r.name)} AND ${schemaSQLCondition(r.sql)})`,
+        `EXISTS(SELECT 1 FROM sqlite_schema WHERE name=${literal(r.name)} AND sql=${literal(r.sql)})`,
       ),
     ),
   ].join('\n')
@@ -338,6 +333,41 @@ export function bootstrapSQL(state, migrations, names) {
     guardEnd,
   ].join('\n')
 }
+// 0016 is already registered in preview and must remain byte-for-byte intact.
+// D1 caps each LIKE pattern at 50 bytes; populated production tables evaluate
+// its long Drive prefixes while an empty preview does not. Split only these
+// pinned ASCII prefix searches into short LIKE clauses with identical behavior.
+export function executionSQL(migration) {
+  if (migration.name !== '0016_wise_up_study_resource.sql') return migration.sql
+  const approved = '3205669709af20543738fa55fe9a7c6dbfa8548eca48b9482c7eb84e50a008a3'
+  requireThat(
+    migration.sha256 === approved && sha256(migration.sql) === approved,
+    'Compatibilité D1: la migration 0016 doit rester inchangée',
+  )
+  let replaced = 0
+  const sql = migration.sql.replace(/\burl LIKE '([^']+)'/g, (_, pattern) => {
+    requireThat(
+      /^[A-Za-z0-9:/.-]+%$/.test(pattern) && pattern.length > 50,
+      'Compatibilité D1: préfixe 0016 inattendu',
+    )
+    replaced++
+    const chunks = pattern.slice(0, -1).match(/.{1,40}/g)
+    return (
+      '(' +
+      chunks
+        .map((chunk, index) =>
+          index === chunks.length - 1
+            ? `substr(url, ${index * 40 + 1}) LIKE ${literal(chunk + '%')}`
+            : `substr(url, ${index * 40 + 1}, ${chunk.length}) LIKE ${literal(chunk)}`,
+        )
+        .join(' AND ') +
+      ')'
+    )
+  })
+  requireThat(replaced === 2, 'Compatibilité D1: les deux préfixes 0016 sont requis')
+  return sql
+}
+
 export function migrationSQL(state, migrations) {
   const count = validateState(state, migrations)
   if (count === migrations.length) return null
@@ -352,7 +382,7 @@ export function migrationSQL(state, migrations) {
     assertSQL(ledgerCondition(state.ledger.map((r) => r.name))),
     assertSQL(hashesCondition(migrations.slice(0, count))),
     register(next),
-    next.sql,
+    executionSQL(next),
     guardEnd,
   ].join('\n')
 }

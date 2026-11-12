@@ -154,7 +154,8 @@ try {
   query(baseline.map((m) => m.sql).join('\n'))
   query(`INSERT INTO workspace_entries(id,kind,title,starts_on,ends_on,person,status,hours,daily_hours,created_by,updated_by)
     VALUES('fixture','equipe','Local test','2026-09-28','2026-09-28','fixture@example.test','en_cours',7.5,'[{"date":"2026-09-28","actual":7.5}]','fixture@example.test','fixture@example.test');
-    INSERT INTO workspace_comments(id,entry_id,author,content) VALUES('comment','fixture','fixture@example.test','Conserver');`)
+    INSERT INTO workspace_comments(id,entry_id,author,content) VALUES('comment','fixture','fixture@example.test','Conserver');
+    INSERT INTO workspace_resources(id,title,category,url,updated_by) VALUES('fixture-resource','Guide fictif','Guide','https://example.test/keep','fixture@example.test');`)
   query(
     bootstrapSQL(
       state(),
@@ -162,13 +163,14 @@ try {
       baseline.map((m) => m.name),
     ),
   )
+  const actualOriginal = data()
   const actual = loadMigrations()
   for (let index = 4; index < actual.length; index++) query(migrationSQL(state(), actual))
   assert.equal(validateState(state(), actual), actual.length)
   const after = data()
-  for (let table = 0; table < original.length; table++) {
-    assert.equal(after[table].length, original[table].length)
-    original[table].forEach((row, index) => {
+  for (let table = 0; table < actualOriginal.length; table++) {
+    assert.equal(after[table].length, actualOriginal[table].length)
+    actualOriginal[table].forEach((row, index) => {
       for (const key of Object.keys(row)) {
         // Defaults for the freshly rebuilt fixture have new timestamps.
         if (!['created_at', 'updated_at'].includes(key))

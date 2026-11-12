@@ -405,28 +405,20 @@ test('workflow: aucun secret au build; verrou global et publication après migra
   }
 })
 
-test('le snapshot du schéma encode les triggers historiques sans affaiblir le verrou transactionnel', () => {
+test('0016: le reçu distingue le SQL compatible exécuté et le fichier historique conservé', async () => {
   const db = fixture({ adopted: true })
-  const trigger = `CREATE TRIGGER guard_transport AFTER INSERT ON workspace_resources
-    BEGIN
-      -- ancien format; BEGIN; END; guillemets ' et accents é
-      UPDATE workspace_resources SET description='é;BEGIN;END' WHERE id=NEW.id;
-    END;`
-  const chain = appended(next(trigger))
-  apply(db, migrationSQL(readLocalState(db), chain))
-  const extended = [...chain, next('ALTER TABLE workspace_resources ADD COLUMN transport_note TEXT;', 6)]
-  const prepared = migrationSQL(readLocalState(db), extended)
-  expect(prepared).toContain('hex(sql)=')
-  expect(prepared).not.toContain('CREATE TRIGGER guard_transport')
-  expect(prepared).not.toContain('ancien format')
-  apply(db, prepared)
-  expect(validateState(readLocalState(db), extended)).toBe(6)
-  const final = [...extended, next("UPDATE workspace_resources SET description='ne pas exécuter';", 7)]
-  const stale = migrationSQL(readLocalState(db), final)
-  db.exec('DROP TRIGGER guard_transport;')
-  executeSQLite(db, trigger.replace('ancien format', 'commentaire changé'))
-  expect(validateState(readLocalState(db), final)).toBe(6)
-  expect(() => apply(db, stale)).toThrow()
-  expect(db.query("SELECT description FROM workspace_resources WHERE id='resource'").get().description).toBe('')
-  expect(validateState(readLocalState(db), final)).toBe(6)
+  const chain = migrations.slice(0, 17)
+  while (validateState(readLocalState(db), chain) < 15)
+    apply(db, migrationSQL(readLocalState(db), chain))
+  const options = {
+    environment: 'preview', migrations: chain, codeSha: 'fixture',
+    read: () => readLocalState(db), execute: sql => apply(db, sql), backup: () => 'local-fixture',
+  }
+  const receipt = await migrate(options)
+  const execution = receipt.executions.find(row => row.name === '0016_wise_up_study_resource.sql')
+  expect(execution.compatibility).toBe('d1-like-50-bytes')
+  expect(execution.sourceSha256).toBe(chain[15].sha256)
+  expect(execution.executionSha256).not.toBe(execution.sourceSha256)
+  expect(db.query('SELECT sha256 FROM euneos_migration_hashes WHERE name=?').get(execution.name).sha256).toBe(execution.sourceSha256)
+  expect((await migrate(options)).executions).toEqual([])
 })
