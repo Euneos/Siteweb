@@ -27,6 +27,8 @@ export function partnershipSummary(
         group: groups.find((g) => key(g) === key(sheet.title))!,
         name:
           cell('Nom') ||
+          cell('Structure ou personne') ||
+          cell('Association') ||
           cell('Nom de la structure') ||
           cell('Structure') ||
           cell('Nom et prénom') ||

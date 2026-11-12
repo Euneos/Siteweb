@@ -673,7 +673,15 @@ try {
   await page.getByRole('button', { name: 'Actualiser', exact: true }).click()
   await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('2 / 5')
   await expect(page.locator('.partner-ongoing li')).toHaveCount(1)
-  for (const id of summaryIds) sql.query('DELETE FROM communication_rows WHERE id=?').run(id)
+  for (const id of summaryIds) {
+    sql
+      .query(
+        'DELETE FROM team_tasks WHERE id IN (SELECT task_id FROM communication_media_tasks WHERE row_id=?)',
+      )
+      .run(id)
+    sql.query('DELETE FROM communication_media_tasks WHERE row_id=?').run(id)
+    sql.query('DELETE FROM communication_rows WHERE id=?').run(id)
+  }
   for (const [i] of summarySheets.entries())
     sql.query('DELETE FROM communication_sheets WHERE id=?').run('summary-' + i)
   checks.push(

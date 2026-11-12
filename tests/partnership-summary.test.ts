@@ -88,3 +88,17 @@ test('shows unrepresented catalog pools and handles missing values and unknown s
   expect(partnershipSummary(sheets, [], catalog).counters.map((c) => c.total)).toEqual([5, 5, 0])
   expect(partnershipSummary([], [], catalog).updated).toBeNull()
 })
+
+test('uses the name column of the imported partner tabs even when it is not first', () => {
+  const imported = {
+    ...sheets[2],
+    columns: ['Priorité', 'Structure ou personne', 'Statut', 'Point de vigilance', 'Attribution'],
+  }
+  const data = partnershipSummary(
+    [imported],
+    [row(imported.id, ['A', 'Association exemple', 'En discussion', 'À relire', 'Candice'])],
+    catalog,
+  )
+  expect(data.ongoing[0].name).toBe('Association exemple')
+  expect(data.ongoing[0].vigilance).toBe('À relire')
+})
