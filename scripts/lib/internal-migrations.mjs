@@ -243,6 +243,11 @@ const assertSQL = (condition) =>
   `INSERT INTO ${GUARD}(ok) SELECT CASE WHEN (${condition}) THEN 1 ELSE 0 END;`
 const guardStart = `CREATE TABLE ${GUARD}(ok INTEGER NOT NULL CHECK(ok=1));`
 const guardEnd = `DROP TABLE ${GUARD};`
+// Compare the exact UTF-8 schema bytes without embedding legacy CREATE/TRIGGER
+// text in quoted SQL. The remote D1 statement splitter must never interpret
+// semicolons, comments or BEGIN/END stored inside sqlite_schema.sql.
+const schemaSQLCondition = (value) =>
+  `hex(sql)=${literal(Buffer.from(value).toString('hex').toUpperCase())}`
 function schemaCondition(rows) {
   const schema = businessSchema(rows)
   return (
@@ -250,7 +255,7 @@ function schemaCondition(rows) {
     schema
       .map(
         (r) =>
-          `EXISTS(SELECT 1 FROM sqlite_schema WHERE type=${literal(r.type)} AND name=${literal(r.name)} AND tbl_name=${literal(r.tbl_name)} AND sql=${literal(r.sql)})`,
+          `EXISTS(SELECT 1 FROM sqlite_schema WHERE type=${literal(r.type)} AND name=${literal(r.name)} AND tbl_name=${literal(r.tbl_name)} AND ${schemaSQLCondition(r.sql)})`,
       )
       .join(' AND ')
   )
@@ -282,7 +287,7 @@ function controlConditions(rows) {
     ),
     ...controls.map((r) =>
       assertSQL(
-        `EXISTS(SELECT 1 FROM sqlite_schema WHERE name=${literal(r.name)} AND sql=${literal(r.sql)})`,
+        `EXISTS(SELECT 1 FROM sqlite_schema WHERE name=${literal(r.name)} AND ${schemaSQLCondition(r.sql)})`,
       ),
     ),
   ].join('\n')

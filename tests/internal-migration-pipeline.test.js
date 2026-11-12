@@ -404,3 +404,29 @@ test('workflow: aucun secret au build; verrou global et publication après migra
     expect(step.if ?? '').not.toContain('always()')
   }
 })
+
+test('le snapshot du schéma encode les triggers historiques sans affaiblir le verrou transactionnel', () => {
+  const db = fixture({ adopted: true })
+  const trigger = `CREATE TRIGGER guard_transport AFTER INSERT ON workspace_resources
+    BEGIN
+      -- ancien format; BEGIN; END; guillemets ' et accents é
+      UPDATE workspace_resources SET description='é;BEGIN;END' WHERE id=NEW.id;
+    END;`
+  const chain = appended(next(trigger))
+  apply(db, migrationSQL(readLocalState(db), chain))
+  const extended = [...chain, next('ALTER TABLE workspace_resources ADD COLUMN transport_note TEXT;', 6)]
+  const prepared = migrationSQL(readLocalState(db), extended)
+  expect(prepared).toContain('hex(sql)=')
+  expect(prepared).not.toContain('CREATE TRIGGER guard_transport')
+  expect(prepared).not.toContain('ancien format')
+  apply(db, prepared)
+  expect(validateState(readLocalState(db), extended)).toBe(6)
+  const final = [...extended, next("UPDATE workspace_resources SET description='ne pas exécuter';", 7)]
+  const stale = migrationSQL(readLocalState(db), final)
+  db.exec('DROP TRIGGER guard_transport;')
+  executeSQLite(db, trigger.replace('ancien format', 'commentaire changé'))
+  expect(validateState(readLocalState(db), final)).toBe(6)
+  expect(() => apply(db, stale)).toThrow()
+  expect(db.query("SELECT description FROM workspace_resources WHERE id='resource'").get().description).toBe('')
+  expect(validateState(readLocalState(db), final)).toBe(6)
+})
