@@ -1,0 +1,15 @@
+name: Diagnostic lecture cartes
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  lecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Lire les sources sans données personnelles dans les logs
+        env:
+          NOCODB_TOKEN: ${{ secrets.NOCODB_TOKEN }}
+        run: bun scripts/diagnostic-public-network.ts
