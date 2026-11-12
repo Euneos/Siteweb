@@ -1,6 +1,8 @@
 import { lireReseauEtablissements } from '../src/lib/reseau-etablissements'
 import { lireCartePubliqueFormateurs } from '../src/lib/reseau-formateurs'
 import { readMapData } from '../src/lib/map'
+import { publicSchoolMap } from '../src/lib/public-school-map'
+import { publicTrainerMap } from '../src/lib/public-trainer-map'
 const token = process.env.NOCODB_TOKEN
 if (!token) throw new Error('Jeton absent')
 for (const [name, read] of Object.entries({etablissements:lireReseauEtablissements, formateurs:lireCartePubliqueFormateurs, candidatures:readMapData})) {
@@ -14,3 +16,5 @@ for (const [name, read] of Object.entries({etablissements:lireReseauEtablissemen
     process.exitCode = 1
   }
 }
+const [schools, trainers, applications] = await Promise.all([lireReseauEtablissements(token), lireCartePubliqueFormateurs(token), readMapData(token)])
+console.log('public', publicSchoolMap(schools, applications).locations.length, publicTrainerMap(trainers).length)
