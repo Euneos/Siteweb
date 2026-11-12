@@ -1,6 +1,6 @@
 // Compiled, local-only public map checks. All records and credentials are synthetic.
 import assert from 'node:assert/strict'
-import { readdir, mkdir } from 'node:fs/promises'
+import { readdir, mkdir, readFile } from 'node:fs/promises'
 import { App } from 'astro/app'
 import { chromium, expect } from '@playwright/test'
 import { NC } from '../src/lib/nocodb'
@@ -34,6 +34,8 @@ globalThis.fetch = async (input, options) => {
   return Response.json({list:rows.slice(offset,offset+2),pageInfo:{isLastPage:offset+2>=rows.length}})
 }
 const worker = new URL('../dist/_worker.js/',import.meta.url)
+const routes = JSON.parse(await readFile(new URL('../dist/_routes.json',import.meta.url),'utf8'))
+assert(routes.include.includes('/o%C3%B9noustrouver'), 'Cloudflare must invoke Astro for the encoded public URL')
 const manifestName = (await readdir(worker)).find(n=>n.startsWith('manifest_')&&n.endsWith('.mjs'))
 const {manifest} = await import(new URL(manifestName,worker))
 const app = new App({...manifest,sessionConfig:undefined,pageMap:new Map([['src/pages/oùnoustrouver.astro',()=>import(new URL('pages/oùnoustrouver.astro.mjs',worker))]])})

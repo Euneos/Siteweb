@@ -11,7 +11,11 @@ export default defineConfig({
   // Les pages publiques sont servies statiquement depuis le CDN.
   // Les endpoints et la page de suivi NocoDB sont rendus a la demande.
   output: 'static',
-  adapter: cloudflare({ imageService: 'compile' }),
+  adapter: cloudflare({
+    imageService: 'compile',
+    // Cloudflare Pages compare le chemin encodé avant d’invoquer Astro.
+    routes: { extend: { include: [{ pattern: '/o%C3%B9noustrouver' }] } },
+  }),
   integrations: [
     sitemap({ filter: (page) => !pagesHorsSitemap.some((chemin) => page.includes(chemin)) }),
   ],
