@@ -1,0 +1,83 @@
+---
+export const prerender = false
+import InternalLayout from '../../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../../lib/internal-context'
+import { communicationTables, isCommunicationTable } from '../../../lib/communication'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+const table = Astro.params.table ?? ''
+if (!isCommunicationTable(table)) return new Response('Page introuvable.',{status:404,headers:privateHeaders})
+for (const [key,value] of Object.entries(privateHeaders)) Astro.response.headers.set(key,value)
+const definition = communicationTables[table]
+---
+<InternalLayout title={definition.title} current={table} identity={context.identity} space="communication" wide>
+  <div id="communication-table" data-table={table}>
+    <header class="iw-intro"><div class="iw-intro__text"><p class="iw-eyebrow">Espace Communication</p><h1>{definition.title}</h1><p>{definition.description}</p></div><button class="iw-button iw-button--primary" id="com-new" disabled>＋ Nouvelle fiche</button></header>
+    <noscript><p class="iw-feedback">Activez JavaScript pour consulter et modifier le tableau.</p></noscript>
+    <p id="com-feedback" class="iw-feedback" role="status">Chargement du tableau…</p>
+    <section class="iw-panel" aria-label={definition.title}>
+      <div class="iw-toolbar"><div class="iw-field com-search"><label for="com-search">Rechercher dans tous les champs</label><input id="com-search" type="search" placeholder="Un nom, un sujet, un contact…" /></div><button id="com-refresh" class="iw-button">Actualiser</button></div>
+      <div class="iw-toolbar"><div id="com-filters" class="iw-toolbar"></div><p id="com-count" aria-live="polite"></p></div>
+      <div id="com-views" class="com-views" role="tablist" aria-label="Feuilles du tableau" hidden></div>
+      <div id="com-content" aria-busy="true"></div>
+    </section>
+  </div>
+  <dialog id="com-editor" class="iw-dialog" aria-labelledby="com-title"><header class="iw-dialog__header"><h2 id="com-title">Fiche</h2><button id="com-close" class="iw-button" aria-label="Fermer la fiche">✕</button></header><div class="iw-dialog__body"><form id="com-form"><div id="com-fields" class="iw-formgrid"></div><p id="com-save-feedback" class="iw-feedback" role="status"></p><div class="iw-form-actions"><button type="submit" id="com-save" class="iw-button iw-button--primary">Enregistrer</button></div><p id="com-audit" class="iw-footnote"></p></form></div></dialog>
+</InternalLayout>
+<script src="../../../scripts/communication-client.ts"></script>
+<style is:global>
+.com-search { flex:1; min-width:min(100%,16rem); }
+.com-scroll { max-height:70dvh; overflow:auto; border-top:1px solid var(--iw-line); }
+.com-table { border-collapse:separate; border-spacing:0; width:100%; font-size:var(--iw-text); }
+.com-table th { position:sticky; top:0; z-index:1; background:var(--vert); color:white; text-align:left; }
+.com-table th button { color:inherit; background:transparent; border:0; text-align:left; font-weight:600; min-height:44px; }
+.com-table th,.com-table td { padding:1rem; min-width:12rem; max-width:26rem; border-bottom:1px solid var(--iw-line); vertical-align:top; overflow-wrap:anywhere; }
+.com-table td { white-space:pre-wrap; }
+.com-table th:first-child,.com-table td:first-child { min-width:7rem; }
+.com-table td button { white-space:nowrap; }
+@media (max-width:600px) { #communication-table .iw-toolbar { align-items:stretch; } #communication-table .iw-toolbar > .iw-field { flex:1 1 100%; } #communication-table .iw-toolbar > button { align-self:flex-start; } }
+.com-table tr:nth-child(even) td { background:#f7f8f6; }
+.com-table td a { display:block; color:var(--noir); }
+.com-table td p { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.com-guide { padding:var(--s-int); display:grid; gap:var(--s-lie); }
+.com-guide article { padding-bottom:var(--s-lie); border-bottom:1px solid var(--iw-line); white-space:pre-wrap; overflow-wrap:anywhere; }
+</style>
+
+<style is:global>
+.com-section { margin-top:var(--s-titre); }
+.com-section__heading { display:flex; gap:var(--s-lie); justify-content:space-between; align-items:center; margin-bottom:var(--s-lie); }
+#communication-table .com-table tr.com-orange td { background:color-mix(in srgb,var(--orange-clair) 45%,white); }
+#communication-table[data-table="veille"] .com-table tr.com-orange td { background:color-mix(in srgb,var(--orange-clair) 16%,white); }
+#communication-table .com-table tr.com-rose td { background:color-mix(in srgb,var(--rose-clair) 45%,white); }
+#communication-table .com-table tr.com-vert td { background:color-mix(in srgb,var(--vert-clair) 45%,white); }
+#communication-table .com-table tr.com-bleu td { background:color-mix(in srgb,var(--bleu-clair) 45%,white); }
+#communication-table .com-table tr.com-jaune td { background:color-mix(in srgb,var(--jaune-clair) 45%,white); }
+.com-add-choice { display:flex; gap:var(--s-lie); flex-wrap:wrap; margin-top:var(--s-lie); }
+.com-add-choice input { flex:1; min-width:8rem; }
+#com-fields select[multiple] { min-height:8rem; }
+</style>
+
+<style is:global>
+#communication-table[data-table="partenariats"] .com-table td.com-cell-orange { background:#fff0e8; }
+#communication-table[data-table="partenariats"] .com-table td.com-cell-rose { background:color-mix(in srgb,var(--rose-clair) 45%,white); }
+#communication-table[data-table="partenariats"] .com-table td.com-cell-vert { background:color-mix(in srgb,var(--vert-clair) 45%,white); }
+#communication-table .com-table tr.com-attente td, #communication-table .com-table td.com-cell-attente { background:#555b59; color:white; }
+#communication-table .com-table tr.com-attente td a { color:white; }
+#communication-table .com-table tr.com-annule td, #communication-table .com-table td.com-cell-annule { background:#e3e5e4; }
+#communication-table[data-table="suivimedias"] .com-table tr.com-orange td { background:#fff0e8; }
+</style>
+
+<style is:global>
+.com-views { display:flex; gap:0.4rem; padding:1rem; overflow-x:auto; border-bottom:1px solid var(--iw-line); }
+.com-views[hidden] { display:none; }
+.com-views button { flex-shrink:0; border-radius:0; border-bottom:3px solid transparent; }
+.com-views button[aria-selected="true"] { border-bottom-color:var(--vert); background:var(--vert); color:white; }
+</style>
+
+<style is:global>
+#communication-table[data-table="partenariats"] .com-table tr.com-orange td { background:#fff0e8; }
+#communication-table[data-table="partenariats"] .com-table tr td.com-priority { background:#fff; color:var(--noir); }
+#communication-table[data-table="partenariats"] .com-table tr td.com-priority[data-priority="A"] { background:#ffe0cc; }
+#communication-table[data-table="partenariats"] .com-table tr td.com-priority[data-priority="B"] { background:#f3c8ef; }
+#communication-table[data-table="partenariats"] .com-table tr td.com-priority[data-priority="C"] { background:#f5d76e; }
+</style>

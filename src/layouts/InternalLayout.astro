@@ -6,6 +6,10 @@ import { internalEnvironment } from '../lib/internal-context'
 interface Props {
   title: string
   current:
+    | 'accueil'
+    | 'suivimedias'
+    | 'partenariats'
+    | 'veille'
     | 'ca'
     | 'calendrier'
     | 'organisation'
@@ -19,9 +23,12 @@ interface Props {
   identity: { email: string; admin: boolean }
   teamAccess?: boolean
   wide?: boolean
+  space?: 'equipe' | 'organisation' | 'communication' | 'hub'
   boardView?: boolean
 }
 const { title, current, identity, teamAccess = true, wide = false, boardView = false } = Astro.props
+const path = Astro.url.pathname
+const space = Astro.props.space ?? (path.startsWith('/interne/organisation-equipe') || path === '/interne/equipeheures' || path === '/interne/equipe' ? 'equipe' : path.startsWith('/interne/communication') ? 'communication' : 'organisation')
 const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW === 'true'
 ---
 
@@ -43,7 +50,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
       crossorigin
     />
   </head>
-  <body class="iw-body">
+  <body class:list={['iw-body', space === 'hub' && 'iw-body--hub']}>
     <a class="skip-link" href="#main">Aller au contenu</a>
     <header class="iw-header">
       <div class="iw-header__inner">
@@ -60,7 +67,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
         </div>
       </div>
     </header>
-    <nav class="iw-nav" aria-label="Espace interne">
+    {space !== 'hub' && <nav class="iw-nav" aria-label="Espace interne">
       <div class="iw-nav__inner">
         {boardView && <>
           <a href="#ca-overview">Vue d’ensemble</a>
@@ -74,37 +81,36 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           <a href="#ca-resources">Ressources</a>
           <a href="#ca-internal-pages">Pages internes</a>
         </>}
-        {teamAccess && <a href="/interne/ca" aria-current={current === 'ca' ? 'page' : undefined}>Espace CA</a>}
         {
-          teamAccess && (
-            <a href="/interne" aria-current={current === 'calendrier' ? 'page' : undefined}>
-              Calendriers de l’équipe
+          teamAccess && space === 'equipe' && (
+            <a href="/interne/equipeheures" aria-current={current === 'calendrier' ? 'page' : undefined}>
+              Équipe & heures
             </a>
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'equipe' && (
             <a href="/interne/organisation-equipe" aria-current={current === 'organisation' ? 'page' : undefined}>
               Organisation équipe
             </a>
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'organisation' && (
             <a href="/etat-candidatures" aria-current={current === 'suivi' ? 'page' : undefined}>
               Suivi des établissements
             </a>
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'organisation' && (
             <a href="/interne/formateurs" aria-current={current === 'formateurs' ? 'page' : undefined}>
               Suivi des formateurs
             </a>
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'organisation' && (
             <a
               href="/interne/implantations"
               aria-current={current === 'implantations' ? 'page' : undefined}
@@ -114,7 +120,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'organisation' && (
             <a
               href="/interne/formulaires"
               aria-current={current === 'formulaires' ? 'page' : undefined}
@@ -124,7 +130,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           )
         }
         {
-          teamAccess && (
+          teamAccess && space === 'organisation' && (
             <a
               href="/interne/reponses-google"
               aria-current={current === 'reponses-google' ? 'page' : undefined}
@@ -133,11 +139,11 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
             </a>
           )
         }
-        {!boardView && <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
+        {!boardView && space === 'organisation' && <a href="/interne/ressources" aria-current={current === 'ressources' ? 'page' : undefined}
           >Ressources formateurs</a
         >}
         {
-          identity.admin && (
+          identity.admin && space === 'organisation' && (
             <a
               href="/interne/catalogue"
               aria-current={current === 'catalogue' ? 'page' : undefined}
@@ -146,9 +152,16 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
             </a>
           )
         }
+        {teamAccess && space === 'communication' && <>
+          <a href="/interne/communication/calendriereditorial" aria-current={current === 'calendrier' ? 'page' : undefined}>Calendrier éditorial</a>
+          <a href="/interne/communication/suivimedias" aria-current={current === 'suivimedias' ? 'page' : undefined}>Suivi médias</a>
+          <a href="/interne/communication/partenariats" aria-current={current === 'partenariats' ? 'page' : undefined}>Partenariats</a>
+          <a href="/interne/communication/veille" aria-current={current === 'veille' ? 'page' : undefined}>Veille</a>
+        </>}
+        <a class="iw-button iw-button--primary iw-nav__return" href="/interne">Retour</a>
         <a class="iw-nav__public" href="/">Voir le site <span aria-hidden="true">↗</span></a>
       </div>
-    </nav>
+    </nav>}
     <main id="main" class:list={['iw-main', wide && 'iw-main--wide']} tabindex="-1">
       {
         preview && (
@@ -172,12 +185,25 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
 </html>
 
 <style is:global>
+  .iw-nav .iw-nav__return { align-self: center; min-height: 44px; padding: .65rem 1rem; margin-block: .5rem; color: white; }
+  .iw-body.iw-body--hub { background: var(--papier); color: var(--noir); min-height: 100dvh; }
+  .iw-body.iw-body--hub h1 { color: var(--noir); }
+  .iw-body--hub .iw-footer { color: var(--noir); border-color: #809b96; }
+  .iw-body--hub .iw-main { min-height: 65dvh; display: grid; align-content: center; }
+  .iw-space-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--s-grille); margin-top: var(--s-titre); }
+  .iw-space-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem; padding: var(--s-int); background: white; color: black; border: 1px solid var(--iw-line); border-radius: 6px; text-decoration: none; min-height: 150px; }
+  .iw-space-card strong { font-size: var(--t-carte); }
+  .iw-space-card span { align-self: flex-end; }
+  .iw-space-card:hover { background: var(--vert-clair); color: var(--noir); }
+  .iw-space-grid--hub .iw-space-card:focus-visible { outline-color: var(--vert); }
+  @media (max-width:600px) { .iw-space-grid { grid-template-columns: 1fr; } }
   /* The internal workspace keeps the brand tokens with a compact reading scale. */
   .iw-document {
     overflow-x: visible;
     background: var(--papier);
   }
   .iw-body {
+    color: var(--noir);
     --iw-text: var(--t-bio);
     --iw-small: var(--t-note);
     --iw-line: #d1d9d5;
@@ -1285,6 +1311,17 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
     .iw-resource-intro {
       padding-bottom: 3rem;
     }
+  }
+  /* Shared interaction colors: dark text on light green, white on dark green. */
+  .iw-body :is(.iw-button, .iw-space-card, .iw-switch button):hover:not(:disabled) {
+    background: var(--vert-clair);
+    color: var(--noir);
+    border-color: var(--vert);
+  }
+  .iw-body :is(.iw-button, .iw-space-card, .iw-switch button):active:not(:disabled) {
+    background: var(--vert);
+    color: var(--blanc);
+    border-color: var(--vert);
   }
   @media (prefers-reduced-motion: reduce) {
     .iw-document {

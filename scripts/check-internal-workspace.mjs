@@ -31,8 +31,8 @@ const db = {
         return {
           all: async () => ({ results: statement.all(...values) }),
           first: async () => statement.get(...values),
-          run: async () => ({ meta: { changes: statement.run(...values).changes } }),
-          execute: () => ({ meta: { changes: statement.run(...values).changes } }),
+          run: async () => ({ meta: { changes: (statement.run(...values),sql.query('SELECT changes() AS n').get().n) } }),
+          execute: () => ({ meta: { changes: (statement.run(...values),sql.query('SELECT changes() AS n').get().n) } }),
         }
       },
     }
@@ -81,6 +81,10 @@ const components = [
   'interne/organisation-equipe.astro',
   'api/interne/taches.ts',
   'interne/index.astro',
+  'interne/communication/[table].astro',
+  'api/interne/communication/[table].ts',
+  'interne/equipeheures.astro',
+  'interne/communication/calendriereditorial.astro',
   'interne/ressources.astro',
   'interne/catalogue.astro',
   'etat-candidatures.astro',
@@ -95,7 +99,7 @@ const pageMap = new Map(
     () =>
       import(
         new URL(
-          `pages/${path.replace('/index.astro', '.astro').replace(/\.(ts|astro)$/, '.astro.mjs')}`,
+          `pages/${path.replace('/index.astro', '.astro').replace(/\.(ts|astro)$/, '.astro.mjs').replaceAll('[','_').replaceAll(']','_')}`,
           worker,
         )
       ),
@@ -135,7 +139,7 @@ const baseEntry = (extra) => ({
 const routes = [
   '/interne/organisation-equipe',
   '/api/interne/taches',
-  '/interne',
+  '/interne/communication/calendriereditorial',
   '/interne/ressources',
   '/interne/catalogue',
   '/etat-candidatures',
@@ -146,12 +150,12 @@ const routes = [
 ]
 for (const path of routes) assert.equal((await call(path, null)).status, 403, `Anonymous: ${path}`)
 assert.equal(reads, 0)
-assert.equal((await call('/interne', 'member', 'GET', undefined, {}, {})).status, 503)
+assert.equal((await call('/interne/communication/calendriereditorial', 'member', 'GET', undefined, {}, {})).status, 503)
 for (const role of ['trainer', 'trainerManager']) {
   for (const path of [
     '/interne/organisation-equipe',
     '/api/interne/taches',
-    '/interne',
+    '/interne/communication/calendriereditorial',
     '/interne/catalogue',
     '/etat-candidatures',
     '/api/interne/calendrier?month=2026-09&kind=equipe',
@@ -165,11 +169,11 @@ for (const role of [null, 'trainer', 'trainerManager'])
 assert.equal((await call('/api/interne/taches', 'member', 'DELETE', { id: crypto.randomUUID(), version: 1 }, { Origin: 'https://other.example' })).status, 403)
 
 assert.equal((await call('/interne/catalogue', 'member')).status, 403)
-assert.match(await (await call('/interne', 'member')).text(), /Espace d’essai\./)
+assert.match(await (await call('/interne/communication/calendriereditorial', 'member')).text(), /Espace d’essai\./)
 assert.doesNotMatch(
   await (
     await call(
-      '/interne',
+      '/interne/communication/calendriereditorial',
       'member',
       'GET',
       undefined,
@@ -185,7 +189,7 @@ assert.doesNotMatch(
 assert.equal((await call('/api/interne/ressources', 'trainer')).status, 200)
 const productionHtml = await (
   await call(
-    '/interne',
+    '/interne/communication/calendriereditorial',
     'member',
     'GET',
     undefined,
@@ -455,9 +459,18 @@ try {
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const origin = `http://127.0.0.1:${server.port}`
+  async function switchToTeam() {
+    if (new URL(page.url()).pathname === '/interne/equipeheures') return
+    const month = await page.locator('#iw-month').inputValue()
+    await page.goto(`${origin}/interne/equipeheures`)
+    await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
+    await page.locator('#iw-month').fill(month)
+    await page.locator('#iw-month').press('Tab')
+    await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
+  }
   for (const width of [320, 390, 599, 600, 768, 860, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 })
-    await page.goto(`${origin}/interne`)
+    await page.goto(`${origin}/interne/communication/calendriereditorial`)
     await expect(page.locator('#iw-calendar-content')).toHaveAttribute('aria-busy', 'false')
     await page.locator('#iw-month').fill('2026-09')
     await page.locator('#iw-month').press('Tab')
@@ -739,7 +752,7 @@ try {
   checks.push('editorial-conflict-preserves-chosen-date-and-historical-status')
   await page.locator('#iw-close').click()
   checks.push('explicit-channel-change-and-programme-status-sql-reload')
-  await page.locator('[data-kind="equipe"]').click()
+  await switchToTeam()
   await expect(page.locator('#iw-person option[value="Alex"]')).toHaveCount(1)
   await expect(page.locator('#iw-activity option[value="Activité historique hors mois"]')).toHaveCount(1)
   for (const width of [390, 1440]) {
@@ -972,7 +985,7 @@ try {
   assert.equal(JSON.parse(dailyEntry.daily_hours).length, 2)
   await page.locator('#iw-close').click()
   await page.reload()
-  await page.locator('[data-kind="equipe"]').click()
+  await switchToTeam()
   await page.locator('#iw-month').fill('2026-09')
   await page.locator('#iw-month').press('Tab')
   await expect(page.locator(`.iw-event[data-entry-id="${dailyEntry.id}"]`)).toHaveCount(2)
@@ -1071,7 +1084,7 @@ try {
   assert.equal(monthRows.find(d => d.date === '2026-10-02').planned, 3.5)
   await page.locator('#iw-close').click()
   await page.reload()
-  await page.locator('[data-kind="equipe"]').click()
+  await switchToTeam()
   await page.locator('#iw-month').fill('2026-10')
   await page.locator('#iw-month').press('Tab')
   await expect(page.locator(`.iw-event[data-entry-id="${monthlyRecord.id}"]`)).toHaveCount(14)
@@ -1179,7 +1192,7 @@ try {
     await page.goto(`${origin}/interne/ressources`)
     await expect(page.locator('#iw-resource-grid')).toContainText('Guide des ateliers')
     assert.equal(await page.locator('#iw-resource-form').count(), 0)
-    assert.equal(await page.locator('.iw-nav a[href="/interne"]').count(), 0)
+    assert.equal(await page.locator('.iw-nav a[href="/interne"]').count(), 1)
     assert(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       `Library overflow ${width}`,
@@ -1371,8 +1384,8 @@ try {
     ]) }),
     baseEntry({ title: 'Charlotte', person: 'charlotte@euneos.fr', starts_on: '2026-11-05', ends_on: '2026-11-05', attendance: 'absence', hours: null }),
   ]) assert.equal((await call('/api/interne/calendrier', 'member', 'POST', { requestId: crypto.randomUUID(), entry })).status, 201)
-  await page.goto(`${origin}/interne`)
-  await page.locator('[data-kind="equipe"]').click()
+  await page.goto(`${origin}/interne/communication/calendriereditorial`)
+  await switchToTeam()
   await page.locator('#iw-month').fill('2026-11')
   await page.locator('#iw-month').press('Tab')
   await expect(page.locator('#iw-result-count')).toContainText('novembre 2026')
@@ -1388,6 +1401,34 @@ try {
     await page.screenshot({ path: `${output}/couleurs-equipe-${width}.png`, fullPage: true })
   }
   checks.push('team-daily-colors-brand-mobile-desktop')
+  // Private Communication tables: actual compiled routes, writes and synchronized views.
+  const columns=['Nom','Priorité','Statut','Notes'],personIds=[crypto.randomUUID(),crypto.randomUUID()]
+  for(const [i,title]of ['Ma selection - Top 10 Parrainag','Parrainage'].entries()){
+    sql.query('INSERT INTO communication_sheets VALUES(?,?,?,?,?,?)').run('partner-'+i,'partenariats',title,JSON.stringify(columns),0,i)
+    sql.query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)').run(personIds[i],'partner-'+i,JSON.stringify(['Personne fictive','B','','Note']),'fixture@example.test')
+    sql.query('INSERT INTO communication_partnership_entities VALUES(?,?)').run(personIds[i],personIds[0])
+  }
+  for(const role of [null,'trainer'])assert.equal((await call('/api/interne/communication/partenariats',role)).status,403)
+  await page.goto(`${origin}/interne/communication/partenariats`)
+  await expect(page.locator('#com-content')).toHaveAttribute('aria-busy','false')
+  await expect(page.getByRole('tab',{name:'TOP 10',exact:true})).toHaveCount(1)
+  await expect(page.locator('.com-table')).toHaveCount(1)
+  await page.locator('tbody button').click()
+  const statusSelect=page.locator('#com-field-2')
+  assert.deepEqual(await statusSelect.locator('option').allTextContents(),['À contacter','En attente de réponse','À relancer','Annulé','Accepté'])
+  await statusSelect.selectOption('Accepté');await page.locator('#com-field-1').selectOption('A');await page.locator('#com-save').click()
+  await expect(page.locator('#com-editor')).not.toBeVisible()
+  await expect(page.locator('tbody tr')).toHaveClass('com-vert')
+  await expect(page.locator('.com-priority')).toHaveCSS('background-color','rgb(255, 224, 204)')
+  await page.getByRole('tab',{name:'Parrainage',exact:true}).click()
+  await expect(page.locator('tbody tr')).toContainText('Accepté')
+  await expect(page.locator('.com-priority')).toHaveText('A')
+  await page.reload();await expect(page.locator('tbody tr')).toContainText('Accepté')
+  await page.locator('select[data-column="Statut"]').selectOption('Accepté');await expect(page.locator('tbody tr')).toHaveCount(1)
+  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if([390,1440].includes(width))await page.screenshot({path:`${output}/communication-${width}.png`,fullPage:true})}
+  const stale=await call('/api/interne/communication/partenariats','member','POST',{id:personIds[0],sheet_id:'partner-0',version:1,cells:['Écrasement','B','Annulé','']})
+  assert.equal(stale.status,409)
+  checks.push('communication-private-views-save-status-colors-sync-conflicts-responsive')
   assert.deepEqual(errors, [])
   await writeFile(
     `${output}/result.json`,

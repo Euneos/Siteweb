@@ -1,0 +1,9 @@
+---
+export const prerender = false
+import WorkspaceCalendar from '../../components/internal/WorkspaceCalendar.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+---
+<WorkspaceCalendar identity={context.identity} kind="equipe" />

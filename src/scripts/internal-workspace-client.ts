@@ -230,7 +230,7 @@ function initCalendar(root: HTMLElement) {
     email: root.dataset.email ?? '',
     admin: root.dataset.admin === 'true',
   }
-  let kind: Kind = 'editorial'
+  let kind: Kind = root.dataset.calendarKind === 'equipe' ? 'equipe' : 'editorial'
   let month = localDate().slice(0, 7)
   let view: 'month' | 'list' = 'month'
   let data: CalendarData | null = null

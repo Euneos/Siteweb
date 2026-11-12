@@ -1,0 +1,11 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+const links = [["Suivi des établissements", "/etat-candidatures"], ["Suivi des formateurs", "/interne/formateurs"], ["Implantations", "/interne/implantations"], ["Formulaires", "/interne/formulaires"], ["Réponses à vérifier", "/interne/reponses-google"], ["Ressources formateurs", "/interne/ressources"]]
+---
+<InternalLayout title="Espace Organisation" current="accueil" identity={context.identity} space="organisation">
+<section><p class="iw-eyebrow">EUNEOS · Espace interne</p><h1>Espace Organisation</h1><div class="iw-space-grid">{links.map(([label,href]) => <a class="iw-space-card" href={href}><strong>{label}</strong><span aria-hidden="true">Ouvrir →</span></a>)}{context.identity.admin && <a class="iw-space-card" href="/interne/catalogue"><strong>Gérer les ressources</strong><span aria-hidden="true">Ouvrir →</span></a>}</div></section></InternalLayout>

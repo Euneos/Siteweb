@@ -178,6 +178,12 @@ try {
       }
     })
   }
+  query(`INSERT INTO communication_sheets VALUES('comm-a','partenariats','TOP 10','["Nom","Statut","Priorité"]',0,0),('comm-b','partenariats','Parrainage','["Nom","Statut","Priorité"]',0,1);
+    INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES('comm-row-a','comm-a','["Fixture","","B"]','fixture'),('comm-row-b','comm-b','["Fixture","","B"]','fixture');
+    INSERT INTO communication_partnership_entities VALUES('comm-row-a','fixture-entity'),('comm-row-b','fixture-entity');
+    UPDATE communication_rows SET cells_json='["Fixture","Accepté","A"]',version=version+1 WHERE id='comm-row-a';`)
+  const synced=query("SELECT cells_json,version FROM communication_rows ORDER BY id")[0].results
+  assert.equal(synced.length,2);assert(synced.every(r=>r.cells_json==='["Fixture","Accepté","A"]'&&r.version===2),'Synchronisation effective dans workerd/D1')
   console.log(
     'D1 local: bootstrap idempotent, heures conservées, 0003 refusée, rollback SQL/FK, concurrence et reprise vérifiés.',
   )
