@@ -610,7 +610,7 @@ try {
     'Attribution',
     'Point de vigilance',
   ]
-  const summarySheets = ['Parrainage', 'Comité scientifique', 'Partenaires', 'TOP 10']
+  const summarySheets = ['Parrainage', 'Comité scientifique', 'Partenaires, pas parrains', 'TOP 10']
   for (const [i, title] of summarySheets.entries()) {
     sql
       .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,?)')
@@ -651,19 +651,56 @@ try {
     await expect(page.locator('.iw-intro h1')).toHaveText('Parrains et partenaires')
     await expect(page.locator('#partnership-updated')).toContainText('Mise à jour :')
     await expect(page.locator('#partnership-dashboard [role="progressbar"]')).toHaveCount(3)
+    assert.equal(
+      await page
+        .locator('#partnership-dashboard h3')
+        .first()
+        .evaluate((e) => getComputedStyle(e).fontSize),
+      await page
+        .locator('#partnership-dashboard h2')
+        .first()
+        .evaluate((e) => getComputedStyle(e).fontSize),
+    )
     await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('1 / 5')
     await expect(page.locator('#partnership-dashboard .media-value').nth(2)).toHaveText('1 / 2')
-    await expect(page.locator('.partner-missing')).toContainText('Sport')
+    await expect(page.locator('.partner-missing')).toHaveCount(0)
+    await expect(
+      page.getByRole('heading', { name: 'Partenaires par type de relation', exact: true }),
+    ).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Équilibre des profils' })).toHaveCount(0)
     await expect(page.locator('.partner-alert').last()).toContainText('2')
-    await expect(page.locator('.partner-vigilance').first()).toHaveText(
-      'Relire le compte rendu\nConfirmer la disponibilité.',
-    )
+    await expect(page.locator('.partner-vigilance')).toHaveCount(0)
     await page.locator('#com-search').fill('aucun résultat')
     await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('1 / 5')
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     if ([390, 1440].includes(width))
       await page.screenshot({ path: `${output}/partnership-summary-${width}.png`, fullPage: true })
   }
+  const fonts = () =>
+    page.evaluate(() =>
+      ['.iw-intro h1', '.iw-intro__text > p:last-child', '.media-card h2', '.media-value'].map(
+        (selector) => {
+          const s = getComputedStyle(document.querySelector(selector))
+          return {
+            size: s.fontSize,
+            line: s.lineHeight,
+            color: s.color,
+            transform: s.textTransform,
+            spacing: s.letterSpacing,
+          }
+        },
+      ),
+    )
+  const partnerFonts = await fonts()
+  await page.goto(`${origin}/interne/communication/suivimedias`)
+  await expect(page.locator('#media-dashboard')).toBeVisible()
+  assert.deepEqual(
+    await fonts(),
+    partnerFonts,
+    'Partenariats and Suivi médias use identical text roles',
+  )
+  await page.goto(`${origin}/interne/communication/partenariats`)
+  await expect(page.locator('#partnership-dashboard')).toBeVisible()
   // A saved row is reflected after the same reload used by the editor.
   const changed = [...summaryRows[1][1]]
   changed[1] = 'Partenariat'
@@ -672,7 +709,7 @@ try {
     .run(JSON.stringify(changed), summaryIds[1])
   await page.getByRole('button', { name: 'Actualiser', exact: true }).click()
   await expect(page.locator('#partnership-dashboard .media-value').first()).toHaveText('2 / 5')
-  await expect(page.locator('.partner-ongoing li')).toHaveCount(1)
+  await expect(page.locator('.partner-ongoing li')).toHaveCount(0)
   for (const id of summaryIds) {
     sql
       .query(
@@ -2204,7 +2241,7 @@ try {
   // User-selected destination, real compiled route, no dropped source-specific values.
   sql
     .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,99)')
-    .run('move-target', 'veille', 'Destination déplacements', '["Nom","Type","Lien","Notes"]')
+    .run('move-target', 'partenariats', 'Destination déplacements', '["Nom","Type","Lien","Notes"]')
   sql
     .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,0)')
     .run(
@@ -2234,7 +2271,8 @@ try {
   await expect(page.locator('tbody td p').first()).toHaveCSS('-webkit-line-clamp', '5')
   await page.locator('#com-select-all').check()
   await page.locator('#com-move').click()
-  await page.locator('#com-move-table').selectOption('veille')
+  await expect(page.locator('#com-move-table')).not.toBeVisible()
+  await expect(page.locator('#com-move-sheet option[value=assign-partner]')).toHaveCount(0)
   await page.locator('#com-move-sheet').selectOption('move-target')
   await page.locator('#com-move-confirm').click()
   await expect(page.locator('tbody tr')).toHaveCount(0)
@@ -2242,7 +2280,7 @@ try {
     sql.query('SELECT sheet_id FROM communication_rows WHERE id=?').get(assignmentRow).sheet_id,
     'move-target',
   )
-  await page.goto(`${origin}/interne/communication/veille`)
+  await page.goto(`${origin}/interne/communication/partenariats`)
   await page.getByRole('tab', { name: 'Destination déplacements', exact: true }).click()
   await expect(page.locator('tbody tr')).toContainText('Partenaire attribué')
   await expect(page.locator('tbody tr')).toContainText('Note à conserver')
@@ -2270,7 +2308,7 @@ try {
         ]),
         'fixture',
       )
-  await page.reload()
+  await page.goto(`${origin}/interne/communication/veille`)
   await page.getByRole('tab', { name: 'Cinq lignes', exact: true }).click()
   await expect(page.locator('tbody tr')).toHaveCount(6)
   for (const width of [390, 1440]) {

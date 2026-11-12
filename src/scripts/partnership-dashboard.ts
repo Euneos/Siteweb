@@ -67,28 +67,6 @@ export function renderPartnershipDashboard(
     priority.append(bar, legend)
     if (!group.total) priority.append(el('p', 'Aucune ligne de priorité A.'))
   })
-  const profiles = card('Équilibre des profils', true),
-    pools = el('div', '', 'partner-tiles')
-  profiles.append(el('p', 'Parrains au statut Partenariat ou En discussion.'))
-  data.pools.forEach((p) => {
-    const tile = el('div', '', 'partner-tile' + (!p.count ? ' partner-missing' : ''))
-    tile.append(el('strong', String(p.count), 'media-value'), el('span', p.label))
-    if (!p.count) tile.append(el('small', 'Pas encore représenté'))
-    pools.append(tile)
-  })
-  profiles.append(data.pools.length ? pools : el('p', 'Aucun vivier renseigné.'))
-  if (data.missingPool)
-    profiles.append(
-      el('p', `${data.missingPool} parrain(s) sans vivier renseigné.`, 'partner-alert'),
-    )
-  const relations = card('Partenaires par type de relation', true),
-    types = el('div', '', 'partner-tiles')
-  data.relations.forEach((r) => {
-    const tile = el('div', '', 'partner-tile')
-    tile.append(el('strong', String(r.count), 'media-value'), el('span', r.label))
-    types.append(tile)
-  })
-  relations.append(data.relations.length ? types : el('p', 'Aucun partenaire renseigné.'))
   const people = card('Qui porte quoi', true),
     list = el('ul', '', 'media-list')
   data.people.forEach((p) => {
@@ -97,16 +75,4 @@ export function renderPartnershipDashboard(
     list.append(li)
   })
   people.append(list)
-  const ongoing = card('En cours, à relire avant l’échange', true),
-    active = el('ul', '', 'partner-ongoing')
-  data.ongoing.forEach((e) => {
-    const li = el('li')
-    li.append(
-      el('h3', e.name),
-      el('p', `${e.group} · ${e.status} · ${e.people.join(', ') || 'Non attribuée'}`),
-      el('p', e.vigilance || 'Aucun point de vigilance renseigné.', 'partner-vigilance'),
-    )
-    active.append(li)
-  })
-  ongoing.append(data.ongoing.length ? active : el('p', 'Aucun échange en cours.'))
 }

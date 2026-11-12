@@ -1,4 +1,5 @@
 import type { CommunicationRow, CommunicationSheet } from './communication'
+import { resolveChoice } from './communication-choices'
 import type { ChoiceCatalog } from './communication-choices'
 import { mediaPeople, mediaStatuses } from './media-summary'
 
@@ -9,6 +10,10 @@ const key = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
 const groups = ['Parrainage', 'Comité scientifique', 'Partenaires']
+const canonicalGroup = (title: string) =>
+  key(title) === key('Partenaires, pas parrains')
+    ? 'Partenaires'
+    : groups.find((g) => key(g) === key(title))
 export function partnershipSummary(
   sheets: CommunicationSheet[],
   rows: CommunicationRow[],
@@ -16,15 +21,13 @@ export function partnershipSummary(
 ) {
   // Only canonical tabs: TOP 10 is a synchronized selection, not additional people.
   const entries = rows.flatMap((row) => {
-    const sheet = sheets.find(
-      (s) => !s.guide && s.id === row.sheet_id && groups.some((g) => key(g) === key(s.title)),
-    )
+    const sheet = sheets.find((s) => !s.guide && s.id === row.sheet_id && !!canonicalGroup(s.title))
     if (!sheet) return []
     const cell = (name: string) =>
       (row.cells[sheet.columns.findIndex((c) => key(c) === key(name))] || '').trim()
     return [
       {
-        group: groups.find((g) => key(g) === key(sheet.title))!,
+        group: canonicalGroup(sheet.title)!,
         name:
           cell('Nom') ||
           cell('Structure ou personne') ||
@@ -51,7 +54,11 @@ export function partnershipSummary(
   const byGroup = (g: string) => entries.filter((e) => e.group === g)
   const counters = groups.map((group, i) => ({
     label: ['Parrains engagés', 'Comité scientifique', 'Partenaires actifs'][i],
-    count: byGroup(group).filter((e) => e.status === 'Partenariat').length,
+    count: byGroup(group).filter(
+      (e) =>
+        e.status === 'Partenariat' ||
+        resolveChoice(catalog, 'partenariats', 'Statut', e.status)?.role === 'accepted',
+    ).length,
     total: i < 2 ? 5 : byGroup(group).length,
   }))
   const statuses = [...new Set([...mediaStatuses, ...entries.map((e) => e.status)])]

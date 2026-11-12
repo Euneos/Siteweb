@@ -165,3 +165,36 @@ test('field mapping preserves every value and refuses notes that would exceed th
     mapCommunicationCells(['x'.repeat(10000), 'y'], ['Notes', 'Contact'], ['Notes']),
   ).toThrow('10 000')
 })
+
+test('moves inside Partenariats and rejects the current sheet without altering the row', async () => {
+  const { sql, db, ids } = fixture()
+  sql
+    .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,0)')
+    .run(
+      'committee',
+      'partenariats',
+      'Comité scientifique',
+      '["Nom","Statut","Priorité","Notes","Attribution"]',
+    )
+  const row = sql.query('SELECT id,version FROM communication_rows WHERE id=?').get(ids[0])
+  await expect(
+    mutateCommunicationRows(
+      db,
+      'partenariats',
+      { bulkAction: 'move', targetTable: 'partenariats', targetSheet: 'p', rows: [row] },
+      'fixture',
+    ),
+  ).rejects.toThrow('autre feuille')
+  expect(
+    await mutateCommunicationRows(
+      db,
+      'partenariats',
+      { bulkAction: 'move', targetTable: 'partenariats', targetSheet: 'committee', rows: [row] },
+      'fixture',
+    ),
+  ).toBe(1)
+  expect(
+    (sql.query('SELECT sheet_id FROM communication_rows WHERE id=?').get(ids[0]) as any).sheet_id,
+  ).toBe('committee')
+  sql.close()
+})

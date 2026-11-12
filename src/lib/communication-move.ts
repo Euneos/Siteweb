@@ -45,12 +45,8 @@ export async function moveCommunicationRows(
   body: Record<string, unknown>,
   actor: string,
 ) {
-  if (
-    !isCommunicationTable(String(body.targetTable)) ||
-    body.targetTable === table ||
-    typeof body.targetSheet !== 'string'
-  )
-    throw new WorkspaceError(400, 'Choisissez un autre tableau et une feuille de destination.')
+  if (!isCommunicationTable(String(body.targetTable)) || typeof body.targetSheet !== 'string')
+    throw new WorkspaceError(400, 'Choisissez une feuille de destination.')
   const target = await db
     .prepare(
       'SELECT id,columns_json FROM communication_sheets WHERE id=? AND collection=? AND guide=0',
@@ -61,10 +57,16 @@ export async function moveCommunicationRows(
   const selected = body.rows as { id: string; version: number }[] // IDs and versions validated by bulk entry point.
   const source = await db
     .prepare(
-      "SELECT r.id,r.version,r.cells_json,s.columns_json FROM communication_rows r JOIN communication_sheets s ON s.id=r.sheet_id WHERE s.collection=? AND s.guide=0 AND r.deleted_at IS NULL AND r.id IN (SELECT json_extract(value,'$.id') FROM json_each(?))",
+      "SELECT r.id,r.sheet_id,r.version,r.cells_json,s.columns_json FROM communication_rows r JOIN communication_sheets s ON s.id=r.sheet_id WHERE s.collection=? AND s.guide=0 AND r.deleted_at IS NULL AND r.id IN (SELECT json_extract(value,'$.id') FROM json_each(?))",
     )
     .bind(table, JSON.stringify(selected))
-    .all<{ id: string; version: number; cells_json: string; columns_json: string }>()
+    .all<{
+      id: string
+      sheet_id: string
+      version: number
+      cells_json: string
+      columns_json: string
+    }>()
   if (
     source.results.length !== selected.length ||
     source.results.some((r) => selected.find((s) => s.id === r.id)?.version !== r.version)
@@ -73,6 +75,8 @@ export async function moveCommunicationRows(
       409,
       'Une ligne a changé. Actualisez la sélection ; aucune ligne n’a été déplacée.',
     )
+  if (source.results.some((r) => r.sheet_id === target.id))
+    throw new WorkspaceError(400, 'Choisissez une autre feuille que la feuille actuelle.')
   const payload = JSON.stringify(
     source.results.map((r) => ({
       id: r.id,

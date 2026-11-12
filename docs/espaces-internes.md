@@ -117,3 +117,12 @@ source. Une fiche déplacée sort de sa feuille de départ et devient indépenda
 des anciennes vues liées. Les versions sont contrôlées pour l’ensemble du lot :
 si une ligne a changé, aucune n’est déplacée. Un déplacement qui produirait des
 notes de plus de 10 000 caractères est refusé sans modification.
+
+Dans Partenariats, Déplacer propose directement les autres feuilles de ce même
+tableau (Parrainage, Comité scientifique, Partenaires, pas parrains, À écarter).
+La feuille courante n’est pas proposée. Le total de Partenaires actifs compte
+toutes les fiches de Partenaires, pas parrains, quel que soit leur statut.
+Les sections Équilibre des profils et En cours, à relire avant l’échange ont été
+retirées ; les tailles de texte de la synthèse sont communes à Suivi médias.
+
+Le bloc Partenaires par type de relation est également retiré de la synthèse.

@@ -580,19 +580,19 @@ const definition = communicationTables[table]
   .partner-grid[hidden] {
     display: none;
   }
-  #partnership-dashboard .media-card h2 {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #536d63;
+  #partnership-dashboard .media-card h2,
+  #media-dashboard .media-card h2 {
+    font-size: var(--iw-text);
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--noir);
     font-weight: 600;
   }
-  .partner-grid h3 {
+  #partnership-dashboard h3 {
     font-size: var(--iw-text);
     margin: 1rem 0 0.75rem;
   }
-  .partner-grid .media-value {
-    margin: 0.5rem 0 1rem;
-  }
+
   .partner-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));

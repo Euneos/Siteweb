@@ -873,15 +873,17 @@ if (root) {
   function updateMoveSheets() {
     moveSheet.replaceChildren(
       ...destinations
-        .filter((s) => s.collection === moveTable.value)
+        .filter((s) => s.collection === moveTable.value && s.id !== activeSheetId)
         .map((s) => option(s.title, s.id)),
     )
     get<HTMLButtonElement>('com-move-confirm').disabled = !moveSheet.options.length
   }
   get('com-move').addEventListener('click', () => {
+    const internalMove = root!.dataset.table === 'partenariats'
+    moveTable.parentElement!.hidden = internalMove
     moveTable.replaceChildren(
       ...Object.entries(communicationTables)
-        .filter(([key]) => key !== root!.dataset.table)
+        .filter(([key]) => (internalMove ? key === 'partenariats' : key !== root!.dataset.table))
         .map(([key, value]) => option(value.title, key)),
     )
     updateMoveSheets()

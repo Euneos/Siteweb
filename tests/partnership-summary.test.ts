@@ -13,7 +13,7 @@ const columns = [
 const sheets: CommunicationSheet[] = [
   'Parrainage',
   'Comité scientifique',
-  'Partenaires',
+  'Partenaires, pas parrains',
   'TOP 10',
   'Mode d’emploi',
 ].map((title, i) => ({ id: String(i), title, columns, guide: i === 4 }))
