@@ -41,6 +41,7 @@ const path = decodeURI(Astro.url.pathname).replace(/\/+$/, '') || '/'
                 <a href={item.href} class:list={["hdr__link", active && "is-active"]} aria-current={active ? "page" : undefined}>{item.label}</a>
               </div>
               <div class="hdr__submenu" id="menu-programme">
+                <a href="/candidater/formateur" class:list={["hdr__link", path === "/candidater/formateur" && "is-active"]} aria-current={path === "/candidater/formateur" ? "page" : undefined}>Devenir Formateur·ice</a>
                 <a href="/faq" class:list={["hdr__link", path === "/faq" && "is-active"]} aria-current={path === "/faq" ? "page" : undefined}>FAQ</a>
                 <a href="/oùnoustrouver" class:list={["hdr__link", path === "/oùnoustrouver" && "is-active"]} aria-current={path === "/oùnoustrouver" ? "page" : undefined}>Où nous trouver ?</a>
               </div>
@@ -129,7 +130,7 @@ const path = decodeURI(Astro.url.pathname).replace(/\/+$/, '') || '/'
   .hdr__programme:focus-within .hdr__submenu { display: block; }
   .hdr__programme-row { display: flex; align-items: center; }
   .hdr__submenu { display: none; position: absolute; top: 100%; left: 0; min-width: max-content; background: var(--vert-clair); color: var(--blanc); padding: .5rem 1rem; box-shadow: 0 4px 12px #0002; }
-  .hdr__submenu .hdr__link { display: block; }
+  .hdr__submenu .hdr__link { display: block; white-space: nowrap; }
   :global(.hero-zone.s-bleu) .hdr__submenu { background: var(--bleu-fold); }
   .hdr__burger {
     display: none;
