@@ -71,15 +71,50 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
           ))
         }
       </div>
-      <div class="agenda-legend" aria-label="Légende des étiquettes">
-        <span class="agenda-tag agenda-tag--mental">santé mentale</span><span
-          class="agenda-tag agenda-tag--cps">CPS</span
-        ><span class="agenda-tag agenda-tag--digital">numérique</span><span
-          class="agenda-tag agenda-tag--education">éducation</span
-        ><span class="agenda-tag agenda-tag--confirmed">confirmé</span><span
-          class="agenda-tag agenda-tag--pending">à décider</span
-        ><span class="agenda-tag agenda-tag--rejected">rejeté</span><span
-          class="agenda-tag agenda-tag--person">qui y va</span
+      <div class="agenda-legend" aria-label="Filtrer par étiquette">
+        {
+          [
+            ['pillar', 'santé mentale', 'mental'],
+            ['pillar', 'CPS', 'cps'],
+            ['pillar', 'numérique', 'digital'],
+            ['pillar', 'éducation', 'education'],
+            ['status', 'confirmé', 'confirmed'],
+            ['status', 'à décider', 'pending'],
+            ['status', 'rejeté', 'rejected'],
+            ['access', 'gratuit', 'free'],
+            ['access', 'payant', ''],
+            ['access', 'sur invitation', ''],
+            ['modality', 'présentiel', ''],
+            ['modality', 'en ligne', ''],
+            ...['Présence Euneos', 'Candice', 'Pauline', 'Charlotte', 'CA'].map((p) => [
+              'attendance',
+              p,
+              'person',
+            ]),
+          ].map(([key, value, color]) => (
+            <button
+              type="button"
+              class={`agenda-tag agenda-tag--${color}`}
+              data-tag-filter={key}
+              data-tag-value={value}
+              aria-pressed="false"
+              aria-label={`Filtrer : ${value}`}
+            >
+              {value}
+            </button>
+          ))
+        }
+      </div>
+      <div class="agenda-filter-summary">
+        <div
+          id="agenda-active-filters"
+          class="agenda-tags"
+          aria-live="polite"
+          aria-label="Filtres actifs"
+        >
+        </div>
+        <button type="button" id="agenda-reset-filters" class="agenda-open" hidden
+          >Effacer les filtres</button
         >
       </div>
       <div id="agenda-months" class="agenda-months" aria-label="Événements par mois"></div>
@@ -335,6 +370,21 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
     gap: 0.3rem;
     flex-wrap: wrap;
     margin-top: 0.5rem;
+  }
+  button.agenda-tag {
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button.agenda-tag[aria-pressed='true'] {
+    outline: 2px solid #00382d;
+    outline-offset: 2px;
+  }
+  button.agenda-tag:focus-visible {
+    outline: 3px solid #00382d;
+    outline-offset: 3px;
+  }
+  .agenda-filter-summary {
+    margin-block: 0.75rem;
   }
   .agenda-tag {
     display: inline-flex;

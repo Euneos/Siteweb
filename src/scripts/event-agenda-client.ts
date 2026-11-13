@@ -18,7 +18,24 @@ if (root) {
     n.className = cls
     return n
   }
-  const tag = (value: string, cls = '') => el('span', value, 'agenda-tag ' + cls)
+  const tagFilters = new Map<string, string>()
+  function toggleFilter(key: string, value: string) {
+    if (key === 'pillar') {
+      if (pillars.has(value)) pillars.delete(value)
+      else pillars.add(value)
+    } else if (tagFilters.get(key) === value) tagFilters.delete(key)
+    else tagFilters.set(key, value)
+    render()
+  }
+  const tag = (value: string, cls = '', key = '') => {
+    const button = el('button', value, 'agenda-tag ' + cls) as HTMLButtonElement
+    button.type = 'button'
+    button.dataset.tagFilter = key
+    button.dataset.tagValue = value
+    button.setAttribute('aria-label', `Filtrer : ${value}`)
+    button.addEventListener('click', () => toggleFilter(key, value))
+    return button
+  }
   const pillClass = (p: string) =>
     ({
       'santé mentale': 'agenda-tag--mental',
@@ -68,10 +85,14 @@ if (root) {
     )
     const tags = el('div', '', 'agenda-tags')
     tags.append(
-      tag(e.modality),
-      tag(e.access || 'accès à vérifier', e.access === 'gratuit' ? 'agenda-tag--free' : ''),
+      tag(e.modality, '', 'modality'),
+      tag(
+        e.access || 'accès à vérifier',
+        e.access === 'gratuit' ? 'agenda-tag--free' : '',
+        'access',
+      ),
     )
-    e.pillars.forEach((p) => tags.append(tag(p, pillClass(p))))
+    e.pillars.forEach((p) => tags.append(tag(p, pillClass(p), 'pillar')))
     tags.append(
       tag(
         e.status,
@@ -80,9 +101,12 @@ if (root) {
           : e.status === 'rejeté'
             ? 'agenda-tag--rejected'
             : 'agenda-tag--pending',
+        'status',
       ),
     )
-    e.attendance.forEach((p) => tags.append(tag(p, 'agenda-tag--person')))
+    if (!e.attendance.length)
+      tags.append(tag('Présence Euneos', 'agenda-tag--person', 'attendance'))
+    e.attendance.forEach((p) => tags.append(tag(p, 'agenda-tag--person', 'attendance')))
     content.append(tags)
     if (next) content.append(el('p', e.interest))
     const open = el('button', 'Voir la fiche', 'agenda-open') as HTMLButtonElement
@@ -101,15 +125,24 @@ if (root) {
           (e) =>
             e.starts_on >= today &&
             (region === 'Tous' || e.region === region) &&
-            (!pillars.size || e.pillars.some((p) => pillars.has(p))),
+            (!pillars.size || e.pillars.some((p) => pillars.has(p))) &&
+            [...tagFilters].every(([key, value]) =>
+              key === 'attendance'
+                ? value === 'Présence Euneos'
+                  ? !e.attendance.length
+                  : e.attendance.includes(value)
+                : key === 'access'
+                  ? (e.access || 'accès à vérifier') === value
+                  : e[key as 'status' | 'modality'] === value,
+            ),
         )
         .sort(
           (a, b) => a.starts_on.localeCompare(b.starts_on) || a.title.localeCompare(b.title, 'fr'),
         )
     const next = get('agenda-next')
     next.replaceChildren()
-    const decisions = events
-      .filter((e) => e.starts_on >= today && e.status === 'à décider')
+    const decisions = visible
+      .filter((e) => e.status === 'à décider')
       .sort(
         (a, b) => a.starts_on.localeCompare(b.starts_on) || a.title.localeCompare(b.title, 'fr'),
       )
@@ -130,6 +163,24 @@ if (root) {
       if (!entries.length) list.append(el('p', 'Rien de repéré pour l’instant.', 'agenda-empty'))
       month.append(heading, list)
       grid.append(month)
+    })
+    const active = get('agenda-active-filters')
+    active.replaceChildren()
+    for (const [key, value] of [...[...pillars].map((p) => ['pillar', p]), ...tagFilters]) {
+      const remove = el('button', value + ' ×', 'agenda-tag') as HTMLButtonElement
+      remove.type = 'button'
+      remove.setAttribute('aria-label', `Retirer le filtre : ${value}`)
+      remove.addEventListener('click', () => toggleFilter(key, value))
+      active.append(remove)
+    }
+    get('agenda-reset-filters').hidden = region === 'Tous' && !pillars.size && !tagFilters.size
+    root!.querySelectorAll<HTMLButtonElement>('[data-pillar], [data-tag-filter]').forEach((b) => {
+      const key = b.dataset.pillar ? 'pillar' : b.dataset.tagFilter!
+      const value = b.dataset.pillar || b.dataset.tagValue!
+      b.setAttribute(
+        'aria-pressed',
+        String(key === 'pillar' ? pillars.has(value) : tagFilters.get(key) === value),
+      )
     })
     const latest = [...events.map((e) => Date.parse(e.updated_at)), Date.parse(checkedAt)].filter(
       Number.isFinite,
@@ -188,6 +239,20 @@ if (root) {
       render()
     }),
   )
+  root
+    .querySelectorAll<HTMLButtonElement>('.agenda-legend [data-tag-filter]')
+    .forEach((b) =>
+      b.addEventListener('click', () => toggleFilter(b.dataset.tagFilter!, b.dataset.tagValue!)),
+    )
+  get('agenda-reset-filters').addEventListener('click', () => {
+    region = 'Tous'
+    pillars.clear()
+    tagFilters.clear()
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-region]')
+      .forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.region === 'Tous')))
+    render()
+  })
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
     if (!selected) return

@@ -141,13 +141,40 @@ else {
       await expect(page.locator('#agenda-months')).not.toContainText(
         'Journée d’étude : écrans et adolescence',
       )
-      await expect(page.locator('#agenda-next')).toContainText(
+      await expect(page.locator('#agenda-next')).not.toContainText(
         'Journée d’étude : écrans et adolescence',
       )
       await page.getByRole('button', { name: 'Tous', exact: true }).click()
       await page.getByRole('button', { name: 'Numérique', exact: true }).click()
       await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(2)
       await page.getByRole('button', { name: 'Numérique', exact: true }).click()
+      await page.locator('.agenda-legend [data-tag-value="Présence Euneos"]').click()
+      await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(facts.length - 2)
+      await page.getByRole('button', { name: 'Effacer les filtres', exact: true }).click()
+      // Tags on cards and in the legend filter without changing team decisions.
+      await page
+        .locator('#agenda-months [data-tag-filter="attendance"][data-tag-value="Pauline"]')
+        .click()
+      await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(1)
+      await expect(page.locator('#agenda-months')).toContainText('Pauline')
+      await page.getByRole('button', { name: 'Effacer les filtres', exact: true }).click()
+      await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(facts.length)
+      await page.locator('.agenda-legend [data-tag-value="gratuit"]').click()
+      for (const card of await page.locator('#agenda-months .agenda-event').all())
+        await expect(card.locator('[data-tag-value="gratuit"]')).toHaveCount(1)
+      await page.locator('.agenda-legend [data-tag-value="confirmé"]').click()
+      await expect(page.locator('#agenda-next .agenda-event')).toHaveCount(0)
+      for (const card of await page.locator('#agenda-months .agenda-event').all())
+        await expect(card.locator('[data-tag-value="confirmé"]')).toHaveCount(1)
+      await page.locator('.agenda-legend [data-tag-value="gratuit"]').click()
+      await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(2)
+      await page.getByRole('button', { name: 'Retirer le filtre : confirmé', exact: true }).click()
+      await expect(page.locator('#agenda-months .agenda-event')).toHaveCount(facts.length)
+      await page.locator('.agenda-legend [data-tag-value="en ligne"]').focus()
+      await page.keyboard.press('Enter')
+      for (const card of await page.locator('#agenda-months .agenda-event').all())
+        await expect(card.locator('[data-tag-value="en ligne"]')).toHaveCount(1)
+      await page.getByRole('button', { name: 'Effacer les filtres', exact: true }).click()
       if ([390, 1440].includes(width))
         await page.screenshot({
           path: new URL(`agenda-${width}.png`, output).pathname,
