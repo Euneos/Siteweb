@@ -311,7 +311,7 @@ if (root) {
         text = el('div'),
         button = el('button', 'Restaurer', 'iw-button') as HTMLButtonElement
       text.append(
-        el('strong', e.title),
+        el('h3', e.title),
         el('p', date(e.starts_on, { day: 'numeric', month: 'long', year: 'numeric' })),
       )
       button.type = 'button'

@@ -183,8 +183,9 @@ else {
     await expect(page.locator('#agenda-months')).toContainText('Charlotte')
     assert.equal((await listAgenda(db)).find((e) => e.id === ids[0]).status, 'confirmé')
     await page.setViewportSize({ width: 390, height: 1000 })
+    const manualTitle = 'Événement manuel de recette ' + 'A'.repeat(240)
     await page.getByRole('button', { name: 'Ajouter un événement', exact: true }).click()
-    await page.locator('#manual-title').fill('Événement manuel de recette')
+    await page.locator('#manual-title').fill(manualTitle)
     await page.locator('#manual-starts_on').fill(facts[6].starts_on)
     await page.locator('#manual-organizer').fill('Organisateur fictif')
     await page.locator('#manual-modality').selectOption('en ligne')
@@ -197,25 +198,27 @@ else {
     })
     await page.getByRole('button', { name: 'Ajouter l’événement', exact: true }).click()
     await expect(page.locator('#agenda-add-dialog')).not.toBeVisible()
-    await expect(page.locator('#agenda-months')).toContainText('Événement manuel de recette')
-    await page
-      .getByRole('button', { name: 'Voir la fiche : Événement manuel de recette', exact: true })
-      .click()
+    await expect(page.locator('#agenda-months')).toContainText(manualTitle)
+    await page.getByRole('button', { name: `Voir la fiche : ${manualTitle}`, exact: true }).click()
     await page.getByRole('button', { name: 'Supprimer cet événement', exact: true }).click()
     await page.getByRole('button', { name: 'Supprimer l’événement', exact: true }).click()
     await expect(page.locator('#agenda-remove-dialog')).not.toBeVisible()
-    await expect(page.locator('#agenda-months')).not.toContainText('Événement manuel de recette')
-    const manual = (await listAgenda(db, true)).find(
-      (e) => e.title === 'Événement manuel de recette',
-    )
+    await expect(page.locator('#agenda-months')).not.toContainText(manualTitle)
+    const manual = (await listAgenda(db, true)).find((e) => e.title === manualTitle)
     await importAgendaEvent(db, { ...manual, sources: ['Autre annonce fictive du même événement'] })
     await page.reload()
-    await expect(page.locator('#agenda-months')).not.toContainText('Événement manuel de recette')
+    await expect(page.locator('#agenda-months')).not.toContainText(manualTitle)
     await page.getByRole('button', { name: 'Corbeille (1)', exact: true }).click()
+    assert(
+      await page
+        .locator('#agenda-trash-dialog')
+        .evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
+      'Long event title overflows the trash dialog',
+    )
     await page.getByRole('button', { name: 'Restaurer', exact: true }).click()
     await expect(page.locator('#agenda-trash-list')).toContainText('La corbeille est vide.')
     await page.locator('#agenda-trash-close').click()
-    await expect(page.locator('#agenda-months')).toContainText('Événement manuel de recette')
+    await expect(page.locator('#agenda-months')).toContainText(manualTitle)
     await page.getByRole('button', { name: 'Contrôle à la demande', exact: true }).click()
     await expect(page.locator('#agenda-help-dialog')).toContainText('à tout moment')
     await page.keyboard.press('Escape')
