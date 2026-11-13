@@ -1,0 +1,596 @@
+---
+export const prerender = false
+import InternalLayout from '../../../layouts/InternalLayout.astro'
+import {
+  getInternalContext,
+  privateHeaders,
+  internalEnvironment,
+} from '../../../lib/internal-context'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+for (const [k, v] of Object.entries(privateHeaders)) Astro.response.headers.set(k, v)
+const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true'
+---
+
+<InternalLayout
+  title="Agenda des événements"
+  current="agenda"
+  identity={context.identity}
+  space="communication"
+  wide
+>
+  <div id="event-agenda">
+    <header class="agenda-header">
+      <h1>Agenda des événements</h1><p>
+        Les rendez-vous repérés dans nos newsletters, en Île-de-France, en Occitanie et en ligne,
+        pour décider où EUNEOS souhaite être présente.
+      </p><p id="agenda-updated" class="agenda-date">Chargement…</p>
+    </header>
+    {
+      preview && (
+        <p class="agenda-preview">
+          Aperçu local · Exemples fictifs · Aucune newsletter lue · Rien n’est publié
+        </p>
+      )
+    }
+    <div class="iw-toolbar agenda-actions">
+      <button id="agenda-add" type="button" class="iw-button iw-button--primary"
+        >Ajouter un événement</button
+      ><button id="agenda-check-help" type="button" class="iw-button">Contrôle à la demande</button
+      ><button id="agenda-trash" type="button" class="iw-button">Corbeille</button>
+    </div>
+    <p id="agenda-feedback" role="status" aria-live="polite"></p>
+    <noscript><p>Activez JavaScript pour consulter l’agenda et modifier les décisions.</p></noscript
+    >
+    <section class="agenda-section" aria-labelledby="agenda-next-title">
+      <h2 id="agenda-next-title">Prochains événements à décider</h2><div
+        id="agenda-next"
+        class="agenda-next"
+      >
+      </div>
+    </section>
+    <section class="agenda-section" aria-labelledby="agenda-year-title">
+      <div class="agenda-year-heading">
+        <h2 id="agenda-year-title">L’année</h2><span id="agenda-range"></span>
+      </div>
+      <div class="agenda-filters" role="group" aria-label="Région et modalité">
+        {
+          ['Tous', 'Île-de-France', 'Occitanie', 'En ligne'].map((label) => (
+            <button type="button" data-region={label} aria-pressed={label === 'Tous'}>
+              {label}
+            </button>
+          ))
+        }
+      </div>
+      <div class="agenda-filters" role="group" aria-label="Piliers">
+        {
+          ['santé mentale', 'CPS', 'numérique', 'éducation'].map((label) => (
+            <button type="button" data-pillar={label} aria-pressed="false">
+              {label === 'CPS' ? label : label.charAt(0).toUpperCase() + label.slice(1)}
+            </button>
+          ))
+        }
+      </div>
+      <div class="agenda-legend" aria-label="Légende des étiquettes">
+        <span class="agenda-tag agenda-tag--mental">santé mentale</span><span
+          class="agenda-tag agenda-tag--cps">CPS</span
+        ><span class="agenda-tag agenda-tag--digital">numérique</span><span
+          class="agenda-tag agenda-tag--education">éducation</span
+        ><span class="agenda-tag agenda-tag--confirmed">confirmé</span><span
+          class="agenda-tag agenda-tag--pending">à décider</span
+        ><span class="agenda-tag agenda-tag--rejected">rejeté</span><span
+          class="agenda-tag agenda-tag--person">qui y va</span
+        >
+      </div>
+      <div id="agenda-months" class="agenda-months" aria-label="Événements par mois"></div>
+    </section>
+  </div>
+  <dialog id="agenda-dialog" class="iw-dialog" aria-labelledby="agenda-dialog-title">
+    <header class="iw-dialog__header">
+      <h2 id="agenda-dialog-title">Fiche événement</h2><button
+        id="agenda-close"
+        class="iw-button"
+        type="button"
+        aria-label="Fermer la fiche">Fermer</button
+      >
+    </header><div class="iw-dialog__body">
+      <div id="agenda-detail"></div><button id="agenda-remove" type="button" class="iw-button"
+        >Supprimer cet événement</button
+      ><form id="agenda-decision">
+        <div class="iw-field">
+          <label for="agenda-status">Statut</label><select id="agenda-status" name="status"
+            ><option>à décider</option><option>confirmé</option><option>rejeté</option></select
+          >
+        </div><fieldset class="agenda-attendance">
+          <legend>Présence</legend>{
+            ['Candice', 'Pauline', 'Charlotte', 'CA'].map((p) => (
+              <label>
+                <input type="checkbox" name="attendance" value={p} />
+                {p}
+              </label>
+            ))
+          }
+        </fieldset><p>
+          Ces décisions appartiennent à l’équipe et sont conservées lors des mises à jour des
+          newsletters.
+        </p><p id="agenda-save-feedback" role="status"></p><button
+          id="agenda-save"
+          class="iw-button iw-button--primary"
+          type="submit">Enregistrer la décision</button
+        >
+      </form>
+    </div>
+  </dialog>
+  <dialog id="agenda-add-dialog" class="iw-dialog" aria-labelledby="agenda-add-title">
+    <header class="iw-dialog__header">
+      <h2 id="agenda-add-title">Ajouter un événement</h2><button
+        type="button"
+        class="iw-button"
+        id="agenda-add-close">Fermer</button
+      >
+    </header><div class="iw-dialog__body">
+      <form id="agenda-add-form">
+        <div class="iw-formgrid">
+          {
+            [
+              ['title', 'Titre', 'text', true],
+              ['starts_on', 'Date', 'date', true],
+              ['organizer', 'Organisateur', 'text', true],
+              ['city', 'Ville', 'text', false],
+              ['registration_url', 'Lien d’inscription', 'url', false],
+            ].map(([name, label, type, required]) => (
+              <div class="iw-field">
+                <>
+                  <label for={'manual-' + name}>{label}</label>
+                  <input
+                    id={'manual-' + name}
+                    name={String(name)}
+                    type={type as 'text' | 'date' | 'url'}
+                    required={Boolean(required)}
+                    maxlength={name === 'registration_url' ? 2000 : 300}
+                  />
+                </>
+              </div>
+            ))
+          }
+          <div class="iw-field">
+            <label for="manual-modality">Modalité</label><select
+              id="manual-modality"
+              name="modality"><option>présentiel</option><option>en ligne</option></select
+            >
+          </div><div class="iw-field">
+            <label for="manual-region">Région</label><select id="manual-region" name="region"
+              ><option>Île-de-France</option><option>Occitanie</option></select
+            >
+          </div><div class="iw-field">
+            <label for="manual-access">Accès</label><select id="manual-access" name="access"
+              ><option value="">À vérifier</option><option>gratuit</option><option>payant</option
+              ><option>sur invitation</option></select
+            >
+          </div>
+        </div><fieldset class="agenda-attendance">
+          <legend>Piliers — au moins un</legend>{
+            ['santé mentale', 'CPS', 'numérique', 'éducation'].map((p) => (
+              <label>
+                <input type="checkbox" name="pillars" value={p} />
+                {p}
+              </label>
+            ))
+          }
+        </fieldset><div class="iw-field">
+          <label for="manual-interest">Intérêt pour EUNEOS</label><textarea
+            id="manual-interest"
+            name="interest"
+            required
+            maxlength="2000"
+            rows="3"></textarea>
+        </div><p>Le nouvel événement sera « à décider », sans présence renseignée.</p><p
+          id="agenda-add-feedback"
+          role="status"
+        >
+        </p><button type="submit" id="agenda-add-save" class="iw-button iw-button--primary"
+          >Ajouter l’événement</button
+        >
+      </form>
+    </div>
+  </dialog>
+  <dialog id="agenda-help-dialog" class="iw-dialog" aria-labelledby="agenda-help-title">
+    <header class="iw-dialog__header">
+      <h2 id="agenda-help-title">Faire le contrôle à un autre moment</h2><button
+        id="agenda-help-close"
+        type="button"
+        class="iw-button">Fermer</button
+      >
+    </header><div class="iw-dialog__body">
+      <p>
+        Le contrôle peut être fait à tout moment, même si celui du lundi a été manqué. Ouvrez Codex
+        sur votre ordinateur et revenez dans le chat de l’agenda.
+      </p><blockquote id="agenda-check-phrase">
+        Vérifie les newsletters et mets à jour l’agenda des événements maintenant.
+      </blockquote><button id="agenda-copy-check" class="iw-button" type="button"
+        >Copier la demande</button
+      ><p id="agenda-copy-feedback" role="status"></p><p>
+        Les newsletters seront relues depuis la dernière vérification réussie si nécessaire. Vos
+        statuts et présences restent inchangés.
+      </p>
+    </div>
+  </dialog>
+  <dialog id="agenda-trash-dialog" class="iw-dialog" aria-labelledby="agenda-trash-title">
+    <header class="iw-dialog__header">
+      <h2 id="agenda-trash-title">Corbeille des événements</h2><button
+        id="agenda-trash-close"
+        type="button"
+        class="iw-button">Fermer</button
+      >
+    </header><div class="iw-dialog__body">
+      <p>
+        Un événement supprimé ne sera pas recréé automatiquement lors d’une prochaine collecte.
+      </p><div id="agenda-trash-list"></div><p id="agenda-trash-feedback" role="status"></p>
+    </div>
+  </dialog>
+  <dialog id="agenda-remove-dialog" class="iw-dialog" aria-labelledby="agenda-remove-title">
+    <div class="iw-dialog__body">
+      <h2 id="agenda-remove-title">Supprimer cet événement ?</h2><p id="agenda-remove-name"></p><p>
+        Il sera placé dans la corbeille. Vous pourrez le restaurer sans perdre les décisions de
+        l’équipe.
+      </p><div class="iw-form-actions">
+        <button id="agenda-remove-cancel" class="iw-button" type="button">Annuler</button><button
+          id="agenda-remove-confirm"
+          class="iw-button iw-button--primary"
+          type="button">Supprimer l’événement</button
+        >
+      </div><p id="agenda-remove-feedback" role="status"></p>
+    </div>
+  </dialog>
+</InternalLayout>
+<script src="../../../scripts/event-agenda-client.ts"></script>
+<style is:global>
+  #event-agenda {
+    --agenda-green: #00382d;
+  }
+  #event-agenda .agenda-header {
+    background: var(--agenda-green);
+    color: white;
+    padding: var(--iw-gap, 1.5rem);
+    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  #event-agenda .agenda-header :is(h1, p) {
+    color: white;
+  }
+  #event-agenda .agenda-header h1 {
+    margin-bottom: 1rem;
+  }
+  #event-agenda .agenda-header p {
+    max-width: 65rem;
+  }
+  #event-agenda .agenda-date {
+    margin-top: 1rem;
+    opacity: 0.8;
+  }
+  .agenda-preview {
+    background: #fff1cf;
+    color: #4e421a;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid #e0b540;
+  }
+  .agenda-section {
+    margin-top: 2rem;
+  }
+  #event-agenda .agenda-section > h2,
+  #event-agenda .agenda-year-heading h2 {
+    font-size: var(--iw-text);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #536d63;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  .agenda-next {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .agenda-event {
+    border-left: 3px solid var(--vert);
+    padding: 0.4rem 0 0.5rem 1rem;
+    display: grid;
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    gap: 0.65rem;
+    min-width: 0;
+  }
+  .agenda-next .agenda-event {
+    background: white;
+    border-radius: 0 0.75rem 0.75rem 0;
+    padding: 1rem;
+  }
+  .agenda-day {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.1rem;
+  }
+  .agenda-day strong {
+    font-size: 1.4em;
+    line-height: 1.1;
+  }
+  .agenda-day span {
+    color: #65716b;
+  }
+  .agenda-event-content {
+    min-width: 0;
+  }
+  #event-agenda .agenda-event h3 {
+    font-size: var(--iw-text);
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0 0 0.35rem;
+  }
+  .agenda-event p {
+    color: #5b6861;
+    line-height: 1.4;
+  }
+  .agenda-tags {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .agenda-tag {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #cbd3cf;
+    background: white;
+    color: #29483c;
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.9em;
+    line-height: 1.35;
+  }
+  .agenda-tag--mental {
+    background: #fff1c3;
+    border-color: #fff1c3;
+    color: #5b4b13;
+  }
+  .agenda-tag--cps {
+    background: #f8e1ee;
+    border-color: #f8e1ee;
+    color: #6a3755;
+  }
+  .agenda-tag--digital {
+    background: #4b5150;
+    border-color: #4b5150;
+    color: white;
+  }
+  .agenda-tag--pending {
+    background: #e7e8e7;
+    border-color: #e7e8e7;
+    color: #333b37;
+  }
+  .agenda-tag--free {
+    background: #d6eadb;
+    border-color: #d6eadb;
+    color: #234c31;
+  }
+  .agenda-tag--education {
+    background: #fce3d8;
+    border-color: #fce3d8;
+    color: #6d3b25;
+  }
+  .agenda-tag--confirmed {
+    background: var(--vert);
+    border-color: var(--vert);
+    color: white;
+  }
+  .agenda-tag--person {
+    background: #d3e5de;
+    border-color: #d3e5de;
+    color: #164c39;
+    font-weight: 600;
+  }
+  .agenda-tag--rejected {
+    background: #eee;
+    color: #6d7570;
+    text-decoration: line-through;
+  }
+  .agenda-event--rejected {
+    border-left-color: #b9c0bc;
+  }
+  .agenda-event--rejected .agenda-event-title {
+    text-decoration: line-through;
+    color: #727b75;
+  }
+  .agenda-event--rejected .agenda-event-content > p,
+  .agenda-event--rejected .agenda-day {
+    color: #727b75;
+  }
+  .agenda-event--rejected .agenda-tag:not(.agenda-tag--person) {
+    background: #f0f1f0;
+    border-color: #ddd;
+    color: #68736c;
+  }
+  .agenda-open {
+    margin-top: 0.6rem;
+    border: 0;
+    background: transparent;
+    color: var(--vert);
+    padding: 0.3rem 0;
+    min-height: 44px;
+    text-align: left;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .agenda-open:focus-visible,
+  .agenda-filters button:focus-visible {
+    outline: 3px solid #7b9b8e;
+    outline-offset: 3px;
+  }
+  .agenda-year-heading {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .agenda-year-heading > span {
+    color: #65716b;
+  }
+  .agenda-filters {
+    display: inline-flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0 1.5rem 1rem 0;
+    max-width: 100%;
+  }
+  .agenda-filters button {
+    border: 1px solid var(--iw-line);
+    border-radius: 2rem;
+    background: white;
+    min-height: 44px;
+    padding: 0.45rem 1rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .agenda-filters button[aria-pressed='true'] {
+    background: var(--vert);
+    border-color: var(--vert);
+    color: white;
+  }
+  .agenda-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+  }
+  .agenda-months {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .agenda-month {
+    background: white;
+    border: 1px solid var(--iw-line);
+    border-radius: 0.75rem;
+    padding: 1.1rem;
+    min-width: 0;
+    min-height: 14rem;
+  }
+  .agenda-month-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--iw-line);
+    margin-bottom: 1rem;
+  }
+  #event-agenda .agenda-month-heading h3 {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--vert);
+    font-size: var(--iw-text);
+    margin: 0;
+  }
+  .agenda-month-heading span,
+  .agenda-empty {
+    color: #6c7870;
+  }
+  .agenda-month-events {
+    display: grid;
+    gap: 1rem;
+  }
+  .agenda-attendance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin: 1rem 0;
+  }
+  .agenda-attendance label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+  }
+  .agenda-attendance input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--vert);
+  }
+  #agenda-detail {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    overflow-wrap: anywhere;
+  }
+  #agenda-detail h3 {
+    font-size: var(--iw-text);
+  }
+  #agenda-detail ul {
+    padding-left: 1.3rem;
+  }
+  #agenda-save-feedback {
+    margin: 1rem 0;
+  }
+  @media (max-width: 1200px) {
+    .agenda-months {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 950px) {
+    .agenda-next {
+      grid-template-columns: 1fr;
+    }
+    .agenda-months {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 600px) {
+    .agenda-months {
+      grid-template-columns: 1fr;
+    }
+    .agenda-month {
+      min-height: 10rem;
+    }
+    .agenda-event {
+      grid-template-columns: 2.2rem minmax(0, 1fr);
+      padding-left: 0.65rem;
+    }
+  }
+</style>
+
+<style is:global>
+  .agenda-actions {
+    margin: 1.25rem 0;
+    flex-wrap: wrap;
+  }
+  #agenda-add-feedback,
+  #agenda-copy-feedback {
+    margin: 1rem 0;
+  }
+  #agenda-check-phrase {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-left: 3px solid var(--vert);
+    background: #edf2ee;
+  }
+  #agenda-trash-list article {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--iw-line);
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  #agenda-remove {
+    margin-bottom: 1.5rem;
+  }
+</style>
+
+<style is:global>
+  #agenda-add-form .iw-field[hidden] {
+    display: none;
+  }
+</style>

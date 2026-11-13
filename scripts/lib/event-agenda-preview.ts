@@ -1,0 +1,102 @@
+import { agendaToday, type EventFacts } from '../../src/lib/event-agenda'
+// Invented examples exclusively for the local preview. No client records or real registrations.
+export function agendaPreviewFacts(today = agendaToday()): EventFacts[] {
+  const [y, m, d] = today.split('-').map(Number),
+    at = (offset: number, day: number) =>
+      new Date(Date.UTC(y, m - 1 + offset, day)).toISOString().slice(0, 10)
+  const items = [
+    [
+      at(0, d + 3),
+      'Rencontre santé mentale des jeunes',
+      'Réseau jeunesse — exemple',
+      'Toulouse',
+      'Occitanie',
+      'présentiel',
+      'gratuit',
+      ['santé mentale', 'éducation'],
+      'Croiser les approches de prévention en milieu éducatif.',
+    ],
+    [
+      at(0, d + 8),
+      'Webinaire CPS en classe',
+      'Collectif pédagogique — exemple',
+      '',
+      'En ligne',
+      'en ligne',
+      'gratuit',
+      ['CPS', 'éducation'],
+      'Repérer des pratiques concrètes pour les ateliers EUNEOS.',
+    ],
+    [
+      at(1, 3),
+      'Journée d’étude : écrans et adolescence',
+      'Institut de recherche — exemple',
+      'Paris',
+      'Île-de-France',
+      'présentiel',
+      'sur invitation',
+      ['numérique', 'éducation'],
+      'Nourrir notre approche d’un usage éclairé du numérique.',
+    ],
+    [
+      at(1, 10),
+      'Rencontre du numérique éducatif',
+      'Réseau éducatif — exemple',
+      'Paris',
+      'Île-de-France',
+      'présentiel',
+      'payant',
+      ['numérique', 'éducation'],
+      'Échanger sur les usages pédagogiques et leurs effets.',
+    ],
+    [
+      at(1, 14),
+      'Matinée CPS et climat scolaire',
+      'Collectif formation — exemple',
+      'Toulouse',
+      'Occitanie',
+      'présentiel',
+      'gratuit',
+      ['CPS', 'éducation'],
+      'Identifier de futurs partenaires autour du climat scolaire.',
+    ],
+    [
+      at(2, 21),
+      'Forum régional des compétences psychosociales',
+      'Réseau prévention — exemple',
+      'Montpellier',
+      'Occitanie',
+      'présentiel',
+      'gratuit',
+      ['CPS', 'santé mentale'],
+      'Relier les compétences psychosociales à la santé mentale des jeunes.',
+    ],
+    [
+      at(4, 18),
+      'Conférence : éducation et bien-être',
+      'Observatoire jeunesse — exemple',
+      '',
+      'En ligne',
+      'en ligne',
+      'gratuit',
+      ['santé mentale', 'éducation'],
+      'Partager des repères pour une démarche pédagogique évaluée.',
+    ],
+  ]
+  return items.map(
+    ([starts_on, title, organizer, city, region, modality, access, pillars, interest]) =>
+      ({
+        starts_on,
+        title,
+        organizer,
+        city,
+        region,
+        modality,
+        access,
+        pillars,
+        interest,
+        registration_url: '',
+        sources: ['Exemple fictif de newsletter · aperçu local'],
+      }) as EventFacts,
+  )
+}

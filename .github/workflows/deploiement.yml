@@ -74,6 +74,7 @@ jobs:
           bunx playwright install --with-deps chromium
           bun scripts/check-internal-table.mjs
           bun scripts/check-internal-workspace.mjs
+          bun scripts/preview-event-agenda.mjs
           bun scripts/check-implantations.mjs
           bun scripts/check-public-network.mjs
           bun scripts/check-google-review.mjs

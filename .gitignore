@@ -7,3 +7,7 @@ dist
 
 # jeton d acces a la base — jamais commite
 .env
+
+# Aperçus et échanges chiffrés de l’agenda (aucune donnée de newsletter versionnée)
+preview-agenda/
+agenda-response.enc.json

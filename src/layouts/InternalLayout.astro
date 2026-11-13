@@ -9,6 +9,7 @@ interface Props {
     | 'accueil'
     | 'suivimedias'
     | 'partenariats'
+    | 'agenda'
     | 'veille'
     | 'ca'
     | 'calendrier'
@@ -156,6 +157,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           <a href="/interne/communication/calendriereditorial" aria-current={current === 'calendrier' ? 'page' : undefined}>Calendrier éditorial</a>
           <a href="/interne/communication/suivimedias" aria-current={current === 'suivimedias' ? 'page' : undefined}>Suivi médias</a>
           <a href="/interne/communication/partenariats" aria-current={current === 'partenariats' ? 'page' : undefined}>Partenariats</a>
+          <a href="/interne/communication/agenda-evenements" aria-current={current === 'agenda' ? 'page' : undefined}>Agenda des événements</a>
           <a href="/interne/communication/veille" aria-current={current === 'veille' ? 'page' : undefined}>Veille</a>
         </>}
         <a class="iw-button iw-button--primary iw-nav__return" href="/interne">Retour</a>
