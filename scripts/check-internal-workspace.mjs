@@ -2104,7 +2104,6 @@ try {
       ['Nom média', 'Type de média', 'Statut', 'Contact', 'Attribution'],
       ['Média fictif', 'Journal', 'Contacté', 'À trouver', ''],
     ],
-    ['veille', 'Type', ['Nom', 'Type', 'Tags'], ['Ressource fictive', 'Podcast', '']],
   ]) {
     const sheetId = crypto.randomUUID(),
       rowId = crypto.randomUUID()
@@ -2236,8 +2235,12 @@ try {
     )
   }
   checks.push(
-    'communication-all-three-tables-shared-options-checkboxes-duplicate-trash-restore-csrf-roles',
+    'communication-tables-shared-options-checkboxes-duplicate-trash-restore-csrf-roles',
   )
+  // Veille is now covered by preview-thematic-watch.mjs. Its retired table
+  // endpoint must reject writes instead of continuing to accept stranded rows.
+  assert.equal((await call('/api/interne/communication/veille', 'member')).status, 410)
+  assert.equal((await call('/api/interne/communication/veille', 'member', 'POST', {})).status, 410)
   // User-selected destination, real compiled route, no dropped source-specific values.
   sql
     .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,99)')
@@ -2295,7 +2298,7 @@ try {
   }
   sql
     .query('INSERT INTO communication_sheets VALUES(?,?,?,?,0,100)')
-    .run('five-lines', 'veille', 'Cinq lignes', '["Nom","Notes"]')
+    .run('five-lines', 'partenariats', 'Cinq lignes', '["Nom","Notes"]')
   for (let i = 0; i < 6; i++)
     sql
       .query('INSERT INTO communication_rows(id,sheet_id,cells_json,updated_by) VALUES(?,?,?,?)')
@@ -2308,7 +2311,7 @@ try {
         ]),
         'fixture',
       )
-  await page.goto(`${origin}/interne/communication/veille`)
+  await page.goto(`${origin}/interne/communication/partenariats`)
   await page.getByRole('tab', { name: 'Cinq lignes', exact: true }).click()
   await expect(page.locator('tbody tr')).toHaveCount(6)
   for (const width of [390, 1440]) {
