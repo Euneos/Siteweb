@@ -30,7 +30,6 @@ if (root) {
     selectedWeek = 'all',
     busy = false,
     editing: WatchItem | null = null,
-    addingEvent = false,
     usages: WatchUsage[] = []
   const filters: Record<string, string> = {
     themes: '',
@@ -86,13 +85,10 @@ if (root) {
     const inWeek = items.filter((i) => selectedWeek === 'all' || i.week === selectedWeek)
     $('#vw-week-label').textContent =
       selectedWeek === 'all'
-        ? 'Toutes les semaines · ressources de l’équipe et actualités'
+        ? ''
         : 'Semaine du ' + date(selectedWeek)
     $('#vw-summary').textContent =
       `${inWeek.length} sujet${inWeek.length > 1 ? 's' : ''} · ${inWeek.filter((i) => !watchUsed(i)).length} à traiter · les décisions restent à l’équipe.`
-    const run = runs.find((r) => selectedWeek === 'all' || r.week === selectedWeek)
-    $('#vw-coverage').textContent =
-      run?.coverage || 'Aucune recherche enregistrée pour cette semaine.'
     const q = $<HTMLInputElement>('#vw-search').value.trim().toLocaleLowerCase('fr')
     const visible = inWeek.filter(
       (i) =>
@@ -110,24 +106,10 @@ if (root) {
             (u) => u.status === filters.status && (!filters.usages || u.name === filters.usages),
           )),
     )
-    for (const used of [false, true]) {
-      const target = used ? 'used' : 'todo',
-        list = visible.filter((i) => watchUsed(i) === used)
-      $('#vw-' + target).replaceChildren(...list.map((i, n) => card(i, n + 1)))
-      $('#vw-' + target + '-count').textContent = String(list.length)
-      if (!list.length)
-        $('#vw-' + target).append(
-          el(
-            'p',
-            'vw-empty',
-            used
-              ? 'Aucune fiche utilisée avec ces filtres.'
-              : 'Aucun sujet à traiter avec ces filtres.',
-          ),
-        )
-    }
-    $('#vw-count').textContent =
-      `${visible.length} sujet${visible.length > 1 ? 's' : ''} affiché${visible.length > 1 ? 's' : ''} sur ${inWeek.length}`
+    $('#vw-todo').replaceChildren(...visible.map((i, n) => card(i, n + 1)))
+    $('#vw-todo-count').textContent = String(visible.length)
+    if (!visible.length) $('#vw-todo').append(el('p', 'vw-empty', 'Aucun sujet avec ces filtres.'))
+
   }
   function card(item: WatchItem, n: number) {
     const article = el('article', 'vw-card' + (watchUsed(item) ? ' vw-card--used' : ''))
@@ -161,7 +143,7 @@ if (root) {
         'vw-tag--origin',
       ),
     )
-    if (item.needs_primary && !item.legacy) tags.append(tag('à sourcer', 'vw-tag--yellow'))
+    if (item.needs_primary && !item.legacy) tags.append(tag('à sourcer', 'vw-tag--needs-source'))
     body.append(tags)
     if (
       item.summary &&
@@ -177,7 +159,7 @@ if (root) {
     if (item.for_euneos && item.for_euneos !== 'À préciser après relecture de la ressource.')
       body.append(purpose)
     const source = el('p', 'vw-source'),
-      a = el('a', '', item.source)
+      a = el('a', '', item.source + ' · Lire la source ↗')
     a.href = item.link
     a.target = '_blank'
     a.rel = 'noopener noreferrer'
@@ -217,17 +199,14 @@ if (root) {
       }
       body.append(details)
     }
-    if (item.event) {
-      const a = el('a', 'iw-button', 'Voir dans l’agenda →')
-      a.href = '/interne/communication/agenda-evenements'
-      body.append(a)
-    } else {
-      const add = button('Ajouter à l’agenda', () => openEditor(item, true))
-      add.disabled = busy
-      body.append(add)
-    }
     article.append(number, body)
     return article
+  }
+  function clearStatusFilter() {
+    if (!filters.status) return
+    filters.status = ''
+    for (const b of root!.querySelectorAll<HTMLButtonElement>('[data-filter="status"]'))
+      b.setAttribute('aria-pressed', String(b.dataset.value === ''))
   }
   async function cycle(item: WatchItem, u: WatchUsage) {
     if (busy) return
@@ -247,8 +226,9 @@ if (root) {
           ),
         },
       })
+      clearStatusFilter()
       await load()
-      feedback.textContent = 'Statut enregistré.'
+      feedback.textContent = 'Statut enregistré. La fiche reste dans la liste.'
     } catch (e) {
       feedback.textContent = (e as Error).message
     } finally {
@@ -305,16 +285,10 @@ if (root) {
     l.append(input)
     target.append(l)
   }
-  function openEditor(item: WatchItem | null = null, addEvent = false) {
+  function openEditor(item: WatchItem | null = null) {
     if (busy) return
     editing = item
-    addingEvent = addEvent
-    $('#vw-save').textContent = addEvent
-      ? 'Ajouter à l’agenda et enregistrer'
-      : 'Enregistrer le brouillon'
     usages = structuredClone(item?.usages ?? [])
-    if (addEvent && !usages.some((u) => u.name === 'Événement'))
-      usages.push({ name: 'Événement', status: 'à faire', draft: '' })
     $('#vw-save-feedback').textContent = ''
     $('#vw-editor-title').textContent = item ? 'Modifier la fiche' : 'Ajouter une fiche'
     const visibleItem = item
@@ -362,52 +336,10 @@ if (root) {
     target.append(l)
     for (const c of form.querySelectorAll<HTMLInputElement>('[name=theme]'))
       c.checked = item?.themes.includes(c.value) ?? false
-    form.querySelector<HTMLInputElement>('[name=needs_primary]')!.checked =
-      item?.needs_primary ?? false
-    const eventTarget = $('#vw-event-fields')
-    eventTarget.replaceChildren()
-    for (const [key, label, type, max] of [
-      ['title', 'Titre événement', 'text', 300],
-      ['organizer', 'Organisateur', 'text', 200],
-      ['starts_on', 'Date événement', 'date', 10],
-      ['city', 'Ville', 'text', 160],
-      ['registration_url', 'Lien inscription', 'url', 2000],
-    ] as const)
-      field(
-        eventTarget,
-        'event_' + key,
-        label,
-        type,
-        max,
-        String(
-          item?.event?.[key] ??
-            (addEvent && key === 'title'
-              ? item?.title
-              : addEvent && key === 'registration_url'
-                ? item?.link
-                : ''),
-        ),
-      )
-    for (const [key, label, values] of [
-      ['modality', 'Modalité', ['en ligne', 'présentiel']],
-      ['region', 'Région', ['En ligne', 'Île-de-France', 'Occitanie']],
-      ['access', 'Accès', ['', 'gratuit', 'payant', 'sur invitation']],
-    ] as const) {
-      const l = el('label', 'iw-field', label),
-        s = el('select')
-      s.name = 'event_' + key
-      s.append(...values.map((v) => el('option', '', v)))
-      s.value = item?.event?.[key] ?? values[0]
-      l.append(s)
-      eventTarget.append(l)
-    }
     renderUsages()
     editor.showModal()
-    if (addEvent) {
-      const dateField = form.querySelector<HTMLInputElement>('[name=event_starts_on]')!
-      dateField.focus()
-      dateField.scrollIntoView({ block: 'center' })
-    }
+    editor.scrollTop = 0
+
   }
   function renderUsages() {
     const target = $('#vw-form-usages')
@@ -438,10 +370,7 @@ if (root) {
     }
     for (const o of $<HTMLSelectElement>('#vw-usage-add').options)
       o.disabled = usages.some((u) => u.name === o.value)
-    $('#vw-event-details').toggleAttribute(
-      'open',
-      usages.some((u) => u.name === 'Événement'),
-    )
+
   }
   $<HTMLSelectElement>('#vw-usage-add').onchange = (e) => {
     const s = e.target as HTMLSelectElement
@@ -462,23 +391,6 @@ if (root) {
         form.querySelectorAll<HTMLInputElement>('[name=theme]:checked'),
         (c) => c.value,
       )
-    const event = usages.some((u) => u.name === 'Événement')
-      ? {
-          title: values.event_title,
-          organizer: values.event_organizer,
-          starts_on: values.event_starts_on,
-          city: values.event_city,
-          region: values.event_region,
-          modality: values.event_modality,
-          access: values.event_access,
-          registration_url: values.event_registration_url,
-          pillars: themes.filter((t) =>
-            ['santé mentale', 'CPS', 'numérique', 'éducation'].includes(t),
-          ),
-          interest: values.for_euneos,
-          sources: [`${values.source} · ${values.link}`],
-        }
-      : null
     try {
       await api(editing ? 'PATCH' : 'POST', {
         id: editing?.id,
@@ -488,16 +400,15 @@ if (root) {
           ...values,
           themes,
           usages,
-          event,
-          needs_primary: values.needs_primary === 'on',
+          event: editing?.event ?? null,
+          needs_primary: editing?.needs_primary ?? false,
         },
       })
       selectedWeek = values.week
+      if (watchUsed({ usages })) clearStatusFilter()
       await load()
       editor.close()
-      feedback.textContent = addingEvent
-        ? 'Événement ajouté à l’agenda. La fiche de veille est enregistrée.'
-        : 'Brouillon enregistré.'
+      feedback.textContent = 'Brouillon enregistré.'
     } catch (e) {
       $('#vw-save-feedback').textContent = (e as Error).message
     } finally {

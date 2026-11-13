@@ -9,7 +9,7 @@ import {
   watchUsed,
   currentWatchWeek,
 } from '../src/lib/thematic-watch'
-import { listAgenda, decideAgendaEvent } from '../src/lib/event-agenda'
+import { listAgenda } from '../src/lib/event-agenda'
 import type { WorkspaceDatabase } from '../src/lib/internal-workspace'
 const selection = JSON.parse(readFileSync('drafts/veille-2026-11-09.json', 'utf8'))
 export function watchFixture() {
@@ -36,14 +36,14 @@ export function watchFixture() {
 }
 const facts = (index = 0) => ({ ...selection.items[index], week: selection.week })
 const auto = { automated: true, provenance: 'recherche web', today: '2026-11-13' }
-test('initial seven sources validate, are idempotent across weeks and create one agenda event', async () => {
+test('initial seven sources validate, are idempotent across weeks without writing to the agenda', async () => {
   const { db, sql } = watchFixture()
   for (const f of selection.items)
     await saveWatch(db, { ...f, week: selection.week }, 'agent', auto)
   for (const f of selection.items)
     expect((await saveWatch(db, { ...f, week: '2026-11-16' }, 'agent', auto)).skipped).toBe(true)
   expect(await listWatch(db)).toHaveLength(7)
-  expect(await listAgenda(db)).toHaveLength(1)
+  expect(await listAgenda(db)).toHaveLength(0)
   sql.close()
 })
 test('human authorship and statuses survive import; old links stay blocked after editing and deletion', async () => {
@@ -109,46 +109,13 @@ test('usage statuses remain independent; adding or removing usages never publish
   )
   expect(currentWatchWeek('2026-11-15')).toBe('2026-11-09')
 })
-test('agenda decisions and human facts are never overwritten by a watch edit; rollback on event error', async () => {
+test('watch event usage and metadata never write to the agenda', async () => {
   const { db, sql } = watchFixture()
+  sql.exec("CREATE TRIGGER reject_event BEFORE INSERT ON event_agenda BEGIN SELECT RAISE(ABORT,'test'); END")
   const { id } = await saveWatch(db, facts(3), 'agent', auto)
-  const [event] = await listAgenda(db)
-  await decideAgendaEvent(
-    db,
-    event.id,
-    { status: 'confirmé', attendance: ['Pauline'], version: 1 },
-    'team',
-  )
   const [item] = await listWatch(db)
-  await saveWatch(
-    db,
-    { ...item, event: { ...item.event, interest: 'Nouveau texte veille' } },
-    'team',
-    { id, version: 1, today: '2026-11-13' },
-  )
-  const [after] = await listAgenda(db)
-  expect(after.status).toBe('confirmé')
-  expect(after.interest).toBe(event.interest)
-  sql.exec(
-    "CREATE TRIGGER reject_event BEFORE INSERT ON event_agenda BEGIN SELECT RAISE(ABORT,'test'); END",
-  )
-  await expect(
-    saveWatch(
-      db,
-      {
-        ...facts(3),
-        title: 'Autre événement',
-        link: 'https://example.test/new',
-        event: {
-          ...facts(3).event,
-          title: 'Autre événement',
-          registration_url: 'https://example.test/new',
-        },
-      },
-      'team',
-      {},
-    ),
-  ).rejects.toThrow()
+  await saveWatch(db, { ...item, event: { ...item.event, interest: 'Texte modifié' } }, 'team', { id, version: 1, today: '2026-11-13' })
+  expect(await listAgenda(db)).toHaveLength(0)
   expect(await listWatch(db)).toHaveLength(1)
   sql.close()
 })
@@ -166,7 +133,7 @@ test('reject bad URLs, old unsourced imports, fabricated statuses, duplicates an
   ).toThrow()
   expect(() =>
     parseWatchFacts({ ...facts(), usages: [{ name: 'Événement', status: 'à faire' }] }),
-  ).toThrow()
+  ).not.toThrow()
   expect(() =>
     parseWatchFacts({
       ...facts(3),

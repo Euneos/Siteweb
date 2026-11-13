@@ -1,5 +1,5 @@
 import { WorkspaceError, safeLink, type WorkspaceDatabase } from './internal-workspace'
-import { agendaToday, eventDedupKey, parseEventFacts, type EventFacts } from './event-agenda'
+import { agendaToday, parseEventFacts, type EventFacts } from './event-agenda'
 export const watchThemes = [
   'santé mentale',
   'CPS',
@@ -186,8 +186,6 @@ export function parseWatchFacts(
     fail('Justifiez le retour dans l’actualité de ce sujet ancien ou sans date.')
   const read_note = txt(x.read_note ?? '', 2000, automated)
   const event = x.event ? parseEventFacts(x.event, automated ? today : '1900-01-01') : null
-  if (usages.some((u) => u.name === 'Événement') && !event)
-    fail('Indiquez les informations vérifiées de l’événement pour l’ajouter à l’agenda.')
   return {
     title: txt(x.title, 300, true),
     link: watchLink(x.link),
@@ -224,7 +222,7 @@ export async function listWatch(db: WorkspaceDatabase, includeDeleted = false) {
   return (
     await db
       .prepare(
-        "SELECT * FROM thematic_watch WHERE (?=1 OR deleted_at='') ORDER BY week DESC,updated_at,id",
+        "SELECT * FROM thematic_watch WHERE (?=1 OR deleted_at='') ORDER BY week DESC,json_extract(payload,'$.published_on') DESC,id",
       )
       .bind(includeDeleted ? 1 : 0)
       .all()
@@ -339,37 +337,6 @@ export async function saveWatch(
         )
         .bind(k, id, mutation, k, id),
     )
-  if (f.event) {
-    const e = f.event,
-      eid = crypto.randomUUID()
-    // Never overwrite an agenda decision, manually edited facts or its trash.
-    stmts.push(
-      db
-        .prepare(
-          `INSERT OR IGNORE INTO event_agenda(id,dedup_key,title,organizer,starts_on,city,region,modality,access,pillars_json,interest,registration_url,sources_json) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,? FROM thematic_watch WHERE id=? AND mutation_id=? AND NOT EXISTS(SELECT 1 FROM event_agenda WHERE dedup_key=? OR (registration_url<>'' AND registration_url=? AND starts_on=?))`,
-        )
-        .bind(
-          eid,
-          eventDedupKey(e),
-          e.title,
-          e.organizer,
-          e.starts_on,
-          e.city,
-          e.region,
-          e.modality,
-          e.access,
-          JSON.stringify(e.pillars),
-          e.interest,
-          e.registration_url,
-          JSON.stringify(e.sources),
-          id,
-          mutation,
-          eventDedupKey(e),
-          e.registration_url,
-          e.starts_on,
-        ),
-    )
-  }
   const results = await db.batch(stmts)
   if (results[0].meta.changes !== 1)
     throw new WorkspaceError(409, 'Cette fiche a changé. Rechargez avant de réessayer.')

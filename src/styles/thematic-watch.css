@@ -164,8 +164,9 @@
   background: #edf0ed;
   color: var(--noir);
 }
-.vw-tag--yellow {
-  background: var(--jaune-clair);
+.vw-tag--needs-source {
+  background: #f9dada;
+  color: var(--noir);
 }
 .vw-tag--rose {
   background: var(--rose-clair);
@@ -245,6 +246,11 @@
 .vw-card--used {
   background: #f7f8f7;
   border-color: #dce1dd;
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.vw-card--used:focus-within {
+  opacity: 0.8;
 }
 .vw-card--used h3 {
   text-decoration: line-through;
@@ -288,6 +294,9 @@
   color: var(--vert);
 }
 .vw-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(52rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);
   overflow: auto;

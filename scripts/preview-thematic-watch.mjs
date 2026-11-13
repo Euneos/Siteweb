@@ -200,9 +200,17 @@ else {
     await expect(agendaPage.locator('[data-pillar]')).toHaveCount(4)
     await expect(agendaPage.locator('.agenda-legend [data-tag-filter="pillar"]')).toHaveCount(0)
     await agendaPage.locator('[data-pillar="éducation"]').click()
-    await expect(agendaPage.locator('[data-pillar="éducation"]')).toHaveAttribute('aria-pressed','true')
-    await agendaPage.getByRole('button',{name:'Retirer le filtre : éducation',exact:true}).click()
-    await expect(agendaPage.locator('[data-pillar="éducation"]')).toHaveAttribute('aria-pressed','false')
+    await expect(agendaPage.locator('[data-pillar="éducation"]')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await agendaPage
+      .getByRole('button', { name: 'Retirer le filtre : éducation', exact: true })
+      .click()
+    await expect(agendaPage.locator('[data-pillar="éducation"]')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
     for (const theme of ['santé mentale', 'CPS', 'numérique', 'éducation']) {
       const color = await agendaPage
         .locator(`[data-pillar="${theme}"]`)
@@ -233,31 +241,56 @@ else {
     await page.locator('[name=summary]').fill('Résumé corrigé.')
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(manual).toContainText('Résumé corrigé.')
+    const orderBeforeUsage = await page
+      .locator('.vw-card')
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.id))
     for (const status of ['brouillon', 'fait']) {
+      if (status === 'fait')
+        await page.locator('[data-filter="status"][data-value="brouillon"]').click()
       await manual.locator('.vw-usage:not(.vw-usage--add)').click()
       await expect(manual.locator('.vw-usage').first()).toContainText(status)
     }
-    await expect(page.locator('#vw-used')).toContainText('Fiche manuelle de recette')
-    // Removing an usage returns it to À traiter, including a zero-usage card.
+    await expect(manual).toHaveClass(/vw-card--used/)
+    await expect(page.locator('#vw-todo')).toContainText('Fiche manuelle de recette')
+    await expect(page.locator('[data-filter="status"][data-value=""]')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(
+      await page.locator('.vw-card').evaluateAll((nodes) => nodes.map((n) => n.dataset.id)),
+    ).toEqual(orderBeforeUsage)
+    await page.locator('#vw-search').focus()
+    expect(await manual.evaluate((e) => getComputedStyle(e).opacity)).toBe('0.45')
+    expect(
+      await page
+        .locator('.vw-tag--needs-source')
+        .first()
+        .evaluate((e) => getComputedStyle(e).backgroundColor),
+    ).toBe('rgb(249, 218, 218)')
+    await page.reload()
+    await expect(manual).toHaveClass(/vw-card--used/)
+    await expect(page.locator('#vw-todo')).toContainText('Fiche manuelle de recette')
+    expect(
+      await page.locator('.vw-card').evaluateAll((nodes) => nodes.map((n) => n.dataset.id)),
+    ).toEqual(orderBeforeUsage)
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await manual.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: new URL(`utilisee-${width}.png`, output).pathname })
+    }
+    // Removing an usage removes the used styling; the card stays in place.
     await manual.getByRole('button', { name: 'Modifier', exact: true }).click()
     await page.getByRole('button', { name: 'Retirer cet usage', exact: true }).click()
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(page.locator('#vw-todo')).toContainText('Fiche manuelle de recette')
-    await manual.getByRole('button', { name: 'Ajouter à l’agenda', exact: true }).click()
-    await expect(page.locator('#vw-event-details')).toHaveAttribute('open', '')
-    await expect(page.locator('[name=event_title]')).toHaveValue('Fiche manuelle de recette')
-    await page.locator('[name=event_organizer]').fill('Organisateur fictif · recette locale')
-    await page
-      .locator('[name=event_starts_on]')
-      .fill(new Date(Date.parse(selection.checked_on) + 7 * 86400000).toISOString().slice(0, 10))
-    await page.locator('[name=theme][value="CPS"]').check()
-    await page
-      .getByRole('button', { name: 'Ajouter à l’agenda et enregistrer', exact: true })
-      .click()
-    await expect(page.locator('#vw-editor')).not.toBeVisible()
-    await expect(
-      manual.getByRole('link', { name: 'Voir dans l’agenda →', exact: true }),
-    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Ajouter à l’agenda', exact: true })).toHaveCount(0)
+    await manual.getByRole('button', { name: 'Modifier', exact: true }).click()
+    await expect(page.locator('#vw-event-details')).toHaveCount(0)
+    const dialogBox = await page.locator('#vw-editor').boundingBox()
+    const viewport = page.viewportSize()
+    expect(Math.abs(dialogBox.x + dialogBox.width / 2 - viewport.width / 2)).toBeLessThan(2)
+    expect(Math.abs(dialogBox.y + dialogBox.height / 2 - viewport.height / 2)).toBeLessThan(2)
+    await page.getByRole('button', { name: 'Fermer', exact: true }).first().click()
     page.once('dialog', (d) => d.dismiss())
     await manual.getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(manual).toHaveCount(1)
@@ -280,7 +313,7 @@ else {
       (await page.request.get(origin + '/api/interne/veille')).headers()['cache-control'],
     ).toContain('no-store')
     const agenda = await page.request.get(origin + '/api/interne/agenda-evenements')
-    expect((await agenda.json()).events).toHaveLength(2)
+    expect((await agenda.json()).events).toHaveLength(0)
     await expect(
       page.getByRole('link', { name: 'Consulter l’ancien tableau de veille' }),
     ).toHaveCount(0)

@@ -38,10 +38,6 @@ const filters = [
         >Semaine<select id="vw-week" aria-label="Semaine de veille"></select></label
       >
     </header>
-    <p class="vw-draft">
-      Propositions à relire · Aucune publication LinkedIn, aucun envoi de newsletter ni prise de
-      contact automatique.
-    </p>
     <section class="vw-filters" aria-label="Filtres de la veille">
       {
         filters.map(([key, label, values]) => (
@@ -103,31 +99,10 @@ const filters = [
     <p id="vw-feedback" class="iw-feedback" role="status" aria-live="polite">
       Chargement de la veille…
     </p>
-    <p id="vw-count" class="iw-small" aria-live="polite"></p>
     <section class="vw-group" aria-labelledby="vw-todo-title">
-      <h2 id="vw-todo-title">À traiter <span id="vw-todo-count"></span></h2><div id="vw-todo"></div>
+      <h2 id="vw-todo-title">Les sujets <span id="vw-todo-count"></span></h2><div id="vw-todo">
+      </div>
     </section>
-    <section class="vw-group" aria-labelledby="vw-used-title">
-      <h2 id="vw-used-title">Utilisées <span id="vw-used-count"></span></h2><div id="vw-used">
-      </div><p class="iw-small iw-muted">
-        Une fiche passe dans « Utilisées » quand tous ses usages sont faits ou abandonnés. Elle
-        reste consultable et modifiable.
-      </p>
-    </section>
-    <details class="vw-method">
-      <summary>Recherche, sources et rythme de mise à jour</summary><p>
-        Veille préparée le lundi à 12 h, heure de Paris, lorsque les sources connectées sont
-        accessibles. Les propositions et brouillons restent à relire par l’équipe avant leur
-        utilisation.
-      </p><p id="vw-coverage">
-        La couverture des sources apparaîtra après la première sélection.
-      </p><p>
-        Chaque sélection vise 6 à 10 sujets des quinze derniers jours. Un sujet ancien comporte une
-        raison de le reprendre. L’agent lit le contenu avant de résumer, vérifie le périmètre des
-        chiffres et signale les rapprochements supposés. Les fiches retouchées par l’équipe et les
-        sujets supprimés ne sont jamais réimportés.
-      </p><a href="/interne/communication/agenda-evenements">Ouvrir l’Agenda des événements →</a>
-    </details>
     <noscript><p>Activez JavaScript pour lire et modifier les fiches.</p></noscript>
   </div>
   <dialog id="vw-editor" class="vw-dialog" aria-labelledby="vw-editor-title">
@@ -167,16 +142,6 @@ const filters = [
           ></label
         >
       </fieldset>
-      <details id="vw-event-details">
-        <summary>Informations de l’événement</summary><p class="iw-small">
-          Requises pour un usage « Événement ». Le rendez-vous sera aussi ajouté à l’agenda, sans
-          modifier une décision existante. Retirer cet usage ou supprimer la fiche ne supprime pas
-          l’événement de l’agenda.
-        </p><div id="vw-event-fields" class="vw-form-grid"></div>
-      </details>
-      <label class="vw-checkbox"
-        ><input name="needs_primary" type="checkbox" />À sourcer sur la source primaire</label
-      >
       <p id="vw-save-feedback" class="iw-feedback" role="status"></p><button
         type="submit"
         id="vw-save"

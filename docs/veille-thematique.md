@@ -9,14 +9,14 @@ plusieurs modifications en cours, n’a pas été touché.
 Sous-page `/interne/communication/veille` dans l’espace Communication, avec le même accès
 équipe Cloudflare Access et les mêmes protections `no-store` que les autres pages internes.
 En-tête vert, semaine sélectionnable, filtres par thème, usage, provenance, source et statut,
-recherche textuelle, sections À traiter / Utilisées. Les catégories se croisent avec ET ; un
+recherche textuelle et liste unique des sujets. Les catégories se croisent avec ET ; un
 seul choix actif par catégorie. Le statut est filtré sur l’usage choisi quand ce filtre existe.
 Les textes s’affichent comme du texte, jamais comme du HTML fourni par une source.
 
 Chaque usage a son statut indépendant : à faire → brouillon → fait → abandonné → à faire.
 Son bouton fait avancer le statut d’un clic. Le formulaire permet de choisir directement
 le statut, de rédiger le brouillon, d’ajouter ou retirer un usage. Aucun usage ne déclenche
-de publication ou d’envoi. Sans usage, une fiche reste À traiter.
+de publication ou d’envoi. Sans usage, une fiche reste à traiter. Les fiches utilisées restent à leur place dans la liste : titre barré, niveaux de gris et opacité de 45 %. Seule une suppression les retire. Le filtre de statut revient à Tous après un changement de statut pour conserver la fiche visible.
 
 L’ajout et la modification utilisent l’identité serveur vérifiée. La provenance initiale et
 l’auteur sont conservés comme métadonnées d’audit ; les autres champs sont modifiables.
@@ -40,16 +40,9 @@ les lignes réellement présentes lors du déploiement.
 
 ## Agenda
 
-Un usage Événement exige un organisateur, une date, une modalité, un lieu si nécessaire et
-une source vérifiés. La fiche et l’ajout à l’agenda sont dans une seule transaction. Un événement
-existant (y compris dans la corbeille) n’est pas réécrit : les décisions, présences et faits
-saisis dans l’agenda sont préservés. Enlever l’usage ou supprimer la fiche ne supprime pas
-le rendez-vous de l’agenda. Les deux suivis peuvent évoluer indépendamment.
-
-L’agenda actuel couvre Île-de-France, Occitanie et en ligne. Le formulaire de cette proposition
-reprend ces périmètres sans élargissement silencieux. Un événement en dehors de ce périmètre
-peut rester une piste dans le texte d’une fiche, mais l’ajout à l’agenda exige une évolution de
-ses règles. Ne pas inventer la région ou la modalité pour contourner cette limite.
+L’usage Événement reste une piste de travail. La veille ne propose plus de bouton d’ajout
+à l’agenda ni de formulaire d’événement et ne crée aucun rendez-vous lors d’une sauvegarde.
+Les événements déjà présents dans l’agenda sont conservés.
 
 ## Recherche hebdomadaire
 
@@ -101,7 +94,7 @@ jamais à l’ouverture d’une page ou dans une migration de production.
    Hors liste : au moins deux thèmes et une phrase explicite de rapprochement.
 8. Proposer Post LinkedIn / Encart newsletter / Idée d’édito / Événement / Contact-partenariat,
    initialement à faire ou brouillon. Textes factuels sans slogan ni superlatif ; numérique
-   présenté comme amplificateur. Préparer les événements vérifiés pour l’agenda.
+   présenté comme amplificateur. Signaler les événements vérifiés comme pistes, sans ajout automatique à l’agenda.
 9. Écrire un JSON daté du même format que le brouillon fourni, avec bilan de couverture des
    trois canaux, limites d’accès et motifs de sélection. Importer les nouvelles propositions dans la page interne ; aucun post, email ou contact ne doit être envoyé.
 
@@ -126,7 +119,7 @@ bun scripts/veille-sync.ts import /chemin/prive/selection.json
 
 Le JSON contient `items`, chaque fiche comprenant `week` (lundi) et `provenance`.
 Le transport refuse les modifications, les usages terminés et les ajouts d’événements :
-ceux-ci restent une action explicite depuis la fiche pour préserver l’agenda existant.
+la gestion des rendez-vous se fait uniquement sur la page Agenda.
 Les écritures d’une fiche et de ses clés sont un seul lot transactionnel D1.
 Lire les fiches et suppressions avant toute sélection ; dédupliquer aussi par sujet.
 Après import, contrôler le reçu chiffré et le rendu réel. En cas de réponse perdue,
@@ -180,14 +173,6 @@ Le champ « Format de la ressource » est distinct du type de source et de la pr
 article, post LinkedIn, post Instagram, vidéo, podcast, livre, film/documentaire, newsletter,
 rapport/étude, webinaire, BD/manga ou autre. Il est modifiable dans le formulaire.
 
-## Ajout direct à l’agenda depuis une fiche
-
-Chaque fiche sans événement propose « Ajouter à l’agenda ». Le formulaire s’ouvre
-directement sur les informations du rendez-vous, avec le titre et le lien préremplis
-et l’usage Événement ajouté. L’équipe complète notamment la date et l’organisateur.
-L’enregistrement ajoute le rendez-vous à l’agenda et sauvegarde la fiche dans une seule
-transaction, sans modifier un événement existant. Le bouton devient « Voir dans l’agenda ».
-
 ## Couleurs de thèmes communes — 13 novembre
 
 Agenda et veille partagent topic-tags.css : santé mentale jaune pâle, CPS rose foncé,
@@ -197,3 +182,8 @@ explicitement demandée par Pauline pour les pages internes. Les couleurs de sta
 et de présence de l’agenda restent indépendantes des thèmes.
 
 L’agenda ne présente plus qu’une seule série de quatre filtres de thèmes.
+
+Le badge « à sourcer » utilise un rouge clair (#f9dada). L’ordre des fiches dépend de la semaine, de la date de parution et de leur identifiant, sans déplacement lors du changement de statut.
+
+Le formulaire de modification est centré dans la fenêtre avec un défilement intérieur.
+Les sources affichent un lien explicite « Lire la source ». Les notices de méthode et les compteurs redondants ont été retirés de la page.
