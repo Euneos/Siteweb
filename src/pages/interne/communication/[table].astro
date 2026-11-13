@@ -357,6 +357,17 @@ const definition = communicationTables[table]
   #communication-table[data-table='partenariats'] .com-table tr td.com-priority[data-priority='C'] {
     background: #f5d76e;
   }
+  #communication-table[data-table='partenariats'] .com-table.com-table--discarded tr td,
+  #communication-table[data-table='partenariats']
+    .com-table--discarded
+    tr
+    td.com-priority[data-priority] {
+    background: #e3e5e4;
+    color: var(--noir);
+  }
+  #communication-table[data-table='partenariats'] .com-table--discarded tr td a {
+    color: var(--noir);
+  }
 </style>
 
 <style is:global>

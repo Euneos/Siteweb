@@ -500,6 +500,8 @@ if (root) {
       scroll.setAttribute('aria-label', selected.title)
       const table = el('table')
       table.className = 'com-table'
+      if (root!.dataset.table === 'partenariats' && norm(selected.title).trim() === 'a ecarter')
+        table.classList.add('com-table--discarded')
       const caption = el('caption', selected.title)
       caption.className = 'iw-sr-only'
       table.append(caption)
