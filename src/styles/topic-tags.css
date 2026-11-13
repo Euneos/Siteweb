@@ -1,0 +1,39 @@
+/* Internal theme labels: one mapping across the agenda and thematic watch.
+   Education uses pale blue by Pauline's explicit request, 13 November 2026. */
+.euneos-topic--mental {
+  --topic-bg: #fff1c3;
+  --topic-fg: #101312;
+}
+.euneos-topic--cps {
+  --topic-bg: var(--rose-fold);
+  --topic-fg: #101312;
+}
+.euneos-topic--digital {
+  --topic-bg: #4b5150;
+  --topic-fg: #fff;
+}
+.euneos-topic--education {
+  --topic-bg: #c5d4ff;
+  --topic-fg: #101312;
+}
+.euneos-topic--young {
+  --topic-bg: #b5913d;
+  --topic-fg: #101312;
+}
+.euneos-topic--relations {
+  --topic-bg: #fce3d8;
+  --topic-fg: #101312;
+}
+.euneos-topic--emotions {
+  --topic-bg: #f8c702;
+  --topic-fg: #101312;
+}
+.iw-body .euneos-topic[data-topic] {
+  background: var(--topic-bg);
+  border-color: var(--topic-bg);
+  color: var(--topic-fg);
+}
+.iw-body .euneos-topic[data-topic][aria-pressed='true'] {
+  outline: 2px solid #303735;
+  outline-offset: 2px;
+}

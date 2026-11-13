@@ -1,3 +1,4 @@
+import { topicClass } from '../lib/topic-tags'
 import { agendaMonths, agendaToday, type AgendaEvent } from '../lib/event-agenda'
 const root = document.getElementById('event-agenda')
 if (root) {
@@ -36,13 +37,6 @@ if (root) {
     button.addEventListener('click', () => toggleFilter(key, value))
     return button
   }
-  const pillClass = (p: string) =>
-    ({
-      'santé mentale': 'agenda-tag--mental',
-      CPS: 'agenda-tag--cps',
-      numérique: 'agenda-tag--digital',
-      éducation: 'agenda-tag--education',
-    })[p] || ''
   const date = (s: string, opts: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat('fr-FR', { ...opts, timeZone: 'UTC' }).format(
       new Date(s + 'T12:00:00Z'),
@@ -92,7 +86,11 @@ if (root) {
         'access',
       ),
     )
-    e.pillars.forEach((p) => tags.append(tag(p, pillClass(p), 'pillar')))
+    e.pillars.forEach((p) => {
+      const chip = tag(p, topicClass(p), 'pillar')
+      chip.dataset.topic = p
+      tags.append(chip)
+    })
     tags.append(
       tag(
         e.status,

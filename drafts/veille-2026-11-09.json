@@ -1,0 +1,188 @@
+{
+  "week": "2026-11-09",
+  "checked_on": "2026-11-13",
+  "coverage": "Brouillon préparé le 13 novembre 2026. Recherche web : sources institutionnelles et acteurs du secteur lus. Gmail : aucun message trouvé avec label:Newsletters after:2026/10/29 before:2026/11/14. LinkedIn : les abonnements du compte EUNEOS ne sont pas accessibles dans cette session, aucun contenu n’est attribué à ce canal. Sources anciennes reprises : justification sur chaque fiche. Aucun contact envoyé.",
+  "items": [
+    {
+      "title": "Cyberharcèlement : la campagne « Tu as le choix » donne un rôle aux témoins",
+      "link": "https://www.education.gouv.fr/non-au-harcelement/les-campagnes-de-sensibilisation-323026",
+      "summary": "La campagne nationale lancée le 5 novembre s’adresse aux adolescents et porte sur les effets des paroles échangées en ligne. Son affiche s’appuie sur une vidéo créée par des lycéens ; des ressources pédagogiques sont proposées aux équipes éducatives.",
+      "for_euneos": "Préparer un post sur la manière dont un témoin peut agir et sur les compétences relationnelles à travailler en classe. Partager la ressource avec les établissements accompagnés en présentant le numérique comme un amplificateur de situations relationnelles.",
+      "source": "Ministère de l’Éducation nationale",
+      "published_on": "2026-11-05",
+      "themes": ["numérique", "jeunes", "éducation", "relations sociales"],
+      "source_type": "officielle",
+      "provenance": "recherche web",
+      "read_note": "Page lue : présentation de la campagne 2026-2027, origine de l’affiche et liens pédagogiques. Aucun chiffre de prévalence repris.",
+      "usages": [
+        {
+          "name": "Post LinkedIn",
+          "status": "brouillon",
+          "draft": "Dans un groupe de classe, les échanges en ligne peuvent prolonger et amplifier des tensions. La campagne « Tu as le choix » propose un support pour en parler avec les élèves. Un angle à travailler : ce que chacun peut faire lorsqu’un camarade est visé, et les compétences nécessaires pour intervenir ou demander de l’aide.\nSource : ministère de l’Éducation nationale, 5 novembre 2026.\nBrouillon à relire par l’équipe EUNEOS."
+        },
+        {
+          "name": "Encart newsletter",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "format": "Article"
+    },
+    {
+      "title": "Baromètre e-Enfance : examiner la recherche de soutien auprès de l’IA",
+      "link": "https://e-enfance.org/barometre-2026-harcelement-cyberharcelement-jeunes/",
+      "summary": "Le baromètre distingue les violences vécues à l’école et celles qui se prolongent dans les espaces numériques. Il documente aussi le recours à l’IA par certains jeunes victimes pour chercher du soutien, sans établir l’efficacité clinique de ces outils.",
+      "for_euneos": "Proposer un édito sur la place de l’écoute humaine lorsque des jeunes se confient à une IA. Vérifier le questionnaire et la méthode avant toute comparaison ou généralisation aux seuls collégiens.",
+      "source": "Association e-Enfance · institut George(s)",
+      "published_on": "2026-10-29",
+      "themes": ["santé mentale", "numérique", "jeunes", "relations sociales"],
+      "source_type": "acteur du secteur",
+      "provenance": "recherche web",
+      "quotes": "« 25 % » : part des jeunes victimes de harcèlement ou de cyberharcèlement déclarant avoir utilisé une IA pour obtenir du soutien ou des conseils. Baromètre réalisé en septembre 2026 auprès de 1 612 binômes parents-enfants de 6 à 18 ans ; ce pourcentage concerne les victimes, pas l’ensemble des jeunes.",
+      "read_note": "Article de restitution lu, notamment protocole annoncé, section sur le soutien par IA et conséquences. Étude soutenue par la Caisse d’Épargne : financement signalé, sans reprendre de promotion commerciale. Infographie et questionnaire à relire avant publication d’un chiffre.",
+      "needs_primary": true,
+      "usages": [
+        {
+          "name": "Idée d’édito",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "format": "Article"
+    },
+    {
+      "title": "Privacy for Kids : des ressources européennes pour l’éducation au numérique",
+      "link": "https://www.cnil.fr/fr/cepd-privacy-for-kids",
+      "summary": "Le Comité européen de la protection des données rassemble des outils pédagogiques proposés par les autorités européennes. La plateforme s’adresse aux familles et aux professionnels de l’éducation, avec des ressources sur la vie privée, les droits et les usages en ligne.",
+      "for_euneos": "Sélectionner une ressource en français adaptée au collège et la proposer dans la newsletter. Tester le support avec un formateur avant de le recommander aux établissements.",
+      "source": "CNIL · Comité européen de la protection des données",
+      "published_on": "2026-11-04",
+      "themes": ["numérique", "jeunes", "éducation"],
+      "source_type": "officielle",
+      "provenance": "recherche web",
+      "read_note": "Article CNIL lu : publics, variété des formats, thèmes et liens vers les ressources françaises. Les ressources liées n’ont pas encore été testées en atelier.",
+      "usages": [
+        {
+          "name": "Encart newsletter",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "format": "Article"
+    },
+    {
+      "title": "Un webinaire Canopé relie coopération, CPS et développement durable",
+      "link": "https://www.canotech.fr/s/40169/les-competences-psychosociales-un-levier-pour-eduquer-au-developpement-durable",
+      "summary": "Le webinaire présente des activités qui mobilisent l’empathie, la communication et la coopération dans l’éducation au développement durable. Une session en ligne est annoncée le 18 novembre, avec une clôture des inscriptions le 16 novembre au soir.",
+      "for_euneos": "Vérifier les places disponibles et décider si une personne de l’équipe y participe. Repérer les exemples transférables au collège et les interlocuteurs du réseau Canopé pour un premier échange.",
+      "connection": "Le développement durable est un sujet voisin : l’intérêt pour EUNEOS tient au travail des CPS, de la coopération et de l’engagement des jeunes.",
+      "source": "Réseau Canopé · CanoTech",
+      "published_on": "",
+      "publication_label": "Date de publication non indiquée",
+      "themes": ["CPS", "éducation", "relations sociales", "jeunes"],
+      "source_type": "officielle",
+      "provenance": "recherche web",
+      "deadline": "Inscription avant le 16/11 à 23 h",
+      "relevance": "Session du 18 novembre 2026 et clôture des inscriptions le 16 novembre : décision à prendre cette semaine.",
+      "read_note": "Descriptif indexé lu au-delà du titre : objectifs, contenu, durée, intervenantes, session et échéance. La page directe nécessite JavaScript ; disponibilité des places à vérifier sur CanoTech.",
+      "usages": [
+        {
+          "name": "Événement",
+          "status": "à faire",
+          "draft": ""
+        },
+        {
+          "name": "Contact-partenariat",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "event": {
+        "title": "CPS : un levier pour éduquer au développement durable",
+        "organizer": "Réseau Canopé · CanoTech",
+        "starts_on": "2026-11-18",
+        "city": "",
+        "region": "En ligne",
+        "modality": "en ligne",
+        "access": "",
+        "pillars": ["CPS", "éducation"],
+        "interest": "Examiner des activités de coopération transférables au collège et identifier les intervenantes. Places et conditions à vérifier.",
+        "registration_url": "https://www.canotech.fr/s/40169/les-competences-psychosociales-un-levier-pour-eduquer-au-developpement-durable",
+        "sources": [
+          "Veille web · CanoTech, descriptif lu le 13 novembre 2026 · session du 18 novembre · date de publication non indiquée"
+        ]
+      },
+      "format": "Webinaire"
+    },
+    {
+      "title": "CPS : un cadre pour articuler émotions, stress et difficultés relationnelles",
+      "link": "https://www.santepubliquefrance.fr/index.php/docs/referentiel/les-competences-psychosociales-un-referentiel-operationnel-a-destination-des-0",
+      "summary": "La présentation du tome II du référentiel de Santé publique France relie la maîtrise de soi, la régulation émotionnelle et la résolution des difficultés relationnelles. Ce volume vise les professionnels déjà formés et propose une progression pour structurer leurs interventions.",
+      "for_euneos": "Préparer avec les formateurs un encart expliquant comment s’articulent les compétences émotionnelles et sociales. Comparer le vocabulaire utilisé par EUNEOS à celui du référentiel avant rédaction.",
+      "source": "Santé publique France",
+      "published_on": "2026-02-02",
+      "publication_label": "Présentation mise à jour le 19 octobre 2026",
+      "themes": ["CPS", "émotions", "relations sociales", "santé mentale"],
+      "source_type": "scientifique",
+      "provenance": "recherche web",
+      "relevance": "Référence ancienne reprise pour préparer le webinaire CPS du 18 novembre et étayer le prochain encart, sans la présenter comme une nouvelle publication.",
+      "read_note": "Présentation détaillée du tome II lue, dont les catégories et la progression. Le volume complet n’a pas été lu : aucune conclusion issue de ses pages internes n’est avancée.",
+      "usages": [
+        {
+          "name": "Encart newsletter",
+          "status": "brouillon",
+          "draft": "Les compétences psychosociales relient plusieurs apprentissages : comprendre ce que l’on ressent, réguler ses réactions et résoudre des difficultés dans les relations. Le tome II du référentiel de Santé publique France donne un cadre aux professionnels déjà formés. Il peut aider notre équipe à préciser les objectifs d’un atelier et à construire une progression.\nSource : présentation du tome II, Santé publique France.\nBrouillon à relire avec les formateurs."
+        }
+      ],
+      "format": "Rapport / étude"
+    },
+    {
+      "title": "UNICEF : préparer la lecture des résultats sur la santé mentale des enfants",
+      "link": "https://www.unicef.fr/article/des-3-ans-les-enfants-ont-des-choses-a-nous-dire-lunicef-france-devoile-les-premiers-resultats-de-sa-7e-consultation-nationale/",
+      "summary": "L’UNICEF annonce la présentation du rapport complet de sa consultation nationale le 17 novembre. Le premier volet publié porte sur de jeunes enfants et souligne l’importance d’un cadre adapté pour recueillir leur parole ; il ne permet pas de généraliser à tous les enfants.",
+      "for_euneos": "Mettre le rapport complet à l’ordre du jour de la prochaine veille et vérifier ce qu’il dit des adolescents. Préparer un angle d’édito sur la place de leur parole dans la conception des actions, sans transposer les résultats du volet maternelle au collège.",
+      "source": "UNICEF France",
+      "published_on": "2026-10-08",
+      "themes": ["santé mentale", "jeunes", "émotions", "éducation"],
+      "source_type": "acteur du secteur",
+      "provenance": "recherche web",
+      "deadline": "Rapport annoncé le 17/11",
+      "relevance": "Publication du rapport complet annoncée le 17 novembre : préparer sa lecture cette semaine, sans annoncer ses résultats à l’avance.",
+      "read_note": "Communiqué lu en entier, dont les limites de l’étude pilote et la date annoncée du rapport complet. Aucun résultat du futur rapport n’est inventé. Le colloque n’est pas proposé comme événement ouvert : accès non établi.",
+      "usages": [
+        {
+          "name": "Idée d’édito",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "format": "Article"
+    },
+    {
+      "title": "Un manga de la CNIL pour discuter des deepfakes avec les adolescents",
+      "link": "https://www.cnil.fr/fr/audeladelecran",
+      "summary": "Le second tome de L’Agence Privacy utilise une fiction pour aborder les manipulations en ligne et la protection de la vie privée. La CNIL le présente comme un outil de médiation pour les acteurs de l’éducation au numérique, disponible gratuitement en ligne.",
+      "for_euneos": "Demander aux formateurs si ce support peut ouvrir une discussion sur la confiance, les émotions et l’esprit critique. Étudier ensuite une demande d’exemplaires papier au service de sensibilisation de la CNIL.",
+      "source": "CNIL",
+      "published_on": "2026-09-10",
+      "themes": ["numérique", "CPS", "jeunes", "émotions"],
+      "source_type": "officielle",
+      "provenance": "recherche web",
+      "relevance": "Ressource remise en avant dans la veille éducation numérique d’éduscol de novembre 2026 : https://eduscol.education.gouv.fr/6684/veille-education-numerique-2026-2027.",
+      "read_note": "Présentation CNIL et bulletin éduscol de novembre lus. Les chapitres du manga restent à examiner avec un formateur ; aucune validation pédagogique par EUNEOS n’est affirmée.",
+      "usages": [
+        {
+          "name": "Encart newsletter",
+          "status": "à faire",
+          "draft": ""
+        },
+        {
+          "name": "Contact-partenariat",
+          "status": "à faire",
+          "draft": ""
+        }
+      ],
+      "format": "BD / manga"
+    }
+  ]
+}

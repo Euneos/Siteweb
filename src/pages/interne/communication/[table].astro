@@ -5,6 +5,8 @@ import { getInternalContext, privateHeaders } from '../../../lib/internal-contex
 import { communicationTables, isCommunicationTable } from '../../../lib/communication'
 const context = await getInternalContext(Astro.request, Astro.locals)
 if (context instanceof Response) return context
+if (Astro.params.table === 'veille-tableau')
+  return Astro.redirect('/interne/communication/veille', 308)
 const table = Astro.params.table ?? ''
 if (!isCommunicationTable(table))
   return new Response('Page introuvable.', { status: 404, headers: privateHeaders })

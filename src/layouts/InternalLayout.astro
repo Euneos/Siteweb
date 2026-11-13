@@ -1,6 +1,7 @@
 ---
 import Brand from '../components/Brand.astro'
 import '../styles/global.css'
+import '../styles/topic-tags.css'
 import { internalEnvironment } from '../lib/internal-context'
 
 interface Props {
@@ -158,7 +159,7 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           <a href="/interne/communication/suivimedias" aria-current={current === 'suivimedias' ? 'page' : undefined}>Suivi médias</a>
           <a href="/interne/communication/partenariats" aria-current={current === 'partenariats' ? 'page' : undefined}>Partenariats</a>
           <a href="/interne/communication/agenda-evenements" aria-current={current === 'agenda' ? 'page' : undefined}>Agenda des événements</a>
-          <a href="/interne/communication/veille" aria-current={current === 'veille' ? 'page' : undefined}>Veille</a>
+          <a href="/interne/communication/veille" aria-current={current === 'veille' ? 'page' : undefined}>Veille thématique</a>
         </>}
         <a class="iw-button iw-button--primary iw-nav__return" href="/interne">Retour</a>
         <a class="iw-nav__public" href="/">Voir le site <span aria-hidden="true">↗</span></a>

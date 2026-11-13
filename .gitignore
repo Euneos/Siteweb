@@ -11,3 +11,7 @@ dist
 # Aperçus et échanges chiffrés de l’agenda (aucune donnée de newsletter versionnée)
 preview-agenda/
 agenda-response.enc.json
+
+# Private local thematic-watch preview state and captures
+preview-veille/
+veille-response.enc.json

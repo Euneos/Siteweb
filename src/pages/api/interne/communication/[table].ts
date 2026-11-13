@@ -21,6 +21,8 @@ export const GET: APIRoute = async ({ request, locals, params }) => {
     const context = await getInternalContext(request, locals)
     if (context instanceof Response) return context
     const table = params.table ?? ''
+    if (table === 'veille')
+      throw new WorkspaceError(410, 'La veille utilise désormais les fiches thématiques.')
     if (!isCommunicationTable(table)) throw new WorkspaceError(404, 'Tableau inconnu.')
     const sheets = await context.db
       .prepare(
@@ -57,7 +59,7 @@ export const GET: APIRoute = async ({ request, locals, params }) => {
     }))
     const destinations = await context.db
       .prepare(
-        'SELECT id,collection,title FROM communication_sheets WHERE guide=0 ORDER BY position',
+        "SELECT id,collection,title FROM communication_sheets WHERE guide=0 AND collection<>'veille' ORDER BY position",
       )
       .bind()
       .all<{ id: string; collection: string; title: string }>()
@@ -81,8 +83,11 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
     const context = await getInternalContext(request, locals)
     if (context instanceof Response) return context
     const table = params.table ?? ''
+    if (table === 'veille')
+      throw new WorkspaceError(410, 'La veille utilise désormais les fiches thématiques.')
     if (!isCommunicationTable(table)) throw new WorkspaceError(404, 'Tableau inconnu.')
     const body = await readInternalBody(request)
+    if (body.targetTable === 'veille') throw new WorkspaceError(410, 'La veille utilise désormais les fiches thématiques.')
     if (body.bulkAction) {
       const count = await mutateCommunicationRows(context.db, table, body, context.identity.email)
       return privateJson({ count })

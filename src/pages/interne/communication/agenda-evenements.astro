@@ -1,5 +1,6 @@
 ---
 export const prerender = false
+import { topicClass } from '../../../lib/topic-tags'
 import InternalLayout from '../../../layouts/InternalLayout.astro'
 import {
   getInternalContext,
@@ -62,10 +63,16 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
           ))
         }
       </div>
-      <div class="agenda-filters" role="group" aria-label="Piliers">
+      <div class="agenda-filters" role="group" aria-label="Thèmes">
         {
           ['santé mentale', 'CPS', 'numérique', 'éducation'].map((label) => (
-            <button type="button" data-pillar={label} aria-pressed="false">
+            <button
+              type="button"
+              class={topicClass(label)}
+              data-topic={label}
+              data-pillar={label}
+              aria-pressed="false"
+            >
               {label === 'CPS' ? label : label.charAt(0).toUpperCase() + label.slice(1)}
             </button>
           ))
@@ -74,10 +81,6 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
       <div class="agenda-legend" aria-label="Filtrer par étiquette">
         {
           [
-            ['pillar', 'santé mentale', 'mental'],
-            ['pillar', 'CPS', 'cps'],
-            ['pillar', 'numérique', 'digital'],
-            ['pillar', 'éducation', 'education'],
             ['status', 'confirmé', 'confirmed'],
             ['status', 'à décider', 'pending'],
             ['status', 'rejeté', 'rejected'],
@@ -397,21 +400,6 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
     font-size: 0.9em;
     line-height: 1.35;
   }
-  .agenda-tag--mental {
-    background: #fff1c3;
-    border-color: #fff1c3;
-    color: #5b4b13;
-  }
-  .agenda-tag--cps {
-    background: #f8e1ee;
-    border-color: #f8e1ee;
-    color: #6a3755;
-  }
-  .agenda-tag--digital {
-    background: #4b5150;
-    border-color: #4b5150;
-    color: white;
-  }
   .agenda-tag--pending {
     background: #e7e8e7;
     border-color: #e7e8e7;
@@ -421,11 +409,6 @@ const preview = internalEnvironment(Astro.locals).EVENT_AGENDA_PREVIEW === 'true
     background: #d6eadb;
     border-color: #d6eadb;
     color: #234c31;
-  }
-  .agenda-tag--education {
-    background: #fce3d8;
-    border-color: #fce3d8;
-    color: #6d3b25;
   }
   .agenda-tag--confirmed {
     background: var(--vert);
