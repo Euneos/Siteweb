@@ -124,6 +124,13 @@
   min-width: 0;
   flex: 1;
 }
+.vw-publication {
+  display: block;
+  margin-bottom: 0.6em;
+  font-size: var(--t-note);
+  font-weight: 700;
+  line-height: var(--lh-corps);
+}
 .vw-card-head {
   display: flex;
   align-items: start;

@@ -183,7 +183,7 @@ et de présence de l’agenda restent indépendantes des thèmes.
 
 L’agenda ne présente plus qu’une seule série de quatre filtres de thèmes.
 
-Le badge « à sourcer » utilise un rouge clair (#f9dada). L’ordre des fiches dépend de la semaine, de la date de parution et de leur identifiant, sans déplacement lors du changement de statut.
+Le badge « à sourcer » utilise un rouge clair (#f9dada). Les fiches sont classées par date de parution décroissante, toutes semaines confondues ; celles sans date précise viennent ensuite. À date égale, la semaine puis l’identifiant stabilisent l’ordre, sans déplacement lors du changement de statut. La date (ou la mention disponible lorsque la date est inconnue) apparaît en gras au-dessus du titre, plutôt qu’à côté du lien de source.
 
 Le formulaire de modification est centré dans la fenêtre avec un défilement intérieur.
 Les sources affichent un lien explicite « Lire la source ». Les notices de méthode et les compteurs redondants ont été retirés de la page.

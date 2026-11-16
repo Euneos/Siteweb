@@ -82,11 +82,16 @@ if (root) {
     }).format(new Date(d))
   const tag = (s: string, cls = '') => el('span', 'vw-tag ' + cls, s)
   function render() {
-    const inWeek = items.filter((i) => selectedWeek === 'all' || i.week === selectedWeek)
+    const inWeek = items
+      .filter((i) => selectedWeek === 'all' || i.week === selectedWeek)
+      .sort(
+        (a, b) =>
+          b.published_on.localeCompare(a.published_on) ||
+          b.week.localeCompare(a.week) ||
+          a.id.localeCompare(b.id),
+      )
     $('#vw-week-label').textContent =
-      selectedWeek === 'all'
-        ? ''
-        : 'Semaine du ' + date(selectedWeek)
+      selectedWeek === 'all' ? '' : 'Semaine du ' + date(selectedWeek)
     $('#vw-summary').textContent =
       `${inWeek.length} sujet${inWeek.length > 1 ? 's' : ''} · ${inWeek.filter((i) => !watchUsed(i)).length} à traiter · les décisions restent à l’équipe.`
     const q = $<HTMLInputElement>('#vw-search').value.trim().toLocaleLowerCase('fr')
@@ -109,7 +114,6 @@ if (root) {
     $('#vw-todo').replaceChildren(...visible.map((i, n) => card(i, n + 1)))
     $('#vw-todo-count').textContent = String(visible.length)
     if (!visible.length) $('#vw-todo').append(el('p', 'vw-empty', 'Aucun sujet avec ces filtres.'))
-
   }
   function card(item: WatchItem, n: number) {
     const article = el('article', 'vw-card' + (watchUsed(item) ? ' vw-card--used' : ''))
@@ -124,7 +128,15 @@ if (root) {
       button('Supprimer', () => void remove(item)),
     )
     head.append(title, actions)
-    body.append(head)
+    const publication = el('strong', 'vw-publication')
+    if (item.published_on) {
+      const published = el('time', '', date(item.published_on))
+      published.dateTime = item.published_on
+      publication.append(published)
+    } else {
+      publication.textContent = item.publication_label || 'Date de parution non indiquée'
+    }
+    body.append(publication, head)
     const tags = el('div', 'vw-tags')
     tags.append(
       ...item.themes.map((t) => {
@@ -163,15 +175,7 @@ if (root) {
     a.href = item.link
     a.target = '_blank'
     a.rel = 'noopener noreferrer'
-    source.append(
-      a,
-      document.createTextNode(
-        ' · ' +
-          (item.published_on
-            ? date(item.published_on)
-            : item.publication_label || 'Date non indiquée'),
-      ),
-    )
+    source.append(a)
     body.append(source)
     const row = el('div', 'vw-usages')
     row.append(el('strong', 'vw-usages-label', 'USAGES'))
@@ -339,7 +343,6 @@ if (root) {
     renderUsages()
     editor.showModal()
     editor.scrollTop = 0
-
   }
   function renderUsages() {
     const target = $('#vw-form-usages')
@@ -370,7 +373,6 @@ if (root) {
     }
     for (const o of $<HTMLSelectElement>('#vw-usage-add').options)
       o.disabled = usages.some((u) => u.name === o.value)
-
   }
   $<HTMLSelectElement>('#vw-usage-add').onchange = (e) => {
     const s = e.target as HTMLSelectElement
