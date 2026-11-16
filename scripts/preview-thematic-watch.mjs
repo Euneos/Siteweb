@@ -148,6 +148,16 @@ else {
       await page.setViewportSize({ width, height: 1000 })
       await page.goto(url)
       await expect(page.locator('.vw-card')).toHaveCount(initialCount)
+      const publicationDates = await page
+        .locator('.vw-publication time')
+        .evaluateAll((nodes) => nodes.map((n) => n.dateTime))
+      assert.deepEqual(publicationDates, [...publicationDates].sort().reverse())
+      expect(
+        await page
+          .locator('.vw-publication')
+          .first()
+          .evaluate((n) => getComputedStyle(n).fontWeight),
+      ).toBe('700')
       await expect(page.locator('#vw-todo')).not.toContainText('ancien tableau')
       await expect(page.locator('#vw-todo')).not.toContainText('Pourquoi cette semaine :')
       assert(
@@ -241,6 +251,9 @@ else {
     await page.locator('[name=summary]').fill('Résumé corrigé.')
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(manual).toContainText('Résumé corrigé.')
+    // Saving selects the card’s week; include earlier weeks for the following checks.
+    await page.locator('#vw-week').selectOption('all')
+    await expect(page.locator('.vw-card')).toHaveCount(initialCount + 1)
     const orderBeforeUsage = await page
       .locator('.vw-card')
       .evaluateAll((nodes) => nodes.map((n) => n.dataset.id))
@@ -283,7 +296,9 @@ else {
     await page.getByRole('button', { name: 'Retirer cet usage', exact: true }).click()
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(page.locator('#vw-todo')).toContainText('Fiche manuelle de recette')
-    await expect(page.getByRole('button', { name: 'Ajouter à l’agenda', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Ajouter à l’agenda', exact: true })).toHaveCount(
+      0,
+    )
     await manual.getByRole('button', { name: 'Modifier', exact: true }).click()
     await expect(page.locator('#vw-event-details')).toHaveCount(0)
     const dialogBox = await page.locator('#vw-editor').boundingBox()
@@ -317,6 +332,7 @@ else {
     await expect(
       page.getByRole('link', { name: 'Consulter l’ancien tableau de veille' }),
     ).toHaveCount(0)
+    await page.locator('#vw-week').selectOption('all')
     if (legacy.rows.length)
       await expect(page.locator('.vw-card').filter({ hasText: 'Lâche ton tel' })).toHaveCount(1)
     assert.equal(errors.length, 0, errors.join('\n'))
