@@ -319,12 +319,15 @@ try {
     assert.equal(await tab.locator('.etat__dossiers .etat__dossier').count(), initialCards, 'Fiche restituée après fermeture')
     await tab.locator('[data-suivi-filter]').selectOption('programmee')
     assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 1)
-    for (const category of ['en-cours', 'attente-programmation', 'a-relancer']) {
+    for (const category of ['en-cours', 'attente-programmation']) {
       await tab.locator('[data-suivi-filter]').selectOption(category)
       assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 0, 'Aucun classement sans preuve correspondante')
     }
     assert.equal(await tab.locator('.etat__table').getByText('Aucun blocage mentionné.', { exact: true }).count(), 0, 'Blocage déplacé hors du tableau')
     assert(await tab.locator('[data-suivi-count]').getByText('0 dossier(s) affiché(s)', { exact: true }).isVisible())
+    await tab.locator('[data-suivi-filter]').selectOption('autres')
+    assert.equal(await tab.locator('[data-suivi-row]:visible').count(), 1, 'Le dossier aux dates contradictoires est dans Autres')
+    assert(await tab.locator('[data-suivi-count]').getByText('1 dossier(s) affiché(s)', { exact: true }).isVisible())
     await tab.locator('[data-suivi-filter]').selectOption('tous')
     await tab.getByRole('button', { name: 'Agrandir le tableau', exact: true }).click()
     assert(await tab.getByRole('dialog').isVisible())

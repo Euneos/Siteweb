@@ -110,9 +110,9 @@ try {
     await expect(voirDossier).toBeFocused()
     await expect(suiviFilter.locator('option')).toHaveText([
       'Tous les dossiers', '1 · Formation en cours', '2 · Formation programmée',
-      '3 · Formation en attente de programmation', '4 · Établissement à relancer',
+      '3 · Formation en attente de programmation', '4 · Autres établissements',
     ])
-    for (const category of ['en-cours', 'programmee', 'attente-programmation', 'a-relancer', 'tous']) {
+    for (const category of ['en-cours', 'programmee', 'attente-programmation', 'autres', 'tous']) {
       await suiviFilter.selectOption(category)
       const rows = await page.locator('[data-suivi-row]').evaluateAll(rows => rows.map(row => ({
         hidden: row.hidden, categories: (row.dataset.suiviCategories ?? '').split(' '),
@@ -120,10 +120,17 @@ try {
       assert(rows.length > 0)
       for (const row of rows) assert.equal(row.hidden, category !== 'tous' && !row.categories.includes(category))
       await expect(page.locator('[data-suivi-count]')).toHaveText(`${rows.filter(row => !row.hidden).length} dossier(s) affiché(s)`)
-      if (category === 'a-relancer') {
-        await expect(page.locator('[data-suivi-relance-aide]')).toBeVisible()
-        // No incoming-mail verification is invented for the synthetic dossiers.
-        assert(rows.every(row => row.hidden))
+      if (category === 'autres') {
+        await expect(page.locator('[data-suivi-autres-aide]')).toBeVisible()
+        const premiers = ['en-cours', 'programmee', 'attente-programmation']
+        for (const row of rows) assert.equal(!row.hidden, !row.categories.some(c => premiers.includes(c)))
+        assert(rows.some(row => !row.hidden), 'Les dossiers incomplets ne disparaissent plus des quatre filtres')
+        if ([390, 1440].includes(width)) {
+          await suiviFilter.scrollIntoViewIfNeeded()
+          await page.screenshot({ path: `${output}/filtre-autres-${width}.png` })
+        }
+      } else {
+        await expect(page.locator('[data-suivi-autres-aide]')).toBeHidden()
       }
     }
     if ([390, 1440].includes(width)) {

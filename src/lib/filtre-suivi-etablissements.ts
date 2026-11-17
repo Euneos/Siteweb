@@ -1,6 +1,6 @@
 import type { EtatCandidature } from './etat-candidatures'
 
-export type FiltreSuivi = 'en-cours' | 'programmee' | 'attente-programmation' | 'a-relancer'
+export type FiltreSuivi = 'en-cours' | 'programmee' | 'attente-programmation' | 'autres'
 
 /** A dated, human-verified incoming-mail check, never inferred from sent mail. */
 export interface VerificationReponses {
@@ -28,11 +28,7 @@ export function lireVerificationReponses(notes?: string | null): VerificationRep
   } catch { return null }
 }
 
-const jourParis = (date: Date) => new Intl.DateTimeFormat('sv-SE', {
-  timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
-}).format(date)
-
-export function filtresSuivi(ligne: EtatCandidature, maintenant = new Date()): FiltreSuivi[] {
+export function filtresSuivi(ligne: EtatCandidature): FiltreSuivi[] {
   const resultat: FiltreSuivi[] = []
   const statut = (ligne.statutFormation ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
   const arretee = ['termine', 'terminee', 'annule', 'annulee', 'abandonne', 'abandonnee'].includes(statut)
@@ -45,20 +41,7 @@ export function filtresSuivi(ligne: EtatCandidature, maintenant = new Date()): F
     else if (!datesPresentes && !ligne.provenanceInvalide && ligne.formateurs.length) resultat.push('attente-programmation')
   }
 
-  const verification = ligne.verificationReponses
-  if (verification && !arretee && timestamp(verification.checkedAt) && timestamp(verification.dernierRetourAt) &&
-    verification.dernierRetourAt <= verification.checkedAt &&
-    // A check is a snapshot, not an automatic mailbox synchronisation.
-    jourParis(new Date(verification.checkedAt)) === jourParis(maintenant) &&
-    Date.parse(verification.checkedAt) <= maintenant.getTime()) {
-    const retours = [verification.dernierRetourAt.slice(0, 10), ligne.contact?.receivedAt]
-      .filter(dateValide).sort()
-    const dernierRetour = retours.at(-1)!
-    const aujourdHui = jourParis(maintenant)
-    const [annee, mois, jour] = aujourdHui.split('-').map(Number)
-    const dernierJourMoisPrecedent = new Date(Date.UTC(annee, mois - 1, 0)).getUTCDate()
-    const seuil = new Date(Date.UTC(annee, mois - 2, Math.min(jour, dernierJourMoisPrecedent))).toISOString().slice(0, 10)
-    if (dernierRetour < seuil) resultat.push('a-relancer')
-  }
+  // The fourth filter is the exact complement of the first three, not a mailbox diagnosis.
+  if (!resultat.length) resultat.push('autres')
   return resultat
 }
