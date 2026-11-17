@@ -26,7 +26,7 @@ export function renderPartnershipDashboard(
   root.className = 'media-grid partner-grid'
   const card = (title: string, wide = false) => {
     const c = el('article', '', 'media-card' + (wide ? ' media-wide' : ''))
-    c.append(el('h2', title))
+    if (title) c.append(el('h2', title))
     root.append(c)
     return c
   }
@@ -46,7 +46,7 @@ export function renderPartnershipDashboard(
     bar.append(fill)
     box.append(bar)
   })
-  const priority = card('Priorité A : où on en est', true)
+  const priority = card('', true)
   data.priorities.forEach((group) => {
     priority.append(el('h3', `${group.label} · ${group.total} ligne${group.total > 1 ? 's' : ''}`))
     const bar = el('div', '', 'media-bar'),
