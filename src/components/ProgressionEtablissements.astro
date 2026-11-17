@@ -3,18 +3,22 @@ import { dateFormationFr, trierProgression, type EtatCandidature } from '../lib/
 import { statutCandidature } from '../lib/statut-candidature'
 import { dateContactFr } from '../lib/dernier-contact'
 import DetailSuivi from './DetailSuivi.astro'
+import { filtresSuivi } from '../lib/filtre-suivi-etablissements'
 interface Props { lignes: EtatCandidature[]; colonnes: string[]; recherche?: string; viewerEmail?: string }
 const { lignes, colonnes, recherche = '', viewerEmail = '' } = Astro.props
 const progressionAffichee = trierProgression(lignes.filter(l => !['Abandonne', 'Refuse'].includes(statutCandidature(l.statut).code ?? '')))
 const etapes = [0, 2, 4, 5, 7, 8, 9]
+const maintenant = new Date()
 const avancement = (ligne: EtatCandidature): string => {
   const formation = (ligne.statutFormation ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
   if (formation === 'en cours') return 'Formation en cours'
   if (['termine', 'terminee'].includes(formation)) return 'Formation terminée'
   if (['annule', 'annulee'].includes(formation)) return 'Formation annulée'
   if (ligne.anomaliesDates.length || ligne.provenanceInvalide) return 'Calendrier à vérifier'
-  if (ligne.dateDebutFormation && ligne.suiviVerifie?.qualification === 'confirmée') return 'Formation planifiée'
-  return ligne.dateDebutFormation ? 'Démarrage à confirmer' : 'Calendrier à préciser'
+  const categories = filtresSuivi(ligne, maintenant)
+  if (categories.includes('programmee')) return 'Formation programmée'
+  if (categories.includes('attente-programmation')) return 'Formation en attente de programmation'
+  return 'Calendrier à préciser'
 }
 const informationComplete = (ligne: EtatCandidature, index: number): boolean => {
   if (index === 7) return !!ligne.suiviVerifie?.organisationRecue
@@ -50,14 +54,17 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
     Blocage et aide nécessaire : synthèse et actions proposées à partir du point de situation daté, sans nouvelle vérification des échanges. « Aucun blocage mentionné » ne signifie pas que tout est réglé. Une synthèse est à refaire lorsque son point de situation change.
   </p></details>
   <label class="etat__filtre-rapide" hidden data-suivi-filter-label>
-    Repérer les dossiers
-    <select data-suivi-filter>
+    Filtrer par avancement de la formation
+    <select data-suivi-filter aria-describedby="suivi-filtre-aide">
       <option value="tous">Tous les dossiers</option>
-      <option value="aide">Avec une aide proposée</option>
-      <option value="sans-formateur">Sans affectation renseignée</option>
-      <option value="organisation">Réception du formulaire à vérifier</option>
+      <option value="en-cours">1 · Formation en cours</option>
+      <option value="programmee">2 · Formation programmée</option>
+      <option value="attente-programmation">3 · Formation en attente de programmation</option>
+      <option value="a-relancer">4 · Établissement à relancer</option>
     </select>
   </label>
+  <details class="etat__legende"><summary>Comprendre ces filtres</summary><p id="suivi-filtre-aide">En cours : démarrage renseigné dans le suivi, et non déduit d’une date passée. Programmée : dates renseignées dans le dossier ou le formulaire d’organisation, sans anomalie signalée. En attente de programmation : aucune date et un formateur affecté. Les dossiers incomplets ou à vérifier restent accessibles dans « Tous les dossiers ».</p></details>
+  <p class="etat__legende" data-suivi-relance-aide hidden>À relancer : aucun retour reçu depuis plus d’un mois, après vérification des réponses aujourd’hui. La date d’un mail envoyé ne suffit pas. Les dossiers non vérifiés ne figurent pas dans ce filtre : une liste vide ne signifie pas qu’aucune relance n’est nécessaire. Cette vérification n’est pas automatique.</p>
   <p data-suivi-count role="status" aria-live="polite"></p>
   <div data-suivi-inline>
   <div class="etat__table-wrap" tabindex="0" role="region" aria-label="Tableau des candidatures">
@@ -66,8 +73,6 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
       <colgroup>
         <col style="width:14rem" />
         <col style="width:14rem" />
-        <col style="width:13rem" />
-        <col style="width:17rem" />
         <col style="width:11rem" />
         <col style="width:12rem" />
         {etapes.map(() => <col style="width:10rem" />)}
@@ -75,9 +80,7 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
       <thead>
         <tr>
           <th class="etat__etablissement" scope="col" rowspan="2">Établissement</th>
-          <th scope="col" rowspan="2">Où en est-on ?</th>
-          <th scope="col" rowspan="2">Blocage</th>
-          <th scope="col" rowspan="2">Aide nécessaire</th>
+          <th scope="col" rowspan="2">Formation</th>
           <th scope="col" rowspan="2">Référent</th>
           <th scope="col" rowspan="2">Formateur</th>
           <th scope="colgroup" colspan="2">Étape 1 — Candidature</th>
@@ -87,29 +90,24 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
         <tr>{etapes.map(index => <th scope="col">{colonnes[index]}</th>)}</tr>
       </thead>
       <tbody>
-        {progressionAffichee.length === 0 && <tr><td colspan="13">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
+        {progressionAffichee.length === 0 && <tr><td colspan="11">{recherche ? 'Aucun établissement ne correspond à cette recherche.' : 'Aucun dossier actif dans cette cohorte.'}</td></tr>}
         {progressionAffichee.map(ligne => (
-          <tr data-suivi-row data-aide={!!ligne.aideDeduite?.actionProposee} data-sans-formateur={!ligne.formateurs.length} data-organisation={!ligne.suiviVerifie?.organisationRecue} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
+          <tr data-suivi-row data-suivi-categories={filtresSuivi(ligne, maintenant).join(' ')} class:list={[ligne.aVerifier && 'is-a-verifier', statutCandidature(ligne.statut).code === 'Abandonne' && 'is-abandon']}>
             <th scope="row">
               <a class="etat__nom" href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>{ligne.etablissement}</a>
               <span class="etat__meta">{[ligne.typeEtablissement, ligne.ville, ligne.region, ligne.code].filter(Boolean).join(' · ')}</span>
               <span class="etat__meta">Dernier contact : {ligne.dernierContact?.status === 'found' ? dateContactFr(ligne.dernierContact.sentAt!) : 'Non vérifié'}</span>
-              <span class:list={['etat__debut', !ligne.dateDebutFormation && 'etat__sans-date']}>
-                {ligne.dateDebutFormation ? `Début : ${dateFormationFr(ligne.dateDebutFormation)}` : '⚠ AUCUNE DATE DE DÉBUT RENSEIGNÉE'}
-              </span>
-              {ligne.dateDebutFormation && <small>{ligne.suiviVerifie?.qualification || (ligne.anomaliesDates.length ? 'à vérifier' : 'date renseignée · confirmation à vérifier')}</small>}
               {ligne.aVerifier && <span class="etat__verification">Dossier à rapprocher</span>}
             </th>
             <td class="etat__situation">
-              <span class="etat__mobile-label">Où en est-on ?</span>
+              <span class="etat__mobile-label">Formation</span>
+              <div class="etat__formation-resume">
               <strong>{avancement(ligne)}</strong>
-              <a href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id}>Point de situation complet</a>
-            </td>
-            <td><span class="etat__mobile-label">Blocage</span><span>{ligne.aideDeduite?.blocage || 'À analyser à partir du point de situation'}</span>
-              {ligne.aideDeduite && <small>Synthèse du point daté du {dateContactFr(ligne.aideDeduite.sourceCheckedAt)}</small>}
-            </td>
-            <td><span class="etat__mobile-label">Aide nécessaire</span><span>{ligne.aideDeduite?.aide || 'À préciser'}</span>
-              {ligne.aideDeduite?.actionProposee && <small>Action proposée · à confirmer</small>}
+              <span class:list={['etat__debut', !ligne.dateDebutFormation && 'etat__sans-date']}>
+                {ligne.dateDebutFormation ? `Début : ${dateFormationFr(ligne.dateDebutFormation)}` : 'Début non renseigné'}
+              </span>
+              <a class="iw-button etat__voir-dossier" href={`#dossier-${ligne.id}`} data-detail-open={`suivi-detail-${ligne.id}`} data-dossier-id={ligne.id} aria-label={`Voir le dossier — ${ligne.etablissement}`}>Voir le dossier <span aria-hidden="true">→</span></a>
+              </div>
             </td>
             <td><span class="etat__mobile-label">Référent</span><span>{ligne.suiviVerifie?.referent || ligne.referent || 'Non renseigné'}</span></td>
             <td class:list={[!ligne.formateurs.length && 'etat__sans-affectation']}><span class="etat__mobile-label">Formateur</span><span>{ligne.formateurs.length ? ligne.formateurs.map(f => f.nom).join(' · ') : 'Aucune affectation renseignée'}</span></td>
@@ -149,7 +147,9 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
     filterLabel.hidden = false
     filter.addEventListener('change', () => {
       const rows = [...document.querySelectorAll<HTMLElement>('[data-suivi-row]')]
-      rows.forEach(row => { row.hidden = filter.value === 'aide' ? row.dataset.aide !== 'true' : filter.value === 'sans-formateur' ? row.dataset.sansFormateur !== 'true' : filter.value === 'organisation' ? row.dataset.organisation !== 'true' : false })
+      rows.forEach(row => { row.hidden = filter.value !== 'tous' && !(row.dataset.suiviCategories ?? '').split(' ').includes(filter.value) })
+      const aideRelance = document.querySelector<HTMLElement>('[data-suivi-relance-aide]')
+      if (aideRelance) aideRelance.hidden = filter.value !== 'a-relancer'
       const count = document.querySelector('[data-suivi-count]')
       if (count) count.textContent = `${rows.filter(row => !row.hidden).length} dossier(s) affiché(s)`
     })
@@ -236,4 +236,7 @@ const informationComplete = (ligne: EtatCandidature, index: number): boolean => 
   .etat__situation {
     line-height: 1.5;
   }
+  .etat__formation-resume { display: flex; flex-direction: column; align-items: flex-start; gap: .65rem; }
+  .etat__formation-resume .etat__debut { margin: 0; }
+  .etat__voir-dossier { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; max-width: 100%; text-decoration: underline; }
 </style>

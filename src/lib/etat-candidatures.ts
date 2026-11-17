@@ -1,4 +1,5 @@
 import { schoolDisplayName } from './school-display-name'
+import { lireVerificationReponses } from './filtre-suivi-etablissements'
 import { NC, reconcilierActifs } from './nocodb'
 import { validContactSource } from './google-form-contact'
 import { lireDernierContact, type DernierContact } from './dernier-contact'
@@ -52,6 +53,7 @@ interface EtablissementNoco {
 }
 
 export interface EtatCandidature {
+  verificationReponses?: import('./filtre-suivi-etablissements').VerificationReponses | null
   aideDeduite?: AideDeduite | null
   referent?: string | null
   suiviVerifie?: import('./suivi-verifie').SuiviVerifie | null
@@ -355,6 +357,7 @@ export async function lireEtatCohorte(
         progression: progression(participation, missionsDossier),
         dernierContact: lireDernierContact(participation.notes),
         situationVerifiee: lireSituationVerifiee(participation.notes),
+        verificationReponses: lireVerificationReponses(participation.notes),
         aVerifier:
           !etablissement ||
           (etablissementId !== null && (occurrences.get(etablissementId) ?? 0) > 1),

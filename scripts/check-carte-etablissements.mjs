@@ -86,6 +86,50 @@ try {
   for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto('https://schools.test/etat-candidatures#carte-etablissements')
+    const suiviFilter = page.locator('[data-suivi-filter]')
+    const tableSuivi = page.locator('.etat__progression table')
+    await expect(tableSuivi.locator('thead')).toContainText('Formation')
+    await expect(tableSuivi.locator('thead')).not.toContainText('Blocage')
+    await expect(tableSuivi.locator('thead')).not.toContainText('Aide nécessaire')
+    await expect(tableSuivi.locator('thead')).not.toContainText('Où en est-on')
+    const resume = tableSuivi.locator('.etat__formation-resume').first()
+    const voirDossier = resume.getByRole('link', { name: /Voir le dossier/ })
+    await voirDossier.scrollIntoViewIfNeeded()
+    const statutBox = await resume.locator('strong').boundingBox()
+    const dateBox = await resume.locator('.etat__debut').boundingBox()
+    const boutonBox = await voirDossier.boundingBox()
+    assert(dateBox.y >= statutBox.y + statutBox.height, 'Date sur sa propre ligne')
+    assert(boutonBox.y >= dateBox.y + dateBox.height, 'Bouton sur sa propre ligne')
+    assert(boutonBox.height >= 44, 'Cible tactile accessible')
+    await voirDossier.focus()
+    await page.keyboard.press('Enter')
+    const detail = page.locator('.suivi-detail[open]')
+    await expect(detail).toBeVisible()
+    await expect(detail).toContainText('Blocage et aide nécessaire')
+    await page.keyboard.press('Escape')
+    await expect(voirDossier).toBeFocused()
+    await expect(suiviFilter.locator('option')).toHaveText([
+      'Tous les dossiers', '1 · Formation en cours', '2 · Formation programmée',
+      '3 · Formation en attente de programmation', '4 · Établissement à relancer',
+    ])
+    for (const category of ['en-cours', 'programmee', 'attente-programmation', 'a-relancer', 'tous']) {
+      await suiviFilter.selectOption(category)
+      const rows = await page.locator('[data-suivi-row]').evaluateAll(rows => rows.map(row => ({
+        hidden: row.hidden, categories: (row.dataset.suiviCategories ?? '').split(' '),
+      })))
+      assert(rows.length > 0)
+      for (const row of rows) assert.equal(row.hidden, category !== 'tous' && !row.categories.includes(category))
+      await expect(page.locator('[data-suivi-count]')).toHaveText(`${rows.filter(row => !row.hidden).length} dossier(s) affiché(s)`)
+      if (category === 'a-relancer') {
+        await expect(page.locator('[data-suivi-relance-aide]')).toBeVisible()
+        // No incoming-mail verification is invented for the synthetic dossiers.
+        assert(rows.every(row => row.hidden))
+      }
+    }
+    if ([390, 1440].includes(width)) {
+      await suiviFilter.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: `${output}/filtre-suivi-${width}.png` })
+    }
     await expect(page.locator('[data-network-content]')).toBeVisible()
     await page.selectOption('#network-training', 'terminee')
     await expect(page.locator('#network-cohort option')).toHaveText(['Toutes les cohortes', 'Cohorte 2025-2026', 'Cohorte 2026–2027'])
