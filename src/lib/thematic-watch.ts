@@ -78,6 +78,7 @@ export type WatchFacts = {
   relevance: string
   read_note: string
   usages: WatchUsage[]
+  used?: boolean
   event: EventFacts | null
   legacy?: {
     sheet: string
@@ -174,6 +175,8 @@ export function parseWatchFacts(
   })
   if (new Set(usages.map((u) => u.name)).size !== usages.length)
     fail('Un usage est présent deux fois.')
+  if (x.used !== undefined && typeof x.used !== 'boolean') fail('État d’utilisation invalide.')
+  if (automated && x.used !== undefined) fail('Un import ne peut pas décider de l’utilisation.')
   const published_on = x.published_on ? watchDate(x.published_on) : ''
   if (published_on > today) fail('La date de parution est dans le futur.')
   const relevance = txt(x.relevance ?? '', 1200)
@@ -209,11 +212,16 @@ export function parseWatchFacts(
     relevance,
     read_note,
     usages,
+    used: x.used as boolean | undefined,
     event,
   }
 }
-export const watchUsed = (i: Pick<WatchFacts, 'usages'>) =>
-  i.usages.length > 0 && i.usages.every((u) => ['fait', 'abandonné'].includes(u.status))
+export const watchUsed = (i: Pick<WatchFacts, 'usages' | 'used'>) =>
+  i.used ?? (i.usages.length > 0 && i.usages.every((u) => ['fait', 'abandonné'].includes(u.status)))
+export const watchSourceDateLabel = (i: Pick<WatchFacts, 'publication_label'>) =>
+  i.publication_label && !/consult|repér|vérifi/i.test(i.publication_label)
+    ? i.publication_label
+    : 'Date de parution non indiquée'
 const hydrate = (r: any): WatchItem => {
   const { payload, ...meta } = r
   return { ...JSON.parse(payload), ...meta }
@@ -229,8 +237,10 @@ export async function listWatch(db: WorkspaceDatabase, includeDeleted = false) {
   ).results.map(hydrate)
 }
 export async function watchSnapshot(db: WorkspaceDatabase) {
+  const all = await listWatch(db, true)
   return {
-    items: await listWatch(db),
+    items: all.filter((i) => !i.deleted_at),
+    deleted: all.filter((i) => !!i.deleted_at),
     runs: (
       await db
         .prepare('SELECT * FROM thematic_watch_runs ORDER BY checked_at DESC LIMIT 52')
@@ -357,4 +367,21 @@ export async function deleteWatch(
     .run()
   if (r.meta.changes !== 1)
     throw new WorkspaceError(409, 'Cette fiche a changé. Actualisez avant de supprimer.')
+}
+
+export async function restoreWatch(
+  db: WorkspaceDatabase,
+  id: string,
+  version: unknown,
+  actor: string,
+) {
+  if (!Number.isSafeInteger(version) || Number(version) < 1) fail('Version invalide.')
+  const r = await db
+    .prepare(
+      "UPDATE thematic_watch SET deleted_at='',protected=1,version=version+1,updated_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND version=? AND deleted_at<>''",
+    )
+    .bind(actor, id, Number(version))
+    .run()
+  if (r.meta.changes !== 1)
+    throw new WorkspaceError(409, 'Cette fiche a changé. Actualisez avant de restaurer.')
 }

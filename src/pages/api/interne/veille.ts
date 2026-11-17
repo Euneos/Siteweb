@@ -7,7 +7,7 @@ import {
   entryId,
 } from '../../../lib/internal-context'
 import { WorkspaceError } from '../../../lib/internal-workspace'
-import { watchSnapshot, saveWatch, deleteWatch } from '../../../lib/thematic-watch'
+import { watchSnapshot, saveWatch, deleteWatch, restoreWatch } from '../../../lib/thematic-watch'
 export const prerender = false
 export const GET: APIRoute = async ({ request, locals }) => {
   try {
@@ -23,6 +23,10 @@ const write: APIRoute = async ({ request, locals }) => {
     const c = await getInternalContext(request, locals)
     if (c instanceof Response) return c
     const b = await readInternalBody(request)
+    if (request.method === 'PATCH' && b.action === 'restore') {
+      await restoreWatch(c.db, entryId(b.id), b.version, c.identity.email)
+      return privateJson({ restored: true })
+    }
     const result = await saveWatch(
       c.db,
       b.item,

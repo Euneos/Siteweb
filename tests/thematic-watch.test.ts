@@ -5,6 +5,9 @@ import {
   saveWatch,
   listWatch,
   deleteWatch,
+  restoreWatch,
+  watchSnapshot,
+  watchSourceDateLabel,
   parseWatchFacts,
   watchUsed,
   currentWatchWeek,
@@ -159,4 +162,41 @@ test('fusion preserves every legacy field and trash, protects edits and blocks r
   await saveWatch(db,{...item,summary:'Résumé relu',legacy:{cells:['corrompu']}},'équipe',{id:item.id,version:3,today:'2026-11-13'})
   expect((await listWatch(db))[0].legacy?.cells).toEqual(cells)
   sql.close()
+})
+
+test('utilisée preserves independent usages and source date through reads, edits, trash and restoration', async () => {
+  const { db, sql } = watchFixture()
+  const { id } = await saveWatch(db, facts(), 'team')
+  const original = (await watchSnapshot(db)).items[0]
+  await saveWatch(db, { ...original, used: true }, 'team', { id, version: original.version })
+  let current = (await watchSnapshot(db)).items[0]
+  expect(watchUsed(current)).toBe(true)
+  expect(current.usages).toEqual(original.usages)
+  expect(current.published_on).toBe(original.published_on)
+  expect((await watchSnapshot(db)).items[0]).toEqual(current)
+  await saveWatch(db, { ...current, summary: 'Résumé modifié', used: false }, 'team', { id, version: current.version })
+  current = (await listWatch(db))[0]
+  expect(watchUsed(current)).toBe(false)
+  await deleteWatch(db, id, current.version, 'team')
+  const trash = await watchSnapshot(db)
+  expect(trash.items).toHaveLength(0)
+  expect(trash.deleted).toHaveLength(1)
+  expect(trash.deleted[0].published_on).toBe(original.published_on)
+  expect((await saveWatch(db, facts(), 'agent', auto)).skipped).toBe(true)
+  await expect(restoreWatch(db, id, current.version, 'team')).rejects.toMatchObject({ status: 409 })
+  await restoreWatch(db, id, trash.deleted[0].version, 'team')
+  const restored = await watchSnapshot(db)
+  expect(restored.deleted).toHaveLength(0)
+  expect(restored.items[0].id).toBe(id)
+  expect(restored.items[0].published_on).toBe(original.published_on)
+  expect(restored.items[0].summary).toBe('Résumé modifié')
+  expect(restored.items[0].protected).toBe(1)
+  await expect(restoreWatch(db, id, restored.items[0].version, 'team')).rejects.toMatchObject({ status: 409 })
+  sql.close()
+})
+test('unknown source date is never replaced by a consultation date', () => {
+  expect(watchSourceDateLabel({ publication_label: 'Page consultée le 16/11/2026' })).toBe('Date de parution non indiquée')
+  expect(watchSourceDateLabel({ publication_label: 'Novembre 2026' })).toBe('Novembre 2026')
+  expect(parseWatchFacts({ ...facts(), published_on: '' }).published_on).toBe('')
+  expect(() => parseWatchFacts({ ...facts(), used: true }, true, '2026-11-13')).toThrow()
 })

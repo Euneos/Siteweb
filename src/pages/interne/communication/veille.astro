@@ -94,14 +94,16 @@ const filters = [
         ><button id="vw-add" class="iw-button iw-button--primary" disabled
           >+ Ajouter une fiche</button
         >
+        <button id="vw-trash" class="iw-button" aria-pressed="false">Corbeille (0)</button>
       </div>
     </section>
     <p id="vw-feedback" class="iw-feedback" role="status" aria-live="polite">
       Chargement de la veille…
     </p>
     <section class="vw-group" aria-labelledby="vw-todo-title">
-      <h2 id="vw-todo-title">Les sujets <span id="vw-todo-count"></span></h2><div id="vw-todo">
-      </div>
+      <h2 id="vw-todo-title">
+        <span id="vw-list-title">Les sujets </span><span id="vw-todo-count"></span>
+      </h2><div id="vw-todo"></div>
     </section>
     <noscript><p>Activez JavaScript pour lire et modifier les fiches.</p></noscript>
   </div>
@@ -142,10 +144,17 @@ const filters = [
           ></label
         >
       </fieldset>
-      <p id="vw-save-feedback" class="iw-feedback" role="status"></p><button
-        type="submit"
-        id="vw-save"
-        class="iw-button iw-button--primary">Enregistrer le brouillon</button
+      <p id="vw-save-feedback" class="iw-feedback" role="status"></p>
+      <a
+        id="vw-reconnect"
+        class="iw-button"
+        href="/interne"
+        target="_blank"
+        rel="noopener noreferrer"
+        hidden>Se reconnecter dans un autre onglet</a
+      >
+      <button type="submit" id="vw-save" class="iw-button iw-button--primary"
+        >Enregistrer le brouillon</button
       >
     </form>
   </dialog>

@@ -183,7 +183,34 @@ et de présence de l’agenda restent indépendantes des thèmes.
 
 L’agenda ne présente plus qu’une seule série de quatre filtres de thèmes.
 
-Le badge « à sourcer » utilise un rouge clair (#f9dada). Les fiches sont classées par date de parution décroissante, toutes semaines confondues ; celles sans date précise viennent ensuite. À date égale, la semaine puis l’identifiant stabilisent l’ordre, sans déplacement lors du changement de statut. La date (ou la mention disponible lorsque la date est inconnue) apparaît en gras au-dessus du titre, plutôt qu’à côté du lien de source.
+Le badge « à sourcer », auparavant rouge clair, a été retiré le 17 novembre à la demande de Pauline. Les fiches sont classées par date de parution décroissante, toutes semaines confondues ; celles sans date précise viennent ensuite. À date égale, la semaine puis l’identifiant stabilisent l’ordre, sans déplacement lors du changement de statut. La date (ou la mention disponible lorsque la date est inconnue) apparaît en gras au-dessus du titre, plutôt qu’à côté du lien de source.
 
 Le formulaire de modification est centré dans la fenêtre avec un défilement intérieur.
 Les sources affichent un lien explicite « Lire la source ». Les notices de méthode et les compteurs redondants ont été retirés de la page.
+
+## Utilisation et corbeille — 17 novembre
+
+Le bouton « Utilisée » permet de griser une fiche indépendamment des statuts de ses usages,
+sans les réécrire. Un second clic annule ce choix. Les fiches historiques dont tous les usages
+sont terminés conservent leur apparence grisée ; changer un statut reprend le calcul à partir
+des usages. Une fiche utilisée reste visible à sa place.
+
+Le bouton « Corbeille » donne accès aux fiches supprimées, avec leur contenu et leurs liens,
+et permet de les restaurer. La restauration conserve la même fiche, les alias, les dates de
+source et les usages. Elle est protégée par la version et l’identité équipe, comme une modification.
+Les imports ne restaurent jamais une fiche supprimée.
+
+La date mise en avant est exclusivement `published_on`, ou une indication de parution partielle.
+Les mentions de consultation/repérage ne sont pas employées comme date de source : en leur absence,
+la fiche indique « Date de parution non indiquée ». Consulter, modifier l’utilisation, supprimer ou
+restaurer ne remplace jamais la date de source par la date d’intervention. L’équipe peut corriger
+explicitement la date de la source dans le formulaire.
+
+Le formulaire n’expose plus de champ « Nom de la source ». Une fiche existante conserve
+son libellé enregistré ; une nouvelle fiche utilise le domaine de son lien comme libellé.
+Une session expirée ou une interruption de connexion affiche un message compréhensible
+et un lien de reconnexion dans un autre onglet, sans effacer la saisie ni réessayer automatiquement.
+
+Le nom de source reste affiché en bas de fiche, avec le format de ressource à côté
+et le lien cliquable. Le format est retiré des tags. Le badge « à sourcer » n’est plus
+affiché ; les notes de vérification restent conservées en métadonnées.

@@ -99,7 +99,7 @@
   margin-bottom: 1rem;
   font-size: var(--t-corps);
 }
-.vw-group h2 span {
+.vw-group h2 #vw-todo-count {
   font-size: var(--iw-small);
   font-weight: 400;
   margin-left: 0.5rem;
@@ -416,4 +416,10 @@
   .vw-card-actions {
     flex-shrink: 1;
   }
+}
+
+.vw-card-actions .vw-used-button[aria-pressed='true'] {
+  background: #dce1dd;
+  border-color: #627c73;
+  font-weight: 700;
 }

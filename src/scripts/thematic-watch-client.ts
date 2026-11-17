@@ -7,6 +7,7 @@ import {
   watchUsages,
   watchStatuses,
   watchUsed,
+  watchSourceDateLabel,
   type WatchItem,
   type WatchUsage,
 } from '../lib/thematic-watch'
@@ -26,6 +27,8 @@ if (root) {
     return b
   }
   let items: WatchItem[] = [],
+    deleted: WatchItem[] = [],
+    showTrash = false,
     runs: any[] = [],
     selectedWeek = 'all',
     busy = false,
@@ -42,13 +45,26 @@ if (root) {
     editor = $<HTMLDialogElement>('#vw-editor'),
     form = $<HTMLFormElement>('#vw-form')
   const week = $<HTMLSelectElement>('#vw-week')
+  class WatchConnectionError extends Error {}
+  const connectionError = () =>
+    new WatchConnectionError(
+      'Connexion interrompue ou session expirée. Enregistrement non confirmé. Votre saisie reste dans ce formulaire. Reconnectez-vous dans un autre onglet, puis réessayez.',
+    )
   async function api(method = 'GET', body?: unknown) {
-    const r = await fetch('/api/interne/veille', {
-      method,
-      credentials: 'same-origin',
-      headers: body ? { 'Content-Type': 'application/json' } : {},
-      body: body ? JSON.stringify(body) : undefined,
-    })
+    let r: Response
+    try {
+      r = await fetch('/api/interne/veille', {
+        method,
+        credentials: 'same-origin',
+        redirect: 'error',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined,
+      })
+    } catch {
+      throw connectionError()
+    }
+    if ([401, 403].includes(r.status) || r.headers.get('content-type')?.includes('text/html'))
+      throw connectionError()
     const data = await r
       .json()
       .catch(() => ({ error: 'Réponse indisponible. Conservez votre saisie.' }))
@@ -59,6 +75,7 @@ if (root) {
   async function load() {
     const data = await api()
     items = data.items
+    deleted = data.deleted ?? []
     runs = data.runs
     const weeks = [...new Set([currentWatchWeek(), ...items.map((i) => i.week)])].sort().reverse()
     week.replaceChildren(
@@ -82,7 +99,7 @@ if (root) {
     }).format(new Date(d))
   const tag = (s: string, cls = '') => el('span', 'vw-tag ' + cls, s)
   function render() {
-    const inWeek = items
+    const inWeek = (showTrash ? deleted : items)
       .filter((i) => selectedWeek === 'all' || i.week === selectedWeek)
       .sort(
         (a, b) =>
@@ -111,9 +128,21 @@ if (root) {
             (u) => u.status === filters.status && (!filters.usages || u.name === filters.usages),
           )),
     )
+    $('#vw-trash').textContent = showTrash ? 'Retour aux fiches' : `Corbeille (${deleted.length})`
+    $('#vw-trash').setAttribute('aria-pressed', String(showTrash))
+    $('#vw-list-title').textContent = showTrash ? 'Corbeille ' : 'Les sujets '
     $('#vw-todo').replaceChildren(...visible.map((i, n) => card(i, n + 1)))
     $('#vw-todo-count').textContent = String(visible.length)
-    if (!visible.length) $('#vw-todo').append(el('p', 'vw-empty', 'Aucun sujet avec ces filtres.'))
+    if (!visible.length)
+      $('#vw-todo').append(
+        el(
+          'p',
+          'vw-empty',
+          showTrash
+            ? 'Aucune fiche dans la corbeille avec ces filtres.'
+            : 'Aucun sujet avec ces filtres.',
+        ),
+      )
   }
   function card(item: WatchItem, n: number) {
     const article = el('article', 'vw-card' + (watchUsed(item) ? ' vw-card--used' : ''))
@@ -123,10 +152,19 @@ if (root) {
       head = el('div', 'vw-card-head'),
       title = el('h3', '', item.title),
       actions = el('div', 'vw-card-actions')
-    actions.append(
-      button('Modifier', () => openEditor(item)),
-      button('Supprimer', () => void remove(item)),
-    )
+    if (item.deleted_at) {
+      actions.append(button('Restaurer', () => void restore(item)))
+    } else {
+      const usedButton = button('Utilisée', () => void toggleUsed(item), 'iw-button vw-used-button')
+      usedButton.setAttribute('aria-pressed', String(watchUsed(item)))
+      usedButton.title = watchUsed(item) ? 'Remettre à traiter' : 'Marquer comme utilisée'
+      actions.append(
+        usedButton,
+        button('Modifier', () => openEditor(item)),
+        button('Supprimer', () => void remove(item)),
+      )
+    }
+    for (const b of actions.querySelectorAll('button')) b.disabled = busy
     head.append(title, actions)
     const publication = el('strong', 'vw-publication')
     if (item.published_on) {
@@ -134,7 +172,7 @@ if (root) {
       published.dateTime = item.published_on
       publication.append(published)
     } else {
-      publication.textContent = item.publication_label || 'Date de parution non indiquée'
+      publication.textContent = watchSourceDateLabel(item)
     }
     body.append(publication, head)
     const tags = el('div', 'vw-tags')
@@ -144,7 +182,6 @@ if (root) {
         chip.dataset.topic = t
         return chip
       }),
-      tag(watchFormat(item)),
       tag(item.source_type),
       tag(
         item.provenance === 'ajout manuel'
@@ -155,7 +192,6 @@ if (root) {
         'vw-tag--origin',
       ),
     )
-    if (item.needs_primary && !item.legacy) tags.append(tag('à sourcer', 'vw-tag--needs-source'))
     body.append(tags)
     if (
       item.summary &&
@@ -171,7 +207,7 @@ if (root) {
     if (item.for_euneos && item.for_euneos !== 'À préciser après relecture de la ressource.')
       body.append(purpose)
     const source = el('p', 'vw-source'),
-      a = el('a', '', item.source + ' · Lire la source ↗')
+      a = el('a', '', item.source + ' · ' + watchFormat(item) + ' · Lire la source ↗')
     a.href = item.link
     a.target = '_blank'
     a.rel = 'noopener noreferrer'
@@ -182,7 +218,7 @@ if (root) {
     for (const usage of item.usages) {
       const b = button(usage.name + ' · ' + usage.status, () => void cycle(item, usage), 'vw-usage')
       b.dataset.status = usage.status
-      b.disabled = busy
+      b.disabled = busy || !!item.deleted_at
       b.setAttribute(
         'aria-label',
         usage.name +
@@ -193,7 +229,8 @@ if (root) {
       )
       row.append(b)
     }
-    row.append(button('+ usage', () => openEditor(item), 'vw-usage vw-usage--add'))
+    if (!item.deleted_at)
+      row.append(button('+ usage', () => openEditor(item), 'vw-usage vw-usage--add'))
     body.append(row)
     if (item.usages.some((u) => u.draft)) {
       const details = el('details', 'vw-drafts')
@@ -223,6 +260,7 @@ if (root) {
         version: item.version,
         item: {
           ...item,
+          used: undefined,
           usages: item.usages.map((v) =>
             v.name === u.name
               ? { ...v, status: watchStatuses[(watchStatuses.indexOf(v.status as any) + 1) % 4] }
@@ -233,6 +271,41 @@ if (root) {
       clearStatusFilter()
       await load()
       feedback.textContent = 'Statut enregistré. La fiche reste dans la liste.'
+    } catch (e) {
+      feedback.textContent = (e as Error).message
+    } finally {
+      busy = false
+      render()
+    }
+  }
+  async function toggleUsed(item: WatchItem) {
+    if (busy) return
+    busy = true
+    render()
+    try {
+      await api('PATCH', {
+        id: item.id,
+        version: item.version,
+        item: { ...item, used: !watchUsed(item) },
+      })
+      clearStatusFilter()
+      await load()
+      feedback.textContent = watchUsed(item) ? 'Fiche remise à traiter.' : 'Fiche marquée utilisée.'
+    } catch (e) {
+      feedback.textContent = (e as Error).message
+    } finally {
+      busy = false
+      render()
+    }
+  }
+  async function restore(item: WatchItem) {
+    if (busy) return
+    busy = true
+    render()
+    try {
+      await api('PATCH', { id: item.id, version: item.version, action: 'restore' })
+      await load()
+      feedback.textContent = 'Fiche restaurée dans la veille.'
     } catch (e) {
       feedback.textContent = (e as Error).message
     } finally {
@@ -252,7 +325,8 @@ if (root) {
     try {
       await api('DELETE', { id: item.id, version: item.version, confirmed: true })
       await load()
-      feedback.textContent = 'Fiche supprimée. Elle ne sera plus proposée.'
+      feedback.textContent =
+        'Fiche déplacée dans la corbeille. Elle ne sera plus proposée par la recherche.'
     } catch (e) {
       feedback.textContent = (e as Error).message
     } finally {
@@ -263,8 +337,7 @@ if (root) {
   const fields = [
     ['title', 'Titre', 'text', 300],
     ['link', 'Lien de la source', 'url', 2000],
-    ['source', 'Nom de la source', 'text', 200],
-    ['published_on', 'Date de parution (si connue)', 'date', 10],
+    ['published_on', 'Date de la source (si connue)', 'date', 10],
     ['week', 'Semaine (lundi)', 'date', 10],
     ['summary', 'Résumé · 2 phrases maximum', 'textarea', 1200],
     ['for_euneos', 'Pertinence pour Euneos · 1 ou 2 phrases', 'textarea', 1600],
@@ -294,6 +367,7 @@ if (root) {
     editing = item
     usages = structuredClone(item?.usages ?? [])
     $('#vw-save-feedback').textContent = ''
+    $('#vw-reconnect').hidden = true
     $('#vw-editor-title').textContent = item ? 'Modifier la fiche' : 'Ajouter une fiche'
     const visibleItem = item
       ? {
@@ -322,7 +396,7 @@ if (root) {
           visibleItem?.[key] ??
             (key === 'week' ? (selectedWeek === 'all' ? currentWatchWeek() : selectedWeek) : ''),
         ),
-        ['title', 'link', 'source', 'week'].includes(key),
+        ['title', 'link', 'week'].includes(key),
       )
     const formatLabel = el('label', 'iw-field', 'Format de la ressource'),
       formatSelect = el('select')
@@ -400,8 +474,15 @@ if (root) {
         item: {
           ...editing,
           ...values,
+          source: editing?.source || new URL(values.link).hostname.replace(/^www\./, ''),
           themes,
           usages,
+          used:
+            editing &&
+            JSON.stringify(usages.map(({ name, status }) => ({ name, status }))) !==
+              JSON.stringify(editing.usages.map(({ name, status }) => ({ name, status })))
+              ? undefined
+              : editing?.used,
           event: editing?.event ?? null,
           needs_primary: editing?.needs_primary ?? false,
         },
@@ -413,6 +494,7 @@ if (root) {
       feedback.textContent = 'Brouillon enregistré.'
     } catch (e) {
       $('#vw-save-feedback').textContent = (e as Error).message
+      $('#vw-reconnect').hidden = !(e instanceof WatchConnectionError)
     } finally {
       busy = false
       save.disabled = false
@@ -446,6 +528,13 @@ if (root) {
     for (const b of root.querySelectorAll<HTMLButtonElement>('[data-filter]'))
       b.setAttribute('aria-pressed', String(!b.dataset.value))
     render()
+  }
+  $('#vw-trash').onclick = () => {
+    if (busy) return
+    showTrash = !showTrash
+    selectedWeek = 'all'
+    week.value = 'all'
+    $('#vw-reset').click()
   }
   const research = $<HTMLDialogElement>('#vw-research-dialog')
   $('#vw-research').onclick = () => research.showModal()

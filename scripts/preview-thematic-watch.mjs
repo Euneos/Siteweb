@@ -232,11 +232,12 @@ else {
     for (const [k, v] of Object.entries({
       title: 'Fiche manuelle de recette',
       link: 'https://example.test/manual',
-      source: 'Source test',
+      published_on: '2026-10-12',
       summary: 'Résumé de recette.',
       for_euneos: 'Vérifier la saisie équipe.',
     }))
       await page.locator(`[name="${k}"]`).fill(v)
+    await expect(page.locator('[name=source]')).toHaveCount(0)
     await page.locator('[name=theme][value="émotions"]').check()
     await page.locator('[name=format]').selectOption('Podcast')
     await page.locator('#vw-usage-add').selectOption('Encart newsletter')
@@ -249,11 +250,52 @@ else {
     await expect(manual).toContainText('Podcast')
     await manual.getByRole('button', { name: 'Modifier', exact: true }).click()
     await page.locator('[name=summary]').fill('Résumé corrigé.')
+    let failedSaves = 0
+    await page.route('**/api/interne/veille', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.continue()
+      failedSaves++
+      return route.abort('failed')
+    })
+    await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+    await expect(page.locator('#vw-save-feedback')).toContainText('session expirée')
+    await expect(page.locator('[name=summary]')).toHaveValue('Résumé corrigé.')
+    await expect(page.locator('[name=published_on]')).toHaveValue('2026-10-12')
+    await expect(page.locator('#vw-reconnect')).toBeVisible()
+    await expect(page.locator('#vw-reconnect')).toHaveAttribute('target', '_blank')
+    await expect(page.getByRole('button', { name: 'Enregistrer le brouillon' })).toBeEnabled()
+    expect(failedSaves).toBe(1)
+    await page.unroute('**/api/interne/veille')
+    await page.route('**/api/interne/veille', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.continue()
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Sign in</h1>' })
+    })
+    await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+    await expect(page.locator('#vw-save-feedback')).toContainText('Enregistrement non confirmé')
+    await expect(page.locator('#vw-editor')).toBeVisible()
+    await page.unroute('**/api/interne/veille')
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(manual).toContainText('Résumé corrigé.')
     // Saving selects the card’s week; include earlier weeks for the following checks.
     await page.locator('#vw-week').selectOption('all')
     await expect(page.locator('.vw-card')).toHaveCount(initialCount + 1)
+    await expect(manual.locator('.vw-publication')).toHaveText('12/10/2026')
+    await manual.getByRole('button', { name: 'Utilisée', exact: true }).click()
+    await expect(manual).toHaveClass(/vw-card--used/)
+    await expect(manual.locator('.vw-usage').first()).toContainText('à faire')
+    await page.reload()
+    await expect(manual.getByRole('button', { name: 'Utilisée', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(manual.locator('.vw-publication')).toHaveText('12/10/2026')
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.locator('#vw-search').focus()
+      await manual.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: new URL(`bouton-utilisee-${width}.png`, output).pathname })
+    }
+    await manual.getByRole('button', { name: 'Utilisée', exact: true }).click()
+    await expect(manual).not.toHaveClass(/vw-card--used/)
     const orderBeforeUsage = await page
       .locator('.vw-card')
       .evaluateAll((nodes) => nodes.map((n) => n.dataset.id))
@@ -274,12 +316,9 @@ else {
     ).toEqual(orderBeforeUsage)
     await page.locator('#vw-search').focus()
     expect(await manual.evaluate((e) => getComputedStyle(e).opacity)).toBe('0.45')
-    expect(
-      await page
-        .locator('.vw-tag--needs-source')
-        .first()
-        .evaluate((e) => getComputedStyle(e).backgroundColor),
-    ).toBe('rgb(249, 218, 218)')
+    await expect(page.locator('.vw-tag--needs-source')).toHaveCount(0)
+    await expect(manual.locator('.vw-tags')).not.toContainText('Podcast')
+    await expect(manual.locator('.vw-source')).toContainText('Podcast')
     await page.reload()
     await expect(manual).toHaveClass(/vw-card--used/)
     await expect(page.locator('#vw-todo')).toContainText('Fiche manuelle de recette')
@@ -312,6 +351,25 @@ else {
     page.once('dialog', (d) => d.accept())
     await manual.getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(manual).toHaveCount(0)
+    await page.getByRole('button', { name: /^Corbeille/ }).click()
+    await expect(manual).toHaveCount(1)
+    await expect(manual.getByRole('button', { name: 'Modifier', exact: true })).toHaveCount(0)
+    await expect(manual.locator('.vw-publication')).toHaveText('12/10/2026')
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await manual.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: new URL(`corbeille-${width}.png`, output).pathname })
+    }
+    await manual.getByRole('button', { name: 'Restaurer', exact: true }).click()
+    await expect(manual).toHaveCount(0)
+    await page.getByRole('button', { name: 'Retour aux fiches', exact: true }).click()
+    await expect(manual).toHaveCount(1)
+    await expect(manual.locator('.vw-publication')).toHaveText('12/10/2026')
+    const badRestore = await page.request.patch(origin + '/api/interne/veille', {
+      headers: { Origin: 'https://evil.example', 'Content-Type': 'application/json' },
+      data: { action: 'restore', id: 'fake', version: 1 },
+    })
+    expect(badRestore.status()).toBe(403)
     await page.getByRole('button', { name: 'Lancer une recherche' }).click()
     await expect(page.locator('#vw-research-dialog')).toContainText(
       'ne lance aucune recherche en arrière-plan',
