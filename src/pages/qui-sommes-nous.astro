@@ -389,7 +389,7 @@ const equipe = [
             equipe.map((m) => (
               <li class="membre membre--oper">
                 <Paper surface="ocre" fold="none" class="etiquette membre__name">{m.nom}{m.ligne2 && <><br />{m.ligne2}</>}</Paper>
-                <Photo src={m.photo} alt={m.photo ? `${m.nom} ${m.ligne2 ?? ''}, ${m.fonction}` : undefined} ratio="2/3" class={['membre__ph', m.photo === candice && 'portrait-candice', m.photo === pauline && 'portrait-pauline'].filter(Boolean).join(' ')} width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [240, Math.min(m.photo.width, 800)] : undefined} quality={m.photo ? 85 : undefined} />
+                <Photo src={m.photo} alt={m.photo ? `${m.nom} ${m.ligne2 ?? ''}, ${m.fonction}` : undefined} ratio={m.photo === pauline ? `${pauline.width}/${pauline.height}` : '2/3'} class={m.photo === candice ? 'membre__ph portrait-candice' : 'membre__ph'} width={m.photo ? Math.min(m.photo.width, 800) : undefined} widths={m.photo ? [240, Math.min(m.photo.width, 800)] : undefined} quality={m.photo ? 85 : undefined} />
                 <Paper surface="papier" fold="br" class="membre__card">
                   <p>{m.fonction}</p>
                   <a href={`mailto:${m.email}`}>Contacter</a>
@@ -934,11 +934,6 @@ const equipe = [
     width: 78%;
     margin-left: 12%;
   }
-  .portrait-pauline img {
-    transform: scale(1.12);
-    transform-origin: center 90%;
-  }
-
   .membre__ph--symbol {
     display: grid;
     place-items: center;
