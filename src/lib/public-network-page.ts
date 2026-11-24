@@ -10,7 +10,7 @@ export async function lireCartesPage(locals: unknown) {
   const runtime = (locals as {runtime?: {env?: Record<string, unknown>; ctx?: {waitUntil(work:Promise<unknown>):void}}}).runtime
   const env = runtime?.env ?? {}
   try {
-    const load = () => lireCartePublique(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES)
+    const load = () => lireCartePublique(token, env.RESOURCE_NETWORK_LOCATIONS, env.RESOURCE_NETWORK_RESIDENCES, env.RESOURCE_NETWORK_DISPLAY_LOCATIONS)
     const snapshot = env.TEAM_WORKSPACE ? await readPublicNetworkSnapshot(env.TEAM_WORKSPACE as WorkspaceDatabase,load,{
       background:runtime?.ctx ? work => runtime.ctx!.waitUntil(work) : undefined,
     }) : {data:await load(),refreshedAt:Date.now()}

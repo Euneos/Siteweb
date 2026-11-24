@@ -71,6 +71,14 @@ de la carte des établissements ne sont pas modifiés.
 
 ### Localisations confirmées, sans réécrire les fiches
 
+`RESOURCE_NETWORK_DISPLAY_LOCATIONS` est une configuration privée distincte,
+indexée par **personne**, pour la commune que la personne demande à afficher
+à la place de son domicile. Même format et validation que les autres exceptions.
+Elle est prioritaire sur `RESOURCE_NETWORK_RESIDENCES` et les exceptions de
+parcours, sur la carte publique comme dans les Ressources. Elle ne certifie
+pas un domicile et ne modifie aucune fiche NocoDB. Conserver les autres entrées
+et vérifier les deux cartes après publication.
+
 `RESOURCE_NETWORK_LOCATIONS` est une **configuration privée de déploiement**
 (secret Cloudflare Pages), jamais une variable publique `[vars]` ni un fichier
 versionné avec les identités. Elle associe des Id de **parcours**, pas de personnes,

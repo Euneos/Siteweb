@@ -29,6 +29,11 @@ export function lireLocalisationsConfirmees(raw: unknown): NetworkLocations {
   return parsed
 }
 
+/** Display preferences are not residence corrections; preserve both private configurations. */
+export function lireLocalisationsAffichees(rawResidences?: unknown, rawDisplay?: unknown): NetworkLocations {
+  return { ...lireLocalisationsConfirmees(rawResidences), ...lireLocalisationsConfirmees(rawDisplay) }
+}
+
 function confirmedLocation(entry: NetworkLocations[string]) {
   if ('place' in entry) {
     const location = locateNetworkPlace(entry.place)
@@ -115,20 +120,20 @@ export function construireCartePubliqueFormateurs(personnes: Row[], parcours: Ro
   return { members: [...formed.members, ...training.members.filter(m => !formedIds.has(m.id))], updatedAt: formed.updatedAt }
 }
 
-export async function lireCartePubliqueFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+export async function lireCartePubliqueFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown, rawDisplay?: unknown) {
   const [people, paths] = await Promise.all([
     lireToutes(token, 'formateurs', 'Id,nom,prenom,ville,cp'),
     lireToutes(token, 'engagements', 'Id,statut,formateurs_id,cohortes_id,fusionne_vers'),
   ])
-  return construireCartePubliqueFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsConfirmees(rawResidences))
+  return construireCartePubliqueFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsAffichees(rawResidences, rawDisplay))
 }
 
 export type ReseauFormateurs = ReturnType<typeof construireReseauFormateurs>
 
-export async function lireReseauFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown) {
+export async function lireReseauFormateurs(token: string, rawLocations?: unknown, rawResidences?: unknown, rawDisplay?: unknown) {
   const [people, paths] = await Promise.all([
     lireToutes(token, 'formateurs', 'Id,nom,prenom,ville,cp'),
     lireToutes(token, 'engagements', 'Id,statut,formateurs_id,cohortes_id,fusionne_vers'),
   ])
-  return construireReseauFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsConfirmees(rawResidences))
+  return construireReseauFormateurs(people, paths, lireLocalisationsConfirmees(rawLocations), lireLocalisationsAffichees(rawResidences, rawDisplay))
 }

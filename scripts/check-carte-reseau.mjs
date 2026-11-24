@@ -69,6 +69,13 @@ assert(!JSON.stringify(data).includes('Charlie Exemple'))
 assert(reads >= 6, 'Pagination de toutes les pages')
 assert(!JSON.stringify(data).includes('PRIVATE-EMAIL'))
 assert(!JSON.stringify(data).includes(env.NOCODB_TOKEN))
+env.RESOURCE_NETWORK_DISPLAY_LOCATIONS = JSON.stringify({ '2': { commune: '79191' } })
+const preferred = await (await resourcesGet(context(token))).json()
+assert.equal(preferred.members.find(member => member.id === 2).location.name, 'Niort')
+assert.equal(preferred.members.find(member => member.id === 2).localisation, 'Niort')
+assert.equal(preferred.members.find(member => member.id === 1).location.name, 'Rennes')
+assert.equal(personnes.find(person => person.Id === 2).ville, 'Draguignan')
+delete env.RESOURCE_NETWORK_DISPLAY_LOCATIONS
 failing = true
 const unavailable = await resourcesGet(context(token))
 assert.equal(unavailable.status, 503)

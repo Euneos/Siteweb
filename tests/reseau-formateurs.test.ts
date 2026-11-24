@@ -1,11 +1,29 @@
 import { describe, expect, test } from 'bun:test'
-import { construireReseauFormateurs, lireLocalisationsConfirmees, localiserFormateur } from '../src/lib/reseau-formateurs'
+import { construireReseauFormateurs, construireCartePubliqueFormateurs, lireLocalisationsAffichees, lireLocalisationsConfirmees, localiserFormateur } from '../src/lib/reseau-formateurs'
 import { networkMarkers } from '../src/lib/network-map-markers'
 
 const person = (Id = 1, extra = {}) => ({ Id, prenom: 'Prénom fictif', nom: 'Test', ville: 'Rennes', cp: '35000', email: 'private@example.test', telephone: 'NE PAS DIFFUSER', ...extra })
 const path = (Id = 1, extra = {}) => ({ Id, formateurs_id: 1, cohortes_id: null, fusionne_vers: null, promotion: 'Avril 2026', statut: 'Formateur validé', ...extra })
 
 describe('Carte du réseau formateurs', () => {
+  test('display preference replaces the home marker in both maps without changing other people or source records', () => {
+    const people = [person(), person(2)]
+    const paths = [path(), path(2, { formateurs_id: 2 })]
+    const before = JSON.stringify({ people, paths })
+    const residences = '{"1":{"commune":"35238"},"2":{"commune":"31555"}}'
+    const display = '{"1":{"commune":"79191"}}'
+    const merged = lireLocalisationsAffichees(residences, display)
+    expect(merged).toEqual({ '1': { commune: '79191' }, '2': { commune: '31555' } })
+    for (const build of [construireReseauFormateurs, construireCartePubliqueFormateurs]) {
+      const result = build(people, paths, {}, merged)
+      expect(result.members.find(m => m.id === 1)?.location?.name).toBe('Niort')
+      expect(result.members.find(m => m.id === 1)?.localisation).toBe('Niort')
+      expect(result.members.find(m => m.id === 2)?.location?.name).toBe('Toulouse')
+    }
+    expect(JSON.stringify({ people, paths })).toBe(before)
+    expect(lireLocalisationsAffichees(residences)).toEqual(JSON.parse(residences))
+    expect(() => lireLocalisationsAffichees(residences, '{"1":{"commune":"FAUX"}}')).toThrow()
+  })
   test('distinguishes validation from participation, includes every year without agreements or candidacy deductions', () => {
     const people = Array.from({ length: 9 }, (_, i) => person(i + 1))
     const statuses = ['Formateur validé', 'Formateur validé', 'En cours de formation', 'Formateur en cours de validation', 'Candidature validée', 'En attente confirmation formation', 'Refuse', 'Abandonne', '__proto__']
