@@ -1438,6 +1438,44 @@ body {
   }
 }
 
+/* Le sondage reprend la grille des candidatures sur fond blanc. */
+.survey .cand__panel { color: var(--vert); }
+.survey .champ { clip-path: none; }
+.survey .cand__chapo,
+.survey .cand__form,
+.survey-eyebrow { font-size: var(--t-note); }
+.survey-eyebrow { text-align: center; }
+.survey-required { max-width: 46rem; margin: 0 auto var(--s-lie); }
+.survey .cand__choix li > label,
+.survey .champ > :is(input, textarea, select) { font-weight: 400; }
+.survey .survey-instruction {
+  display: block;
+  padding: 0.5em 0.75em;
+  background: color-mix(in srgb, var(--vert) 10%, transparent);
+  opacity: 1;
+}
+.survey-rank,
+.survey-other { margin-top: 0.45rem; }
+.survey .cand__choix .survey-rank,
+.survey .cand__choix .survey-other label {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  line-height: inherit;
+}
+.survey .cand__submit {
+  position: static;
+  transform: none;
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+.survey .cand__submit .cta { white-space: normal; }
+.survey-thanks {
+  font-size: var(--t-carte);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.survey [hidden] { display: none !important; }
+
   /* Trois liens pour prendre part au projet. */
   .parcours {
     display: grid;

@@ -110,3 +110,39 @@ export async function inscrireNewsletter(
   })
   return true
 }
+
+export async function ajouterEtablissementNewsletter(env: BrevoEnv, email: string, nom: string) {
+  const apiKey = env.BREVO_API_KEY
+  const listId = Number(env.BREVO_LIST_ETABLISSEMENT)
+  if (!apiKey || !Number.isSafeInteger(listId) || listId <= 0) return false
+
+  const chemin = `/contacts/${encodeURIComponent(email)}`
+  const contact = await fetch(`${API}${chemin}`, {
+    headers: { 'api-key': apiKey },
+    signal: AbortSignal.timeout(12_000),
+  })
+  if (contact.status === 404) {
+    await appeler(apiKey, '/contacts', {
+      method: 'POST',
+      body: JSON.stringify({ email, attributes: { NOM: nom }, listIds: [listId] }),
+    })
+    return true
+  }
+  if (!contact.ok) throw new Error('Vérification du contact Brevo indisponible')
+
+  const details = await contact.json() as {
+    emailBlacklisted?: boolean
+    listIds?: number[]
+    listUnsubscribed?: number[]
+  }
+  if (typeof details.emailBlacklisted !== 'boolean' || !Array.isArray(details.listIds))
+    throw new Error('Réponse Brevo invalide')
+  if (details.emailBlacklisted || details.listUnsubscribed?.includes(listId)) return true
+  if (details.listIds.includes(listId)) return true
+
+  await appeler(apiKey, chemin, {
+    method: 'PUT',
+    body: JSON.stringify({ listIds: [listId] }),
+  })
+  return true
+}

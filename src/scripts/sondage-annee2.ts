@@ -1,4 +1,4 @@
-import { interested, parseSurvey, surveyQuestions, surveyThanks } from '../lib/sondage-annee2'
+import { matchesSurveyCondition, parseSurvey, surveyQuestions, surveyThanks } from '../lib/sondage-annee2'
 const form = document.querySelector<HTMLFormElement>('#survey-form')
 const feedback = document.querySelector<HTMLElement>('#survey-feedback')
 if (form && feedback) {
@@ -24,7 +24,7 @@ if (form && feedback) {
         return
       }
       const active = container.dataset.when
-        ? interested(data.get(container.dataset.when))
+        ? matchesSurveyCondition(data.get(container.dataset.when), container.dataset.whenValue)
         : data.getAll(container.dataset.other!).includes('Autre')
       container.hidden = !active
       container
@@ -55,7 +55,7 @@ if (form && feedback) {
       const data = new FormData(form),
         raw: Record<string, unknown> = {}
       for (const q of surveyQuestions) {
-        if (q.when && !interested(data.get(q.when))) continue
+        if (q.when && !matchesSurveyCondition(data.get(q.when), q.whenValue)) continue
         if (q.type === 'ranking') {
           const ranked = q.choices!.map((choice, i) => ({ choice, rank: Number(data.get(`${q.key}Rank${i}`)) })).filter(item => item.rank > 0).sort((a, b) => a.rank - b.rank)
           if (new Set(ranked.map(item => item.rank)).size !== ranked.length) throw new Error('Question 3 : utilisez chaque rang une seule fois.')
@@ -75,6 +75,7 @@ if (form && feedback) {
           version: 'sondage-annee2-v1',
           website: data.get('website') ?? '',
           answers,
+          newsletterOptOut: data.has('newsletterOptOut'),
         }),
       })
       const result = await response.json()
@@ -88,7 +89,7 @@ if (form && feedback) {
         )
       feedback.textContent = result.preview
         ? 'Simulation réussie : aucune réponse enregistrée.'
-        : `Vos réponses ont bien été enregistrées. ${surveyThanks}`
+        : `Vos réponses ont bien été enregistrées. ${surveyThanks}${result.newsletterUnavailable ? " L’inscription à la newsletter n’a pas pu être confirmée." : ""}`
       form.hidden = true
     } catch (error) {
       feedback.textContent =

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { ajouterEtablissementNewsletter, brevoEnv } from '../../../lib/brevo'
 import { modeApercu } from '../../../lib/forms'
 import {
   operationalError,
@@ -14,9 +15,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await readOperationalBody(request)
     if (
-      Object.keys(body).some((key) => !['version', 'website', 'answers'].includes(key)) ||
+      Object.keys(body).some((key) => !['version', 'website', 'answers', 'newsletterOptOut'].includes(key)) ||
       body.version !== 'sondage-annee2-v1' ||
-      body.website !== ''
+      body.website !== '' ||
+      (Object.hasOwn(body, 'newsletterOptOut') && typeof body.newsletterOptOut !== 'boolean')
     )
       throw new OperationalLinkError(
         400,
@@ -32,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (modeApercu(request)) return operationalJson({ state: 'complete', preview: true })
     const { db, token, table } = publicFormsConfig(locals)
     await limitPublicForm(db, request)
-    const payload = JSON.stringify({ version: body.version, answers })
+    const payload = JSON.stringify({ version: body.version, answers, newsletterOptOut: body.newsletterOptOut })
     const receipt = await hashOperational(payload)
     await db
       .prepare(
@@ -90,7 +92,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       )
       .bind(Number(source.Id), receipt)
       .run()
-    return operationalJson({ state: 'complete' })
+    let newsletterUnavailable = false
+    if (body.newsletterOptOut === false) {
+      try {
+        newsletterUnavailable = !(await ajouterEtablissementNewsletter(
+          brevoEnv(locals),
+          String(answers.email),
+          String(answers.school),
+        ))
+      } catch {
+        newsletterUnavailable = true
+      }
+    }
+    return operationalJson(newsletterUnavailable
+      ? { state: 'complete', newsletterUnavailable: true }
+      : { state: 'complete' })
   } catch (error) {
     return operationalError(error)
   }

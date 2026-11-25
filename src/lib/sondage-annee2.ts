@@ -10,6 +10,7 @@ export type SurveyQuestion = {
   choices?: string[]
   required?: boolean
   when?: string
+  whenValue?: string
   other?: boolean
   maxChoices?: number
   exclusive?: string[]
@@ -138,15 +139,31 @@ export const surveyQuestions: SurveyQuestion[] = [
     ],
   },
   {
+    key: 'eduSante',
+    section: '8. Label EduSanté',
+    label: 'Avez-vous le label EduSanté ?',
+    type: 'radio',
+    choices: ['Oui', 'Non'],
+  },
+  {
+    key: 'eduSanteApplication',
+    section: '8. Label EduSanté',
+    label: 'Souhaiteriez-vous en faire la demande accompagnée par le programme Wise Up ?',
+    type: 'radio',
+    choices: ['Oui', 'Non'],
+    when: 'eduSante',
+    whenValue: 'Non',
+  },
+  {
     key: 'priority',
-    section: '8. Votre priorité et le soutien nécessaire',
+    section: '9. Votre priorité et le soutien nécessaire',
     label: 'Parmi les pistes évoquées pour mobiliser les élèves et leurs familles, quelle serait votre priorité ?',
     description: '(Élèves ambassadeurs, podcast, exposition, débat, campagne de sensibilisation, charte des usages numériques, projection-débat, conférence, atelier parents-enfants, présentation des projets des élèves ou autre proposition.)',
     type: 'textarea',
   },
   {
     key: 'support',
-    section: '8. Votre priorité et le soutien nécessaire',
+    section: '9. Votre priorité et le soutien nécessaire',
     label: 'De quel soutien auriez-vous besoin pour avancer ?',
     type: 'checkbox',
     other: true,
@@ -165,20 +182,23 @@ export const surveyQuestions: SurveyQuestion[] = [
   },
   {
     key: 'contact',
-    section: '9. Garder le contact',
+    section: '10. Garder le contact',
     label: 'Souhaitez-vous être recontacté pour échanger sur les suites possibles ?',
     type: 'radio',
     choices: ['Oui.', 'Pas pour le moment.'],
   },
   {
     key: 'remarks',
-    section: '9. Garder le contact',
+    section: '10. Garder le contact',
     label: 'Avez-vous une autre remarque ou une question ?',
     type: 'textarea',
   },
 ]
 export const interested = (value: unknown) =>
   typeof value === 'string' && (value === 'Oui.' || value.startsWith('Peut-être'))
+export const matchesSurveyCondition = (value: unknown, expected?: string) =>
+  expected === undefined ? interested(value) : value === expected
+
 export function parseSurvey(value: unknown): Record<string, string | string[]> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Vérifiez vos réponses.')
@@ -188,7 +208,8 @@ export function parseSurvey(value: unknown): Record<string, string | string[]> {
   if (Object.keys(input).some((key) => !keys.includes(key)))
     throw new Error('Champ inconnu. Rechargez le formulaire.')
   for (const q of surveyQuestions) {
-    if (q.when && !interested(input[q.when])) continue
+    if (q.key === 'eduSante' && !Object.hasOwn(input, q.key)) continue
+    if (q.when && !matchesSurveyCondition(input[q.when], q.whenValue)) continue
     const raw = input[q.key] ?? (q.type === 'checkbox' || q.type === 'ranking' ? [] : '')
     if (q.type === 'checkbox' || q.type === 'ranking') {
       if (

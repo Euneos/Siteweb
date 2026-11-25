@@ -12,14 +12,21 @@ try {
   for (const width of [320, 390, 768, 860, 861, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await page.goto(`${base}/suivi/sondage-annee2`)
-    const typography = await page.evaluate(() => {
-      const size = element => parseFloat(getComputedStyle(element).fontSize)
-      const question = size(document.querySelector('.survey-choices legend'))
-      const proposal = size(document.querySelector('.survey-rank > span'))
-      const note = size(document.querySelector('.survey-ranking-instructions'))
-      return { sameQuestions: [...document.querySelectorAll('.survey-question-title')].every(element => size(element) === question), proposal, question, note }
-    })
-    if (!typography.sameQuestions || typography.proposal > typography.question || typography.proposal - typography.note < 2 * 96 / 72) throw new Error(`Typography mismatch at ${width}: ${JSON.stringify(typography)}`)
+    const reference = await page.locator('.survey-required').evaluate(el => getComputedStyle(el).fontSize)
+    const weights = await page.locator('.cand__choix li > label').evaluateAll(labels =>
+      labels.filter(label => label.getClientRects().length).map(label => [getComputedStyle(label).fontSize, getComputedStyle(label).fontWeight]),
+    )
+    if (weights.some(([size, weight]) => size !== reference || weight !== '400'))
+      throw new Error(`Choice styling differs at ${width}px`)
+
+    const followUp = page.getByRole('group', { name: /Souhaiteriez-vous en faire la demande/ })
+    if (await followUp.isVisible()) throw new Error('EduSanté follow-up shown before answering')
+    await page.locator('[name=eduSante][value=Non]').check()
+    await followUp.getByRole('radio', { name: 'Oui' }).check()
+    await page.locator('[name=eduSante][value=Oui]').check()
+    if (await followUp.isVisible()) throw new Error('EduSanté follow-up shown after Oui')
+    if (await page.locator('[name=newsletterOptOut]').isChecked())
+      throw new Error('Newsletter opposition preselected')
     for (const key of ['students', 'families', 'support']) {
       if (!await page.locator(`[name=${key}Other]`).isVisible()) throw new Error(`Missing visible Other field: ${key}`)
       await page.locator(`[name=${key}Other]`).fill('Proposition complémentaire')
