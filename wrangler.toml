@@ -12,7 +12,6 @@ compatibility_flags = ["nodejs_compat"]
 # Identifiant public de la liste Brevo ; versionné pour que chaque déploiement
 # conserve le routage formateurs. Les clés API restent des secrets Cloudflare.
 [vars]
-BREVO_LIST_ETABLISSEMENT = "3"
 BREVO_LIST_FORMATEUR = "6"
 BREVO_LIST_ENJEUX = "9"
 
@@ -51,7 +50,6 @@ migrations_dir = "migrations/interne"
 kv_namespaces = []
 
 [env.preview.vars]
-BREVO_LIST_ETABLISSEMENT = "3"
 BREVO_LIST_FORMATEUR = "6"
 BREVO_LIST_ENJEUX = "9"
 CONTACT_EMAIL = "euneosequipe@gmail.com"
