@@ -239,5 +239,9 @@ y compris a ce qui etait juste.
   `.env.example`). Le jeton est fourni par Charly.
 - **Un dossier a disparu** → rien n'est supprimé automatiquement. Cherchez d'abord sous un
   autre statut : `bun scripts/base.mjs candidatures`.
+- **L'agent ne fait plus ce qu'il faisait, une fonction a disparu, ou Charly demande l'état
+  du poste** → `bash scripts/diagnostic-poste.sh`. Le script ne change rien : il écrit sur le
+  Bureau un rapport (version d'OpenCode, dossier à jour ou non, accès, planification), sans
+  mot de passe ni jeton. Le fichier est à envoyer à Charly.
 
 Pour tout le reste : Charly.
