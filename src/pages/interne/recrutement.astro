@@ -1,0 +1,113 @@
+---
+export const prerender = false
+import InternalLayout from '../../layouts/InternalLayout.astro'
+import { getInternalContext, privateHeaders } from '../../lib/internal-context'
+import { listRecruitment, recruitmentStatuses, type RecruitmentContact } from '../../lib/recruitment'
+const context = await getInternalContext(Astro.request, Astro.locals)
+if (context instanceof Response) return context
+for (const [key, value] of Object.entries(privateHeaders)) Astro.response.headers.set(key, value)
+let contacts: RecruitmentContact[] = [], unavailable = false
+try { contacts = await listRecruitment(context.db) } catch { unavailable = true; Astro.response.status = 503 }
+const labels = {
+  establishment: 'Établissement', city: 'Commune', origin: 'Origine du contact',
+  contact: 'Interlocuteur / fonction', email: 'E-mail', address_type: 'Type d’adresse',
+  phone: 'Téléphone', sent_on: 'Dernier e-mail envoyé le', response: 'Réponse au mail',
+  last_contact_on: 'Dernier échange téléphonique le', follow_up_on: 'Date de relance',
+  next_action: 'Prochaine action', call_report: 'Compte rendu des appels',
+  notes: 'Notes', vigilance: 'Vigilances et points à confirmer', source: 'Sources',
+}
+const dateFields = ['sent_on', 'last_contact_on', 'follow_up_on']
+const longFields = ['call_report', 'notes', 'vigilance', 'source', 'next_action']
+const dateLabel = (s: string) => s ? s.split('-').reverse().join('/') : 'Non renseignée'
+---
+<InternalLayout title="Campagne de recrutement WISE-UP" current="recrutement" identity={context.identity} space="organisation" wide>
+  <section class="recruitment">
+    <header>
+      <p class="iw-eyebrow">WISE-UP · Prospection des établissements</p>
+      <h1>Campagne de recrutement</h1>
+      <p>Contacts, échanges et prochaines actions. Le suivi de prospection ne modifie aucune candidature.</p>
+    </header>
+    {unavailable ? <p role="alert">Le suivi est temporairement indisponible. Aucune donnée n’a été modifiée.</p> : <>
+      <div class="recruitment-stats" aria-label="Bilan de la prospection">
+        <p><strong>{contacts.length}</strong> contacts</p>
+        <p><strong>{contacts.filter(c => c.sent_on).length}</strong> contacts avec un envoi renseigné</p>
+        <p><strong>{contacts.filter(c => c.status === 'À rappeler').length}</strong> à rappeler</p>
+        <p><strong>{contacts.filter(c => c.status === 'Non intéressé').length}</strong> non intéressés</p>
+      </div>
+      <p class="recruitment-hint">Plusieurs contacts peuvent concerner le même établissement : ces chiffres ne sont pas un nombre d’établissements. Ordre : dernier échange daté, sinon dernier envoi, du plus ancien au plus récent. Les appels sans date restent signalés dans leur compte rendu.</p>
+      <div class="recruitment-filters">
+        <label>Rechercher<input type="search" id="recruitment-search" placeholder="Établissement, ville, contact, identifiant…" /></label>
+        <label>Suivi<select id="recruitment-status"><option value="">Tous</option>{recruitmentStatuses.map(s => <option>{s}</option>)}</select></label>
+        <label>Actions<select id="recruitment-action"><option value="">Toutes</option><option value="rappeler">À rappeler</option><option value="brochure">Brochure à envoyer</option><option value="date">Date de relance renseignée</option></select></label>
+      </div>
+      <p id="recruitment-count" role="status">{contacts.length} contacts affichés</p>
+      {!contacts.length && <p>Le tableau est prêt. Aucun contact n’a encore été importé.</p>}
+      <div class="recruitment-list">
+        {contacts.map(c => <details class="recruitment-card" data-recruitment-card data-status={c.status} data-follow-up={c.follow_up_on} data-search={[c.id,c.establishment,c.city,c.contact,c.email,c.next_action,c.call_report].join(' ')}>
+          <summary>
+            <span><strong>{c.establishment}</strong><span class="recruitment-meta">{c.id} · {c.city || 'Commune à confirmer'}</span></span>
+            <span class="recruitment-badge">{c.status}</span>
+            <span class="recruitment-summary-action">{c.next_action || 'Prochaine action à préciser'}<span class="recruitment-meta">Relance : {dateLabel(c.follow_up_on)}</span></span>
+          </summary>
+          <div class="recruitment-body">
+            <p>{c.contact || 'Interlocuteur à confirmer'} · {c.email || 'E-mail non renseigné'}<br />{c.phone || 'Téléphone non renseigné'}</p>
+            {c.call_report && <blockquote>{c.call_report}</blockquote>}
+            {c.vigilance && <p class="recruitment-warning"><strong>Vigilance :</strong> {c.vigilance}</p>}
+            <form method="post" action="/api/interne/recrutement" data-recruitment-form data-id={c.id} data-version={c.version}>
+              <div class="recruitment-grid">
+                <label>Suivi de prospection<select name="status" required>{recruitmentStatuses.map(s => <option selected={s === c.status}>{s}</option>)}</select></label>
+                {Object.entries(labels).map(([field,label]) => <label class:list={[longFields.includes(field) && 'recruitment-wide']}>{label}
+                  {longFields.includes(field)
+                    ? <textarea name={field} rows={field === 'call_report' ? 4 : 3} maxlength={['notes','vigilance','call_report'].includes(field) ? 6000 : 1000} required={field === 'source'}>{c[field as keyof typeof labels]}</textarea>
+                    : <input name={field} type={dateFields.includes(field) ? 'date' : field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'} value={c[field as keyof typeof labels]} maxlength="1000" required={field === 'establishment'} />}
+                </label>)}
+              </div>
+              <p class="recruitment-hint">Une date inconnue reste vide. Un envoi renseigné ne prouve ni la réception ni l’intérêt de l’établissement.</p>
+              <button type="submit" class="iw-button">Enregistrer la fiche</button>
+              <p data-save-status role="status" aria-live="polite"></p>
+              <noscript>Activez JavaScript pour enregistrer une modification. Votre saisie n’est pas enregistrée sans confirmation.</noscript>
+            </form>
+          </div>
+        </details>)}
+      </div>
+    </>}
+  </section>
+</InternalLayout>
+<script>
+  import '../../scripts/recruitment'
+</script>
+<style is:global>
+  .recruitment { display: grid; gap: var(--s-lie); min-width: 0; }
+  .recruitment header p { margin-top: var(--s-lie); }
+  .recruitment-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; }
+  .recruitment-stats p { padding: 1rem; background: #fff; border: 1px solid #00382d30; border-radius: .5rem; }
+  .recruitment-stats strong { display: block; font-size: var(--t-h3); }
+  .recruitment-hint, .recruitment-meta { font-size: var(--t-note); }
+  .recruitment-filters, .recruitment-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+  .recruitment label { display: grid; align-content: start; gap: .35rem; min-width: 0; }
+  .recruitment input, .recruitment select, .recruitment textarea { width: 100%; min-width: 0; padding: .65rem; background: white; color: #111; border: 1px solid #657b74; border-radius: .3rem; font: inherit; font-size: var(--t-note); }
+  .recruitment input, .recruitment select, .recruitment button { min-height: 44px; }
+  .recruitment textarea { resize: vertical; }
+  .recruitment-list { display: grid; gap: 1rem; }
+  .recruitment-card { background: white; border: 1px solid #00382d40; border-radius: .5rem; min-width: 0; overflow-wrap: anywhere; }
+  .recruitment-card[hidden] { display: none; }
+  .recruitment-card summary { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,2fr); gap: 1rem; padding: 1rem; cursor: pointer; align-items: start; }
+  .recruitment-card summary::before { content: none; }
+  .recruitment-card summary strong::before { content: '+ '; }
+  .recruitment-card[open] summary strong::before { content: '− '; }
+  .recruitment-card summary:focus-visible { outline: 3px solid #00382d; outline-offset: 3px; }
+  .recruitment-meta { display: block; margin-top: .35rem; }
+  .recruitment-badge { background: #f8c702; border-radius: .3rem; padding: .3rem .6rem; font-size: var(--t-note); color: #111; }
+  .recruitment-card[data-status="Non intéressé"] .recruitment-badge { background: #b42318; color: #fff; }
+  .recruitment-summary-action { font-size: var(--t-note); }
+  .recruitment-body { padding: 1rem; border-top: 1px solid #00382d30; display: grid; gap: 1rem; }
+  .recruitment-body blockquote { border-left: 4px solid #00382d; padding: 1rem; margin: 0; white-space: pre-wrap; font-size: var(--t-note); }
+  .recruitment-warning { background: #fff4d0; padding: 1rem; font-size: var(--t-note); white-space: pre-wrap; }
+  .recruitment-wide { grid-column: 1 / -1; }
+  .recruitment form > p, .recruitment form > button { margin-top: 1rem; }
+  @media(max-width: 860px) {
+    .recruitment-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .recruitment-filters, .recruitment-grid, .recruitment-card summary { grid-template-columns: minmax(0,1fr); }
+    .recruitment-badge { justify-self: start; }
+  }
+</style>

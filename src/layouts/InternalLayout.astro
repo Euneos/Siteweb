@@ -7,6 +7,7 @@ import { internalEnvironment } from '../lib/internal-context'
 interface Props {
   title: string
   current:
+    | 'recrutement'
     | 'accueil'
     | 'suivimedias'
     | 'partenariats'
@@ -94,6 +95,13 @@ const preview = internalEnvironment(Astro.locals).INTERNAL_WORKSPACE_PREVIEW ===
           teamAccess && space === 'equipe' && (
             <a href="/interne/organisation-equipe" aria-current={current === 'organisation' ? 'page' : undefined}>
               Organisation équipe
+            </a>
+          )
+        }
+        {
+          teamAccess && space === 'organisation' && (
+            <a href="/interne/recrutement" aria-current={current === 'recrutement' ? 'page' : undefined}>
+              Campagne de recrutement
             </a>
           )
         }
