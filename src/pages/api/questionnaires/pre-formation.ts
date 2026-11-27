@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { ajouterEtablissementNewsletter, brevoEnv } from '../../../lib/brevo'
 import { modeApercu } from '../../../lib/forms'
 import {
   operationalError,
@@ -16,9 +17,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await readOperationalBody(request)
     if (
-      Object.keys(body).some((key) => !['version', 'website', 'answers'].includes(key)) ||
+      Object.keys(body).some(
+        (key) => !['version', 'website', 'answers', 'newsletterOptOut'].includes(key),
+      ) ||
       body.version !== preformationVersion ||
-      (body.website !== undefined && body.website !== '')
+      (body.website !== undefined && body.website !== '') ||
+      (Object.hasOwn(body, 'newsletterOptOut') && typeof body.newsletterOptOut !== 'boolean')
     )
       throw new OperationalLinkError(
         400,
@@ -44,7 +48,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .first()
     await limitPublicForm(config.db, request)
     const result = await receivePreformation({ ...config, answers, personProjection })
-    return operationalJson(result, result.state === 'processing' ? 202 : 200)
+    if (result.state === 'processing') return operationalJson(result, 202)
+    if (body.newsletterOptOut === false) {
+      try {
+        if (
+          await ajouterEtablissementNewsletter(brevoEnv(locals), answers.email, {
+            fullName: answers.name,
+          })
+        )
+          return operationalJson(result)
+      } catch {
+        // Une indisponibilité Brevo n’annule pas la réponse déjà enregistrée.
+      }
+      return operationalJson({ ...result, newsletterUnavailable: true })
+    }
+    return operationalJson(result)
   } catch (error) {
     return operationalError(error)
   }

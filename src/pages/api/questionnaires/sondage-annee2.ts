@@ -15,7 +15,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await readOperationalBody(request)
     if (
-      Object.keys(body).some((key) => !['version', 'website', 'answers', 'newsletterOptOut'].includes(key)) ||
+      Object.keys(body).some(
+        (key) => !['version', 'website', 'answers', 'newsletterOptOut'].includes(key),
+      ) ||
       body.version !== 'sondage-annee2-v1' ||
       body.website !== '' ||
       (Object.hasOwn(body, 'newsletterOptOut') && typeof body.newsletterOptOut !== 'boolean')
@@ -34,7 +36,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (modeApercu(request)) return operationalJson({ state: 'complete', preview: true })
     const { db, token, table } = publicFormsConfig(locals)
     await limitPublicForm(db, request)
-    const payload = JSON.stringify({ version: body.version, answers, newsletterOptOut: body.newsletterOptOut })
+    const payload = JSON.stringify({
+      version: body.version,
+      answers,
+      newsletterOptOut: body.newsletterOptOut,
+    })
     const receipt = await hashOperational(payload)
     await db
       .prepare(
@@ -98,15 +104,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         newsletterUnavailable = !(await ajouterEtablissementNewsletter(
           brevoEnv(locals),
           String(answers.email),
-          String(answers.school),
+          typeof answers.firstName === 'string' && typeof answers.lastName === 'string'
+            ? { firstName: answers.firstName, lastName: answers.lastName }
+            : undefined,
         ))
       } catch {
         newsletterUnavailable = true
       }
     }
-    return operationalJson(newsletterUnavailable
-      ? { state: 'complete', newsletterUnavailable: true }
-      : { state: 'complete' })
+    return operationalJson(
+      newsletterUnavailable
+        ? { state: 'complete', newsletterUnavailable: true }
+        : { state: 'complete' },
+    )
   } catch (error) {
     return operationalError(error)
   }

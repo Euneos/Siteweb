@@ -20,7 +20,9 @@ export const surveyQuestions: SurveyQuestion[] = [
   ...[
     ['school', 'Nom de l’établissement'],
     ['city', 'Ville'],
-    ['name', 'Votre nom et votre fonction'],
+    ['firstName', 'Prénom'],
+    ['lastName', 'Nom'],
+    ['role', 'Fonction'],
     ['email', 'Adresse e-mail de contact'],
   ].map(([key, label]): SurveyQuestion => ({
     key,
@@ -205,9 +207,21 @@ export function parseSurvey(value: unknown): Record<string, string | string[]> {
   const input = value as Record<string, unknown>,
     answers: Record<string, string | string[]> = {}
   const keys = surveyQuestions.flatMap((q) => (q.other ? [q.key, `${q.key}Other`] : [q.key]))
+  // Les formulaires déjà ouverts peuvent encore envoyer l’ancien champ combiné.
+  const identityKeys = ['firstName', 'lastName', 'role']
+  const legacyIdentity = Object.hasOwn(input, 'name') && !identityKeys.some(key => Object.hasOwn(input, key))
+  if (legacyIdentity) {
+    keys.push('name')
+    if (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 300)
+      throw new Error('Vérifiez votre nom et votre fonction.')
+  }
   if (Object.keys(input).some((key) => !keys.includes(key)))
     throw new Error('Champ inconnu. Rechargez le formulaire.')
   for (const q of surveyQuestions) {
+    if (legacyIdentity && identityKeys.includes(q.key)) {
+      if (q.key === 'firstName') answers.name = (input.name as string).trim()
+      continue
+    }
     if (q.key === 'eduSante' && !Object.hasOwn(input, q.key)) continue
     if (q.when && !matchesSurveyCondition(input[q.when], q.whenValue)) continue
     const raw = input[q.key] ?? (q.type === 'checkbox' || q.type === 'ranking' ? [] : '')

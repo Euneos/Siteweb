@@ -57,7 +57,9 @@ try {
   for (const [name, value] of Object.entries({
     school: 'Collège fictif',
     city: 'Ville test',
-    name: 'Référente test',
+    firstName: 'Camille',
+    lastName: 'Martin',
+    role: 'Référente',
     email: 'test@example.invalid',
   }))
     await page.locator(`#survey-form [name=${name}]`).fill(value)

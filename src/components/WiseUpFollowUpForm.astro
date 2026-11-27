@@ -1,0 +1,237 @@
+---
+import Base from '../layouts/Base.astro'
+import Paper from './Paper.astro'
+import { surveyThanks } from '../lib/sondage-annee2'
+import type { PostformationQuestion } from '../lib/postformation-definition'
+
+interface Props {
+  formId: string
+  action: string
+  version: string
+  subtitle: string
+  introduction: string
+  emphasizedPhrase?: string
+  questions: readonly (Omit<PostformationQuestion, 'type' | 'choices' | 'other'> & {
+    type: PostformationQuestion['type'] | 'choice'
+    choices: readonly string[]
+    other?: boolean
+  })[]
+  ready: boolean
+}
+const { formId, action, version, subtitle, introduction, emphasizedPhrase, questions, ready } =
+  Astro.props
+const [introTiming, introPurpose] = introduction.split('\n\n')
+const [introSummary, introFollowUp] = introPurpose.split('\n')
+const emphasisStart = emphasizedPhrase ? introSummary.indexOf(emphasizedPhrase) : -1
+const sections = [...new Set(questions.map((q) => q.section))]
+---
+
+<Base
+  title={`Programme clé Euneos (WISE-UP) — ${subtitle}`}
+  description={subtitle}
+  noindex
+  heroSurface="vert"
+  heroFold="none"
+>
+  <section class="section cand survey">
+    <div class="page">
+      <Paper outline fold="none" class="cand__panel">
+        <h1>Programme clé Euneos (WISE-UP)<br />{subtitle}</h1>
+        <p class="cand__chapo wise-introduction">
+          {introTiming}<br /><br />{
+            emphasizedPhrase && emphasisStart >= 0 ? (
+              <>
+                {introSummary.slice(0, emphasisStart)}
+                <strong>{emphasizedPhrase}</strong>
+                {introSummary.slice(emphasisStart + emphasizedPhrase.length)}
+              </>
+            ) : (
+              <strong>{introSummary}</strong>
+            )
+          }{
+            introFollowUp && (
+              <>
+                <br />
+                {introFollowUp}
+              </>
+            )
+          }
+        </p>
+        {
+          !ready ? (
+            <p class="cand__err" role="alert">
+              Ce formulaire est momentanément indisponible. Réessayez plus tard ou contactez
+              l’équipe EUNEOS.
+            </p>
+          ) : (
+            <>
+              <p class="cand__legal survey-required survey-instruction">
+                Les champs marqués d’un astérisque sont obligatoires.
+              </p>
+              <noscript>
+                <p class="cand__err" role="alert">
+                  Activez JavaScript pour envoyer ce formulaire. Votre saisie restera sur cette page
+                  en cas d’erreur.
+                </p>
+              </noscript>
+              <form
+                id={`${formId}-form`}
+                class="cand__form"
+                method="post"
+                action={action}
+                data-version={version}
+              >
+                <input
+                  class="form-trap"
+                  name="website"
+                  tabindex="-1"
+                  autocomplete="off"
+                  aria-hidden="true"
+                />
+                {sections.map((section, index) => (
+                  <Fragment>
+                    <div class="cand__section">
+                      <h2>
+                        {index + 1}. {section}
+                      </h2>
+                    </div>
+                    {questions
+                      .filter((q) => q.section === section)
+                      .map((q) =>
+                        q.type === 'choice' || q.type === 'radio' || q.type === 'checkbox' ? (
+                          <fieldset
+                            class="cand__row cand__row--large cand__choix"
+                            data-multiple-required={
+                              q.type === 'checkbox' && q.required ? 'true' : undefined
+                            }
+                          >
+                            <legend>
+                              {q.label}
+                              {q.required && <abbr title="obligatoire">&nbsp;*</abbr>}
+                            </legend>
+                            <p class="cand__aide survey-instruction">
+                              {q.description ||
+                                (q.type === 'checkbox'
+                                  ? 'Plusieurs réponses possibles.'
+                                  : 'Une seule réponse.')}
+                            </p>
+                            <ul>
+                              {q.choices.map((choice) => (
+                                <li>
+                                  <label>
+                                    <input
+                                      type={q.type === 'checkbox' ? 'checkbox' : 'radio'}
+                                      name={q.key}
+                                      value={choice}
+                                      required={q.required && q.type !== 'checkbox'}
+                                    />
+                                    <span>{choice}</span>
+                                  </label>
+                                </li>
+                              ))}
+                            </ul>
+                            {q.other && (
+                              <div class="cand__row survey-other">
+                                <label for={`wise-${q.key}-other`}>Autre réponse</label>
+                                <span class="champ">
+                                  <input
+                                    id={`wise-${q.key}-other`}
+                                    name={`${q.key}Other`}
+                                    data-other-for={q.key}
+                                    maxlength="5000"
+                                  />
+                                </span>
+                              </div>
+                            )}
+                          </fieldset>
+                        ) : (
+                          <div
+                            class:list={[
+                              'cand__row',
+                              (section !== sections[0] || q.type === 'textarea') &&
+                                'cand__row--large',
+                            ]}
+                          >
+                            <label for={`wise-${q.key}`}>
+                              {q.label}
+                              {q.required && <abbr title="obligatoire">&nbsp;*</abbr>}
+                            </label>
+                            <span class="champ">
+                              {q.type === 'textarea' ? (
+                                <textarea
+                                  id={`wise-${q.key}`}
+                                  name={q.key}
+                                  required={q.required}
+                                  maxlength={q.maxLength}
+                                  rows="5"
+                                />
+                              ) : (
+                                <input
+                                  id={`wise-${q.key}`}
+                                  name={q.key}
+                                  type={q.type}
+                                  required={q.required}
+                                  maxlength={q.maxLength}
+                                  pattern={
+                                    q.key === 'year' ? '20[0-9]{2}[\\-–—]20[0-9]{2}' : undefined
+                                  }
+                                  autocomplete={
+                                    q.key === 'name' ? 'name' : q.key === 'email' ? 'email' : 'off'
+                                  }
+                                  aria-describedby={
+                                    q.description ? `wise-${q.key}-help` : undefined
+                                  }
+                                />
+                              )}
+                            </span>
+                            {q.description && (
+                              <span class="cand__aide survey-instruction" id={`wise-${q.key}-help`}>
+                                {q.description}
+                              </span>
+                            )}
+                          </div>
+                        ),
+                      )}
+                  </Fragment>
+                ))}
+                <div class="cand__row--large">
+                  <p class="cand__aide">
+                    Sauf opposition, votre adresse sera utilisée pour vous envoyer la newsletter
+                    Euneos destinée aux établissements. Vous pourrez vous désabonner à tout moment.
+                  </p>
+                  <p class="cand__consent">
+                    <label>
+                      <input type="checkbox" name="newsletterOptOut" />
+                      <span class="cand__aide">
+                        Je ne souhaite pas m’abonner à la newsletter Euneos.
+                      </span>
+                    </label>
+                  </p>
+                </div>
+                <div class="cand__submit">
+                  <button type="submit" class="cta s-vert cta--cut">
+                    Envoyer mes réponses
+                  </button>
+                </div>
+                <p class="cand__row--large survey-thanks">{surveyThanks}</p>
+                <p
+                  id={`${formId}-feedback`}
+                  class="cand__ok cand__row--large"
+                  role="status"
+                  aria-live="polite"
+                  tabindex="-1"
+                  hidden
+                />
+              </form>
+            </>
+          )
+        }
+      </Paper>
+    </div>
+  </section>
+</Base>
+<style>
+  .wise-introduction {
+    white-space: pre-line;
+  }
+</style>

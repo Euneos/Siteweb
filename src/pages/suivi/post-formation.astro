@@ -1,11 +1,13 @@
 ---
-import PostformationPage from '../../components/PostformationPage.astro'
+import WiseUpFollowUpForm from '../../components/WiseUpFollowUpForm.astro'
+import { postformationDefinition } from '../../lib/postformation-definition'
 import { modeApercu } from '../../lib/forms'
 import { operationalHeaders } from '../../lib/operational-links'
 import { postformationReady } from '../../lib/postformation-route'
 export const prerender = false
 for (const [key, value] of Object.entries(operationalHeaders))
   Astro.response.headers.set(key, value)
+const definition = postformationDefinition('post-formation')!
 const preview = modeApercu(Astro.request)
 let ready = true
 if (!preview) {
@@ -18,4 +20,14 @@ if (!preview) {
 }
 ---
 
-<PostformationPage slug="post-formation" ready={ready} preview={preview} />
+<WiseUpFollowUpForm
+  formId="postformation"
+  action="/api/questionnaires/post-formation"
+  version={definition.version}
+  subtitle="Questionnaire post-formation"
+  introduction={definition.introduction}
+  emphasizedPhrase="comprendre"
+  questions={definition.questions}
+  ready={ready}
+/>
+<script src="../../scripts/postformation.ts"></script>

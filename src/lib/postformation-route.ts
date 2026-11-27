@@ -1,4 +1,5 @@
 import type { APIContext } from 'astro'
+import { ajouterEtablissementNewsletter, brevoEnv } from './brevo'
 import { modeApercu } from './forms'
 import {
   operationalError,
@@ -27,7 +28,11 @@ export async function postformationPost({ request, locals }: APIContext, slug: P
     const definition = postformationDefinition(slug)!,
       body = await readOperationalBody(request)
     if (
-      Object.keys(body).some((k) => !['version', 'website', 'answers'].includes(k)) ||
+      Object.keys(body).some(
+        (k) =>
+          !['version', 'website', 'answers'].includes(k) &&
+          !(k === 'newsletterOptOut' && typeof body[k] === 'boolean'),
+      ) ||
       body.version !== definition.version ||
       (body.website !== undefined && body.website !== '')
     )
@@ -42,7 +47,21 @@ export async function postformationPost({ request, locals }: APIContext, slug: P
     const config = await postformationReady(locals, slug)
     await limitPublicForm(config.db, request)
     const result = await receivePostformation({ ...config, answers })
-    return operationalJson(result, result.state === 'processing' ? 202 : 200)
+    if (result.state === 'processing') return operationalJson(result, 202)
+    if (body.newsletterOptOut === false) {
+      try {
+        if (
+          await ajouterEtablissementNewsletter(brevoEnv(locals), String(answers.email), {
+            fullName: String(answers.name),
+          })
+        )
+          return operationalJson(result)
+      } catch {
+        // Une indisponibilité Brevo n’annule pas la réponse déjà enregistrée.
+      }
+      return operationalJson({ ...result, newsletterUnavailable: true })
+    }
+    return operationalJson(result)
   } catch (error) {
     return operationalError(error)
   }

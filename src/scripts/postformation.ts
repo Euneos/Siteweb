@@ -3,6 +3,8 @@ const form = document.querySelector<HTMLFormElement>('#postformation-form')
 const feedback = document.querySelector<HTMLElement>('#postformation-feedback')
 const button = form?.querySelector<HTMLButtonElement>('button[type="submit"]')
 if (form && feedback && button) {
+  const defaultLabel = button.textContent?.trim() || 'Envoyer'
+  const hasNewsletter = form.querySelector('[name="newsletterOptOut"]') !== null
   const syncValidity = () => {
     for (const group of form.querySelectorAll<HTMLElement>('[data-multiple-required]')) {
       const boxes = [...group.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
@@ -33,11 +35,15 @@ if (form && feedback && button) {
     feedback.textContent = 'Envoi en cours…'
     const values = new FormData(form),
       website = values.get('website')
+    const newsletterOptOut = values.has('newsletterOptOut')
     values.delete('website')
+    values.delete('newsletterOptOut')
     const answers: Record<string, string | FormDataEntryValue[]> = Object.fromEntries(
       values,
     ) as Record<string, string>
-    for (const checkbox of form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+    for (const checkbox of form.querySelectorAll<HTMLInputElement>(
+      'input[type="checkbox"]:not([name="newsletterOptOut"])',
+    ))
       answers[checkbox.name] = values.getAll(checkbox.name)
     // After an uncertain response, retry exactly the same payload. Keep values
     // visible; editing them must not create a second copy of a pending response.
@@ -46,10 +52,11 @@ if (form && feedback && button) {
       JSON.stringify({
         version: form.dataset.version,
         website,
+        ...(hasNewsletter ? { newsletterOptOut } : {}),
         answers,
       })
     const controller = new AbortController(),
-      timeout = setTimeout(() => controller.abort(), 20000)
+      timeout = setTimeout(() => controller.abort(), hasNewsletter ? 45000 : 20000)
     let uncertain = true
     let errorMessage =
       'La réception n’a pas pu être vérifiée. Conservez votre saisie et réessayez plus tard.'
@@ -71,7 +78,9 @@ if (form && feedback && button) {
         complete = true
         feedback.textContent = result.preview
           ? 'Démonstration terminée. Aucune donnée n’a été enregistrée et aucun e-mail n’a été envoyé.'
-          : 'Votre réponse a bien été enregistrée. Merci.'
+          : result.newsletterUnavailable
+            ? 'Votre réponse a bien été enregistrée. L’inscription à la newsletter n’a pas pu être confirmée.'
+            : 'Votre réponse a bien été enregistrée. Merci.'
       } else {
         pendingBody = body
         feedback.textContent =
@@ -98,7 +107,7 @@ if (form && feedback && button) {
         ? 'Réponse reçue'
         : pendingBody
           ? 'Vérifier la réception'
-          : 'Envoyer'
+          : defaultLabel
       feedback.focus()
     }
   })
