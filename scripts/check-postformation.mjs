@@ -150,8 +150,8 @@ try {
       measures.push({ slug: def.slug, ...size })
       for (const q of def.questions) {
         await expect(page.locator(`[name="${q.key}"]`).first()).toBeAttached()
-        const holder = page.locator(`[name="${q.key}"]`).first().locator('xpath=..')
-        if (!['radio', 'checkbox'].includes(q.type)) await expect(holder).toContainText(q.label)
+        if (!['radio', 'checkbox'].includes(q.type))
+          await expect(page.locator(`[name="${q.key}"]`).and(page.getByLabel(q.label.trim()))).toBeAttached()
       }
       if ([390, 1440].includes(width)) {
         await page.screenshot({ path: `${output}/${def.slug}-${width}.png`, fullPage: true })
@@ -237,7 +237,7 @@ try {
     assert(!/id="postformation-form"/.test(await closed.text()))
     const demo = await render(`/suivi/${def.slug}`, { preview: true })
     assert.equal(demo.status, 200)
-    assert.match(await demo.text(), /Aperçu de démonstration/)
+    assert.match(await demo.text(), /id="postformation-form"/)
     f.env[key] = saved
   }
   assert.deepEqual(errors, [])

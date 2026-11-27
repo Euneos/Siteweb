@@ -220,7 +220,7 @@ try {
     assert(dimensions.content <= width + 1, `Overflow at ${width}`)
     measures.push(dimensions)
     assert.equal(await page.locator('#preformation-form [name="email"]').count(), 1)
-    assert.equal(await page.locator('#preformation-form .pq-choice').count(), 10)
+    assert.equal(await page.locator('#preformation-form fieldset.cand__choix').count(), 10)
     await page.screenshot({ path: `${output}/preformation-${width}.png`, fullPage: true })
   }
   const fill = async (email = 'adult@example.invalid') => {
@@ -228,7 +228,7 @@ try {
     await page.locator('#preformation-form [name="email"]').fill(email)
     await page.locator('#preformation-form [name="school"]').fill('École fictive')
     await page.locator('#preformation-form [name="year"]').fill('2026-2027')
-    for (const group of await page.locator('.pq-choice').all())
+    for (const group of await page.locator('fieldset.cand__choix').all())
       await group.locator('input').first().check()
     await page
       .locator('#preformation-form [name="problems"]')
@@ -242,7 +242,7 @@ try {
   await page.goto(origin + '/suivi/pre-formation')
   await page
     .locator('#preformation-form')
-    .getByRole('button', { name: 'Envoyer', exact: true })
+    .getByRole('button', { name: 'Envoyer mes réponses', exact: true })
     .click()
   assert.equal(rows.length, 0, 'Required fields block empty submission')
   await fill()
@@ -252,7 +252,7 @@ try {
   await expect(page.locator('#preformation-form [name="role"]').nth(1)).toBeChecked()
   await page
     .locator('#preformation-form')
-    .getByRole('button', { name: 'Envoyer', exact: true })
+    .getByRole('button', { name: 'Envoyer mes réponses', exact: true })
     .click()
   await expect(page.locator('#preformation-feedback')).toContainText('a bien été enregistrée')
   assert.equal(rows.length, 1)
@@ -268,7 +268,7 @@ try {
   failAfterSave = true
   await page
     .locator('#preformation-form')
-    .getByRole('button', { name: 'Envoyer', exact: true })
+    .getByRole('button', { name: 'Envoyer mes réponses', exact: true })
     .click()
   await expect(page.getByRole('button', { name: 'Vérifier la réception' })).toBeEnabled()
   await expect(page.locator('#preformation-form [name="name"]')).toHaveAttribute('readonly', '')
@@ -301,7 +301,7 @@ try {
   const unauthorized = await render('/api/interne/formulaires')
   assert.equal(unauthorized.status, 403)
   const preview = await render('/suivi/pre-formation', { preview: true })
-  assert.match(await preview.text(), /Aperçu de démonstration/)
+  assert.match(await preview.text(), /id="preformation-form"/)
   assert.equal(calls.filter((c) => c.method === 'POST').length, 2)
   assert.equal(
     calls.filter(
